@@ -102,11 +102,11 @@ const DashboardPage = () => {
       {/* Mobile Sidebar Overlay */}
       {mobileMenuOpen && (
         <div className="mobile-sidebar-overlay" onClick={() => setMobileMenuOpen(false)}>
-          <aside className="mobile-sidebar">
+          <aside className="mobile-sidebar open" onClick={(e) => e.stopPropagation()}>
             <div className="mobile-sidebar-header">
               <div className="logo">
-                <span className="logo-icon">📊</span>
-                <span className="logo-text">Dashboard</span>
+                <span className="logo-icon">🏥</span>
+                <span className="logo-text">OFICIALMED</span>
               </div>
               <button 
                 className="close-mobile-sidebar"
@@ -377,4 +377,5 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
+
 
