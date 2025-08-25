@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './DashboardPage.css';
 
 // Importar ícones SVG
@@ -14,15 +14,217 @@ import BandeiraEUA from '../../icones/eua.svg';
 import BandeiraBrasil from '../../icones/brasil.svg';
 
 const DashboardPage = () => {
+  // Estados para o dashboard
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState('pt-BR');
-  const [usdRate, setUsdRate] = useState(5.0); // Taxa padrão como fallback
-  const [isLoadingRate, setIsLoadingRate] = useState(true);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [usdRate, setUsdRate] = useState(5.0);
+  const [isLoadingRate, setIsLoadingRate] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState('sale'); // Status padrão: Venda
+  const [marketData, setMarketData] = useState({
+    usd: 5.20,
+    eur: 5.45,
+    ibov: 125432,
+    lastUpdate: new Date()
+  });
+  
+  // Estados para os submenus em sanfona
+  const [openSubmenus, setOpenSubmenus] = useState({
+    funilsAdm: false,
+    funilComercial: false
+  });
+
+  // Atualizar dados de mercado automaticamente
+  useEffect(() => {
+    // Atualizar imediatamente
+    updateMarketData();
+    
+    // Atualizar a cada 30 segundos
+    const interval = setInterval(updateMarketData, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  // Atualizar horário em tempo real
+  useEffect(() => {
+    const updateTime = () => {
+      const timeElement = document.getElementById('current-time');
+      if (timeElement) {
+        timeElement.textContent = new Date().toLocaleTimeString('pt-BR', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+      }
+    };
+
+    // Atualizar a cada minuto
+    const timeInterval = setInterval(updateTime, 60000);
+    
+    return () => clearInterval(timeInterval);
+  }, []);
+
+  // Função para atualizar dados de mercado
+  const updateMarketData = async () => {
+    try {
+      // Simulação de API - em produção, usar APIs reais como Alpha Vantage, Yahoo Finance, etc.
+      const mockData = {
+        usd: (Math.random() * (5.30 - 5.10) + 5.10).toFixed(2),
+        eur: (Math.random() * (5.60 - 5.40) + 5.40).toFixed(2),
+        ibov: Math.floor(Math.random() * (127000 - 124000) + 124000),
+        lastUpdate: new Date()
+      };
+      
+      setMarketData(mockData);
+    } catch (error) {
+      console.error('Erro ao atualizar dados de mercado:', error);
+    }
+  };
+
+  // Hook para animação de contagem
+  const useCountUp = (end, duration = 2000) => {
+    const [count, setCount] = useState(0);
+    const frameRef = useRef();
+    
+    useEffect(() => {
+      let startTime = null;
+      const startValue = 0;
+      
+      const animate = (currentTime) => {
+        if (!startTime) startTime = currentTime;
+        const progress = Math.min((currentTime - startTime) / duration, 1);
+        
+        const currentCount = Math.floor(progress * (end - startValue) + startValue);
+        setCount(currentCount);
+        
+        if (progress < 1) {
+          frameRef.current = requestAnimationFrame(animate);
+        }
+      };
+      
+      frameRef.current = requestAnimationFrame(animate);
+      
+      return () => {
+        if (frameRef.current) {
+          cancelAnimationFrame(frameRef.current);
+        }
+      };
+    }, [end, duration]);
+    
+    return count;
+  };
+
+  // Componente para termômetro semicircular de performance
+  const PerformanceThermometer = ({ currentValue, previousValue, change, isPositive, color }) => {
+    const current = parseInt(currentValue.toString().replace(/[^\d]/g, ''));
+    const previous = parseInt(previousValue.toString().replace(/[^\d]/g, ''));
+    
+    // Calcular performance relativa (0-100)
+    const performanceRatio = previous > 0 ? (current / previous) : 1;
+    const performanceScore = Math.min(Math.max(performanceRatio * 100, 0), 200); // 0 a 200%
+    
+    // Determinar cor baseada na performance
+    const getThermometerColor = () => {
+      if (performanceScore >= 120) return '#10b981'; // Verde - Excelente
+      if (performanceScore >= 100) return '#fbbf24'; // Amarelo - Bom
+      if (performanceScore >= 80) return '#f59e0b'; // Laranja - Regular
+      return '#ef4444'; // Vermelho - Ruim
+    };
+    
+    // Calcular ângulo do ponteiro (0° = vermelho/esquerda, 180° = verde/direita)
+    const angle = Math.min((performanceScore / 200) * 180, 180);
+    
+    return (
+      <div className="performance-thermometer">
+        {/* Termômetro semicircular */}
+        <div className="thermometer-gauge">
+          <svg width="240" height="135" viewBox="0 0 240 135" className="thermometer-svg">
+            {/* Gradiente do termômetro */}
+            <defs>
+              <linearGradient id={`thermo-gradient-${color}`} x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#ef4444" />
+                <stop offset="40%" stopColor="#f59e0b" />
+                <stop offset="70%" stopColor="#fbbf24" />
+                <stop offset="100%" stopColor="#10b981" />
+              </linearGradient>
+            </defs>
+            
+            {/* Arco do termômetro */}
+            <path
+              d="M 45 105 A 75 75 0 0 1 195 105"
+              stroke={`url(#thermo-gradient-${color})`}
+              strokeWidth="15"
+              fill="none"
+              strokeLinecap="round"
+              className="thermometer-arc"
+            />
+            
+            {/* Marcações de escala - apenas pontos sem números */}
+            {[0, 50, 100, 150, 200].map((mark, index) => {
+              const markAngle = (mark / 200) * 180;
+              const radians = (markAngle - 90) * Math.PI / 180;
+              const x = 120 + 67 * Math.cos(radians);
+              const y = 105 + 67 * Math.sin(radians);
+              return (
+                <circle
+                  key={index}
+                  cx={x}
+                  cy={y}
+                  r="3.5"
+                  fill="rgba(255, 255, 255, 0.8)"
+                />
+              );
+            })}
+            
+            {/* Ponteiro do termômetro */}
+            <g 
+              className="thermometer-pointer" 
+              style={{ 
+                transformOrigin: '120px 105px',
+                transform: `rotate(${angle - 90}deg)`,
+                transition: 'transform 2s cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+            >
+              <line
+                x1="120"
+                y1="105"
+                x2="120"
+                y2="45"
+                stroke="#ffffff"
+                strokeWidth="7"
+                strokeLinecap="round"
+                filter="drop-shadow(0 3px 8px rgba(0,0,0,0.4))"
+              />
+              <circle
+                cx="120"
+                cy="105"
+                r="9"
+                fill="#ffffff"
+                filter="drop-shadow(0 3px 8px rgba(0,0,0,0.4))"
+              />
+            </g>
+            
+          </svg>
+        </div>
+      </div>
+    );
+  };
+
+  // Função para alternar submenus
+  const toggleSubmenu = (submenuKey) => {
+    // Não abre submenu se sidebar está colapsada
+    if (!sidebarExpanded) {
+      return;
+    }
+    
+    setOpenSubmenus(prev => ({
+      ...prev,
+      [submenuKey]: !prev[submenuKey]
+    }));
+  };
 
   // Buscar cotação do dólar
   useEffect(() => {
@@ -116,11 +318,12 @@ const DashboardPage = () => {
       chartTitle: 'Funil de Conversão',
       chartPeriod: 'Últimos 30 dias',
       
-      // Estatísticas
-      totalOpportunities: 'Total de Oportunidades',
-      lostOpportunities: 'Oportunidades Perdidas',
-      wonOpportunities: 'Oportunidades Ganhas',
-      totalValue: 'Valor Total',
+             // Estatísticas
+       totalOpportunities: 'Total de Oportunidades',
+       lostOpportunities: 'Oportunidades Perdidas',
+       wonOpportunities: 'Oportunidades Ganhas',
+       budgetNegotiation: 'Orçamento em Negociação',
+       totalValue: 'Valor Total',
       
       // Funil
       entry: 'ENTRADA',
@@ -166,6 +369,8 @@ const DashboardPage = () => {
       // Menu
       funilCompra: 'Funil Compra',
       funilRecompra: 'Funil Recompra',
+      funilsAdm: 'Funils Adm',
+      funilComercial: 'Funil Comercial',
       
       // Busca
       searchPlaceholder: 'Buscar...',
@@ -183,7 +388,11 @@ const DashboardPage = () => {
       // Filtros de funil
       allFunnels: 'Todos os funis',
       purchaseFunnel: 'Funil de Compra',
-      repurchaseFunnel: 'Funil de Recompra'
+      repurchaseFunnel: 'Funil de Recompra',
+      status: 'Status',
+      sale: 'Venda',
+      won: 'Ganho',
+      registered: 'Cadastrado'
     },
     'en-US': {
       // Titles and headers
@@ -193,11 +402,12 @@ const DashboardPage = () => {
       chartTitle: 'Conversion Funnel',
       chartPeriod: 'Last 30 days',
       
-      // Statistics
-      totalOpportunities: 'Total Opportunities',
-      lostOpportunities: 'Lost Opportunities',
-      wonOpportunities: 'Won Opportunities',
-      totalValue: 'Total Value',
+             // Statistics
+       totalOpportunities: 'Total Opportunities',
+       lostOpportunities: 'Lost Opportunities',
+       wonOpportunities: 'Won Opportunities',
+       budgetNegotiation: 'Budget in Negotiation',
+       totalValue: 'Total Value',
       
       // Funnel
       entry: 'ENTRY',
@@ -243,6 +453,8 @@ const DashboardPage = () => {
       // Menu
       funilCompra: 'Purchase Funnel',
       funilRecompra: 'Repurchase Funnel',
+      funilsAdm: 'Admin Funnels',
+      funilComercial: 'Commercial Funnel',
       
       // Search
       searchPlaceholder: 'Search...',
@@ -260,7 +472,11 @@ const DashboardPage = () => {
       // Funnel filters
       allFunnels: 'All Funnels',
       purchaseFunnel: 'Purchase Funnel',
-      repurchaseFunnel: 'Repurchase Funnel'
+      repurchaseFunnel: 'Repurchase Funnel',
+      status: 'Status',
+      sale: 'Sale',
+      won: 'Won',
+      registered: 'Registered'
     }
   };
 
@@ -268,6 +484,14 @@ const DashboardPage = () => {
 
   const toggleSidebar = () => {
     setSidebarExpanded(!sidebarExpanded);
+    
+    // Resetar todos os submenus quando colapsar a sidebar
+    if (sidebarExpanded) {
+      setOpenSubmenus({
+        funilsAdm: false,
+        funilComercial: false
+      });
+    }
   };
 
   const toggleFullscreen = () => {
@@ -299,6 +523,18 @@ const DashboardPage = () => {
     setCurrentLanguage(language);
     setShowLanguageDropdown(false);
   };
+
+  // Fechar dropdown ao clicar fora
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showLanguageDropdown && !event.target.closest('.language-selector')) {
+        setShowLanguageDropdown(false);
+      }
+    };
+
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, [showLanguageDropdown]);
 
   const handleDatePreset = (preset) => {
     const today = new Date();
@@ -359,11 +595,94 @@ const DashboardPage = () => {
     { icon: 'funil-recompra', label: t.funilRecompra, active: false }
   ];
 
+  // Estrutura dos menus em sanfona
+  const accordionMenus = [
+    {
+      id: 'funilsAdm',
+      label: t.funilsAdm,
+      icon: 'funil-compra',
+      subItems: [
+        { icon: 'funil-compra', label: t.funilCompra, active: true },
+        { icon: 'funil-recompra', label: t.funilRecompra, active: false }
+      ]
+    },
+    {
+      id: 'funilComercial',
+      label: t.funilComercial,
+      icon: 'funil-recompra',
+      subItems: [
+        { icon: 'funil-compra', label: t.funilCompra, active: false },
+        { icon: 'funil-recompra', label: t.funilRecompra, active: true }
+      ]
+    }
+  ];
+
   const statsCards = [
-    { title: t.totalOpportunities, value: '1,234', icon: '📊', color: 'blue', progress: 75 },
-    { title: t.lostOpportunities, value: '89', icon: '❌', color: 'red', progress: 12 },
-    { title: t.wonOpportunities, value: '156', icon: '✅', color: 'green', progress: 25 },
-    { title: t.totalValue, value: 'R$ 2.5M', icon: '💰', color: 'cyan', progress: 60, isCurrency: true }
+    { 
+      title: t.totalOpportunities, 
+      value: '1,234', 
+      color: 'blue', 
+      progress: 75, 
+      isOpportunity: true, 
+      opportunityValue: 'R$ 3.2M',
+      previousValue: '1,156',
+      change: '+6.7%',
+      isPositive: true,
+      meta: '2300',
+      metaPercentage: '54%'
+    },
+    { 
+      title: t.lostOpportunities, 
+      value: '89', 
+      color: 'red', 
+      progress: 45, 
+      isOpportunity: true, 
+      opportunityValue: 'R$ 890k',
+      previousValue: '92',
+      change: '-3.3%',
+      isPositive: false,
+      meta: '120',
+      metaPercentage: '74%'
+    },
+    { 
+      title: t.averageTicket, 
+      value: '2800', 
+      color: 'purple', 
+      progress: 85, 
+      isCurrency: true, 
+      opportunityValue: 'R$ 2.500',
+      previousValue: '2650',
+      change: '+5.7%',
+      isPositive: true,
+      meta: '3200',
+      metaPercentage: '88%'
+    },
+    { 
+      title: t.budgetNegotiation, 
+      value: '73', 
+      color: 'orange', 
+      progress: 62, 
+      isOpportunity: true, 
+      opportunityValue: 'R$ 420k',
+      previousValue: '68',
+      change: '+7.4%',
+      isPositive: true,
+      meta: '95',
+      metaPercentage: '77%'
+    },
+    { 
+      title: t.wonOpportunities, 
+      value: '156', 
+      color: 'green', 
+      progress: 68, 
+      isOpportunity: true, 
+      opportunityValue: 'R$ 1.56M',
+      previousValue: '142',
+      change: '+9.9%',
+      isPositive: true,
+      meta: '200',
+      metaPercentage: '78%'
+    }
   ];
 
   return (
@@ -393,12 +712,59 @@ const DashboardPage = () => {
         </div>
 
         <nav className="sidebar-nav">
-          {menuItems.map((item, index) => (
-            <div key={index} className={`nav-item ${item.active ? 'active' : ''}`}>
-              <div className="nav-icon">
-                {renderIcon(item.icon, item.active)}
+          {accordionMenus.map((menu, menuIndex) => (
+            <div key={menuIndex} className="accordion-menu">
+              {/* Menu Principal */}
+              <div 
+                className={`nav-item nav-item-parent ${openSubmenus[menu.id] ? 'expanded' : ''}`}
+                onClick={() => toggleSubmenu(menu.id)}
+                data-tooltip={menu.label}
+              >
+                <div className="nav-icon">
+                  {renderIcon(menu.icon, false)}
+                </div>
+                {sidebarExpanded && (
+                  <>
+                    <span className="nav-label">{menu.label}</span>
+                    <div className={`nav-arrow ${openSubmenus[menu.id] ? 'rotated' : ''}`}>
+                      ▼
+                    </div>
+                  </>
+                )}
+                
+                {/* Tooltip interativa para modo colapsado */}
+                {!sidebarExpanded && (
+                  <div className="collapsed-submenu">
+                    <div className="collapsed-submenu-header">
+                      {menu.label}
+                    </div>
+                    {menu.subItems.map((subItem, subIndex) => (
+                      <div 
+                        key={subIndex} 
+                        className="collapsed-submenu-item"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Aqui você pode adicionar a lógica de navegação
+                          console.log(`Clicked on ${subItem.label}`);
+                        }}
+                      >
+                        {subItem.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-              {sidebarExpanded && <span className="nav-label">{item.label}</span>}
+              
+              {/* Submenu */}
+              {sidebarExpanded && (
+                <div className={`submenu ${openSubmenus[menu.id] ? 'open' : ''}`}>
+                  {menu.subItems.map((subItem, subIndex) => (
+                    <div key={subIndex} className={`nav-item submenu-item ${subItem.active ? 'active' : ''}`}>
+                      <span className="nav-label">{subItem.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </nav>
@@ -438,13 +804,16 @@ const DashboardPage = () => {
         </div>
 
         <div className="top-menu-right">
-          {/* Seletor de idioma */}
-          <div className="language-selector" onClick={toggleLanguageDropdown}>
+                    {/* Seletor de idioma */}
+          <div className="language-selector" onClick={(e) => {
+            e.stopPropagation();
+            toggleLanguageDropdown();
+          }}>
             <img 
               src={currentLanguage === 'pt-BR' ? BandeiraBrasil : BandeiraEUA} 
               alt={currentLanguage === 'pt-BR' ? 'Brasil' : 'United States'} 
               className="flag-br" 
-              style={{ width: '20px', height: 'auto' }} 
+              style={{ width: '20px', height: 'auto' }}
             />
             <span className="language-text">{currentLanguage === 'pt-BR' ? 'BR' : 'US'}</span>
             
@@ -515,12 +884,33 @@ const DashboardPage = () => {
             <button className="close-mobile-sidebar">✕</button>
           </div>
           <nav className="mobile-sidebar-nav">
-            {menuItems.map((item, index) => (
-              <div key={index} className={`nav-item ${item.active ? 'active' : ''}`}>
-                <div className="nav-icon">
-                  {renderIcon(item.icon, item.active)}
+            {accordionMenus.map((menu, menuIndex) => (
+              <div key={menuIndex} className="accordion-menu">
+                {/* Menu Principal */}
+                <div 
+                  className={`nav-item nav-item-parent ${openSubmenus[menu.id] ? 'expanded' : ''}`}
+                  onClick={() => toggleSubmenu(menu.id)}
+                >
+                  <div className="nav-icon">
+                    {renderIcon(menu.icon, false)}
+                  </div>
+                  <span className="nav-label">{menu.label}</span>
+                  <div className={`nav-arrow ${openSubmenus[menu.id] ? 'rotated' : ''}`}>
+                    ▼
+                  </div>
                 </div>
-                <span className="nav-label">{item.label}</span>
+                
+                {/* Submenu */}
+                <div className={`submenu ${openSubmenus[menu.id] ? 'open' : ''}`}>
+                  {menu.subItems.map((subItem, subIndex) => (
+                    <div key={subIndex} className={`nav-item submenu-item ${subItem.active ? 'active' : ''}`}>
+                      <div className="nav-icon">
+                        {renderIcon(subItem.icon, subItem.active)}
+                      </div>
+                      <span className="nav-label">{subItem.label}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </nav>
@@ -530,16 +920,72 @@ const DashboardPage = () => {
       {/* Main Content */}
       <main className="main-content">
         <div className="content-header">
-          <div className="page-title">
-            <h1>{t.pageTitle}</h1>
-            <p>{t.pageSubtitle}</p>
+          {/* Indicadores de mercado, data e horário */}
+          <div className="header-left-inline">
+            <div className="indicator">
+              <span className="indicator-label">USD:</span>
+              <span className="indicator-value">R$ {marketData.usd}</span>
+              <span className={`indicator-change ${marketData.usd > 5.20 ? 'positive' : 'negative'}`}>
+                {marketData.usd > 5.20 ? '↗' : '↘'}
+              </span>
+            </div>
+            
+            <div className="indicator">
+              <span className="indicator-label">EUR:</span>
+              <span className="indicator-value">R$ {marketData.eur}</span>
+              <span className={`indicator-change ${marketData.eur > 5.50 ? 'positive' : 'negative'}`}>
+                {marketData.eur > 5.50 ? '↗' : '↘'}
+              </span>
+            </div>
+            
+            <div className="indicator">
+              <span className="indicator-label">IBOV:</span>
+              <span className="indicator-value">{marketData.ibov.toLocaleString()}</span>
+              <span className={`indicator-change ${marketData.ibov > 125000 ? 'positive' : 'negative'}`}>
+                {marketData.ibov > 125000 ? '↗' : '↘'}
+              </span>
+            </div>
+
+            <div className="datetime-box">
+              <div className="date-box">
+                <span className="datetime-label">📅</span>
+                <span className="datetime-value">
+                  {new Date().toLocaleDateString('pt-BR', { 
+                    day: '2-digit', 
+                    month: '2-digit', 
+                    year: 'numeric' 
+                  })}
+                </span>
+              </div>
+              
+              <div className="time-box">
+                <span className="datetime-label">🕒</span>
+                <span className="datetime-value" id="current-time">
+                  {new Date().toLocaleTimeString('pt-BR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                  })}
+                </span>
+              </div>
+            </div>
           </div>
 
+          {/* Filtros à direita */}
           <div className="header-actions">
             <select className="filter-selector">
               <option>{t.allFunnels}</option>
               <option>{t.purchaseFunnel}</option>
               <option>{t.repurchaseFunnel}</option>
+            </select>
+
+            <select 
+              className="status-selector"
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+            >
+              <option value="sale">{t.sale}</option>
+              <option value="won">{t.won}</option>
+              <option value="registered">{t.registered}</option>
             </select>
 
             <select className="date-preset-selector">
@@ -605,18 +1051,56 @@ const DashboardPage = () => {
 
         {/* Stats Section */}
         <section className="stats-section">
-          <h2>{t.statsTitle}</h2>
           <div className="stats-grid">
             {statsCards.map((card, index) => (
               <div key={index} className={`stat-card ${card.color}`}>
-                <div className="stat-header">
-                  <span className="stat-title">{card.title}</span>
-                  <span className="stat-icon">{card.icon}</span>
+                {/* Header com título e métricas */}
+                <div className="stat-header-new">
+                  <div className="header-content">
+                    <span className="stat-title">{card.title}</span>
+                    <div className="header-metrics">
+                      <div className="stat-value">
+                        {(() => {
+                          const count = useCountUp(parseInt(card.value.replace(/,/g, '')), 1500);
+                          if (card.isCurrency) {
+                            return `R$ ${count.toLocaleString()}`;
+                          } else {
+                            return count.toLocaleString();
+                          }
+                        })()}
+                      </div>
+                      {(card.isOpportunity || card.isCurrency) && (
+                        <div className="opportunity-value">
+                          {card.opportunityValue}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="stat-value">
-                  {card.isCurrency ? formatLargeNumber(card.value) : card.value}
+                
+                {/* Termômetro grande no centro */}
+                <div className="stat-thermometer-center">
+                  <PerformanceThermometer 
+                    currentValue={card.value}
+                    previousValue={card.previousValue}
+                    change={card.change}
+                    isPositive={card.isPositive}
+                    color={card.color}
+                  />
                 </div>
-                <div className="stat-progress"></div>
+                
+                {/* Meta na parte inferior */}
+                <div className="stat-meta">
+                  <div className="meta-info">
+                    <span className="meta-label">META</span>
+                    <span className="meta-value">
+                      {card.isCurrency ? `R$ ${parseInt(card.meta).toLocaleString()}` : card.meta}
+                    </span>
+                  </div>
+                  <div className="meta-percentage">
+                    {card.metaPercentage}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -634,33 +1118,51 @@ const DashboardPage = () => {
               <div className="sources-bar">
                 <div className="source-item google">
                   <span className="source-label">{t.google}</span>
-                  <span className="source-value">45%</span>
-                  <span className="source-percentage">2.3k</span>
+                  <div className="source-value">
+                    <span className="source-percentage">45%</span>
+                    <span>/</span>
+                    <span className="source-count">2.3k</span>
+                  </div>
                 </div>
                 <div className="source-item meta">
                   <span className="source-label">{t.meta}</span>
-                  <span className="source-value">28%</span>
-                  <span className="source-percentage">1.4k</span>
+                  <div className="source-value">
+                    <span className="source-percentage">28%</span>
+                    <span>/</span>
+                    <span className="source-count">1.4k</span>
+                  </div>
                 </div>
                 <div className="source-item organic">
                   <span className="source-label">{t.organic}</span>
-                  <span className="source-value">15%</span>
-                  <span className="source-percentage">750</span>
+                  <div className="source-value">
+                    <span className="source-percentage">15%</span>
+                    <span>/</span>
+                    <span className="source-count">750</span>
+                  </div>
                 </div>
                 <div className="source-item indicacao">
                   <span className="source-label">{t.indication}</span>
-                  <span className="source-value">8%</span>
-                  <span className="source-percentage">400</span>
+                  <div className="source-value">
+                    <span className="source-percentage">8%</span>
+                    <span>/</span>
+                    <span className="source-count">400</span>
+                  </div>
                 </div>
                 <div className="source-item prescritor">
                   <span className="source-label">{t.prescriber}</span>
-                  <span className="source-value">3%</span>
-                  <span className="source-percentage">150</span>
+                  <div className="source-value">
+                    <span className="source-percentage">3%</span>
+                    <span>/</span>
+                    <span className="source-count">150</span>
+                  </div>
                 </div>
                 <div className="source-item franquia">
                   <span className="source-label">{t.franchise}</span>
-                  <span className="source-value">1%</span>
-                  <span className="source-percentage">50</span>
+                  <div className="source-value">
+                    <span className="source-percentage">1%</span>
+                    <span>/</span>
+                    <span className="source-count">50</span>
+                  </div>
                 </div>
               </div>
 
@@ -761,27 +1263,147 @@ const DashboardPage = () => {
               <h3>{t.financialMetrics}</h3>
             </div>
 
-            <div className="financial-metrics">
-              <div className="metric-item gain">
-                <span className="metric-label">{t.gain}</span>
-                <span className="metric-value">
-                  {formatCurrency(156000, 'BRL')}
-                </span>
-                <span className="metric-trend">+12.5%</span>
+            <div className="financial-metrics-new">
+              {/* Google Metrics Card */}
+              <div className="metric-card google-card">
+                <div className="metric-card-header">
+                  <div className="platform-icon google-icon">G</div>
+                  <span className="platform-name">Google</span>
+                  <div className="roas-badge roas-excellent">ROAS 3.47x</div>
+                </div>
+                
+                <div className="metrics-grid">
+                  <div className="metric-item-visual">
+                    <div className="metric-info">
+                      <span className="metric-label">Investido</span>
+                      <span className="metric-value">{formatCurrency(45000, 'BRL')}</span>
+                      <div className="metric-bar">
+                        <div className="metric-fill" style={{width: '85%', background: 'linear-gradient(90deg, #ef4444, #dc2626)'}}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="metric-item-visual">
+                    <div className="metric-info">
+                      <span className="metric-label">Taxa Conversão</span>
+                      <span className="metric-value">78 → 5 (6.4%)</span>
+                      <div className="metric-bar">
+                        <div className="metric-fill" style={{width: '64%', background: 'linear-gradient(90deg, #3b82f6, #1d4ed8)'}}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="metric-item-visual">
+                    <div className="metric-info">
+                      <span className="metric-label">Valor Ganho</span>
+                      <span className="metric-value">{formatCurrency(156000, 'BRL')}</span>
+                      <div className="metric-bar">
+                        <div className="metric-fill" style={{width: '92%', background: 'linear-gradient(90deg, #10b981, #059669)'}}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="metric-item-visual">
+                    <div className="metric-info">
+                      <span className="metric-label">Oportunidades Perdidas</span>
+                      <span className="metric-value">73</span>
+                      <div className="metric-bar">
+                        <div className="metric-fill" style={{width: '73%', background: 'linear-gradient(90deg, #f59e0b, #d97706)'}}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="metric-item-visual">
+                    <div className="metric-info">
+                      <span className="metric-label">Oportunidades Abertas</span>
+                      <span className="metric-value">12</span>
+                      <div className="metric-bar">
+                        <div className="metric-fill" style={{width: '30%', background: 'linear-gradient(90deg, #8b5cf6, #7c3aed)'}}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="metric-item-visual">
+                    <div className="metric-info">
+                      <span className="metric-label">Valor Perda</span>
+                      <span className="metric-value">{formatCurrency(89000, 'BRL')}</span>
+                      <div className="metric-bar">
+                        <div className="metric-fill" style={{width: '57%', background: 'linear-gradient(90deg, #ef4444, #dc2626)'}}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="metric-item loss">
-                <span className="metric-label">{t.loss}</span>
-                <span className="metric-value">
-                  {formatCurrency(89000, 'BRL')}
-                </span>
-                <span className="metric-trend">-8.2%</span>
-              </div>
-              <div className="metric-item ticket">
-                <span className="metric-label">{t.averageTicket}</span>
-                <span className="metric-value">
-                  {formatCurrency(2800, 'BRL')}
-                </span>
-                <span className="metric-trend">+5.1%</span>
+              
+              {/* Meta Metrics Card */}
+              <div className="metric-card meta-card">
+                <div className="metric-card-header">
+                  <div className="platform-icon meta-icon">M</div>
+                  <span className="platform-name">Meta</span>
+                  <div className="roas-badge roas-good">ROAS 3.06x</div>
+                </div>
+                
+                <div className="metrics-grid">
+                  <div className="metric-item-visual">
+                    <div className="metric-info">
+                      <span className="metric-label">Investido</span>
+                      <span className="metric-value">{formatCurrency(32000, 'BRL')}</span>
+                      <div className="metric-bar">
+                        <div className="metric-fill" style={{width: '60%', background: 'linear-gradient(90deg, #ef4444, #dc2626)'}}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="metric-item-visual">
+                    <div className="metric-info">
+                      <span className="metric-label">Taxa Conversão</span>
+                      <span className="metric-value">45 → 3 (6.7%)</span>
+                      <div className="metric-bar">
+                        <div className="metric-fill" style={{width: '67%', background: 'linear-gradient(90deg, #3b82f6, #1d4ed8)'}}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="metric-item-visual">
+                    <div className="metric-info">
+                      <span className="metric-label">Valor Ganho</span>
+                      <span className="metric-value">{formatCurrency(98000, 'BRL')}</span>
+                      <div className="metric-bar">
+                        <div className="metric-fill" style={{width: '63%', background: 'linear-gradient(90deg, #10b981, #059669)'}}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="metric-item-visual">
+                    <div className="metric-info">
+                      <span className="metric-label">Oportunidades Perdidas</span>
+                      <span className="metric-value">42</span>
+                      <div className="metric-bar">
+                        <div className="metric-fill" style={{width: '42%', background: 'linear-gradient(90deg, #f59e0b, #d97706)'}}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="metric-item-visual">
+                    <div className="metric-info">
+                      <span className="metric-label">Oportunidades Abertas</span>
+                      <span className="metric-value">8</span>
+                      <div className="metric-bar">
+                        <div className="metric-fill" style={{width: '20%', background: 'linear-gradient(90deg, #8b5cf6, #7c3aed)'}}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="metric-item-visual">
+                    <div className="metric-info">
+                      <span className="metric-label">Valor Perda</span>
+                      <span className="metric-value">{formatCurrency(67000, 'BRL')}</span>
+                      <div className="metric-bar">
+                        <div className="metric-fill" style={{width: '43%', background: 'linear-gradient(90deg, #ef4444, #dc2626)'}}></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
