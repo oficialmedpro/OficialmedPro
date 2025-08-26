@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './DashboardPage.css';
 import MetricsSidebar from '../components/MetricsSidebar';
+import FilterBar from '../components/FilterBar';
+import TopMenuBar from '../components/TopMenuBar';
 
 // Importar ícones SVG
 import FunilCompraAtivo from '../../icones/funil-compra-ativo.svg';
@@ -11,21 +13,23 @@ import LogoIcon from '../../icones/icone_logo.svg';
 import LogoIconLight from '../../icones/icone_logo_modo_light.svg';
 import LogoOficialmed from '../../icones/icone_oficialmed.svg';
 import LogoOficialmedLight from '../../icones/icone_oficialmed_modo_light.svg';
-import BandeiraEUA from '../../icones/eua.svg';
-import BandeiraBrasil from '../../icones/brasil.svg';
+
 
 const DashboardPage = () => {
   // Estados para o dashboard
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState('pt-BR');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [usdRate, setUsdRate] = useState(5.0);
   const [isLoadingRate, setIsLoadingRate] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('sale'); // Status padrão: Venda
+  const [selectedSeller, setSelectedSeller] = useState('all'); // Vendedor padrão: Todos
+  const [selectedPeriod, setSelectedPeriod] = useState('today'); // Período padrão: Hoje
+  const [selectedFunnel, setSelectedFunnel] = useState('all'); // Funil padrão: Todos
+  const [selectedUnit, setSelectedUnit] = useState('all'); // Unidade padrão: Todas
   const [marketData, setMarketData] = useState({
     usd: 5.20,
     eur: 5.45,
@@ -221,10 +225,22 @@ const DashboardPage = () => {
       return;
     }
     
-    setOpenSubmenus(prev => ({
-      ...prev,
-      [submenuKey]: !prev[submenuKey]
-    }));
+    setOpenSubmenus(prev => {
+      // Se o submenu clicado já está aberto, fecha ele
+      if (prev[submenuKey]) {
+        return {
+          ...prev,
+          [submenuKey]: false
+        };
+      }
+      
+      // Se o submenu clicado está fechado, abre ele e fecha todos os outros
+      return {
+        funilsAdm: false,
+        funilComercial: false,
+        [submenuKey]: true
+      };
+    });
   };
 
   // Buscar cotação do dólar
@@ -516,26 +532,9 @@ const DashboardPage = () => {
     }
   };
 
-  const toggleLanguageDropdown = () => {
-    setShowLanguageDropdown(!showLanguageDropdown);
-  };
-
   const changeLanguage = (language) => {
     setCurrentLanguage(language);
-    setShowLanguageDropdown(false);
   };
-
-  // Fechar dropdown ao clicar fora
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (showLanguageDropdown && !event.target.closest('.language-selector')) {
-        setShowLanguageDropdown(false);
-      }
-    };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [showLanguageDropdown]);
 
   const handleDatePreset = (preset) => {
     const today = new Date();
@@ -784,84 +783,15 @@ const DashboardPage = () => {
       </aside>
 
       {/* Top Menu Bar */}
-      <header className="top-menu-bar">
-        <button className="sidebar-toggle-discrete" onClick={toggleSidebar}>
-          <div className="hamburger-lines">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-        </button>
-
-        <div className="search-container">
-          <div className="search-input-wrapper">
-            <span className="search-icon">🔍</span>
-            <input 
-              type="text" 
-              className="search-input" 
-              placeholder={t.searchPlaceholder}
-            />
-          </div>
-        </div>
-
-        <div className="top-menu-right">
-                    {/* Seletor de idioma */}
-          <div className="language-selector" onClick={(e) => {
-            e.stopPropagation();
-            toggleLanguageDropdown();
-          }}>
-            <img 
-              src={currentLanguage === 'pt-BR' ? BandeiraBrasil : BandeiraEUA} 
-              alt={currentLanguage === 'pt-BR' ? 'Brasil' : 'United States'} 
-              className="flag-br" 
-              style={{ width: '20px', height: 'auto' }}
-            />
-            <span className="language-text">{currentLanguage === 'pt-BR' ? 'BR' : 'US'}</span>
-            
-            {/* Dropdown de idiomas */}
-            {showLanguageDropdown && (
-              <div className="language-dropdown">
-                <div 
-                  className="language-option" 
-                  onClick={() => changeLanguage('pt-BR')}
-                >
-                  <img src={BandeiraBrasil} alt="Brasil" style={{ width: '20px', height: 'auto' }} />
-                  <span>Português</span>
-                </div>
-                <div 
-                  className="language-option" 
-                  onClick={() => changeLanguage('en-US')}
-                >
-                  <img src={BandeiraEUA} alt="United States" style={{ width: '20px', height: 'auto' }} />
-                  <span>English</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <button className="top-menu-btn" onClick={toggleFullscreen} title={t.fullscreen}>
-            ⛶
-          </button>
-
-          <button className="top-menu-btn" onClick={toggleTheme} title={t.themeToggle}>
-            {isDarkMode ? '☀️' : '🌙'}
-          </button>
-
-          <button className="top-menu-btn" title={t.messages}>
-            ✉️
-            <span className="notification-badge">3</span>
-          </button>
-
-          <button className="top-menu-btn" title={t.notifications}>
-            🔔
-            <span className="notification-badge">7</span>
-          </button>
-
-          <div className="user-avatar-container">
-            <div className="user-avatar-circle">U</div>
-          </div>
-        </div>
-      </header>
+      <TopMenuBar 
+        sidebarExpanded={sidebarExpanded}
+        toggleSidebar={toggleSidebar}
+        toggleFullscreen={toggleFullscreen}
+        toggleTheme={toggleTheme}
+        isDarkMode={isDarkMode}
+        currentLanguage={currentLanguage}
+        changeLanguage={changeLanguage}
+      />
 
       {/* Mobile Header */}
       <header className="mobile-header">
@@ -973,80 +903,23 @@ const DashboardPage = () => {
 
           {/* Filtros à direita */}
           <div className="header-actions">
-            <select className="filter-selector">
-              <option>{t.allFunnels}</option>
-              <option>{t.purchaseFunnel}</option>
-              <option>{t.repurchaseFunnel}</option>
-            </select>
-
-            <select 
-              className="status-selector"
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-            >
-              <option value="sale">{t.sale}</option>
-              <option value="won">{t.won}</option>
-              <option value="registered">{t.registered}</option>
-            </select>
-
-            <select className="date-preset-selector">
-              <option value="today" onClick={() => handleDatePreset('today')}>{t.today}</option>
-              <option value="yesterday" onClick={() => handleDatePreset('yesterday')}>{t.yesterday}</option>
-              <option value="last7Days" onClick={() => handleDatePreset('last7Days')}>{t.last7Days}</option>
-              <option value="thisMonth" onClick={() => handleDatePreset('thisMonth')}>{t.thisMonth}</option>
-              <option value="thisQuarter" onClick={() => handleDatePreset('thisQuarter')}>{t.thisQuarter}</option>
-              <option value="thisYear" onClick={() => handleDatePreset('thisYear')}>{t.thisYear}</option>
-            </select>
-
-            <div className="date-filter-container">
-              <button 
-                className="pick-date-btn" 
-                onClick={() => setShowCalendar(!showCalendar)}
-              >
-                📅 {t.selectPeriod}
-              </button>
-
-              {showCalendar && (
-                <div className="calendar-popup">
-                  <div className="calendar-header">
-                    <h4>{t.selectPeriod}</h4>
-                    <button className="close-calendar" onClick={() => setShowCalendar(false)}>✕</button>
-                  </div>
-                  <div className="calendar-content">
-                    <div className="date-inputs">
-                      <div className="date-input-group">
-                        <label>{t.startDate}</label>
-                        <input 
-                          type="date" 
-                          value={startDate} 
-                          onChange={(e) => setStartDate(e.target.value)}
-                        />
-                      </div>
-                      <div className="date-input-group">
-                        <label>{t.endDate}</label>
-                        <input 
-                          type="date" 
-                          value={endDate} 
-                          onChange={(e) => setEndDate(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                    <div className="calendar-actions">
-                      <button className="btn-secondary" onClick={() => setShowCalendar(false)}>
-                        {t.cancel}
-                      </button>
-                      <button 
-                        className="btn-primary" 
-                        onClick={applyCustomDates}
-                        disabled={!startDate || !endDate || startDate > endDate}
-                      >
-                        {t.apply}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <FilterBar 
+              t={t}
+              selectedStatus={selectedStatus}
+              setSelectedStatus={setSelectedStatus}
+              selectedSeller={selectedSeller}
+              setSelectedSeller={setSelectedSeller}
+              selectedPeriod={selectedPeriod}
+              setSelectedPeriod={setSelectedPeriod}
+              selectedFunnel={selectedFunnel}
+              setSelectedFunnel={setSelectedFunnel}
+              selectedUnit={selectedUnit}
+              setSelectedUnit={setSelectedUnit}
+              startDate={startDate}
+              setStartDate={setStartDate}
+              endDate={endDate}
+              setEndDate={setEndDate}
+            />
           </div>
         </div>
 

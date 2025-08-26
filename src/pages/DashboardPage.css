@@ -16,6 +16,7 @@
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
   --border-color: #334155;
+  --accent-color: #3b82f6;
   --accent-blue: #3b82f6;
   --accent-blue-dark: #1d4ed8;
   --accent-green: #10b981;
@@ -35,6 +36,7 @@
   --text-secondary: #475569;
   --text-muted: #64748b;
   --border-color: #cbd5e1;
+  --accent-color: #3b82f6;
   --accent-blue: #3b82f6;
   --accent-blue-dark: #1d4ed8;
   --accent-green: #10b981;
@@ -628,9 +630,10 @@
   margin-bottom: 16px;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   flex-wrap: wrap;
   gap: 20px;
+  min-height: 60px;
 }
 
 .page-title h1 {
@@ -648,35 +651,39 @@
 /* Indicadores inline à esquerda */
 .header-left-inline {
   display: flex;
-  gap: 16px;
+  gap: 4px;
   align-items: center;
   flex-wrap: wrap;
+  height: 100%;
+  min-height: 60px;
 }
 
 .datetime-box {
   display: flex;
-  gap: 12px;
+  gap: 4px;
   align-items: center;
-  margin-left: 8px;
+  margin-left: 2px;
 }
 
 .date-box,
 .time-box {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: var(--bg-secondary);
+  gap: 3px;
+  padding: 4px 6px;
+  background: none;
   border-radius: 6px;
-  border: 1px solid var(--border-color);
+  border: none;
+  height: 28px;
+  box-sizing: border-box;
 }
 
 .datetime-label {
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .datetime-value {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -684,27 +691,27 @@
 .indicator {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  background: var(--bg-secondary);
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
+  gap: 2px;
+  padding: 2px 4px;
+  background: none;
+  border-radius: 4px;
+  border: none;
 }
 
 .indicator-label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
 }
 
 .indicator-value {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .indicator-change {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
 }
 
@@ -723,6 +730,8 @@
   align-items: center;
   flex-wrap: wrap;
   flex-shrink: 0;
+  height: 100%;
+  min-height: 60px;
 }
 
 .filter-selector,
@@ -2631,6 +2640,21 @@
 @media (max-width: 768px) {
   .sidebar.collapsed .nav-item-parent .collapsed-submenu {
     display: none;
+  }
+}
+
+/* =================== AJUSTE DA TOP MENU BAR =================== */
+/* Quando a sidebar está expandida, ajustar o left da top menu bar */
+.sidebar.expanded ~ .tmb-top-menu-bar,
+.sidebar.expanded + .tmb-top-menu-bar {
+  left: 280px !important;
+}
+
+/* Responsividade para mobile */
+@media (max-width: 768px) {
+  .sidebar.expanded ~ .tmb-top-menu-bar,
+  .sidebar.expanded + .tmb-top-menu-bar {
+    left: 0 !important;
   }
 }
 

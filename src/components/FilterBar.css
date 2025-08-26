@@ -1,0 +1,397 @@
+/* FilterBar Component Styles */
+
+.fb-filter-bar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  padding: 0px 0;
+  justify-content: flex-end;
+}
+
+.fb-filter-group {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.fb-filter-selector {
+  padding: 5px 7px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 11px;
+  cursor: pointer;
+  min-width: 140px;
+  transition: all 0.2s ease;
+  height: 35px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+
+.fb-filter-selector:hover {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.fb-filter-selector:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Dropdown customizado para todos os filtros */
+.fb-dropdown-container {
+  position: relative;
+  min-width: 140px;
+}
+
+/* Container específico para o filtro de Status (Venda) - mais compacto */
+.fb-status-dropdown {
+  min-width: 100px !important;
+}
+
+.fb-dropdown-button {
+  width: 100%;
+  padding: 5px 7px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+  height: 40px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fb-dropdown-button:hover {
+  border-color: var(--accent-blue);
+  background-color: var(--bg-tertiary);
+}
+
+.fb-dropdown-arrow {
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.fb-dropdown-button:hover .fb-dropdown-arrow {
+  color: var(--text-primary);
+}
+
+.fb-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: -20px;
+  right: auto;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+  min-width: 200px;
+}
+
+/* Menu dropdown específico para Status - mais compacto */
+.fb-status-dropdown .fb-dropdown-menu {
+  min-width: 120px !important;
+}
+
+.fb-dropdown-item {
+  padding: 5px 5px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+
+.fb-dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.fb-dropdown-item:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.fb-dropdown-item.fb-selected {
+  background-color: var(--accent-blue);
+  color: #ffffff;
+}
+
+.fb-dropdown-item.fb-selected:hover {
+  background-color: var(--accent-blue-dark);
+}
+
+/* Botão de período personalizado */
+.fb-period-button {
+  padding: 10px 16px;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  height: 40px;
+  box-sizing: border-box;
+}
+
+.fb-period-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.fb-period-button:active {
+  transform: translateY(0);
+}
+
+/* Garantir que todos os elementos tenham a mesma altura */
+.fb-filter-selector,
+.fb-dropdown-button,
+.fb-period-button {
+  height: 35px !important;
+  line-height: 1.2;
+  vertical-align: middle;
+}
+
+.fb-dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--accent-blue-dark), var(--accent-blue));
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+}
+
+/* Estilos específicos para o dropdown de período */
+.fb-period-menu {
+  min-width: 200px !important;
+  max-height: 450px !important;
+  padding: 0 !important;
+  right: 0 !important;
+  left: auto !important;
+}
+
+.fb-period-presets {
+  padding: 2px 0;
+}
+
+.fb-period-section-title {
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #ffffff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background-color: rgba(255, 255, 255, 0.02);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.fb-period-separator {
+  height: 1px;
+  background: linear-gradient(to right, transparent 0%, var(--border-color) 20%, var(--border-color) 80%, transparent 100%);
+  margin: 0px 0;
+}
+
+.fb-period-custom {
+  padding: 8px 0;
+}
+
+.fb-date-inputs {
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.fb-date-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fb-date-input-group label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.fb-date-input {
+  padding: 4px 4px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 11px;
+  transition: all 0.2s ease;
+}
+
+.fb-date-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.fb-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.fb-date-input:hover::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+
+.fb-apply-period-btn {
+  margin: 0 8px;
+  padding: 6px 10px;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
+  border: none;
+  border-radius: 4px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: calc(100% - 16px);
+}
+
+.fb-apply-period-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.fb-apply-period-btn:disabled {
+  background: var(--text-muted);
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+/* Responsividade */
+@media (max-width: 1200px) {
+  .fb-filter-bar {
+    gap: 10px;
+  }
+  
+  .fb-dropdown-container {
+    min-width: 150px;
+  }
+  
+  .fb-filter-selector {
+    min-width: 130px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .fb-filter-bar {
+    gap: 8px;
+    justify-content: center;
+  }
+  
+  .fb-filter-selector,
+  .fb-dropdown-button {
+    min-width: 120px;
+    padding: 8px 12px;
+    font-size: 13px;
+    height: 36px !important;
+  }
+  
+  .fb-dropdown-container {
+    min-width: 140px;
+  }
+  
+  .fb-period-button {
+    padding: 8px 12px;
+    height: 36px !important;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 768px) {
+  .fb-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    justify-content: flex-start;
+  }
+  
+  .fb-filter-group {
+    width: 100%;
+  }
+  
+  .fb-filter-selector,
+  .fb-dropdown-button,
+  .fb-period-button {
+    width: 100%;
+    justify-content: center;
+    height: 44px !important;
+  }
+  
+  .fb-dropdown-container {
+    min-width: auto;
+  }
+  
+  .fb-dropdown-menu {
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .fb-filter-selector,
+  .fb-dropdown-button,
+  .fb-period-button {
+    padding: 12px 16px;
+    font-size: 14px;
+    height: 48px !important;
+  }
+  
+  .fb-dropdown-menu {
+    max-height: 150px;
+  }
+  
+  .fb-dropdown-item {
+    padding: 14px 16px;
+    font-size: 14px;
+  }
+}
+
+/* Responsividade para o dropdown de período */
+@media (max-width: 768px) {
+  .fb-period-menu {
+    min-width: 240px !important;
+  }
+  
+  .fb-date-inputs {
+    padding: 0 10px;
+  }
+  
+  .fb-apply-period-btn {
+    margin: 0 10px;
+    width: calc(100% - 20px);
+  }
+}

@@ -1,6 +1,6 @@
 /* MetricsSidebar Component Styles */
 
-.users-sidebar {
+.ms-users-sidebar {
   width: 320px;
   background: var(--bg-secondary);
   border-left: 1px solid var(--border-color);
@@ -11,24 +11,24 @@
   top: 0;
 }
 
-.users-header {
+.ms-users-header {
   margin-bottom: 20px;
 }
 
-.users-header h3 {
+.ms-users-header h3 {
   color: var(--text-primary);
   font-size: 18px;
   font-weight: 600;
   margin: 0;
 }
 
-.financial-metrics-new {
+.ms-financial-metrics-new {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.metric-card {
+.ms-metric-card {
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -36,14 +36,14 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.metric-card-header {
+.ms-metric-card-header {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
 }
 
-.platform-icon {
+.ms-platform-icon {
   width: 32px;
   height: 32px;
   border-radius: 8px;
@@ -55,26 +55,26 @@
   color: white;
 }
 
-.google-icon {
+.ms-google-icon {
   background: linear-gradient(135deg, #4285f4, #34a853);
 }
 
-.meta-icon {
+.ms-meta-icon {
   background: linear-gradient(135deg, #1877f2, #42a5f5);
 }
 
-.sources-icon {
+.ms-sources-icon {
   background: linear-gradient(135deg, #8b5cf6, #a855f7);
 }
 
-.platform-name {
+.ms-platform-name {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-primary);
   flex: 1;
 }
 
-.roas-badge {
+.ms-roas-badge {
   padding: 2px 5px;
   border-radius: 10px;
   font-size: 12px;
@@ -84,39 +84,39 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.roas-excellent {
+.ms-roas-excellent {
   background: linear-gradient(135deg, #10b981, #059669);
   color: white;
 }
 
-.roas-good {
+.ms-roas-good {
   background: linear-gradient(135deg, #f59e0b, #d97706);
   color: white;
 }
 
-.metrics-grid {
+.ms-metrics-grid {
   display: flex;
   flex-direction: column;
   gap: 1px;
 }
 
-.metric-item-visual {
+.ms-metric-item-visual {
   padding: 2px 4px;
   border-radius: 6px;
   transition: background-color 0.2s ease;
 }
 
-.metric-item-visual:hover {
+.ms-metric-item-visual:hover {
   background: var(--bg-hover);
 }
 
-.metric-info {
+.ms-metric-info {
   display: flex;
   flex-direction: column;
   gap: 1px;
 }
 
-.metric-label {
+.ms-metric-label {
   font-size: 10px;
   font-weight: 500;
   margin-bottom: 0px;
@@ -124,14 +124,14 @@
   opacity: 0.9;
 }
 
-.metric-value {
+.ms-metric-value {
   font-size: 16px;
   font-weight: 700;
   margin-bottom: 0px;
   display: block;
 }
 
-.metric-bar {
+.ms-metric-bar {
   height: 4px;
   background: var(--bg-secondary);
   border-radius: 2px;
@@ -139,24 +139,24 @@
   margin-top: 4px;
 }
 
-.metric-fill {
+.ms-metric-fill {
   height: 100%;
   border-radius: 2px;
   transition: width 0.3s ease;
 }
 
 /* Sources Card Specific Styles */
-.sources-card {
+.ms-sources-card {
   margin-top: 16px;
 }
 
-.sources-list {
+.ms-sources-list {
   display: flex;
   flex-direction: column;
   gap: 1px;
 }
 
-.source-line {
+.ms-source-line {
   display: flex;
   flex-direction: column;
   padding: 2px 0;
@@ -164,13 +164,13 @@
   transition: all 0.2s ease;
 }
 
-.source-line:hover .source-content {
+.ms-source-line:hover .ms-source-content {
   padding: 4px 8px;
   background: var(--bg-hover);
   border-radius: 6px;
 }
 
-.source-content {
+.ms-source-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -178,26 +178,26 @@
   transition: all 0.2s ease;
 }
 
-.source-name {
+.ms-source-name {
   color: var(--text-primary);
   font-size: 12px;
   font-weight: 500;
 }
 
-.source-metrics {
+.ms-source-metrics {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.source-count {
+.ms-source-count {
   font-size: 13px;
   font-weight: 700;
   font-family: 'Courier New', monospace;
   color: var(--text-primary);
 }
 
-.source-percent {
+.ms-source-percent {
   font-weight: 600;
   background: var(--bg-secondary);
   padding: 2px 6px;
@@ -208,7 +208,7 @@
   color: var(--text-secondary);
 }
 
-.source-color-bar {
+.ms-source-color-bar {
   height: 4px;
   border-radius: 2px;
   margin-top: 4px;
@@ -217,7 +217,7 @@
 
 /* Responsive Design */
 @media (max-width: 1024px) {
-  .users-sidebar {
+  .ms-users-sidebar {
     width: 100%;
     height: auto;
     position: static;
@@ -225,34 +225,34 @@
     border-top: 1px solid var(--border-color);
   }
   
-  .financial-metrics-new {
+  .ms-financial-metrics-new {
     flex-direction: row;
     overflow-x: auto;
     padding-bottom: 16px;
   }
   
-  .metric-card {
+  .ms-metric-card {
     min-width: 280px;
     flex-shrink: 0;
   }
 }
 
 @media (max-width: 768px) {
-  .users-sidebar {
+  .ms-users-sidebar {
     padding: 16px;
   }
   
-  .metric-card {
+  .ms-metric-card {
     padding: 12px;
   }
   
-  .platform-icon {
+  .ms-platform-icon {
     width: 28px;
     height: 28px;
     font-size: 14px;
   }
   
-  .metric-value {
+  .ms-metric-value {
     font-size: 14px;
   }
 }
