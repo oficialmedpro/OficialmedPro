@@ -1,0 +1,501 @@
+/* Sidebar.css - Estilos específicos para o componente Sidebar da OficialMed */
+/* Todas as classes usam prefixo 'sidebar-component-' para evitar conflitos */
+
+/* =================== SIDEBAR COMPONENT =================== */
+.sidebar-component {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  z-index: 1001;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-component.collapsed {
+  width: 70px;
+}
+
+.sidebar-component.expanded {
+  width: 280px;
+}
+
+.sidebar-component-header {
+  padding: 0 20px;
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 60px;
+  box-sizing: border-box;
+}
+
+.sidebar-component-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.sidebar-component-logo-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.sidebar-component-logo-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* Logo maior no modo expandido */
+.sidebar-component.expanded .sidebar-component-logo-text img {
+  height: 42px !important;
+  max-width: 210px !important;
+}
+
+.sidebar-component-nav {
+  flex: 1;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sidebar-component-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  padding: 16px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 8px;
+  margin: 0 10px;
+  background-color: transparent;
+  color: var(--text-secondary);
+}
+
+.sidebar-component-nav-item:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.sidebar-component-nav-item.active {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
+  color: #ffffff;
+  padding: 16px 20px;
+  margin: 0 10px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.sidebar-component-nav-icon {
+  font-size: 20px;
+  min-width: 24px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+}
+
+.sidebar-component-nav-label {
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: inherit;
+}
+
+.sidebar-component-footer {
+  padding: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.sidebar-component-user-profile {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+}
+
+.sidebar-component-user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.sidebar-component-user-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.sidebar-component-user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.sidebar-component-user-email {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+/* Centralizar elementos quando sidebar está colapsada */
+.sidebar-component.collapsed .sidebar-component-logo {
+  justify-content: center;
+}
+
+.sidebar-component.collapsed .sidebar-component-nav-item {
+  justify-content: center;
+  padding: 16px 0;
+  margin: 0 5px;
+}
+
+.sidebar-component.collapsed .sidebar-component-user-profile {
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.sidebar-component.collapsed .sidebar-component-user-avatar {
+  width: 36px;
+  height: 36px;
+  font-size: 16px;
+  margin: 0 auto;
+}
+
+.sidebar-component.collapsed .sidebar-component-user-info {
+  display: none;
+}
+
+/* =================== ACCORDION MENU =================== */
+.sidebar-component-accordion-menu {
+  margin-bottom: 4px;
+}
+
+.sidebar-component-nav-item-parent {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  margin: 0 10px;
+}
+
+.sidebar-component-nav-item-parent:hover {
+  background: transparent;
+  color: var(--text-primary);
+  border-color: var(--accent-blue);
+}
+
+.sidebar-component-nav-item-parent.expanded {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.sidebar-component-nav-item-parent.expanded .sidebar-component-nav-icon img {
+  filter: brightness(0) invert(1) !important;
+}
+
+.sidebar-component-nav-item-parent.expanded:hover {
+  background: linear-gradient(135deg, var(--accent-blue-dark), #1e40af);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
+}
+
+.sidebar-component-nav-arrow {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: var(--text-secondary);
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+
+.sidebar-component-nav-item-parent.expanded .sidebar-component-nav-arrow {
+  color: #ffffff;
+}
+
+.sidebar-component-nav-arrow.rotated {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+.sidebar-component-submenu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
+  background-color: transparent !important;
+  border-radius: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-component-submenu.open {
+  max-height: 300px;
+}
+
+/* TODOS OS SUBMENUS APAGADOS POR PADRÃO */
+.sidebar-component-submenu-item {
+  margin: 0 !important;
+  padding: 12px 20px !important;
+  border-radius: 0 !important;
+  font-size: 13px;
+  background: transparent !important;
+  border: none !important;
+  transition: all 0.2s ease;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  color: var(--text-secondary) !important;
+  opacity: 0.6 !important;
+}
+
+/* SÓ ACENDE NO HOVER */
+.sidebar-component-submenu-item:hover {
+  color: #ffffff !important;
+  opacity: 1 !important;
+  background: transparent !important;
+  margin: 0 !important;
+  padding: 12px 20px !important;
+}
+
+.sidebar-component-submenu-item:hover::after {
+  content: '▶';
+  color: var(--accent-blue);
+  font-size: 10px;
+  font-weight: bold;
+}
+
+/* Linha divisória entre subitens */
+.sidebar-component-submenu-item:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background-color: var(--accent-blue) !important;
+  opacity: 1 !important;
+  z-index: 1;
+}
+
+/* Manter linha azul mesmo no hover */
+.sidebar-component-submenu-item:hover:not(:last-child)::before {
+  background-color: var(--accent-blue) !important;
+  opacity: 1 !important;
+}
+
+/* Ajustes para sidebar colapsada */
+.sidebar-component.collapsed .sidebar-component-nav-item-parent {
+  justify-content: center;
+  padding: 16px 0;
+  margin: 0 5px;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border: 2px solid var(--border-color) !important;
+  box-shadow: none !important;
+}
+
+.sidebar-component.collapsed .sidebar-component-nav-item-parent:hover {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  border-color: var(--accent-blue) !important;
+  transform: none !important;
+}
+
+/* Ícones mais claros quando sidebar está colapsada */
+.sidebar-component.collapsed .sidebar-component-nav-item-parent .sidebar-component-nav-icon img {
+  filter: brightness(1.5) saturate(1.3) !important;
+  opacity: 1 !important;
+}
+
+.sidebar-component.collapsed .sidebar-component-nav-item-parent:hover .sidebar-component-nav-icon img {
+  filter: brightness(1.8) saturate(1.5) !important;
+}
+
+.sidebar-component.collapsed .sidebar-component-nav-item-parent.expanded .sidebar-component-nav-icon img {
+  filter: brightness(1.8) saturate(1.5) !important;
+}
+
+.sidebar-component.collapsed .sidebar-component-nav-arrow {
+  display: none;
+}
+
+.sidebar-component.collapsed .sidebar-component-submenu {
+  display: none !important;
+  max-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* =================== TOOLTIP INTERATIVO PARA MODO COLAPSADO =================== */
+.sidebar-component.collapsed .sidebar-component-nav-item-parent {
+  position: relative;
+}
+
+/* Tooltip com submenus para modo colapsado */
+.sidebar-component.collapsed .sidebar-component-nav-item-parent .sidebar-component-collapsed-submenu {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  margin-left: 12px;
+  min-width: 180px;
+  pointer-events: none;
+}
+
+.sidebar-component.collapsed .sidebar-component-nav-item-parent:hover .sidebar-component-collapsed-submenu {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Cabeçalho da tooltip */
+.sidebar-component-collapsed-submenu-header {
+  padding: 12px 16px;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Itens da tooltip */
+.sidebar-component-collapsed-submenu-item {
+  padding: 10px 16px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--border-color);
+  opacity: 0.7;
+}
+
+.sidebar-component-collapsed-submenu-item:last-child {
+  border-bottom: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.sidebar-component-collapsed-submenu-item:hover {
+  background-color: var(--bg-tertiary);
+  color: #ffffff;
+  opacity: 1;
+}
+
+.sidebar-component-collapsed-submenu-item:hover::after {
+  content: '▶';
+  float: right;
+  color: var(--accent-blue);
+  font-size: 10px;
+}
+
+/* Seta da tooltip */
+.sidebar-component.collapsed .sidebar-component-nav-item-parent .sidebar-component-collapsed-submenu::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 20px;
+  border: 6px solid transparent;
+  border-right-color: var(--bg-secondary);
+}
+
+/* =================== RESPONSIVIDADE =================== */
+@media (max-width: 768px) {
+  .sidebar-component {
+    display: none;
+  }
+  
+  .sidebar-component-submenu {
+    margin: 0 5px 8px 5px;
+  }
+  
+  .sidebar-component-submenu-item {
+    padding: 10px 16px 10px 30px;
+  }
+  
+  .sidebar-component-nav-arrow {
+    right: 12px;
+  }
+  
+  /* Tooltip não aparece no mobile */
+  .sidebar-component.collapsed .sidebar-component-nav-item-parent .sidebar-component-collapsed-submenu {
+    display: none;
+  }
+}
+
+/* =================== MODO LIGHT =================== */
+/* Cor do hover dos submenus no modo light */
+.dashboard-container.light-theme .sidebar-component-submenu-item:hover {
+  color: #1e293b !important;
+  opacity: 1 !important;
+}
+
+.dashboard-container.light-theme .sidebar-component-submenu-item:hover::after {
+  color: var(--accent-blue) !important;
+}
+
+/* Tooltip no modo light */
+.dashboard-container.light-theme .sidebar-component-collapsed-submenu-item:hover {
+  color: #1e293b !important;
+}
+
+.dashboard-container.light-theme .sidebar-component-collapsed-submenu-item:hover::after {
+  color: var(--accent-blue) !important;
+}
+
+/* Estilos para os ícones dos funis */
+.sidebar-component-nav-item .sidebar-component-nav-icon img {
+  transition: all 0.3s ease;
+}
+
+.sidebar-component-nav-item.active .sidebar-component-nav-icon img {
+  filter: brightness(1.2) saturate(1.3);
+}
+
+.sidebar-component-nav-item:not(.active) .sidebar-component-nav-icon img {
+  filter: brightness(1.3) saturate(1.4) opacity(1);
+}
+
+/* Específico para o funil de recompra não ativo - mais vivo */
+.sidebar-component-nav-item:not(.active) .sidebar-component-nav-icon img[alt*="Recompra"] {
+  filter: brightness(1.3) saturate(1.4) opacity(0.95);
+}

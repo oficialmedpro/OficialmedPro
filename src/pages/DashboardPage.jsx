@@ -3,16 +3,10 @@ import './DashboardPage.css';
 import MetricsSidebar from '../components/MetricsSidebar';
 import FilterBar from '../components/FilterBar';
 import TopMenuBar from '../components/TopMenuBar';
+import Sidebar from '../components/Sidebar';
 
-// Importar ícones SVG
-import FunilCompraAtivo from '../../icones/funil-compra-ativo.svg';
-import FunilCompraNormal from '../../icones/funil-compra-normal.svg';
-import FunilRecompraAtivo from '../../icones/funil-recompra-ativo.svg';
-import FunilRecompraNormal from '../../icones/funil-recompra-normal.svg';
+// Importar ícones SVG (mantidos para mobile e outros usos)
 import LogoIcon from '../../icones/icone_logo.svg';
-import LogoIconLight from '../../icones/icone_logo_modo_light.svg';
-import LogoOficialmed from '../../icones/icone_oficialmed.svg';
-import LogoOficialmedLight from '../../icones/icone_oficialmed_modo_light.svg';
 
 
 const DashboardPage = () => {
@@ -37,11 +31,7 @@ const DashboardPage = () => {
     lastUpdate: new Date()
   });
   
-  // Estados para os submenus em sanfona
-  const [openSubmenus, setOpenSubmenus] = useState({
-    funilsAdm: false,
-    funilComercial: false
-  });
+
 
   // Atualizar dados de mercado automaticamente
   useEffect(() => {
@@ -218,30 +208,7 @@ const DashboardPage = () => {
     );
   };
 
-  // Função para alternar submenus
-  const toggleSubmenu = (submenuKey) => {
-    // Não abre submenu se sidebar está colapsada
-    if (!sidebarExpanded) {
-      return;
-    }
-    
-    setOpenSubmenus(prev => {
-      // Se o submenu clicado já está aberto, fecha ele
-      if (prev[submenuKey]) {
-        return {
-          ...prev,
-          [submenuKey]: false
-        };
-      }
-      
-      // Se o submenu clicado está fechado, abre ele e fecha todos os outros
-      return {
-        funilsAdm: false,
-        funilComercial: false,
-        [submenuKey]: true
-      };
-    });
-  };
+
 
   // Buscar cotação do dólar
   useEffect(() => {
@@ -499,17 +466,9 @@ const DashboardPage = () => {
 
   const t = translations[currentLanguage];
 
-  const toggleSidebar = () => {
-    setSidebarExpanded(!sidebarExpanded);
-    
-    // Resetar todos os submenus quando colapsar a sidebar
-    if (sidebarExpanded) {
-      setOpenSubmenus({
-        funilsAdm: false,
-        funilComercial: false
-      });
-    }
-  };
+     const toggleSidebar = () => {
+     setSidebarExpanded(!sidebarExpanded);
+   };
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -579,43 +538,14 @@ const DashboardPage = () => {
     }
   };
 
-  const renderIcon = (iconType, isActive = false) => {
-    switch (iconType) {
-      case 'funil-compra':
-        return isActive ? <img src={FunilCompraAtivo} alt="Funil Compra Ativo" style={{ height: '20px', width: 'auto' }} /> : <img src={FunilCompraNormal} alt="Funil Compra Normal" style={{ height: '20px', width: 'auto' }} />;
-      case 'funil-recompra':
-        return isActive ? <img src={FunilRecompraAtivo} alt="Funil Recompra Ativo" style={{ height: '20px', width: 'auto' }} /> : <img src={FunilRecompraNormal} alt="Funil Recompra Normal" style={{ height: '20px', width: 'auto' }} />;
-      default:
-        return null;
-    }
-  };
+
 
   const menuItems = [
     { icon: 'funil-compra', label: t.funilCompra, active: true },
     { icon: 'funil-recompra', label: t.funilRecompra, active: false }
   ];
 
-  // Estrutura dos menus em sanfona
-  const accordionMenus = [
-    {
-      id: 'funilsAdm',
-      label: t.funilsAdm,
-      icon: 'funil-compra',
-      subItems: [
-        { icon: 'funil-compra', label: t.funilCompra, active: true },
-        { icon: 'funil-recompra', label: t.funilRecompra, active: false }
-      ]
-    },
-    {
-      id: 'funilComercial',
-      label: t.funilComercial,
-      icon: 'funil-recompra',
-      subItems: [
-        { icon: 'funil-compra', label: t.funilCompra, active: false },
-        { icon: 'funil-recompra', label: t.funilRecompra, active: true }
-      ]
-    }
-  ];
+
 
   const statsCards = [
     { 
@@ -688,99 +618,12 @@ const DashboardPage = () => {
   return (
     <div className="dashboard-container">
       {/* Sidebar Desktop */}
-      <aside className={`sidebar ${sidebarExpanded ? 'expanded' : 'collapsed'}`}>
-        <div className="sidebar-header">
-          <div className="logo">
-            {sidebarExpanded ? (
-              <div className="logo-text">
-                <img 
-                  src={isDarkMode ? LogoOficialmed : LogoOficialmedLight} 
-                  alt="OficialMed" 
-                  style={{ height: '24px', width: 'auto', maxWidth: '120px' }}
-                />
-              </div>
-            ) : (
-              <div className="logo-icon">
-                <img 
-                  src={isDarkMode ? LogoIcon : LogoIconLight} 
-                  alt="Logo" 
-                  style={{ height: '24px', width: 'auto', maxWidth: '40px' }}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-
-        <nav className="sidebar-nav">
-          {accordionMenus.map((menu, menuIndex) => (
-            <div key={menuIndex} className="accordion-menu">
-              {/* Menu Principal */}
-              <div 
-                className={`nav-item nav-item-parent ${openSubmenus[menu.id] ? 'expanded' : ''}`}
-                onClick={() => toggleSubmenu(menu.id)}
-                data-tooltip={menu.label}
-              >
-                <div className="nav-icon">
-                  {renderIcon(menu.icon, false)}
-                </div>
-                {sidebarExpanded && (
-                  <>
-                    <span className="nav-label">{menu.label}</span>
-                    <div className={`nav-arrow ${openSubmenus[menu.id] ? 'rotated' : ''}`}>
-                      ▼
-                    </div>
-                  </>
-                )}
-                
-                {/* Tooltip interativa para modo colapsado */}
-                {!sidebarExpanded && (
-                  <div className="collapsed-submenu">
-                    <div className="collapsed-submenu-header">
-                      {menu.label}
-                    </div>
-                    {menu.subItems.map((subItem, subIndex) => (
-                      <div 
-                        key={subIndex} 
-                        className="collapsed-submenu-item"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Aqui você pode adicionar a lógica de navegação
-                          console.log(`Clicked on ${subItem.label}`);
-                        }}
-                      >
-                        {subItem.label}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-              
-              {/* Submenu */}
-              {sidebarExpanded && (
-                <div className={`submenu ${openSubmenus[menu.id] ? 'open' : ''}`}>
-                  {menu.subItems.map((subItem, subIndex) => (
-                    <div key={subIndex} className={`nav-item submenu-item ${subItem.active ? 'active' : ''}`}>
-                      <span className="nav-label">{subItem.label}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </nav>
-
-        <div className="sidebar-footer">
-          <div className="user-profile">
-            <div className="user-avatar">U</div>
-            {sidebarExpanded && (
-              <div className="user-info">
-                <div className="user-name">{t.userName}</div>
-                <div className="user-email">{t.userEmail}</div>
-              </div>
-            )}
-          </div>
-        </div>
-      </aside>
+      <Sidebar 
+        sidebarExpanded={sidebarExpanded}
+        isDarkMode={isDarkMode}
+        currentLanguage={currentLanguage}
+        translations={t}
+      />
 
       {/* Top Menu Bar */}
       <TopMenuBar 
@@ -815,35 +658,13 @@ const DashboardPage = () => {
             <button className="close-mobile-sidebar">✕</button>
           </div>
           <nav className="mobile-sidebar-nav">
-            {accordionMenus.map((menu, menuIndex) => (
-              <div key={menuIndex} className="accordion-menu">
-                {/* Menu Principal */}
-                <div 
-                  className={`nav-item nav-item-parent ${openSubmenus[menu.id] ? 'expanded' : ''}`}
-                  onClick={() => toggleSubmenu(menu.id)}
-                >
-                  <div className="nav-icon">
-                    {renderIcon(menu.icon, false)}
-                  </div>
-                  <span className="nav-label">{menu.label}</span>
-                  <div className={`nav-arrow ${openSubmenus[menu.id] ? 'rotated' : ''}`}>
-                    ▼
-                  </div>
-                </div>
-                
-                {/* Submenu */}
-                <div className={`submenu ${openSubmenus[menu.id] ? 'open' : ''}`}>
-                  {menu.subItems.map((subItem, subIndex) => (
-                    <div key={subIndex} className={`nav-item submenu-item ${subItem.active ? 'active' : ''}`}>
-                      <div className="nav-icon">
-                        {renderIcon(subItem.icon, subItem.active)}
-                      </div>
-                      <span className="nav-label">{subItem.label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+            {/* Usar o mesmo componente Sidebar para mobile */}
+            <Sidebar 
+              sidebarExpanded={true}
+              isDarkMode={isDarkMode}
+              currentLanguage={currentLanguage}
+              translations={t}
+            />
           </nav>
         </aside>
       </div>
@@ -1136,17 +957,18 @@ const DashboardPage = () => {
         </section>
       </main>
 
-      {/* Mobile Bottom Navigation */}
-      <nav className="mobile-bottom-nav">
-        {menuItems.map((item, index) => (
-          <div key={index} className={`bottom-nav-item ${item.active ? 'active' : ''}`}>
-            <div className="nav-icon">
-              {renderIcon(item.icon, item.active)}
-            </div>
-            <span className="nav-label">{item.label}</span>
-          </div>
-        ))}
-      </nav>
+             {/* Mobile Bottom Navigation */}
+       <nav className="mobile-bottom-nav">
+         {menuItems.map((item, index) => (
+           <div key={index} className={`bottom-nav-item ${item.active ? 'active' : ''}`}>
+             <div className="nav-icon">
+               {/* Ícone simples para mobile - sem renderIcon */}
+               <span style={{ fontSize: '20px' }}>📊</span>
+             </div>
+             <span className="nav-label">{item.label}</span>
+           </div>
+         ))}
+       </nav>
     </div>
   );
 };
