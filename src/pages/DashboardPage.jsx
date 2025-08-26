@@ -315,7 +315,7 @@ const DashboardPage = () => {
       pageTitle: 'Dashboard',
       pageSubtitle: 'Visão geral das suas métricas e performance',
       statsTitle: 'Métricas Principais',
-      chartTitle: 'Funil de Conversão',
+      chartTitle: 'Funil Comercial - Unidade Apucarana',
       chartPeriod: 'Últimos 30 dias',
       
              // Estatísticas
@@ -399,7 +399,7 @@ const DashboardPage = () => {
       pageTitle: 'Dashboard',
       pageSubtitle: 'Overview of your metrics and performance',
       statsTitle: 'Key Metrics',
-      chartTitle: 'Conversion Funnel',
+      chartTitle: 'Commercial Funnel - Apucarana Unit',
       chartPeriod: 'Last 30 days',
       
              // Statistics
@@ -1407,50 +1407,172 @@ const DashboardPage = () => {
               </div>
             </div>
 
-            <div className="sources-section">
-              <h4>{t.opportunitySources}</h4>
+            <div className="metric-card sources-card">
+              <div className="metric-card-header">
+                <div className="platform-icon sources-icon">O</div>
+                <span className="platform-name">Origem das Oportunidades</span>
+              </div>
+              
               <div className="sources-list">
                 <div className="source-line">
-                  <span className="source-name">{t.google}</span>
-                  <div className="source-metrics">
-                    <span className="source-count">1,035</span>
-                    <span className="source-percent">45%</span>
+                  <div className="source-content">
+                    <span className="source-name">Google Ads</span>
+                    <div className="source-metrics">
+                      <span className="source-count">1,035</span>
+                      <span className="source-percent">45%</span>
+                    </div>
                   </div>
+                  <div className="source-color-bar" style={{background: '#4285f4', width: '45%'}}></div>
                 </div>
                 <div className="source-line">
-                  <span className="source-name">{t.meta}</span>
-                  <div className="source-metrics">
-                    <span className="source-count">644</span>
-                    <span className="source-percent">28%</span>
+                  <div className="source-content">
+                    <span className="source-name">Meta Ads</span>
+                    <div className="source-metrics">
+                      <span className="source-count">644</span>
+                      <span className="source-percent">28%</span>
+                    </div>
                   </div>
+                  <div className="source-color-bar" style={{background: '#1877f2', width: '28%'}}></div>
                 </div>
                 <div className="source-line">
-                  <span className="source-name">{t.organic}</span>
-                  <div className="source-metrics">
-                    <span className="source-count">345</span>
-                    <span className="source-percent">15%</span>
+                  <div className="source-content">
+                    <span className="source-name">Orgânico</span>
+                    <div className="source-metrics">
+                      <span className="source-count">345</span>
+                      <span className="source-percent">15%</span>
+                    </div>
                   </div>
+                  <div className="source-color-bar" style={{background: '#10b981', width: '15%'}}></div>
                 </div>
                 <div className="source-line">
-                  <span className="source-name">{t.indication}</span>
-                  <div className="source-metrics">
-                    <span className="source-count">184</span>
-                    <span className="source-percent">8%</span>
+                  <div className="source-content">
+                    <span className="source-name">Indicação</span>
+                    <div className="source-metrics">
+                      <span className="source-count">184</span>
+                      <span className="source-percent">8%</span>
+                    </div>
                   </div>
+                  <div className="source-color-bar" style={{background: '#f59e0b', width: '8%'}}></div>
                 </div>
                 <div className="source-line">
-                  <span className="source-name">{t.prescriber}</span>
-                  <div className="source-metrics">
-                    <span className="source-count">69</span>
-                    <span className="source-percent">3%</span>
+                  <div className="source-content">
+                    <span className="source-name">Prescritor</span>
+                    <div className="source-metrics">
+                      <span className="source-count">69</span>
+                      <span className="source-percent">3%</span>
+                    </div>
                   </div>
+                  <div className="source-color-bar" style={{background: '#8b5cf6', width: '3%'}}></div>
                 </div>
                 <div className="source-line">
-                  <span className="source-name">{t.franchise}</span>
-                  <div className="source-metrics">
-                    <span className="source-count">23</span>
-                    <span className="source-percent">1%</span>
+                  <div className="source-content">
+                    <span className="source-name">Campanha</span>
+                    <div className="source-metrics">
+                      <span className="source-count">45</span>
+                      <span className="source-percent">2%</span>
+                    </div>
                   </div>
+                  <div className="source-color-bar" style={{background: '#06b6d4', width: '2%'}}></div>
+                </div>
+                <div className="source-line">
+                  <div className="source-content">
+                    <span className="source-name">Monitoramento</span>
+                    <div className="source-metrics">
+                      <span className="source-count">38</span>
+                      <span className="source-percent">2%</span>
+                    </div>
+                  </div>
+                  <div className="source-color-bar" style={{background: '#f59e0b', width: '2%'}}></div>
+                </div>
+                <div className="source-line">
+                  <div className="source-content">
+                    <span className="source-name">Colaborador</span>
+                    <div className="source-metrics">
+                      <span className="source-count">32</span>
+                      <span className="source-percent">1%</span>
+                    </div>
+                  </div>
+                  <div className="source-color-bar" style={{background: '#3b82f6', width: '1%'}}></div>
+                </div>
+                <div className="source-line">
+                  <div className="source-content">
+                    <span className="source-name">Franquia</span>
+                    <div className="source-metrics">
+                      <span className="source-count">23</span>
+                      <span className="source-percent">1%</span>
+                    </div>
+                  </div>
+                  <div className="source-color-bar" style={{background: '#ef4444', width: '1%'}}></div>
+                </div>
+                <div className="source-line">
+                  <div className="source-content">
+                    <span className="source-name">Farmácia Parceira</span>
+                    <div className="source-metrics">
+                      <span className="source-count">18</span>
+                      <span className="source-percent">1%</span>
+                    </div>
+                  </div>
+                  <div className="source-color-bar" style={{background: '#10b981', width: '1%'}}></div>
+                </div>
+                <div className="source-line">
+                  <div className="source-content">
+                    <span className="source-name">Monitoramento/Disp</span>
+                    <div className="source-metrics">
+                      <span className="source-count">15</span>
+                      <span className="source-percent">1%</span>
+                    </div>
+                  </div>
+                  <div className="source-color-bar" style={{background: '#06b6d4', width: '1%'}}></div>
+                </div>
+                <div className="source-line">
+                  <div className="source-content">
+                    <span className="source-name">Site</span>
+                    <div className="source-metrics">
+                      <span className="source-count">12</span>
+                      <span className="source-percent">1%</span>
+                    </div>
+                  </div>
+                  <div className="source-color-bar" style={{background: '#8b5cf6', width: '1%'}}></div>
+                </div>
+                <div className="source-line">
+                  <div className="source-content">
+                    <span className="source-name">Phusion/Disparo</span>
+                    <div className="source-metrics">
+                      <span className="source-count">10</span>
+                      <span className="source-percent">1%</span>
+                    </div>
+                  </div>
+                  <div className="source-color-bar" style={{background: '#f59e0b', width: '1%'}}></div>
+                </div>
+                <div className="source-line">
+                  <div className="source-content">
+                    <span className="source-name">Contato Rosana</span>
+                    <div className="source-metrics">
+                      <span className="source-count">8</span>
+                      <span className="source-percent">1%</span>
+                    </div>
+                  </div>
+                  <div className="source-color-bar" style={{background: '#ec4899', width: '1%'}}></div>
+                </div>
+                <div className="source-line">
+                  <div className="source-content">
+                    <span className="source-name">Contato Poliana</span>
+                    <div className="source-metrics">
+                      <span className="source-count">6</span>
+                      <span className="source-percent">1%</span>
+                    </div>
+                  </div>
+                  <div className="source-color-bar" style={{background: '#8b5cf6', width: '1%'}}></div>
+                </div>
+                <div className="source-line">
+                  <div className="source-content">
+                    <span className="source-name">Yampi Parceiro</span>
+                    <div className="source-metrics">
+                      <span className="source-count">4</span>
+                      <span className="source-percent">1%</span>
+                    </div>
+                  </div>
+                  <div className="source-color-bar" style={{background: '#06b6d4', width: '1%'}}></div>
                 </div>
               </div>
             </div>

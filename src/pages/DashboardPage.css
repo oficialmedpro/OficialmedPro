@@ -1616,6 +1616,10 @@
   background: linear-gradient(90deg, #1877f2, #0866ff);
 }
 
+.metric-card.sources-card::before {
+  background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+}
+
 .metric-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
@@ -1649,6 +1653,10 @@
 
 .meta-icon {
   background: linear-gradient(135deg, #1877f2, #0866ff);
+}
+
+.sources-icon {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
 }
 
 .platform-name {
@@ -1869,48 +1877,77 @@
   margin: 0;
 }
 
-.sources-section h4 {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 16px;
-  text-align: center;
-}
+/* Removido o h4 específico da sources-section pois agora está dentro do card */
 
 .sources-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 1px;
 }
 
 .source-line {
   display: flex;
+  flex-direction: column;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.source-line:hover {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+
+.source-line:hover .source-content {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.source-content {
+  display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border-color);
+  padding: 2px 0;
+}
+
+.source-color-bar {
+  height: 4px;
+  width: 100%;
+  border-radius: 2px;
+  margin-top: 4px;
+  opacity: 0.8;
 }
 
 .source-name {
   font-size: 12px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
 .source-metrics {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
 }
 
 .source-count {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-primary);
-  font-weight: 600;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
 }
 
 .source-percent {
   font-size: 12px;
   color: var(--text-secondary);
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  min-width: 30px;
+  text-align: center;
 }
 
 /* =================== MOBILE BOTTOM NAV =================== */
