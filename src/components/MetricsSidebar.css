@@ -1,0 +1,258 @@
+/* MetricsSidebar Component Styles */
+
+.users-sidebar {
+  width: 320px;
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border-color);
+  padding: 20px;
+  overflow-y: auto;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+.users-header {
+  margin-bottom: 20px;
+}
+
+.users-header h3 {
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.financial-metrics-new {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.metric-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.metric-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.platform-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: white;
+}
+
+.google-icon {
+  background: linear-gradient(135deg, #4285f4, #34a853);
+}
+
+.meta-icon {
+  background: linear-gradient(135deg, #1877f2, #42a5f5);
+}
+
+.sources-icon {
+  background: linear-gradient(135deg, #8b5cf6, #a855f7);
+}
+
+.platform-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.roas-badge {
+  padding: 2px 5px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.roas-excellent {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+}
+
+.roas-good {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.metrics-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.metric-item-visual {
+  padding: 2px 4px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.metric-item-visual:hover {
+  background: var(--bg-hover);
+}
+
+.metric-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.metric-label {
+  font-size: 10px;
+  font-weight: 500;
+  margin-bottom: 0px;
+  display: block;
+  opacity: 0.9;
+}
+
+.metric-value {
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 0px;
+  display: block;
+}
+
+.metric-bar {
+  height: 4px;
+  background: var(--bg-secondary);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.metric-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Sources Card Specific Styles */
+.sources-card {
+  margin-top: 16px;
+}
+
+.sources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.source-line {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.source-line:hover .source-content {
+  padding: 4px 8px;
+  background: var(--bg-hover);
+  border-radius: 6px;
+}
+
+.source-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 0;
+  transition: all 0.2s ease;
+}
+
+.source-name {
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.source-metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.source-count {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  color: var(--text-primary);
+}
+
+.source-percent {
+  font-weight: 600;
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: 8px;
+  min-width: 24px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.source-color-bar {
+  height: 4px;
+  border-radius: 2px;
+  margin-top: 4px;
+  opacity: 0.8;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .users-sidebar {
+    width: 100%;
+    height: auto;
+    position: static;
+    border-left: none;
+    border-top: 1px solid var(--border-color);
+  }
+  
+  .financial-metrics-new {
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 16px;
+  }
+  
+  .metric-card {
+    min-width: 280px;
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .users-sidebar {
+    padding: 16px;
+  }
+  
+  .metric-card {
+    padding: 12px;
+  }
+  
+  .platform-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  
+  .metric-value {
+    font-size: 14px;
+  }
+}

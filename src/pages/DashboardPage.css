@@ -1572,15 +1572,7 @@
   margin-bottom: 0;
 }
 
-/* =================== USERS SIDEBAR =================== */
-.users-sidebar {
-  flex: 1;
-  background-color: var(--bg-secondary);
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid var(--border-color);
-  max-width: 300px;
-}
+
 
 /* =================== NOVOS GRÁFICOS VISUAIS =================== */
 .financial-metrics-new {
@@ -1998,9 +1990,7 @@
   flex-direction: column;
   }
   
-  .users-sidebar {
-    max-width: 100%;
-  }
+
   
   .metric-card {
     padding: 16px;
