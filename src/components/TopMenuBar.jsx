@@ -4,6 +4,7 @@ import './TopMenuBar.css';
 // Importar ícones SVG
 import BandeiraEUA from '../../icones/eua.svg';
 import BandeiraBrasil from '../../icones/brasil.svg';
+import LogoOficialmed from '../../icones/icone_oficialmed.svg';
 
 const TopMenuBar = ({ 
   sidebarExpanded, 
@@ -37,6 +38,7 @@ const TopMenuBar = ({
 
   return (
     <header className="tmb-top-menu-bar">
+      {/* Botão hamburger - sempre visível */}
       <button className="tmb-sidebar-toggle" onClick={toggleSidebar}>
         <div className="tmb-sidebar-toggle-discrete">
           <div className="tmb-hamburger-lines"></div>
@@ -45,6 +47,12 @@ const TopMenuBar = ({
         </div>
       </button>
 
+      {/* Logo - visível no mobile */}
+      <div className="tmb-logo-mobile">
+        <img src={LogoOficialmed} alt="OficialMed" />
+      </div>
+
+      {/* Container de busca - sempre visível */}
       <div className="tmb-search-container">
         <input 
           type="text" 
@@ -53,7 +61,7 @@ const TopMenuBar = ({
         />
       </div>
 
-      {/* Container para os 6 ícones da direita */}
+      {/* Container para os ícones da direita - apenas no desktop */}
       <div className="tmb-right-icons-container">
         {/* Seletor de idioma */}
         <div className="tmb-language-selector" ref={languageDropdownRef}>

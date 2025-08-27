@@ -18,9 +18,14 @@ import {
   handleDatePreset 
 } from '../utils/utils';
 
+// Importar bandeiras
+import BandeiraEUA from '../../icones/eua.svg';
+import BandeiraBrasil from '../../icones/brasil.svg';
+
 const DashboardPage = () => {
   // Estados para o dashboard
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [showCalendar, setShowCalendar] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState('pt-BR');
@@ -93,7 +98,18 @@ const DashboardPage = () => {
   }, []);
 
   // Funções de controle
-  const toggleSidebar = () => setSidebarExpanded(!sidebarExpanded);
+  const toggleSidebar = () => {
+    // No mobile, alterna o menu mobile
+    if (window.innerWidth <= 768) {
+      console.log('Toggle mobile menu:', !mobileMenuOpen);
+      setMobileMenuOpen(!mobileMenuOpen);
+    } else {
+      // No desktop, alterna a sidebar
+      setSidebarExpanded(!sidebarExpanded);
+    }
+  };
+  
+  const closeMobileMenu = () => setMobileMenuOpen(false);
   
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -156,11 +172,31 @@ const DashboardPage = () => {
     <div className="dashboard-container">
       {/* Sidebar Desktop */}
       <Sidebar 
-        sidebarExpanded={sidebarExpanded}
+        sidebarExpanded={sidebarExpanded} 
         isDarkMode={isDarkMode}
         currentLanguage={currentLanguage}
         translations={t}
       />
+
+      {/* Menu Mobile Overlay */}
+      {mobileMenuOpen && (
+        <div className="mobile-menu-overlay" onClick={closeMobileMenu}>
+          <div className="mobile-menu-content" onClick={(e) => e.stopPropagation()}>
+                         {/* Usar o mesmo componente Sidebar para manter consistência */}
+             <Sidebar 
+               sidebarExpanded={true}
+               isDarkMode={isDarkMode}
+               currentLanguage={currentLanguage}
+               translations={t}
+               isMobile={true}
+               onClose={closeMobileMenu}
+               toggleTheme={toggleTheme}
+               toggleFullscreen={toggleFullscreen}
+               changeLanguage={changeLanguage}
+             />
+          </div>
+        </div>
+      )}
 
       {/* Top Menu Bar */}
       <TopMenuBar 
@@ -219,14 +255,34 @@ const DashboardPage = () => {
 
       {/* Mobile Bottom Navigation */}
       <nav className="mobile-bottom-nav">
-        {menuItems.map((item, index) => (
-          <div key={index} className={`bottom-nav-item ${item.active ? 'active' : ''}`}>
-            <div className="nav-icon">
-              <span style={{ fontSize: '20px' }}>📊</span>
-            </div>
-            <span className="nav-label">{item.label}</span>
-          </div>
-        ))}
+        {/* Seletor de idioma - estilo TopMenuBar */}
+        <button className="mobile-nav-btn mobile-language-btn" onClick={() => changeLanguage(currentLanguage === 'pt-BR' ? 'en-US' : 'pt-BR')}>
+          <img 
+            src={currentLanguage === 'pt-BR' ? BandeiraBrasil : BandeiraEUA} 
+            alt={currentLanguage === 'pt-BR' ? 'Brasil' : 'United States'} 
+            className="flag-img"
+          />
+        </button>
+
+        {/* Toggle tema */}
+        <button className="mobile-nav-btn" onClick={toggleTheme}>
+          <span style={{ fontSize: '20px' }}>{isDarkMode ? '☀️' : '🌙'}</span>
+        </button>
+
+        {/* Mensagens */}
+        <button className="mobile-nav-btn mobile-nav-with-badge">
+          <span style={{ fontSize: '20px' }}>✉️</span>
+          <span className="mobile-nav-badge">3</span>
+        </button>
+
+        {/* Notificações */}
+        <button className="mobile-nav-btn mobile-nav-with-badge">
+          <span style={{ fontSize: '20px' }}>🔔</span>
+          <span className="mobile-nav-badge">7</span>
+        </button>
+
+        {/* Avatar usuário */}
+        <div className="mobile-user-avatar">U</div>
       </nav>
     </div>
   );

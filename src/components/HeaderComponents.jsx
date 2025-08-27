@@ -33,14 +33,13 @@ const HeaderComponents = ({ marketData }) => {
           <span className="datetime-value">
             {new Date().toLocaleDateString('pt-BR', { 
               day: '2-digit', 
-              month: '2-digit', 
-              year: 'numeric' 
+              month: '2-digit'
             })}
           </span>
         </div>
         
         <div className="time-box">
-          <span className="datetime-label">🕒</span>
+          <span className="datetime-label">🕐</span>
           <span className="datetime-value" id="current-time">
             {new Date().toLocaleTimeString('pt-BR', { 
               hour: '2-digit', 

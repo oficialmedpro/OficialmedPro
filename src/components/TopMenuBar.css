@@ -205,20 +205,59 @@
   transform: scale(1.05);
 }
 
+/* Logo mobile - visível apenas no mobile */
+.tmb-logo-mobile {
+  display: none;
+  align-items: center;
+  margin-right: 15px;
+}
+
+.tmb-logo-mobile img {
+  height: 24px;
+  width: auto;
+  max-width: 120px;
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
   .tmb-top-menu-bar {
     left: 0;
     padding: 0 15px;
+    justify-content: flex-start;
+    gap: 15px;
+    align-items: center;
   }
   
-  .tmb-search-container {
-    max-width: 250px;
-    margin: 0 15px;
+  /* Mostrar logo no mobile */
+  .tmb-logo-mobile {
+    display: flex;
+    order: 2;
+    flex-shrink: 0;
   }
   
+  /* Ocultar ícones da direita no mobile */
   .tmb-right-icons-container {
-    gap: 6px;
+    display: none;
+  }
+  
+  /* Busca no mobile - ocupa todo espaço disponível */
+  .tmb-search-container {
+    flex: 1;
+    margin: 0;
+    order: 1;
+    max-width: none;
+  }
+  
+  .tmb-search-input {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  /* Botão hamburger no mobile */
+  .tmb-sidebar-toggle {
+    order: 0;
+    flex-shrink: 0;
   }
   
   .tmb-top-menu-btn {
@@ -233,7 +272,25 @@
 
 @media (max-width: 480px) {
   .tmb-search-container {
-    display: none;
+    flex: 1;
+    order: 1;
+    max-width: none;
+  }
+  
+  .tmb-search-input {
+    width: 100%;
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+  
+  .tmb-logo-mobile {
+    order: 2;
+    flex-shrink: 0;
+  }
+  
+  .tmb-logo-mobile img {
+    height: 20px;
+    max-width: 100px;
   }
   
   .tmb-right-icons-container {
