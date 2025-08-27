@@ -1,0 +1,329 @@
+/* MetricsCards Component Styles */
+
+.metrics-cards-container {
+  margin-top: 10px;
+  margin-bottom: 30px;
+}
+
+.metrics-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.metrics-cards-header {
+  margin-bottom: 20px;
+}
+
+.metrics-cards-header h3 {
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+/* Estilo principal dos cards - igual ao main-chart */
+.metric-card-main {
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.metric-card-main:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.metric-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.platform-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.sources-icon {
+  background: linear-gradient(135deg, #8b5cf6, #a855f7);
+}
+
+.loss-icon {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.ticket-icon {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.seller-icon {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.platform-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.sources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.source-line {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0;
+  position: relative;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.source-line:hover .source-content {
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+}
+
+.source-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 2px 0;
+  transition: all 0.2s ease;
+  gap: 12px;
+}
+
+/* Estilos para informações detalhadas dos vendedores */
+.seller-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.seller-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.seller-total {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+}
+
+.seller-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  line-height: 1.0;
+  gap: 16px;
+}
+
+.metric-col {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.metric-label {
+  color: var(--text-muted);
+  font-weight: 500;
+  flex-shrink: 0;
+  margin-right: 8px;
+  font-size: 10px;
+}
+
+.metric-value {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  text-align: right;
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
+/* Estilos para as metas */
+.meta-positive {
+  color: var(--accent-green) !important;
+  font-weight: 700 !important;
+}
+
+.meta-negative {
+  color: var(--accent-red) !important;
+  font-weight: 700 !important;
+}
+
+.seller-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.source-name {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.source-metrics {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.source-count {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  color: var(--text-primary);
+}
+
+.source-percent {
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 8px;
+  min-width: 24px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.source-color-bar {
+  height: 4px;
+  border-radius: 2px;
+  margin-top: 4px;
+  opacity: 0.8;
+}
+
+/* Estilos para as medalhas - aplicados apenas nos quadradinhos */
+.medal-gold .source-percent {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  border: 2px solid #d97706;
+}
+
+.medal-silver .source-percent {
+  background: linear-gradient(135deg, #e5e7eb, #d1d5db) !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  border: 2px solid #9ca3af;
+}
+
+.medal-bronze .source-percent {
+  background: linear-gradient(135deg, #d97706, #b45309) !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  border: 2px solid #92400e;
+}
+
+/* Último lugar com fundo vermelho */
+.source-line:last-child .source-percent {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border: 2px solid #b91c1c;
+}
+
+/* Responsive Design */
+@media (max-width: 1400px) {
+  .metrics-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .metrics-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .metric-card-main {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .metrics-cards-container {
+    margin-top: 10px;
+    margin-bottom: 20px;
+  }
+  
+  .metrics-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .metric-card-main {
+    padding: 16px;
+  }
+  
+  .platform-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  
+  .source-name {
+    font-size: 12px;
+  }
+  
+  .seller-total {
+    font-size: 11px;
+  }
+  
+  .metric-row {
+    font-size: 10px;
+    gap: 12px;
+  }
+  
+  .metric-label {
+    font-size: 9px;
+  }
+  
+  .metric-value {
+    font-size: 9px;
+  }
+  
+  .source-percent {
+    font-size: 10px;
+    padding: 1px 4px;
+  }
+  
+  .source-content {
+    gap: 8px;
+  }
+}

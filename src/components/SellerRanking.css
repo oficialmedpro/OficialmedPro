@@ -1,0 +1,356 @@
+/* SellerRanking Component Styles */
+
+/* Estilo principal dos cards - igual ao main-chart */
+.metric-card-main {
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.metric-card-main:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.metric-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.platform-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.seller-icon {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+}
+
+.platform-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.sources-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+}
+
+.source-line {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 0;
+  position: relative;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.source-line:hover .source-content {
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 6px;
+}
+
+.source-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 2px 0;
+  transition: all 0.2s ease;
+  gap: 12px;
+}
+
+/* Estilos para informações detalhadas dos vendedores */
+.seller-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.seller-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+
+.seller-total {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+}
+
+.seller-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  line-height: 1.0;
+  gap: 16px;
+}
+
+.metric-col {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.metric-label {
+  color: var(--text-muted);
+  font-weight: 500;
+  flex-shrink: 0;
+  margin-right: 8px;
+  font-size: 10px;
+}
+
+.metric-value {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  text-align: right;
+  flex-shrink: 0;
+  font-size: 10px;
+}
+
+/* Estilos para as metas */
+.meta-positive {
+  color: var(--accent-green) !important;
+  font-weight: 700 !important;
+}
+
+.meta-negative {
+  color: var(--accent-red) !important;
+  font-weight: 700 !important;
+}
+
+.seller-rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.source-name {
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.source-percent {
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: 8px;
+  min-width: 24px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.source-color-bar {
+  height: 4px;
+  border-radius: 2px;
+  margin-top: 4px;
+  opacity: 0.8;
+}
+
+/* Estilos para as medalhas - aplicados APENAS nos quadradinhos */
+.medal-gold .source-percent {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b) !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  border: 2px solid #d97706;
+}
+
+.medal-silver .source-percent {
+  background: linear-gradient(135deg, #e5e7eb, #d1d5db) !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  border: 2px solid #9ca3af;
+}
+
+.medal-bronze .source-percent {
+  background: linear-gradient(135deg, #d97706, #b45309) !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  border: 2px solid #92400e;
+}
+
+/* Último lugar com fundo vermelho - APENAS no quadradinho */
+.last-place .source-percent {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border: 2px solid #b91c1c;
+}
+
+/* Estilos para paginação */
+.pagination-container {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.pagination-info {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--border-color);
+  color: var(--text-primary);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 4px;
+}
+
+.page-btn {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 32px;
+  text-align: center;
+}
+
+.page-btn:hover {
+  background: var(--border-color);
+  color: var(--text-primary);
+}
+
+.page-btn.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: #ffffff;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .metric-card-main {
+    padding: 20px;
+  }
+  
+  .pagination-controls {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .metric-card-main {
+    padding: 16px;
+  }
+  
+  .platform-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  
+  .source-name {
+    font-size: 12px;
+  }
+  
+  .seller-total {
+    font-size: 11px;
+  }
+  
+  .metric-row {
+    font-size: 10px;
+    gap: 12px;
+  }
+  
+  .metric-label {
+    font-size: 9px;
+  }
+  
+  .metric-value {
+    font-size: 9px;
+  }
+  
+  .source-percent {
+    font-size: 10px;
+    padding: 1px 4px;
+  }
+  
+  .source-content {
+    gap: 8px;
+  }
+  
+  .pagination-btn {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+  
+  .page-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+    min-width: 28px;
+  }
+}

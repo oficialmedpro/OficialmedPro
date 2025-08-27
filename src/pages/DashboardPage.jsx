@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './DashboardPage.css';
 import MetricsSidebar from '../components/MetricsSidebar';
+import MetricsCards from '../components/MetricsCards';
 import FilterBar from '../components/FilterBar';
 import TopMenuBar from '../components/TopMenuBar';
 import Sidebar from '../components/Sidebar';
@@ -955,6 +956,9 @@ const DashboardPage = () => {
 
           <MetricsSidebar formatCurrency={formatCurrency} t={t} />
         </section>
+
+        {/* Metrics Cards Section */}
+        <MetricsCards formatCurrency={formatCurrency} t={t} />
       </main>
 
              {/* Mobile Bottom Navigation */}
