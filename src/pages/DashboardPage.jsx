@@ -8,6 +8,7 @@ import Sidebar from '../components/Sidebar';
 import FunnelChart from '../components/FunnelChart';
 import StatsSection from '../components/StatsSection';
 import HeaderComponents from '../components/HeaderComponents';
+import TimelineChart from '../components/TimelineChart';
 import { translations } from '../data/translations';
 import { getStatsCards, getMenuItems } from '../data/statsData';
 import { 
@@ -208,6 +209,9 @@ const DashboardPage = () => {
           <FunnelChart t={t} />
           <MetricsSidebar formatCurrency={formatCurrencyLocal} t={t} />
         </section>
+
+        {/* Timeline Chart - Performance dos Últimos 7 Dias */}
+        <TimelineChart selectedDate={endDate} t={t} />
 
         {/* Metrics Cards Section */}
         <MetricsCards formatCurrency={formatCurrencyLocal} t={t} />

@@ -1,0 +1,315 @@
+/* TimelineChart.css - Estilos para o gráfico de timeline horizontal */
+
+.timeline-chart {
+  width: 100%;
+  background: #1f2937;
+  border-radius: 12px;
+  padding: 24px;
+  color: white;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+
+
+.timeline-content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  padding-top: 0;
+}
+
+.timeline-row {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.row-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: #d1d5db;
+  margin-bottom: 8px;
+}
+
+.cards-container {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+
+.metric-card {
+  background: #0f172a;
+  border-radius: 8px;
+  padding: 4px;
+  border: 1px solid #334155;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-card:hover {
+  border-color: #60a5fa;
+}
+
+.card-header {
+  margin-bottom: 3px;
+  text-align: center;
+}
+
+.card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f9fafb;
+}
+
+/* Gráfico em arco para Ganho */
+.gain-arc-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 6px;
+  gap: 3px;
+}
+
+.gain-arc {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gain-info {
+  text-align: center;
+}
+
+.gain-metrics {
+  font-size: 14px;
+  font-weight: 600;
+  color: #10b981;
+  margin-bottom: 1px;
+}
+
+.gain-variation {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 3px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.gain-variation.positive {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.gain-variation.negative {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+/* Grid de métricas */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0px;
+  flex: 1;
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+  padding: 5px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.metric-label {
+  font-size: 10px;
+  font-weight: 500;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  margin-bottom: 0;
+  line-height: 1;
+  text-align: left;
+}
+
+.metric-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f9fafb;
+  text-align: right;
+  margin-bottom: 0;
+  line-height: 1;
+}
+
+.metric-bar {
+  width: 100%;
+  height: 2px;
+  background: #334155;
+  border-radius: 1px;
+  overflow: hidden;
+  margin-top: 0px;
+  margin-bottom: 1px;
+}
+
+.metric-bar-fill {
+  height: 100%;
+  border-radius: 1px;
+}
+
+.metric-bar-fill.opportunities {
+  background: #8b5cf6;
+}
+
+.metric-bar-fill.conversion {
+  background: #f59e0b;
+}
+
+.metric-bar-fill.loss {
+  background: #ef4444;
+}
+
+.metric-bar-fill.goal {
+  background: #10b981;
+}
+
+.metric-bar-fill.goal.exceeded {
+  background: #fbbf24;
+}
+
+.metric-bar-fill.ticket {
+  background: #06b6d4;
+}
+
+/* Responsividade */
+@media (max-width: 1400px) {
+  .cards-container {
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+  }
+  
+  .metric-card {
+    padding: 4px;
+    min-height: 140px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .cards-container {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  
+  .metric-card {
+    padding: 12px;
+    min-height: 140px;
+  }
+}
+
+@media (max-width: 768px) {
+  .timeline-chart {
+    padding: 16px;
+  }
+  
+  .timeline-header {
+    margin-bottom: 24px;
+  }
+  
+  .timeline-title {
+    font-size: 20px;
+  }
+  
+  .cards-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  
+  .metric-card {
+    padding: 12px;
+    min-height: auto;
+  }
+  
+  .gain-arc svg {
+    width: 60px;
+    height: 30px;
+  }
+  
+  .gain-metrics {
+    font-size: 12px;
+  }
+  
+  .metrics-grid {
+    gap: 2px;
+  }
+}
+
+@media (max-width: 480px) {
+  .timeline-chart {
+    padding: 12px;
+  }
+  
+  .timeline-content {
+    gap: 24px;
+  }
+  
+  .timeline-row {
+    gap: 16px;
+  }
+  
+  .cards-container {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .metric-card {
+    padding: 10px;
+  }
+  
+  .gain-arc svg {
+    width: 50px;
+    height: 25px;
+  }
+  
+  .gain-metrics {
+    font-size: 11px;
+  }
+  
+  .metric-value {
+    font-size: 11px;
+  }
+  
+  .metric-label {
+    font-size: 9px;
+  }
+}
+
+/* Scroll horizontal para telas pequenas */
+@media (max-width: 1024px) {
+  .cards-container {
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #4b5563 #1f2937;
+    padding-bottom: 8px;
+  }
+  
+  .cards-container::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  .cards-container::-webkit-scrollbar-track {
+    background: #1f2937;
+    border-radius: 3px;
+  }
+  
+  .cards-container::-webkit-scrollbar-thumb {
+    background: #4b5563;
+    border-radius: 3px;
+  }
+  
+  .cards-container::-webkit-scrollbar-thumb:hover {
+    background: #60a5fa;
+  }
+}
