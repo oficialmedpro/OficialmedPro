@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Sidebar.css';
 
 // Importar ícones SVG
@@ -22,6 +23,8 @@ const Sidebar = ({
   toggleFullscreen,
   changeLanguage
 }) => {
+  const navigate = useNavigate();
+  
   // Estados para os submenus em sanfona
   const [openSubmenus, setOpenSubmenus] = useState({
     funilsAdm: false,
@@ -94,7 +97,8 @@ const Sidebar = ({
       icon: 'funil-compra',
       subItems: [
         { icon: 'funil-compra', label: translations.funilCompra, active: true },
-        { icon: 'funil-recompra', label: translations.funilRecompra, active: false }
+        { icon: 'funil-recompra', label: translations.funilRecompra, active: false },
+        { icon: 'dashboard-meta', label: 'Dashboard MetaAds', active: false }
       ]
     },
     {
@@ -184,8 +188,11 @@ const Sidebar = ({
                       className="sidebar-component-collapsed-submenu-item"
                       onClick={(e) => {
                         e.stopPropagation();
-                        // Aqui você pode adicionar a lógica de navegação
-                        console.log(`Clicked on ${subItem.label}`);
+                        if (subItem.label === 'Dashboard MetaAds') {
+                          navigate('/meta-ads');
+                        } else {
+                          console.log(`Clicked on ${subItem.label}`);
+                        }
                       }}
                     >
                       {subItem.label}
@@ -199,7 +206,17 @@ const Sidebar = ({
             {sidebarExpanded && (
               <div className={`sidebar-component-submenu ${openSubmenus[menu.id] ? 'open' : ''}`}>
                 {menu.subItems.map((subItem, subIndex) => (
-                  <div key={subIndex} className={`sidebar-component-nav-item sidebar-component-submenu-item ${subItem.active ? 'active' : ''}`}>
+                  <div 
+                    key={subIndex} 
+                    className={`sidebar-component-nav-item sidebar-component-submenu-item ${subItem.active ? 'active' : ''}`}
+                    onClick={() => {
+                      if (subItem.label === 'Dashboard MetaAds') {
+                        navigate('/meta-ads');
+                      } else {
+                        console.log(`Clicked on ${subItem.label}`);
+                      }
+                    }}
+                  >
                     <span className="sidebar-component-nav-label">{subItem.label}</span>
                   </div>
                 ))}
