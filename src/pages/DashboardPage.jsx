@@ -38,6 +38,8 @@ const DashboardPage = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('today');
   const [selectedFunnel, setSelectedFunnel] = useState('all');
   const [selectedUnit, setSelectedUnit] = useState('all');
+  const [unitFilterValue, setUnitFilterValue] = useState(null); // Novo estado para o valor do filtro
+  const [statusFilterValue, setStatusFilterValue] = useState(null); // Novo estado para o filtro de status
   const [marketData, setMarketData] = useState({
     usd: 5.20,
     eur: 5.45,
@@ -98,6 +100,37 @@ const DashboardPage = () => {
   }, []);
 
   // Funções de controle
+  
+  // 🎯 Função para lidar com mudanças no filtro de unidade
+  const handleUnitFilterChange = (filterValue) => {
+    setUnitFilterValue(filterValue);
+    console.log(`🎯 Dashboard: Filtro de unidade alterado para:`, filterValue);
+    
+    // Aqui você pode implementar a lógica para filtrar as oportunidades
+    // baseado no unidade_id usando o valor do codigo_sprint
+    if (filterValue) {
+      console.log(`🔍 Filtrando oportunidades com unidade_id = "${filterValue}"`);
+      // TODO: Implementar filtro nas oportunidades
+      // Exemplo: filtrar oportunidades onde unidade_id = filterValue
+    } else {
+      console.log(`🌐 Mostrando todas as oportunidades (sem filtro de unidade)`);
+      // TODO: Remover filtro de unidade
+    }
+  };
+
+  // 🎯 Função para lidar com mudanças no filtro de status
+  const handleStatusFilterChange = (filterData) => {
+    setStatusFilterValue(filterData);
+    console.log(`🎯 Dashboard: Filtro de status alterado para:`, filterData);
+    
+    // Aqui você pode implementar a lógica para filtrar as oportunidades
+    // baseado no status selecionado
+    console.log(`🔍 Filtrando oportunidades com ${filterData.field} = "${filterData.value}"`);
+    console.log(`📝 Descrição: ${filterData.description}`);
+    
+    // TODO: Implementar filtro nas oportunidades
+    // Exemplo: filtrar oportunidades onde filterData.field = filterData.value
+  };
   const toggleSidebar = () => {
     // No mobile, alterna o menu mobile
     if (window.innerWidth <= 768) {
@@ -233,6 +266,8 @@ const DashboardPage = () => {
               setStartDate={setStartDate}
               endDate={endDate}
               setEndDate={setEndDate}
+              onUnitFilterChange={handleUnitFilterChange}
+              onStatusFilterChange={handleStatusFilterChange}
             />
           </div>
         </div>

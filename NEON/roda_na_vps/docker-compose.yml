@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+  sprinthub-sync:
+    image: node:18-alpine
+    container_name: sprinthub-sync-cron
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - /opt/sprinthub-sync:/app:ro
+    environment:
+      - TZ=America/Sao_Paulo
+      - NODE_ENV=production
+    command: |
+      sh -c "
+        echo '🚀 Iniciando SprintHub Sync...' &&
+        apk add --no-cache dcron &&
+        echo '⏰ Configurando cron: 6h às 22h (SP)...' &&
+        echo '0 6-22/2 * * * cd /app && node sync-incremental.js >> /var/log/sync.log 2>&1' | crontab - &&
+        echo '✅ Cron configurado! Próximas execuções:' &&
+        echo '   06:00, 08:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00, 22:00' &&
+        echo '🔄 Iniciando daemon...' &&
+        crond -f -l 2
+      "
+    labels:
+      - "traefik.enable=false"
+    healthcheck:
+      test: ["CMD", "ps", "|", "grep", "crond"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+

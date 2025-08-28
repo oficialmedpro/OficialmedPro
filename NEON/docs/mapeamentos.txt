@@ -1,0 +1,188 @@
+CAMPOS DA OPORTUNIDADE:
+---------------------------
+   id: number (100x) | Ex: 70657
+   title: string (100x) | Ex: Agropecuária  |  whatsapp 
+   value: number_string (100x) | Ex: 0.00
+   crm_column: number (100x) | Ex: 130
+   lead_id: number (100x) | Ex: 98064
+   sequence: number (100x) | Ex: 0
+   status: string (100x) | Ex: lost
+   loss_reason: number, null (100x) | Ex: 13
+   gain_reason: null, number (100x) | Ex: null
+   expectedCloseDate: null (100x) | Ex: null
+   sale_channel: null (100x) | Ex: null
+   campaign: null (100x) | Ex: null
+   user: number (100x) | Ex: 219
+   last_column_change: null, datetime (100x) | Ex: null
+   last_status_change: datetime, null (100x) | Ex: 2025-08-18T14:18:26.000Z
+   gain_date: null, datetime (100x) | Ex: null
+   lost_date: datetime, null (100x) | Ex: 2025-08-18T14:18:26.000Z
+   reopen_date: null (100x) | Ex: null
+   await_column_approved: null (100x) | Ex: null
+   await_column_approved_user: null (100x) | Ex: null
+   reject_appro: null (100x) | Ex: null
+   reject_appro_desc: null (100x) | Ex: null
+   conf_installment: array (100x) | Ex: 
+   createDate: datetime (100x) | Ex: 2025-08-18T14:15:32.000Z
+   updateDate: datetime (100x) | Ex: 2025-08-18T14:18:26.000Z
+   archived: number (100x) | Ex: 0
+
+
+ CAMPOS DO LEAD:
+------------------
+   id: number (100x) | Ex: 98064
+   address: null, string, empty_string (100x) | Ex: null
+   arquivo_receita: null (97x) | Ex: null
+   atendente: null (96x) | Ex: null
+   atendente_atual: null, string (88x) | Ex: null
+   avaliacao_atendente: null (96x) | Ex: null
+   avaliacao_atendimento: null (96x) | Ex: null
+   bairro: null, string, empty_string (96x) | Ex: null
+   capital_de_investimento: null (100x) | Ex: null
+   categoria: null (100x) | Ex: null
+   channelRestrictions: object, null (100x) | Ex: [object Object]
+   city: string, null, empty_string (100x) | Ex: Curitiba
+   classificacao_google: null (100x) | Ex: null
+   codigo_de_rastreio: null (74x) | Ex: null
+   company: null (100x) | Ex: null
+   complemento: null, empty_string, string (96x) | Ex: null
+   comportamento_da_ia: null, string (88x) | Ex: null
+   country: string, null (100x) | Ex: Brazil
+   cpf: null, number_string, string, empty_string (99x) | Ex: null
+   createDate: datetime (100x) | Ex: 2025-08-18T14:08:52.802Z
+   createdBy: string, number, number_string (100x) | Ex: -3dHaeC4UWWtWTfyPqQen
+   createdByName: string (100x) | Ex: ATENDIMENTO VIA API
+   createdByType: string (100x) | Ex: shortener
+   criativo: null (100x) | Ex: null
+   data_de_nascimento: null, datetime, empty_string (100x) | Ex: null
+   data_de_nascimento_yampi: null (85x) | Ex: null
+   data_do_contato: null (100x) | Ex: null
+   data_recompra: null, datetime (96x) | Ex: null
+   departmentAccess: array (100x) | Ex: 62,70
+   descontos: null (74x) | Ex: null
+   descricao_formula: null (73x) | Ex: null
+   drograria: null, boolean (97x) | Ex: null
+   email: null, email, empty_string (100x) | Ex: null
+   empresa: null (100x) | Ex: null
+   feedback: null (96x) | Ex: null
+   firstname: string, number_string (100x) | Ex: Agropecuária
+   forma_de_entrega: null (73x) | Ex: null
+   forma_pagamento: null (76x) | Ex: null
+   grau_de_interesse: null (100x) | Ex: null
+   id_apomax: null (74x) | Ex: null
+   id_cliente_yampi_xpc: null (75x) | Ex: null
+   id_t56: null (100x) | Ex: null
+   id_transacao: null (76x) | Ex: null
+   ignoreSubDepartments: boolean (100x) | Ex: false
+   ips: array (55x) | Ex: 
+   lastActive: datetime (100x) | Ex: 2025-08-18T15:07:23.859Z
+   lastname: string, null, number_string, empty_string (100x) | Ex: Fernandes
+   linkpagamento: null (76x) | Ex: null
+   lista_de_origem: null (100x) | Ex: null
+   mes_que_entrou: null (100x) | Ex: null
+   mobile: null, number_string (100x) | Ex: null
+   numero: null (76x) | Ex: null
+   numero_do_pedido: null (74x) | Ex: null
+   objetivos_do_cliente: null, array (96x) | Ex: null
+   observacao: null, string (100x) | Ex: null
+   observacoes_do_lead: null, empty_string, string (96x) | Ex: null
+   origem: null, string, empty_string (100x) | Ex: null
+   origem_manipulacao: null, string (96x) | Ex: null
+   owner: number, null (100x) | Ex: 219
+   pais: null (85x) | Ex: null
+   parcelas: null (76x) | Ex: null
+   pedidos_shopify: null (96x) | Ex: null
+   perfil_do_cliente: null, string (96x) | Ex: null
+   phone: null (100x) | Ex: null
+   photoUrl: url, null, empty_string (100x) | Ex: https://sac360.sprinthub.app/oficialmed/whatsapp_official/554197875788.jpg
+   plataforma: null, string (100x) | Ex: null
+   points: number (100x) | Ex: 0
+   preferred_locale: null (100x) | Ex: null
+   prescritor: null, boolean (97x) | Ex: null
+   produto: null (96x) | Ex: null
+   qualificacao_callix: null (100x) | Ex: null
+   recebedor_qjl: null (85x) | Ex: null
+   redes_sociais: null (100x) | Ex: null
+   referencia_entrega: null (85x) | Ex: null
+   retorno: null (100x) | Ex: null
+   rg: null, number (98x) | Ex: null
+   rua: null (76x) | Ex: null
+   sexo: null, string, empty_string (100x) | Ex: null
+   sh_status: null, string (96x) | Ex: null
+   site: null (100x) | Ex: null
+   skugetnet: null (76x) | Ex: null
+   stage: null (100x) | Ex: null
+   star_score: number, null (96x) | Ex: 0
+   state: null, string, empty_string (100x) | Ex: null
+   status: null, number_string (100x) | Ex: null
+   status_getnet: null (76x) | Ex: null
+   status_pagamento: null (76x) | Ex: null
+   status_stapa: null (74x) | Ex: null
+   thirdPartyData: object (100x) | Ex: [object Object]
+   timezone: null (100x) | Ex: null
+   tipo_de_compra: null, string (96x) | Ex: null
+   titulo_pedido: null (76x) | Ex: null
+   total: null (76x) | Ex: null
+   updatedBy: null, number (100x) | Ex: null
+   updatedByName: null, string (100x) | Ex: null
+   updatedDate: null, datetime (100x) | Ex: null
+   userAccess: array (100x) | Ex: 219,241
+   valor_do_frete: null (73x) | Ex: null
+   valor_parcela: null (76x) | Ex: null
+   whatsapp: number_string (100x) | Ex: 554197875788
+   whatsapp_remote_lid: email (100x) | Ex: 133968619937812@lid
+   zipcode: null, number_string, string, empty_string (100x) | Ex: null
+   createdByUtm: null, array (49x) | Ex: null
+   archived: boolean (48x) | Ex: false
+   endereco_completo: null (32x) | Ex: null
+   numero_entrega: null, number_string, empty_string (55x) | Ex: null
+   recebedor: null, string, empty_string (54x) | Ex: null
+   rua_entrega: null, string (55x) | Ex: null
+   id_cliente_yampi: null (3x) | Ex: null
+   objetivos: null (1x) | Ex: null
+
+
+
+CAMPOS CUSTOMIZADOS:
+------------------------
+   "Codigo Prime Receita": empty_string (52x) | Ex: 
+   "Descricao da Formula": empty_string (49x) | Ex: 
+   "Id ApiMax": empty_string (50x) | Ex: 
+   "Id Transacao": empty_string (50x) | Ex: 
+   "LinkPgto": empty_string (52x) | Ex: 
+   "Numero do pedido": empty_string (50x) | Ex: 
+   "ORIGEM OPORTUNIDADE": empty_string, string (100x) | Ex: 
+   "PRIMECADASTRO": number_string (100x) | Ex: 2
+   "QUALIFICACAO": empty_string, string (81x) | Ex: 
+   "Requisicao 1 ": empty_string (52x) | Ex: 
+   "Requisicao 2": empty_string (52x) | Ex: 
+   "Requisicao 3": empty_string (52x) | Ex: 
+   "requisicao1": empty_string (52x) | Ex: 
+   "Status Getnet": empty_string (52x) | Ex: 
+   "Status Orcamento": empty_string (87x) | Ex: 
+   "Tipo de Compra": string (100x) | Ex: nullo
+   "Valorconfere": number_string, string, empty_string (100x) | Ex: 0.00
+   "Forma Pagamento": empty_string (2x) | Ex: 
+   "Frete": empty_string (2x) | Ex: 
+   "Local da Compra": empty_string (2x) | Ex: 
+   "valorfrete": empty_string (2x) | Ex: 
+   " Codigo ID Lead": number_string (3x) | Ex: 97669
+   " Codigo ID Oportunidade": number_string (3x) | Ex: 66384
+   "idoportunidade": number_string (3x) | Ex: 66384
+   "DATA RECOMPRA": empty_string, number_string (43x) | Ex: 
+   "REQ": number_string, string, empty_string (11x) | Ex: 250801670
+
+
+🎯 CAMPOS UTM:
+--------------
+   id: number (90x) | Ex: -1656889312
+   dateAdded: datetime (90x) | Ex: 2025-08-13T22:51:07.261Z
+   origin: string (90x) | Ex: webhook automation
+   referer: null (89x) | Ex: null
+   utmCampaign: string (90x) | Ex: lp_padrao_captacao
+   utmContent: string (90x) | Ex: orçamento
+   utmMedium: string (90x) | Ex: cpc
+   utmSource: string (90x) | Ex: GoogleAds
+   utmTerm: string (90x) | Ex: manipulação
+
+

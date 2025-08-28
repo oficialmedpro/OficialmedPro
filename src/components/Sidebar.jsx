@@ -15,7 +15,12 @@ const Sidebar = ({
   sidebarExpanded, 
   isDarkMode, 
   currentLanguage,
-  translations 
+  translations,
+  isMobile = false,
+  onClose,
+  toggleTheme,
+  toggleFullscreen,
+  changeLanguage
 }) => {
   // Estados para os submenus em sanfona
   const [openSubmenus, setOpenSubmenus] = useState({
@@ -46,6 +51,28 @@ const Sidebar = ({
         [submenuKey]: true
       };
     });
+  };
+
+  // Funções para os botões do menu mobile - usar props se disponíveis
+  const handleToggleFullscreen = () => {
+    if (toggleFullscreen) {
+      toggleFullscreen();
+    } else {
+      // Fallback local
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    }
+  };
+
+  const handleToggleTheme = () => {
+    if (toggleTheme) {
+      toggleTheme();
+    } else {
+      console.log('Toggle theme clicked');
+    }
   };
 
   const renderIcon = (iconType, isActive = false) => {
@@ -82,10 +109,11 @@ const Sidebar = ({
   ];
 
   return (
-    <aside className={`sidebar-component ${sidebarExpanded ? 'expanded' : 'collapsed'}`}>
-      <div className="sidebar-component-header">
-        <div className="sidebar-component-logo">
-          {sidebarExpanded ? (
+    <aside className={`sidebar-component ${sidebarExpanded ? 'expanded' : 'collapsed'} ${isMobile ? 'mobile' : ''}`}>
+      {/* Header mobile com botão de fechar */}
+      {isMobile && (
+        <div className="sidebar-component-mobile-header">
+          <div className="sidebar-component-logo">
             <div className="sidebar-component-logo-text">
               <img 
                 src={isDarkMode ? LogoOficialmed : LogoOficialmedLight} 
@@ -93,17 +121,35 @@ const Sidebar = ({
                 style={{ height: '24px', width: 'auto', maxWidth: '120px' }}
               />
             </div>
-          ) : (
-            <div className="sidebar-component-logo-icon">
-              <img 
-                src={isDarkMode ? LogoIcon : LogoIconLight} 
-                alt="Logo" 
-                style={{ height: '24px', width: 'auto', maxWidth: '40px' }}
-              />
-            </div>
-          )}
+          </div>
+          <button className="sidebar-component-mobile-close" onClick={onClose}>×</button>
         </div>
-      </div>
+      )}
+
+      {/* Header normal para desktop */}
+      {!isMobile && (
+        <div className="sidebar-component-header">
+          <div className="sidebar-component-logo">
+            {sidebarExpanded ? (
+              <div className="sidebar-component-logo-text">
+                <img 
+                  src={isDarkMode ? LogoOficialmed : LogoOficialmedLight} 
+                  alt="OficialMed" 
+                  style={{ height: '24px', width: 'auto', maxWidth: '120px' }}
+                />
+              </div>
+            ) : (
+              <div className="sidebar-component-logo-icon">
+                <img 
+                  src={isDarkMode ? LogoIcon : LogoIconLight} 
+                  alt="Logo" 
+                  style={{ height: '24px', width: 'auto', maxWidth: '40px' }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <nav className="sidebar-component-nav">
         {accordionMenus.map((menu, menuIndex) => (
@@ -163,10 +209,53 @@ const Sidebar = ({
         ))}
       </nav>
 
+      {/* Container para os ícones da direita - copiado do TopMenuBar */}
+      {isMobile && (
+        <div className="tmb-right-icons-container">
+          {/* Seletor de idioma */}
+          <div className="tmb-language-selector">
+            <button 
+              className="tmb-language-btn"
+              onClick={() => changeLanguage(currentLanguage === 'pt-BR' ? 'en-US' : 'pt-BR')}
+            >
+              <img 
+                src={currentLanguage === 'pt-BR' ? '/icones/brasil.svg' : '/icones/eua.svg'} 
+                alt={currentLanguage === 'pt-BR' ? 'Brasil' : 'United States'} 
+              />
+              <span>{currentLanguage === 'pt-BR' ? 'BR' : 'US'}</span>
+            </button>
+          </div>
+
+          <button className="tmb-top-menu-btn" onClick={handleToggleFullscreen} title="Tela cheia">
+            <svg viewBox="0 0 24 24">
+              <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+            </svg>
+          </button>
+
+          <button className="tmb-top-menu-btn" onClick={handleToggleTheme} title="Alternar tema">
+            {isDarkMode ? '☀️' : '🌙'}
+          </button>
+
+          <button className="tmb-top-menu-btn" title="Mensagens">
+            ✉️
+            <span className="tmb-notification-badge">3</span>
+          </button>
+
+          <button className="tmb-top-menu-btn" title="Notificações">
+            🔔
+            <span className="tmb-notification-badge">7</span>
+          </button>
+
+          <div className="tmb-user-avatar-container">
+            <div className="tmb-user-avatar">U</div>
+          </div>
+        </div>
+      )}
+
       <div className="sidebar-component-footer">
         <div className="sidebar-component-user-profile">
           <div className="sidebar-component-user-avatar">U</div>
-          {sidebarExpanded && (
+          {(sidebarExpanded || isMobile) && (
             <div className="sidebar-component-user-info">
               <div className="sidebar-component-user-name">{translations.userName}</div>
               <div className="sidebar-component-user-email">{translations.userEmail}</div>
@@ -174,6 +263,8 @@ const Sidebar = ({
           )}
         </div>
       </div>
+
+
     </aside>
   );
 };

@@ -15,13 +15,17 @@ export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 
 // Função para obter o cliente com schema específico
 const getSupabaseWithSchema = (schema) => {
+  console.log('🔧 Criando cliente Supabase com schema:', schema)
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
     },
-    db: {
-      schema: schema
+    global: {
+      headers: {
+        'Accept-Profile': schema,
+        'Content-Profile': schema
+      }
     }
   })
 }
@@ -190,19 +194,53 @@ export const getEstatisticasOportunidades = async () => {
   }
 }
 
-// Função para buscar unidades
+// Função para buscar unidades usando HTTP direto (como na VPS)
 export const getUnidades = async () => {
   try {
-    const supabaseWithSchema = getSupabaseWithSchema(supabaseSchema)
-    const { data, error } = await supabaseWithSchema
-      .from('unidades')
-      .select('id, codigo, nome, cidade, estado, status')
-      .eq('status', 'ATIVA')
-      .order('nome')
+    console.log('🔍 Buscando unidades do schema:', supabaseSchema)
     
-    if (error) {
-      console.error('❌ Erro ao buscar unidades:', error)
-      throw new Error(`Erro ao buscar unidades: ${error.message}`)
+    // Primeiro, vamos ver quais tabelas existem no schema
+    console.log('🔍 Verificando tabelas disponíveis...')
+    const tablesResponse = await fetch(`${supabaseUrl}/rest/v1/`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema
+      }
+    })
+    
+    if (tablesResponse.ok) {
+      const tables = await tablesResponse.json()
+      console.log('📋 Tabelas disponíveis no schema', supabaseSchema, ':', tables)
+    } else {
+      console.log('⚠️ Não foi possível listar tabelas')
+    }
+    
+    // Agora tentar buscar unidades (usando campos que realmente existem)
+    const response = await fetch(`${supabaseUrl}/rest/v1/unidades?select=id,unidade,codigo_sprint,status&status=eq.ativo&order=unidade.asc`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+        'Content-Profile': supabaseSchema
+      }
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Erro HTTP:', response.status, errorText)
+      throw new Error(`Erro HTTP ${response.status}: ${errorText}`)
+    }
+    
+    const data = await response.json()
+    
+    console.log('✅ Unidades encontradas:', data?.length || 0)
+    if (data && data.length > 0) {
+      console.log('📋 Primeira unidade:', data[0])
     }
     
     return data || []
@@ -226,14 +264,53 @@ export const listSchemas = async () => {
 export const listTables = async () => {
   try {
     return {
-      [supabaseSchema]: ['oportunidade_sprint', 'unidades'],
+      [supabaseSchema]: ['oportunidade_sprint', 'unidades', 'funis'],
       public: []
     }
   } catch (error) {
     console.error('❌ Erro ao listar tabelas:', error)
     return {
-      [supabaseSchema]: ['oportunidade_sprint', 'unidades'],
+      [supabaseSchema]: ['oportunidade_sprint', 'unidades', 'funis'],
       public: []
     }
+  }
+}
+
+// 🎯 FUNÇÃO PARA BUSCAR FUNIS POR UNIDADE
+export const getFunisPorUnidade = async (unidadeId = null) => {
+  try {
+    console.log('🔍 Buscando funis para unidade:', unidadeId || 'todas')
+    
+    let url = `${supabaseUrl}/rest/v1/funis?select=id,nome_funil,id_funil_sprint,unidade,status&status=eq.ativo&order=nome_funil.asc`;
+    
+    // Se uma unidade específica foi selecionada, filtrar por ela
+    if (unidadeId && unidadeId !== 'all') {
+      url += `&unidade=eq.${encodeURIComponent(unidadeId)}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+        'Content-Profile': supabaseSchema
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Erro HTTP:', response.status, errorText)
+      throw new Error(`Erro HTTP ${response.status}: ${errorText}`)
+    }
+
+    const funis = await response.json();
+    console.log(`✅ Funis encontrados: ${funis.length}`, funis);
+    return funis;
+
+  } catch (error) {
+    console.error('❌ Erro ao buscar funis:', error);
+    throw error;
   }
 }

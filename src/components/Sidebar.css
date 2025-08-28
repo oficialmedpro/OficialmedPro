@@ -440,7 +440,8 @@
 
 /* =================== RESPONSIVIDADE =================== */
 @media (max-width: 768px) {
-  .sidebar-component {
+  /* Só esconde o Sidebar desktop, não o mobile */
+  .sidebar-component:not(.mobile) {
     display: none;
   }
   
@@ -459,6 +460,14 @@
   /* Tooltip não aparece no mobile */
   .sidebar-component.collapsed .sidebar-component-nav-item-parent .sidebar-component-collapsed-submenu {
     display: none;
+  }
+  
+  /* Garantir que o main-content ocupe toda a largura no mobile */
+  .sidebar-component:not(.mobile) ~ .main-content,
+  .sidebar-component:not(.mobile) + .main-content {
+    margin-left: 0 !important;
+    max-width: 100vw !important;
+    width: 100%;
   }
 }
 
@@ -498,4 +507,130 @@
 /* Específico para o funil de recompra não ativo - mais vivo */
 .sidebar-component-nav-item:not(.active) .sidebar-component-nav-icon img[alt*="Recompra"] {
   filter: brightness(1.3) saturate(1.4) opacity(0.95);
+}
+
+/* =================== MODO MOBILE =================== */
+.sidebar-component.mobile {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 280px;
+  height: 100vh;
+  z-index: 2002; /* Aumentado para ficar acima do overlay */
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  animation: slideInLeft 0.3s ease-out;
+  display: flex !important; /* Forçar exibição */
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Header mobile */
+.sidebar-component-mobile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  height: 60px;
+}
+
+.sidebar-component-mobile-close {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.sidebar-component-mobile-close:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Botões adicionais para menu mobile */
+.sidebar-component-mobile-actions {
+  padding: 20px;
+  border-top: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+}
+
+.sidebar-component-mobile-action-item {
+  margin-bottom: 8px;
+}
+
+.sidebar-component-mobile-action-item:last-child {
+  margin-bottom: 0;
+}
+
+.sidebar-component-mobile-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  text-align: left;
+}
+
+.sidebar-component-mobile-btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.sidebar-component-mobile-btn span:first-child {
+  font-size: 18px;
+  min-width: 24px;
+}
+
+.sidebar-component-mobile-badge {
+  background-color: var(--accent-color);
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  margin-left: auto;
+}
+
+/* Ajustes para modo mobile */
+.sidebar-component.mobile .sidebar-component-nav {
+  padding: 20px 0;
+}
+
+.sidebar-component.mobile .sidebar-component-footer {
+  border-top: 1px solid var(--border-color);
+  margin-top: auto;
+}
+
+.sidebar-component.mobile .sidebar-component-user-profile {
+  padding: 20px;
 }
