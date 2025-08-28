@@ -8,7 +8,6 @@ import HeaderComponents from '../components/HeaderComponents';
 import CampaignCard from '../components/CampaignCard';
 import MetaAdsStats from '../components/MetaAdsStats';
 import { metaAdsService } from '../service/metaAdsService';
-import { mockMetaAdsService } from '../service/mockMetaAdsService';
 import { translations } from '../data/translations';
 import { 
   formatCurrency, 
@@ -25,7 +24,7 @@ const MetaAdsDashboard = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [currentLanguage, setCurrentLanguage] = useState('pt-BR');
-  const [selectedStatus, setSelectedStatus] = useState('sale');
+  const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedSeller, setSelectedSeller] = useState('all');
   const [selectedPeriod, setSelectedPeriod] = useState('thisMonth');
   const [selectedFunnel, setSelectedFunnel] = useState('all');
@@ -40,7 +39,7 @@ const MetaAdsDashboard = () => {
   const [error, setError] = useState(null);
   const [metaStats, setMetaStats] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [useMockData, setUseMockData] = useState(true); // Usar dados simulados por padrão
+
   
   // Estados de mercado
   const [marketData, setMarketData] = useState({
@@ -118,16 +117,25 @@ const MetaAdsDashboard = () => {
 
       console.log('🔄 Carregando campanhas do Meta Ads...');
       
-      // Escolher qual service usar baseado no estado
-      const service = useMockData ? mockMetaAdsService : metaAdsService;
-      const serviceType = useMockData ? '[MOCK]' : '[API]';
+      // Usar sempre o serviço real da API
+      const service = metaAdsService;
+      console.log('📊 Usando API real do Meta Ads');
       
-      console.log(`📊 Usando ${serviceType} para carregar dados`);
-      
-      // Verificar se o serviço está configurado (apenas para API real)
-      if (!useMockData && !metaAdsService.isConfigured()) {
+      // Verificar se o serviço está configurado
+      if (!metaAdsService.isConfigured()) {
         throw new Error('Credenciais do Meta Ads não configuradas. Verifique o arquivo .env');
       }
+
+      // Primeiro, testar a conexão
+      console.log('🔍 Testando conexão...');
+      const connectionTest = await service.testConnection();
+      if (!connectionTest.success) {
+        throw new Error(`Falha na conexão: ${connectionTest.error}`);
+      }
+      console.log('✅ Conexão testada com sucesso');
+      console.log(`📊 Business Manager: ${connectionTest.businessManagerName}`);
+      console.log(`🎯 Contas de anúncios: ${connectionTest.adAccountsCount}`);
+      console.log(`🔍 Primeira conta: ${connectionTest.firstAccountName}`);
 
       const dateRange = calculateDateRange();
       console.log('📅 Período selecionado:', dateRange);
@@ -155,10 +163,16 @@ const MetaAdsDashboard = () => {
   // Carregar campanhas inicialmente e quando os filtros mudarem
   useEffect(() => {
     loadCampaigns();
-  }, [selectedPeriod, startDate, endDate, searchTerm, useMockData]); // Adicionar useMockData como dependência
+  }, [selectedPeriod, startDate, endDate, searchTerm]);
 
   // Filtrar campanhas baseado nos filtros
   useEffect(() => {
+    console.log('🔍 Filtrando campanhas:', {
+      total: campaigns.length,
+      searchTerm,
+      selectedStatus
+    });
+
     let filtered = campaigns;
 
     // Filtrar por termo de busca
@@ -166,6 +180,7 @@ const MetaAdsDashboard = () => {
       filtered = filtered.filter(campaign => 
         campaign.name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
+      console.log('🔍 Após filtro de busca:', filtered.length);
     }
 
     // Filtrar por status da campanha
@@ -179,9 +194,11 @@ const MetaAdsDashboard = () => {
         filtered = filtered.filter(campaign => 
           campaign.status === statusMap[selectedStatus]
         );
+        console.log('🔍 Após filtro de status:', filtered.length);
       }
     }
 
+    console.log('🔍 Campanhas filtradas finais:', filtered.length);
     setFilteredCampaigns(filtered);
   }, [campaigns, searchTerm, selectedStatus]);
 
@@ -271,11 +288,26 @@ const MetaAdsDashboard = () => {
             
             <div className="meta-ads-actions">
               <button 
-                className={`mock-toggle-btn ${useMockData ? 'mock-active' : 'api-active'}`}
-                onClick={() => setUseMockData(!useMockData)}
-                title={useMockData ? 'Usar dados reais da API' : 'Usar dados simulados'}
+                className="test-connection-btn"
+                onClick={async () => {
+                  try {
+                    setIsLoading(true);
+                    const result = await metaAdsService.testConnection();
+                                         if (result.success) {
+                       alert(`✅ Conexão OK!\n\nBusiness Manager: ${result.businessManagerName}\nContas de Anúncios: ${result.adAccountsCount}\nPrimeira Conta: ${result.firstAccountName}\nCampanhas: ${result.campaignsCount}`);
+                     } else {
+                       alert(`❌ Falha na conexão: ${result.error}`);
+                     }
+                  } catch (error) {
+                    alert(`❌ Erro no teste: ${error.message}`);
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                disabled={isLoading}
+                title="Testar conexão"
               >
-                {useMockData ? '🎭 Mock' : '🔌 API'}
+                🔌 Testar
               </button>
               <button 
                 className="refresh-btn"
@@ -366,14 +398,18 @@ const MetaAdsDashboard = () => {
                 </div>
               ) : (
                 <div className="campaigns-grid">
-                  {filteredCampaigns.map((campaign) => (
-                    <CampaignCard 
-                      key={campaign.id}
-                      campaign={campaign}
-                      formatCurrency={formatCurrency}
-                      isDarkMode={isDarkMode}
-                    />
-                  ))}
+                  {console.log('🔍 Renderizando campanhas:', filteredCampaigns.length, 'campanhas')}
+                  {filteredCampaigns.map((campaign, index) => {
+                    console.log(`🔍 Renderizando campanha ${index + 1}:`, campaign);
+                    return (
+                      <CampaignCard 
+                        key={campaign.id || index}
+                        campaign={campaign}
+                        formatCurrency={formatCurrency}
+                        isDarkMode={isDarkMode}
+                      />
+                    );
+                  })}
                 </div>
               )}
             </div>

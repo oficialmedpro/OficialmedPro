@@ -38,6 +38,31 @@
   align-items: center;
 }
 
+.test-connection-btn {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.test-connection-btn:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.test-connection-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .refresh-btn {
   background: var(--primary-color);
   color: white;
@@ -63,33 +88,7 @@
   cursor: not-allowed;
 }
 
-.mock-toggle-btn {
-  border: none;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
 
-.mock-toggle-btn.mock-active {
-  background: #f59e0b;
-  color: white;
-}
-
-.mock-toggle-btn.api-active {
-  background: #10b981;
-  color: white;
-}
-
-.mock-toggle-btn:hover {
-  transform: translateY(-1px);
-  opacity: 0.9;
-}
 
 /* Error State */
 .error-state {

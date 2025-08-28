@@ -28,22 +28,92 @@ class MetaAdsService {
   }
 
   /**
-   * Obtém informações da conta de anúncios
+   * Obtém informações do Business Manager
    * @returns {Promise<Object>}
    */
-  async getAccountInfo() {
+  async getBusinessManagerInfo() {
     try {
       if (!this.isConfigured()) {
         throw new Error('Credenciais do Meta Ads não configuradas');
       }
 
-      // Para contas pessoais, sempre usar prefixo 'act_'
-      const cleanAdAccountId = this.businessId.startsWith('act_') 
-        ? this.businessId 
-        : `act_${this.businessId}`;
+      console.log('🔍 Buscando informações do Business Manager:', this.businessId);
       
-      console.log('🔍 Buscando informações da conta:', cleanAdAccountId);
+      const response = await axios.get(
+        `${this.baseUrl}/${this.businessId}`,
+        {
+          params: {
+            access_token: this.accessToken,
+            fields: 'id,name,verification_status,created_time'
+          }
+        }
+      );
 
+      console.log('✅ Informações do Business Manager obtidas:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Erro ao buscar informações do Business Manager:', error.response?.data || error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Lista todas as contas de anúncios do Business Manager
+   * @returns {Promise<Array>}
+   */
+  async getAdAccounts() {
+    try {
+      if (!this.isConfigured()) {
+        throw new Error('Credenciais do Meta Ads não configuradas');
+      }
+
+      console.log('🔍 Buscando contas de anúncios do Business Manager...');
+      
+      const response = await axios.get(
+        `${this.baseUrl}/${this.businessId}/owned_ad_accounts`,
+        {
+          params: {
+            access_token: this.accessToken,
+            fields: 'id,name,account_status,currency,timezone_name,account_id',
+            limit: 100
+          }
+        }
+      );
+
+      const adAccounts = response.data.data || [];
+      console.log('✅ Contas de anúncios encontradas:', adAccounts.length);
+      
+      // Filtrar apenas contas ativas
+      const activeAccounts = adAccounts.filter(account => 
+        account.account_status === 1 || account.account_status === 2
+      );
+      
+      console.log('✅ Contas ativas:', activeAccounts.length);
+      return activeAccounts;
+    } catch (error) {
+      console.error('❌ Erro ao buscar contas de anúncios:', error.response?.data || error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Obtém informações de uma conta de anúncios específica
+   * @param {string} adAccountId - ID da conta de anúncios
+   * @returns {Promise<Object>}
+   */
+  async getAdAccountInfo(adAccountId) {
+    try {
+      if (!this.isConfigured()) {
+        throw new Error('Credenciais do Meta Ads não configuradas');
+      }
+
+      // Garantir que o ID tenha o prefixo 'act_'
+      const cleanAdAccountId = adAccountId.startsWith('act_') 
+        ? adAccountId 
+        : `act_${adAccountId}`;
+
+      console.log('🔍 Buscando informações da conta de anúncios:', cleanAdAccountId);
+      
       const response = await axios.get(
         `${this.baseUrl}/${cleanAdAccountId}`,
         {
@@ -54,10 +124,10 @@ class MetaAdsService {
         }
       );
 
-      console.log('✅ Informações da conta obtidas:', response.data);
+      console.log('✅ Informações da conta de anúncios obtidas:', response.data);
       return response.data;
     } catch (error) {
-      console.error('❌ Erro ao buscar informações da conta:', error.response?.data || error);
+      console.error('❌ Erro ao buscar informações da conta de anúncios:', error.response?.data || error);
       throw this.handleApiError(error);
     }
   }
@@ -73,51 +143,32 @@ class MetaAdsService {
         throw new Error('Credenciais do Meta Ads não configuradas');
       }
 
-      const cleanAdAccountId = this.businessId.startsWith('act_') 
-        ? this.businessId 
-        : `act_${this.businessId}`;
+      // Primeiro, vamos tentar buscar campanhas básicas para verificar permissões
+      console.log('🔍 Testando permissões básicas primeiro...');
+      
+      const basicCampaigns = await this.getCampaigns();
+      console.log('✅ Permissões básicas OK, buscando insights...');
 
-      console.log('🔍 Buscando campanhas para período:', dateRange);
-      console.log('📊 Usando conta:', cleanAdAccountId);
-
-      const response = await axios.get(
-        `${this.baseUrl}/${cleanAdAccountId}/campaigns`,
-        {
-          params: {
-            access_token: this.accessToken,
-            limit: 500,
-            fields: `id,name,status,objective,budget_remaining,budget_remaining_currency,spend_cap,spend_cap_currency,daily_budget,daily_budget_currency,lifetime_budget,lifetime_budget_currency,created_time,updated_time,start_time,stop_time,insights.time_range({"since":"${dateRange.since}","until":"${dateRange.until}"}){impressions,clicks,spend,reach,frequency,cpm,cpc,ctr,actions,action_values}`
+      // Agora vamos buscar insights para cada campanha individualmente
+      const campaignsWithInsights = await Promise.all(
+        basicCampaigns.map(async (campaign) => {
+          try {
+            const insights = await this.getCampaignInsights(campaign.id, dateRange);
+            return {
+              ...campaign,
+              insights
+            };
+          } catch (insightError) {
+            console.warn(`⚠️ Não foi possível buscar insights para campanha ${campaign.id}:`, insightError.message);
+            return {
+              ...campaign,
+              insights: null
+            };
           }
-        }
+        })
       );
 
-      console.log('✅ Total de campanhas encontradas:', response.data.data.length);
-
-      // Processa os insights das campanhas
-      const campaignsWithInsights = response.data.data.map((campaign) => {
-        let insights = null;
-        
-        if (campaign.insights && campaign.insights.data && campaign.insights.data.length > 0) {
-          const insightData = campaign.insights.data[0];
-          insights = {
-            impressions: Number(insightData.impressions) || 0,
-            clicks: Number(insightData.clicks) || 0,
-            spend: Number(insightData.spend) || 0,
-            reach: Number(insightData.reach) || 0,
-            frequency: Number(insightData.frequency) || 0,
-            cpm: Number(insightData.cpm) || 0,
-            cpc: Number(insightData.cpc) || 0,
-            ctr: Number(insightData.ctr) || 0,
-            actions: insightData.actions || []
-          };
-        }
-
-        return {
-          ...campaign,
-          insights
-        };
-      });
-
+      console.log('✅ Campanhas com insights processadas:', campaignsWithInsights.length);
       return campaignsWithInsights;
     } catch (error) {
       console.error('❌ Erro ao buscar campanhas com insights:', error.response?.data || error);
@@ -135,14 +186,23 @@ class MetaAdsService {
         throw new Error('Credenciais do Meta Ads não configuradas');
       }
 
-      const cleanAdAccountId = this.businessId.startsWith('act_') 
-        ? this.businessId 
-        : `act_${this.businessId}`;
+      // Primeiro, buscar as contas de anúncios disponíveis
+      const adAccounts = await this.getAdAccounts();
+      if (adAccounts.length === 0) {
+        throw new Error('Nenhuma conta de anúncios encontrada no Business Manager');
+      }
 
-      console.log('🔍 Buscando campanhas básicas da conta:', cleanAdAccountId);
+      // Usar a primeira conta ativa
+      const firstAccount = adAccounts[0];
+      // Garantir que o ID tenha o prefixo 'act_'
+      const workingAccountId = (firstAccount.account_id || firstAccount.id).startsWith('act_') 
+        ? (firstAccount.account_id || firstAccount.id)
+        : `act_${firstAccount.account_id || firstAccount.id}`;
+      
+      console.log('🔍 Buscando campanhas da conta:', workingAccountId, '(', firstAccount.name, ')');
 
       const response = await axios.get(
-        `${this.baseUrl}/${cleanAdAccountId}/campaigns`,
+        `${this.baseUrl}/${workingAccountId}/campaigns`,
         {
           params: {
             access_token: this.accessToken,
@@ -203,17 +263,26 @@ class MetaAdsService {
         throw new Error('Credenciais do Meta Ads não configuradas');
       }
 
-      const cleanAdAccountId = this.businessId.startsWith('act_') 
-        ? this.businessId 
-        : `act_${this.businessId}`;
+      // Primeiro, buscar as contas de anúncios disponíveis
+      const adAccounts = await this.getAdAccounts();
+      if (adAccounts.length === 0) {
+        throw new Error('Nenhuma conta de anúncios encontrada no Business Manager');
+      }
+
+      // Usar a primeira conta ativa
+      const firstAccount = adAccounts[0];
+      // Garantir que o ID tenha o prefixo 'act_'
+      const workingAccountId = (firstAccount.account_id || firstAccount.id).startsWith('act_') 
+        ? (firstAccount.account_id || firstAccount.id)
+        : `act_${firstAccount.account_id || firstAccount.id}`;
       
       const searchFilter = searchTerm ? searchTerm.toLowerCase() : '';
 
       console.log('📊 Buscando stats para período:', dateRange, 'filtro:', searchFilter);
-      console.log('🎯 Usando conta:', cleanAdAccountId);
+      console.log('🎯 Usando conta:', workingAccountId, '(', firstAccount.name, ')');
 
       const response = await axios.get(
-        `${this.baseUrl}/${cleanAdAccountId}/campaigns`,
+        `${this.baseUrl}/${workingAccountId}/campaigns`,
         {
           params: {
             access_token: this.accessToken,
@@ -295,9 +364,18 @@ class MetaAdsService {
         throw new Error('Credenciais do Meta Ads não configuradas');
       }
 
-      const cleanAdAccountId = this.businessId.startsWith('act_') 
-        ? this.businessId 
-        : `act_${this.businessId}`;
+      // Primeiro, buscar as contas de anúncios disponíveis
+      const adAccounts = await this.getAdAccounts();
+      if (adAccounts.length === 0) {
+        throw new Error('Nenhuma conta de anúncios encontrada no Business Manager');
+      }
+
+      // Usar a primeira conta ativa
+      const firstAccount = adAccounts[0];
+      // Garantir que o ID tenha o prefixo 'act_'
+      const workingAccountId = (firstAccount.account_id || firstAccount.id).startsWith('act_') 
+        ? (firstAccount.account_id || firstAccount.id)
+        : `act_${firstAccount.account_id || firstAccount.id}`;
       
       const searchTerm = unidadeNome?.toLowerCase().includes('londrina') ? 'londrina' : unidadeNome?.toLowerCase() || '';
 
@@ -314,9 +392,10 @@ class MetaAdsService {
       console.log('📊 Buscando stats da unidade:', unidadeNome);
       console.log('📅 Período:', dateRange);
       console.log('🔍 Termo de busca:', searchTerm);
+      console.log('🎯 Usando conta:', workingAccountId, '(', firstAccount.name, ')');
 
       const campaignsResponse = await axios.get(
-        `${this.baseUrl}/${cleanAdAccountId}/campaigns`,
+        `${this.baseUrl}/${workingAccountId}/campaigns`,
         {
           params: {
             access_token: this.accessToken,
@@ -415,6 +494,56 @@ class MetaAdsService {
       return { 
         valid: false, 
         error: 'Erro ao validar token' 
+      };
+    }
+  }
+
+  /**
+   * Testa a conexão com a API e verifica permissões
+   * @returns {Promise<Object>}
+   */
+  async testConnection() {
+    try {
+      console.log('🔍 Testando conexão com Meta Ads API...');
+      
+      // Primeiro, validar o token
+      const tokenValidation = await this.validateAccessToken();
+      if (!tokenValidation.valid) {
+        throw new Error('Token inválido ou expirado');
+      }
+
+      // Verificar se conseguimos acessar o Business Manager
+      const businessInfo = await this.getBusinessManagerInfo();
+      console.log('✅ Business Manager acessível:', businessInfo.name);
+
+      // Verificar se conseguimos listar as contas de anúncios
+      const adAccounts = await this.getAdAccounts();
+      console.log('✅ Contas de anúncios encontradas:', adAccounts.length);
+
+      if (adAccounts.length === 0) {
+        return {
+          success: false,
+          error: 'Nenhuma conta de anúncios encontrada no Business Manager'
+        };
+      }
+
+      // Tentar buscar campanhas da primeira conta
+      const campaigns = await this.getCampaigns();
+      console.log('✅ Campanhas acessíveis:', campaigns.length);
+
+      return {
+        success: true,
+        businessManagerName: businessInfo.name,
+        adAccountsCount: adAccounts.length,
+        firstAccountName: adAccounts[0].name,
+        campaignsCount: campaigns.length,
+        permissions: 'OK'
+      };
+    } catch (error) {
+      console.error('❌ Teste de conexão falhou:', error.message);
+      return {
+        success: false,
+        error: error.message
       };
     }
   }

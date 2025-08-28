@@ -16,6 +16,27 @@
   transform: translateY(-2px);
 }
 
+/* Card de erro */
+.campaign-card.error {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.campaign-card.error p {
+  color: #ef4444;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+}
+
+.campaign-card.error pre {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  overflow-x: auto;
+  max-height: 200px;
+}
+
 /* Header */
 .campaign-card-header {
   display: flex;
