@@ -314,3 +314,153 @@ export const getFunisPorUnidade = async (unidadeId = null) => {
     throw error;
   }
 }
+
+// 🎯 FUNÇÃO PARA BUSCAR VENDEDORES POR UNIDADE (IGUAL AOS FUNIS)
+export const getVendedores = async (unidadeId = null) => {
+  try {
+    console.log('🔍 Buscando vendedores para unidade:', unidadeId || 'todas')
+    
+    let url = `${supabaseUrl}/rest/v1/vendedores?select=*&order=nome.asc`;
+    
+    // Se uma unidade específica foi selecionada, filtrar por ela
+    if (unidadeId && unidadeId !== 'all') {
+      url += `&id_unidade=eq.${encodeURIComponent(unidadeId)}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+        'Content-Profile': supabaseSchema
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Erro HTTP:', response.status, errorText)
+      throw new Error(`Erro HTTP ${response.status}: ${errorText}`)
+    }
+
+    const vendedores = await response.json();
+    console.log(`✅ Vendedores encontrados: ${vendedores.length}`, vendedores);
+    return vendedores;
+
+  } catch (error) {
+    console.error('❌ Erro ao buscar vendedores:', error);
+    throw error;
+  }
+}
+
+// 🎯 FUNÇÃO PARA BUSCAR ETAPAS DINÂMICAS DO FUNIL
+export const getFunilEtapas = async (idFunilSprint) => {
+  try {
+    console.log('🔍 Buscando etapas do funil:', idFunilSprint)
+    
+    const url = `${supabaseUrl}/rest/v1/funil_etapas?select=*&id_funil_sprint=eq.${encodeURIComponent(idFunilSprint)}&ativo=eq.true&order=ordem_etapa.asc`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+        'Content-Profile': supabaseSchema
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Erro HTTP:', response.status, errorText)
+      throw new Error(`Erro HTTP ${response.status}: ${errorText}`)
+    }
+
+    const etapas = await response.json();
+    console.log(`✅ Etapas do funil encontradas: ${etapas.length}`, etapas);
+    return etapas;
+
+  } catch (error) {
+    console.error('❌ Erro ao buscar etapas do funil:', error);
+    throw error;
+  }
+}
+
+// 🎯 FUNÇÃO PARA BUSCAR DADOS DAS OPORTUNIDADES POR ETAPA DO FUNIL
+export const getOportunidadesPorEtapaFunil = async (etapas) => {
+  try {
+    console.log('🔍 Buscando oportunidades por etapa do funil:', etapas.map(e => e.id_sprint));
+    
+    // Buscar todas as oportunidades ativas
+    const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,status,value,funil_nome&archived=eq.0`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+        'Content-Profile': supabaseSchema
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Erro HTTP:', response.status, errorText)
+      throw new Error(`Erro HTTP ${response.status}: ${errorText}`)
+    }
+
+    const oportunidades = await response.json();
+    console.log(`✅ Oportunidades encontradas: ${oportunidades.length}`);
+
+    // Contar oportunidades por status (usando os IDs das etapas)
+    const contagemPorEtapa = {};
+    const valorPorEtapa = {};
+    
+    etapas.forEach(etapa => {
+      contagemPorEtapa[etapa.id_sprint] = 0;
+      valorPorEtapa[etapa.id_sprint] = 0;
+    });
+
+    oportunidades.forEach(oportunidade => {
+      const status = oportunidade.status;
+      if (contagemPorEtapa.hasOwnProperty(status)) {
+        contagemPorEtapa[status]++;
+        if (oportunidade.value && !isNaN(oportunidade.value)) {
+          valorPorEtapa[status] += parseFloat(oportunidade.value);
+        }
+      }
+    });
+
+    // Criar resultado formatado
+    const resultado = etapas.map((etapa, index) => {
+      const quantidade = contagemPorEtapa[etapa.id_sprint] || 0;
+      const valor = valorPorEtapa[etapa.id_sprint] || 0;
+      
+      // Calcular taxa de conversão (se não for a primeira etapa)
+      let taxaConversao = null;
+      if (index > 0) {
+        const etapaAnterior = etapas[index - 1];
+        const quantidadeAnterior = contagemPorEtapa[etapaAnterior.id_sprint] || 0;
+        taxaConversao = quantidadeAnterior > 0 ? ((quantidade / quantidadeAnterior) * 100).toFixed(1) : 0;
+      }
+
+      return {
+        ...etapa,
+        quantidade,
+        valor,
+        taxaConversao
+      };
+    });
+
+    console.log('📊 Dados do funil calculados:', resultado);
+    return resultado;
+
+  } catch (error) {
+    console.error('❌ Erro ao buscar dados do funil:', error);
+    throw error;
+  }
+}

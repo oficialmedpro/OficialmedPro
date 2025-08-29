@@ -1,0 +1,332 @@
+/* FunnelChart.css - Estilos exclusivos do componente FunnelChart */
+
+/* =================== FUNNEL CONTAINER =================== */
+.fc-funnel-container {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  align-items: center;
+  position: relative;
+}
+
+/* =================== SOURCES BAR =================== */
+.fc-sources-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.fc-source-item {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 80px;
+}
+
+.fc-source-item.google {
+  background-color: #4285f4;
+  color: #ffffff;
+}
+
+.fc-source-item.meta {
+  background-color: #1877f2;
+  color: #ffffff;
+}
+
+.fc-source-item.organic {
+  background-color: var(--accent-green);
+  color: #ffffff;
+}
+
+.fc-source-item.indicacao {
+  background-color: var(--accent-orange);
+  color: #ffffff;
+}
+
+.fc-source-item.prescritor {
+  background-color: var(--accent-purple);
+  color: #ffffff;
+}
+
+.fc-source-item.franquia {
+  background-color: var(--accent-red);
+  color: #ffffff;
+}
+
+.fc-source-item.others {
+  background-color: #6b7280;
+  color: #ffffff;
+}
+
+.fc-source-label {
+  font-size: 10px;
+  opacity: 0.9;
+}
+
+.fc-source-value {
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fc-source-percentage {
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 1;
+}
+
+.fc-source-count {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* =================== FUNNEL STAGES =================== */
+.fc-funnel-stage {
+  position: relative;
+  margin-bottom: 0; /* ✅ Removido margin-bottom pois agora usamos gap no container */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.fc-funnel-bar {
+  height: 60px;
+  border-radius: 8px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  transition: all 0.3s ease;
+  margin: 0 auto;
+}
+
+.fc-funnel-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.fc-funnel-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff !important; /* ✅ Forçar branco para os textos das etapas */
+}
+
+.fc-funnel-values {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* ✅ Alinhado à direita dentro da etapa */
+  gap: 12px;
+}
+
+.fc-funnel-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff; /* ✅ Forçar branco */
+}
+
+.fc-funnel-loss {
+  font-size: 14px;
+  font-weight: 600;
+  background-color: var(--accent-red);
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block; /* ✅ Garantir alinhamento inline */
+}
+
+.fc-funnel-gain {
+  font-size: 14px;
+  color: var(--accent-green);
+  font-weight: 600;
+  background-color: var(--accent-green);
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.funildash_conversion-rate-box {
+  background: #fbbf24;
+  color: #000000;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 50px;
+  text-align: center;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 60px;
+  z-index: 2;
+}
+
+/* Ajustes específicos para criar o efeito de funil */
+.fc-funnel-stage[data-stage="0"] .fc-funnel-bar {
+  width: 100%;
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
+}
+
+.fc-funnel-stage[data-stage="1"] .fc-funnel-bar {
+  width: 85%;
+  background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+}
+
+.fc-funnel-stage[data-stage="2"] .fc-funnel-bar {
+  width: 70%;
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+}
+
+.fc-funnel-stage[data-stage="3"] .fc-funnel-bar {
+  width: 55%;
+  background: linear-gradient(135deg, #1e40af, #1e3a8a);
+}
+
+.fc-funnel-stage[data-stage="4"] .fc-funnel-bar {
+  width: 40%;
+  background: linear-gradient(135deg, #1e3a8a, #1e40af);
+}
+
+.fc-funnel-stage[data-stage="5"] .fc-funnel-bar {
+  width: 35%;
+  background: linear-gradient(135deg, #1e40af, var(--accent-blue));
+}
+
+.fc-funnel-stage[data-stage="6"] .fc-funnel-bar {
+  width: 25%;
+  background: linear-gradient(135deg, var(--accent-green), #059669);
+}
+
+.fc-funnel-stage:last-child {
+  margin-bottom: 0;
+}
+
+/* =================== RESPONSIVIDADE =================== */
+@media (max-width: 1024px) {
+  .fc-funnel-bar {
+    padding: 0 12px;
+  }
+  
+  .fc-funnel-label {
+    font-size: 12px;
+  }
+  
+  .fc-funnel-value {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Ajustar gap para mobile */
+  .fc-funnel-container {
+    gap: 15px;
+  }
+  
+  .fc-source-count {
+    font-size: 11px;
+  }
+  
+  /* Ajustar larguras do funil para mobile - etapas mais largas */
+  .fc-funnel-stage[data-stage="0"] .fc-funnel-bar { width: 100%; }
+  .fc-funnel-stage[data-stage="1"] .fc-funnel-bar { width: 95%; }
+  .fc-funnel-stage[data-stage="2"] .fc-funnel-bar { width: 90%; }
+  .fc-funnel-stage[data-stage="3"] .fc-funnel-bar { width: 85%; }
+  .fc-funnel-stage[data-stage="4"] .fc-funnel-bar { width: 80%; }
+  .fc-funnel-stage[data-stage="5"] .fc-funnel-bar { width: 75%; }
+  .fc-funnel-stage[data-stage="6"] .fc-funnel-bar { width: 70%; }
+  
+  .fc-funnel-bar {
+    padding: 0 10px;
+    height: 50px;
+  }
+  
+  .fc-funnel-label {
+    font-size: 11px;
+    font-weight: 600;
+  }
+  
+  .fc-funnel-value {
+    font-size: 14px;
+    font-weight: 700;
+  }
+  
+  .fc-funnel-loss, .fc-funnel-gain {
+    font-size: 11px;
+    font-weight: 600;
+  }
+  
+  .funildash_conversion-rate-box {
+    background: #fbbf24;
+    color: #000000;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 600;
+    min-width: 40px;
+    text-align: center;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 50px;
+    z-index: 2;
+  }
+  
+  .fc-funnel-stage {
+    margin-bottom: 0px;
+  }
+  
+  .fc-funnel-values {
+    gap: 6px;
+  }
+  
+  .fc-funnel-value {
+    margin-right: 6px;
+  }
+  
+  .fc-funnel-loss, .fc-funnel-gain {
+    margin-left: 3px;
+  }
+}
+
+@media (max-width: 480px) {
+  .funildash_conversion-rate-box {
+    background: #fbbf24;
+    color: #000000;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-size: 8px;
+    font-weight: 600;
+    min-width: 35px;
+    text-align: center;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 45px;
+    z-index: 2;
+  }
+  
+  .fc-funnel-stage {
+    margin-bottom: 0px;
+  }
+  
+  .fc-funnel-values {
+    gap: 6px;
+  }
+  
+  .fc-funnel-value {
+    margin-right: 6px;
+  }
+}
