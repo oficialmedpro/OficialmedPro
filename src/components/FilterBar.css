@@ -1,13 +1,85 @@
 /* FilterBar Component Styles */
 
+/* =================== FILTERBAR FIXO =================== */
 .fb-filter-bar {
+  position: fixed;
+  top: 60px; /* Posicionado abaixo do TopMenuBar */
+  left: 70px; /* Alinhado com a sidebar colapsada */
+  right: 0;
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding: 16px 20px;
+  z-index: 999;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  
+  /* Layout com duas seções */
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
+  gap: 20px;
+}
+
+/* Seção esquerda - Indicadores */
+.fb-indicators-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   flex-shrink: 0;
-  padding: 0px 0;
+}
+
+/* Seção direita - Filtros */
+.fb-filters-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  flex: 1;
+}
+
+/* Ajuste quando sidebar expandir */
+.sidebar-component.expanded ~ .fb-filter-bar {
+  left: 280px;
+}
+
+/* Responsividade para mobile */
+@media (max-width: 768px) {
+  .fb-filter-bar {
+    left: 0;
+    top: 60px;
+    padding: 12px 16px;
+    position: fixed;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .fb-indicators-section {
+    justify-content: center;
+    gap: 12px;
+  }
+  
+  .fb-filters-section {
+    justify-content: center;
+    gap: 8px;
+  }
+  
+  /* Garantir que o main-content não sobreponha o FilterBar fixo */
+  .main-content {
+    margin-top: 140px !important; /* 60px TopMenuBar + 80px FilterBar (mais alto no mobile) */
+  }
+}
+
+/* Ajuste do main-content para acomodar o FilterBar fixo */
+.main-content {
+  margin-top: 120px; /* 60px TopMenuBar + 60px FilterBar */
+  transition: all 0.3s ease;
+}
+
+.sidebar-component.expanded ~ .main-content {
+  margin-top: 120px;
 }
 
 .fb-filter-group {
@@ -432,5 +504,96 @@
   .fb-apply-period-btn {
     margin: 0 10px;
     width: calc(100% - 20px);
+  }
+}
+
+/* =================== INDICADORES DO FILTERBAR =================== */
+.fb-market-indicators {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fb-indicator-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.fb-indicator-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.fb-indicator-value {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.fb-datetime-indicators {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fb-date-indicator,
+.fb-time-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.fb-date-label,
+.fb-time-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.fb-date-value,
+.fb-time-value {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+/* Responsividade para os indicadores */
+@media (max-width: 768px) {
+  .fb-market-indicators,
+  .fb-datetime-indicators {
+    padding: 6px 8px;
+    gap: 12px;
+  }
+  
+  .fb-indicator-item,
+  .fb-date-indicator,
+  .fb-time-indicator {
+    font-size: 11px;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .fb-market-indicators,
+  .fb-datetime-indicators {
+    padding: 4px 6px;
+    gap: 8px;
+  }
+  
+  .fb-indicator-item,
+  .fb-date-indicator,
+  .fb-time-indicator {
+    font-size: 10px;
+    gap: 3px;
   }
 }

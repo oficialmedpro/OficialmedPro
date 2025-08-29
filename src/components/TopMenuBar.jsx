@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './TopMenuBar.css';
 
 // Importar ícones SVG
@@ -15,6 +16,7 @@ const TopMenuBar = ({
   currentLanguage,
   changeLanguage
 }) => {
+  const navigate = useNavigate();
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
   const languageDropdownRef = useRef(null);
 
@@ -48,7 +50,7 @@ const TopMenuBar = ({
       </button>
 
       {/* Logo - visível no mobile */}
-      <div className="tmb-logo-mobile">
+      <div className="tmb-logo-mobile" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
         <img src={LogoOficialmed} alt="OficialMed" />
       </div>
 

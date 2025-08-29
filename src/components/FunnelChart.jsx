@@ -1,10 +1,10 @@
 import React from 'react';
 
-const FunnelChart = ({ t }) => {
+const FunnelChart = ({ t, title }) => {
   return (
     <div className="main-chart">
       <div className="chart-header">
-        <h3>{t.chartTitle}</h3>
+        <h3>{title || t.chartTitle}</h3>
         <span className="chart-period">{t.chartPeriod}</span>
       </div>
 

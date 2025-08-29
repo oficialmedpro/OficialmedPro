@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './FilterBar.css';
 import { getUnidades, getFunisPorUnidade } from '../service/supabase.js';
 
-const FilterBar = ({ t, selectedStatus, setSelectedStatus, selectedSeller, setSelectedSeller, selectedPeriod, setSelectedPeriod, selectedFunnel, setSelectedFunnel, selectedUnit, setSelectedUnit, startDate, setStartDate, endDate, setEndDate, onUnitFilterChange, onStatusFilterChange }) => {
+const FilterBar = ({ t, selectedStatus, setSelectedStatus, selectedSeller, setSelectedSeller, selectedPeriod, setSelectedPeriod, selectedFunnel, setSelectedFunnel, selectedUnit, setSelectedUnit, startDate, setStartDate, endDate, setEndDate, onUnitFilterChange, onStatusFilterChange, marketData }) => {
 
   
   // Estado único para controlar qual dropdown está aberto (accordion)
@@ -94,6 +94,23 @@ const FilterBar = ({ t, selectedStatus, setSelectedStatus, selectedSeller, setSe
     fetchFunnels();
   }, []);
 
+  // Atualizar horário em tempo real
+  useEffect(() => {
+    const updateTime = () => {
+      const timeElement = document.getElementById('current-time-filterbar');
+      if (timeElement) {
+        timeElement.textContent = new Date().toLocaleTimeString('pt-BR', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        });
+      }
+    };
+
+    updateTime();
+    const timeInterval = setInterval(updateTime, 60000); // Atualizar a cada minuto
+    return () => clearInterval(timeInterval);
+  }, []);
+
   // Função para alternar dropdowns (accordion)
   const toggleDropdown = (dropdownName) => {
     if (openDropdown === dropdownName) {
@@ -170,261 +187,303 @@ const FilterBar = ({ t, selectedStatus, setSelectedStatus, selectedSeller, setSe
 
   return (
     <div className="fb-filter-bar">
-      {/* Filtro de Unidades - AGORA EM PRIMEIRO */}
-      <div className="fb-filter-group">
-        <div className="fb-dropdown-container">
-          <button 
-            className="fb-dropdown-button"
-            onClick={() => toggleDropdown('units')}
-          >
-            <span>
-              {loadingUnits ? 'Carregando...' : 
-                units.find(u => u.id === selectedUnit)?.name || 'Todas as Unidades'
-              }
+      {/* Seção Esquerda - Indicadores */}
+      <div className="fb-indicators-section">
+        {/* Indicadores de mercado */}
+        <div className="fb-market-indicators">
+          <div className="fb-indicator-item">
+            <span className="fb-indicator-label">USD:</span>
+            <span className="fb-indicator-value">
+              R$ {typeof marketData?.usd === 'number' ? marketData.usd.toFixed(2) : '5.20'}
             </span>
-            <span className="fb-dropdown-arrow">▼</span>
-          </button>
-          
-          {openDropdown === 'units' && !loadingUnits && (
-            <div className="fb-dropdown-menu">
-              {units.length === 0 ? (
-                <div className="fb-dropdown-item">Nenhuma unidade encontrada.</div>
-              ) : (
-                units.map((unit) => (
-                  <div 
-                    key={unit.id}
-                    className={`fb-dropdown-item ${selectedUnit === unit.id ? 'fb-selected' : ''}`}
-                    onClick={() => handleUnitChange(unit.id)}
-                  >
-                    {unit.name}
-                  </div>
-                ))
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Filtro de Funis - AGORA EM SEGUNDO */}
-      <div className="fb-filter-group">
-        <div className="fb-dropdown-container">
-          <button 
-            className="fb-dropdown-button"
-            onClick={() => toggleDropdown('funnels')}
-            disabled={loadingFunnels}
-          >
-            <span>
-              {loadingFunnels ? 'Carregando...' : 
-                funnels.find(f => f.id === selectedFunnel)?.name || 'Todos os funis'
-              }
+          </div>
+          <div className="fb-indicator-item">
+            <span className="fb-indicator-label">EUR:</span>
+            <span className="fb-indicator-value">
+              R$ {typeof marketData?.eur === 'number' ? marketData.eur.toFixed(2) : '5.45'}
             </span>
-            <span className="fb-dropdown-arrow">▼</span>
-          </button>
-          
-          {openDropdown === 'funnels' && !loadingFunnels && (
-            <div className="fb-dropdown-menu">
-              {funnels.length === 0 ? (
-                <div className="fb-dropdown-item">Nenhum funil encontrado.</div>
-              ) : (
-                funnels.map((funnel) => (
-                  <div 
-                    key={funnel.id}
-                    className={`fb-dropdown-item ${selectedFunnel === funnel.id ? 'fb-selected' : ''}`}
-                    onClick={() => handleFunnelChange(funnel.id)}
-                  >
-                    {funnel.name}
-                  </div>
-                ))
-              )}
-            </div>
-          )}
+          </div>
+          <div className="fb-indicator-item">
+            <span className="fb-indicator-label">IBOV:</span>
+            <span className="fb-indicator-value">
+              {typeof marketData?.ibov === 'number' ? marketData.ibov.toLocaleString() : '125.432'}
+            </span>
+          </div>
+        </div>
+
+        {/* Data e hora */}
+        <div className="fb-datetime-indicators">
+          <div className="fb-date-indicator">
+            <span className="fb-date-label">Data:</span>
+            <span className="fb-date-value">{new Date().toLocaleDateString('pt-BR')}</span>
+          </div>
+          <div className="fb-time-indicator">
+            <span className="fb-time-label">Hora:</span>
+            <span className="fb-time-value" id="current-time-filterbar">
+              {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Filtro de Status */}
-      <div className="fb-filter-group">
-        <div className="fb-dropdown-container fb-status-dropdown">
-          <button 
-            className="fb-dropdown-button"
-            onClick={() => toggleDropdown('status')}
-          >
-            <span>{selectedStatus === 'sale' ? 'Venda' : selectedStatus === 'won' ? 'Ganho' : 'Cadastrado'}</span>
-            <span className="fb-dropdown-arrow">▼</span>
-          </button>
-          
-          {openDropdown === 'status' && (
-            <div className="fb-dropdown-menu">
-              <div 
-                className={`fb-dropdown-item ${selectedStatus === 'sale' ? 'fb-selected' : ''}`}
-                onClick={() => {
-                  setSelectedStatus('sale');
-                  setOpenDropdown(null);
-                  
-                  // 🎯 FILTRO: Venda → status_orcamento = 'aprovado'
-                  if (onStatusFilterChange) {
-                    onStatusFilterChange({
-                      type: 'sale',
-                      field: 'status_orcamento',
-                      value: 'aprovado',
-                      description: 'Orçamentos aprovados pelo vendedor'
-                    });
-                  }
-                }}
-              >
-                Venda
+      {/* Seção Direita - Filtros */}
+      <div className="fb-filters-section">
+        {/* Filtro de Unidades - AGORA EM PRIMEIRO */}
+        <div className="fb-filter-group">
+          <div className="fb-dropdown-container">
+            <button 
+              className="fb-dropdown-button"
+              onClick={() => toggleDropdown('units')}
+            >
+              <span>
+                {loadingUnits ? 'Carregando...' : 
+                  units.find(u => u.id === selectedUnit)?.name || 'Todas as Unidades'
+                }
+              </span>
+              <span className="fb-dropdown-arrow">▼</span>
+            </button>
+            
+            {openDropdown === 'units' && !loadingUnits && (
+              <div className="fb-dropdown-menu">
+                {units.length === 0 ? (
+                  <div className="fb-dropdown-item">Nenhuma unidade encontrada.</div>
+                ) : (
+                  units.map((unit) => (
+                    <div 
+                      key={unit.id}
+                      className={`fb-dropdown-item ${selectedUnit === unit.id ? 'fb-selected' : ''}`}
+                      onClick={() => handleUnitChange(unit.id)}
+                    >
+                      {unit.name}
+                    </div>
+                  ))
+                )}
               </div>
-              <div 
-                className={`fb-dropdown-item ${selectedStatus === 'won' ? 'fb-selected' : ''}`}
-                onClick={() => {
-                  setSelectedStatus('won');
-                  setOpenDropdown(null);
-                  
-                  // 🎯 FILTRO: Ganho → status = 'gain'
-                  if (onStatusFilterChange) {
-                    onStatusFilterChange({
-                      type: 'won',
-                      field: 'status',
-                      value: 'gain',
-                      description: 'Oportunidades ganhas no CRM'
-                    });
-                  }
-                }}
-              >
-                Ganho
-              </div>
-              <div 
-                className={`fb-dropdown-item ${selectedStatus === 'registered' ? 'fb-selected' : ''}`}
-                onClick={() => {
-                  setSelectedStatus('registered');
-                  setOpenDropdown(null);
-                  
-                  // 🎯 FILTRO: Cadastro → primecadastro = 1
-                  if (onStatusFilterChange) {
-                    onStatusFilterChange({
-                      type: 'registered',
-                      field: 'primecadastro',
-                      value: 1,
-                      description: 'Clientes cadastrados no ERP'
-                    });
-                  }
-                }}
-              >
-                Cadastrado
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Filtro de Vendedores */}
-      <div className="fb-filter-group">
-        <div className="fb-dropdown-container">
-          <button 
-            className="fb-dropdown-button"
-            onClick={() => toggleDropdown('sellers')}
-          >
-            <span>{sellers.find(s => s.id === selectedSeller)?.name || 'Todos os vendedores'}</span>
-            <span className="fb-dropdown-arrow">▼</span>
-          </button>
-          
-          {openDropdown === 'sellers' && (
-            <div className="fb-dropdown-menu">
-              {sellers.map((seller) => (
+        {/* Filtro de Funis - AGORA EM SEGUNDO */}
+        <div className="fb-filter-group">
+          <div className="fb-dropdown-container">
+            <button 
+              className="fb-dropdown-button"
+              onClick={() => toggleDropdown('funnels')}
+              disabled={loadingFunnels}
+            >
+              <span>
+                {loadingFunnels ? 'Carregando...' : 
+                  funnels.find(f => f.id === selectedFunnel)?.name || 'Todos os funis'
+                }
+              </span>
+              <span className="fb-dropdown-arrow">▼</span>
+            </button>
+            
+            {openDropdown === 'funnels' && !loadingFunnels && (
+              <div className="fb-dropdown-menu">
+                {funnels.length === 0 ? (
+                  <div className="fb-dropdown-item">Nenhum funil encontrado.</div>
+                ) : (
+                  funnels.map((funnel) => (
+                    <div 
+                      key={funnel.id}
+                      className={`fb-dropdown-item ${selectedFunnel === funnel.id ? 'fb-selected' : ''}`}
+                      onClick={() => handleFunnelChange(funnel.id)}
+                    >
+                      {funnel.name}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Filtro de Status */}
+        <div className="fb-filter-group">
+          <div className="fb-dropdown-container fb-status-dropdown">
+            <button 
+              className="fb-dropdown-button"
+              onClick={() => toggleDropdown('status')}
+            >
+              <span>{selectedStatus === 'sale' ? 'Venda' : selectedStatus === 'won' ? 'Ganho' : 'Cadastrado'}</span>
+              <span className="fb-dropdown-arrow">▼</span>
+            </button>
+            
+            {openDropdown === 'status' && (
+              <div className="fb-dropdown-menu">
                 <div 
-                  key={seller.id}
-                  className={`fb-dropdown-item ${selectedSeller === seller.id ? 'fb-selected' : ''}`}
-                  onClick={() => handleSellerChange(seller.id)}
+                  className={`fb-dropdown-item ${selectedStatus === 'sale' ? 'fb-selected' : ''}`}
+                  onClick={() => {
+                    setSelectedStatus('sale');
+                    setOpenDropdown(null);
+                    
+                    // 🎯 FILTRO: Venda → status_orcamento = 'aprovado'
+                    if (onStatusFilterChange) {
+                      onStatusFilterChange({
+                        type: 'sale',
+                        field: 'status_orcamento',
+                        value: 'aprovado',
+                        description: 'Orçamentos aprovados pelo vendedor'
+                      });
+                    }
+                  }}
                 >
-                  {seller.name}
+                  Venda
                 </div>
-              ))}
-            </div>
-          )}
+                <div 
+                  className={`fb-dropdown-item ${selectedStatus === 'won' ? 'fb-selected' : ''}`}
+                  onClick={() => {
+                    setSelectedStatus('won');
+                    setOpenDropdown(null);
+                    
+                    // 🎯 FILTRO: Ganho → status = 'gain'
+                    if (onStatusFilterChange) {
+                      onStatusFilterChange({
+                        type: 'won',
+                        field: 'status',
+                        value: 'gain',
+                        description: 'Oportunidades ganhas no CRM'
+                      });
+                    }
+                  }}
+                >
+                  Ganho
+                </div>
+                <div 
+                  className={`fb-dropdown-item ${selectedStatus === 'registered' ? 'fb-selected' : ''}`}
+                  onClick={() => {
+                    setSelectedStatus('registered');
+                    setOpenDropdown(null);
+                    
+                    // 🎯 FILTRO: Cadastro → primecadastro = 1
+                    if (onStatusFilterChange) {
+                      onStatusFilterChange({
+                        type: 'registered',
+                        field: 'primecadastro',
+                        value: 1,
+                        description: 'Clientes cadastrados no ERP'
+                      });
+                    }
+                  }}
+                >
+                  Cadastrado
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Filtro de Período */}
-      <div className="fb-filter-group">
-        <div className="fb-dropdown-container">
-          <button 
-            className="fb-dropdown-button"
-            onClick={() => toggleDropdown('period')}
-          >
-            <span>📅 {(() => {
-              if (selectedPeriod === 'custom' && startDate && endDate) {
-                return 'Período Personalizado';
-              }
-              const period = periods.find(p => p.id === selectedPeriod);
-              return period ? period.name : 'Período';
-            })()}</span>
-            <span className="fb-dropdown-arrow">▼</span>
-          </button>
-          
-          {openDropdown === 'period' && (
-            <div className="fb-dropdown-menu fb-period-menu">
-              {/* Opções de período pré-definido */}
-              <div className="fb-period-presets">
-                <div className="fb-period-section-title">Períodos rápidos</div>
-                {periods.map((period) => (
+        {/* Filtro de Vendedores */}
+        <div className="fb-filter-group">
+          <div className="fb-dropdown-container">
+            <button 
+              className="fb-dropdown-button"
+              onClick={() => toggleDropdown('sellers')}
+            >
+              <span>{sellers.find(s => s.id === selectedSeller)?.name || 'Todos os vendedores'}</span>
+              <span className="fb-dropdown-arrow">▼</span>
+            </button>
+            
+            {openDropdown === 'sellers' && (
+              <div className="fb-dropdown-menu">
+                {sellers.map((seller) => (
                   <div 
-                    key={period.id}
-                    className={`fb-dropdown-item ${selectedPeriod === period.id ? 'fb-selected' : ''}`}
-                                         onClick={() => {
-                       setSelectedPeriod(period.id);
-                       // Limpar datas personalizadas quando selecionar período pré-definido
-                       setStartDate('');
-                       setEndDate('');
-                       setOpenDropdown(null);
-                     }}
+                    key={seller.id}
+                    className={`fb-dropdown-item ${selectedSeller === seller.id ? 'fb-selected' : ''}`}
+                    onClick={() => handleSellerChange(seller.id)}
                   >
-                    {period.name}
+                    {seller.name}
                   </div>
                 ))}
               </div>
-              
-              {/* Separador */}
-              <div className="fb-period-separator"></div>
-              
-              {/* Período personalizado */}
-              <div className="fb-period-custom">
-                <div className="fb-period-section-title">Período personalizado</div>
-                <div className="fb-date-inputs">
-                  <div className="fb-date-input-group">
-                    <label>Data inicial</label>
-                    <input 
-                      type="date" 
-                      className="fb-date-input"
-                      onChange={(e) => setStartDate(e.target.value)}
-                      value={startDate}
-                    />
-                  </div>
-                  <div className="fb-date-input-group">
-                    <label>Data final</label>
-                    <input 
-                      type="date" 
-                      className="fb-date-input"
-                      onChange={(e) => setEndDate(e.target.value)}
-                      value={endDate}
-                    />
-                  </div>
+            )}
+          </div>
+        </div>
+
+        {/* Filtro de Período */}
+        <div className="fb-filter-group">
+          <div className="fb-dropdown-container">
+            <button 
+              className="fb-dropdown-button"
+              onClick={() => toggleDropdown('period')}
+            >
+              <span>📅 {(() => {
+                if (selectedPeriod === 'custom' && startDate && endDate) {
+                  return 'Período Personalizado';
+                }
+                const period = periods.find(p => p.id === selectedPeriod);
+                return period ? period.name : 'Período';
+              })()}</span>
+              <span className="fb-dropdown-arrow">▼</span>
+            </button>
+            
+            {openDropdown === 'period' && (
+              <div className="fb-dropdown-menu fb-period-menu">
+                {/* Opções de período pré-definido */}
+                <div className="fb-period-presets">
+                  <div className="fb-period-section-title">Períodos rápidos</div>
+                  {periods.map((period) => (
+                    <div 
+                      key={period.id}
+                      className={`fb-dropdown-item ${selectedPeriod === period.id ? 'fb-selected' : ''}`}
+                      onClick={() => {
+                        setSelectedPeriod(period.id);
+                        // Limpar datas personalizadas quando selecionar período pré-definido
+                        setStartDate('');
+                        setEndDate('');
+                        setOpenDropdown(null);
+                      }}
+                    >
+                      {period.name}
+                    </div>
+                  ))}
                 </div>
-                <button 
-                  className="fb-apply-period-btn"
-                  onClick={() => {
-                    if (startDate && endDate) {
-                      setSelectedPeriod('custom');
-                      setOpenDropdown(null);
-                      // Opcional: mostrar mensagem de confirmação
-                      console.log(`Período personalizado aplicado: ${startDate} a ${endDate}`);
-                    }
-                  }}
-                  disabled={!startDate || !endDate}
-                >
-                  Aplicar Período
-                </button>
+                
+                {/* Separador */}
+                <div className="fb-period-separator"></div>
+                
+                {/* Período personalizado */}
+                <div className="fb-period-custom">
+                  <div className="fb-period-section-title">Período personalizado</div>
+                  <div className="fb-date-inputs">
+                    <div className="fb-date-input-group">
+                      <label>Data inicial</label>
+                      <input 
+                        type="date" 
+                        className="fb-date-input"
+                        onChange={(e) => setStartDate(e.target.value)}
+                        value={startDate}
+                      />
+                    </div>
+                    <div className="fb-date-input-group">
+                      <label>Data final</label>
+                      <input 
+                        type="date" 
+                        className="fb-date-input"
+                        onChange={(e) => setEndDate(e.target.value)}
+                        value={endDate}
+                      />
+                    </div>
+                  </div>
+                  <button 
+                    className="fb-apply-period-btn"
+                    onClick={() => {
+                      if (startDate && endDate) {
+                        setSelectedPeriod('custom');
+                        setOpenDropdown(null);
+                        // Opcional: mostrar mensagem de confirmação
+                        console.log(`Período personalizado aplicado: ${startDate} a ${endDate}`);
+                      }
+                    }}
+                    disabled={!startDate || !endDate}
+                  >
+                    Aplicar Período
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

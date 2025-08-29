@@ -117,7 +117,7 @@ const Sidebar = ({
       {/* Header mobile com botão de fechar */}
       {isMobile && (
         <div className="sidebar-component-mobile-header">
-          <div className="sidebar-component-logo">
+          <div className="sidebar-component-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
             <div className="sidebar-component-logo-text">
               <img 
                 src={isDarkMode ? LogoOficialmed : LogoOficialmedLight} 
@@ -133,7 +133,7 @@ const Sidebar = ({
       {/* Header normal para desktop */}
       {!isMobile && (
         <div className="sidebar-component-header">
-          <div className="sidebar-component-logo">
+          <div className="sidebar-component-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
             {sidebarExpanded ? (
               <div className="sidebar-component-logo-text">
                 <img 

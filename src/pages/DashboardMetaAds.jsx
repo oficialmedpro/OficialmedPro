@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import './DashboardPage.css';
-import MetricsSidebar from '../components/MetricsSidebar';
+import MetricsSidebarMetaAds from '../components/MetricsSidebarMetaAds';
 import MetricsCards from '../components/MetricsCards';
 import FilterBar from '../components/FilterBar';
 import TopMenuBar from '../components/TopMenuBar';
 import Sidebar from '../components/Sidebar';
 import FunnelChart from '../components/FunnelChart';
 import StatsSection from '../components/StatsSection';
+import HeaderComponents from '../components/HeaderComponents';
 import TimelineChart from '../components/TimelineChart';
 import { translations } from '../data/translations';
 import { getStatsCards, getMenuItems } from '../data/statsData';
@@ -21,7 +22,7 @@ import {
 import BandeiraEUA from '../../icones/eua.svg';
 import BandeiraBrasil from '../../icones/brasil.svg';
 
-const DashboardPage = () => {
+const DashboardMetaAds = () => {
   // Estados para o dashboard
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -241,44 +242,44 @@ const DashboardPage = () => {
         changeLanguage={changeLanguage}
       />
 
-      {/* FilterBar Fixo */}
-      <FilterBar 
-        t={t}
-        selectedStatus={selectedStatus}
-        setSelectedStatus={setSelectedStatus}
-        selectedSeller={selectedSeller}
-        setSelectedSeller={setSelectedSeller}
-        selectedPeriod={selectedPeriod}
-        setSelectedPeriod={setSelectedPeriod}
-        selectedFunnel={selectedFunnel}
-        setSelectedFunnel={setSelectedFunnel}
-        selectedUnit={selectedUnit}
-        setSelectedUnit={setSelectedUnit}
-        startDate={startDate}
-        setStartDate={setStartDate}
-        endDate={endDate}
-        setEndDate={setEndDate}
-        onUnitFilterChange={handleUnitFilterChange}
-        onStatusFilterChange={handleStatusFilterChange}
-        marketData={marketData}
-      />
-
       {/* Main Content */}
       <main className="main-content">
-          {/* Stats Section */}
-          <StatsSection statsCards={statsCards} />
+        <div className="content-header">
+          {/* Indicadores de mercado, data e horário */}
+          <HeaderComponents marketData={marketData} />
 
-          {/* Chart Section */}
-          <section className="chart-section">
-            <FunnelChart t={t} />
-            <MetricsSidebar 
-              formatCurrency={formatCurrencyLocal} 
+          {/* Filtros à direita */}
+          <div className="header-actions">
+            <FilterBar 
               t={t}
+              selectedStatus={selectedStatus}
+              setSelectedStatus={setSelectedStatus}
+              selectedSeller={selectedSeller}
+              setSelectedSeller={setSelectedSeller}
               selectedPeriod={selectedPeriod}
+              setSelectedPeriod={setSelectedPeriod}
+              selectedFunnel={selectedFunnel}
+              setSelectedFunnel={setSelectedFunnel}
+              selectedUnit={selectedUnit}
+              setSelectedUnit={setSelectedUnit}
               startDate={startDate}
+              setStartDate={setStartDate}
               endDate={endDate}
+              setEndDate={setEndDate}
+              onUnitFilterChange={handleUnitFilterChange}
+              onStatusFilterChange={handleStatusFilterChange}
             />
-          </section>
+          </div>
+        </div>
+
+        {/* Stats Section */}
+        <StatsSection statsCards={statsCards} />
+
+        {/* Chart Section */}
+        <section className="chart-section">
+          <FunnelChart t={t} title="META ADS" />
+          <MetricsSidebarMetaAds formatCurrency={formatCurrencyLocal} t={t} />
+        </section>
 
         {/* Timeline Chart - Performance dos Últimos 7 Dias */}
         <TimelineChart selectedDate={endDate} t={t} />
@@ -322,6 +323,4 @@ const DashboardPage = () => {
   );
 };
 
-export default DashboardPage;
-
-
+export default DashboardMetaAds;

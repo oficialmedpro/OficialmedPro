@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import LogoIcon from '../../icones/icone_logo.svg';
 import Sidebar from './Sidebar';
 
@@ -7,12 +8,14 @@ const MobileComponents = ({
   currentLanguage, 
   translations: t 
 }) => {
+  const navigate = useNavigate();
+  
   return (
     <>
       {/* Mobile Header */}
       <header className="mobile-header">
         <button className="mobile-menu-toggle">☰</button>
-        <div className="mobile-logo">
+        <div className="mobile-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
           <img src={LogoIcon} alt="Logo" style={{ height: '20px', width: 'auto', maxWidth: '32px' }} />
         </div>
         <div className="mobile-actions">
@@ -25,7 +28,7 @@ const MobileComponents = ({
       <div className="mobile-sidebar-overlay">
         <aside className="mobile-sidebar">
           <div className="mobile-sidebar-header">
-            <div className="mobile-logo">
+            <div className="mobile-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
               <img src={LogoIcon} alt="Logo" style={{ height: '20px', width: 'auto', maxWidth: '32px' }} />
             </div>
             <button className="close-mobile-sidebar">✕</button>
