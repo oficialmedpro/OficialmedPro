@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './FunnelChart.css';
 import { getFunilEtapas, getOportunidadesPorEtapaFunil } from '../service/supabase.js';
 
-const FunnelChart = ({ t, title, selectedFunnel }) => {
+const FunnelChart = ({ t, title, selectedFunnel, startDate, endDate, selectedPeriod }) => {
   const [etapas, setEtapas] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,8 +39,9 @@ const FunnelChart = ({ t, title, selectedFunnel }) => {
         // 2. Buscar dados reais das oportunidades para cada etapa
         console.log('📊 FunnelChart: Buscando dados das oportunidades...');
         console.log('📊 Etapas estrutura:', etapasEstrutura);
+        console.log('📅 FunnelChart: Período selecionado:', { startDate, endDate, selectedPeriod });
         
-        const etapasComDados = await getOportunidadesPorEtapaFunil(etapasEstrutura);
+        const etapasComDados = await getOportunidadesPorEtapaFunil(etapasEstrutura, startDate, endDate, selectedFunnel);
         
         console.log('✅ FunnelChart: Etapas com dados carregadas:', etapasComDados);
         setEtapas(etapasComDados);
@@ -54,7 +55,7 @@ const FunnelChart = ({ t, title, selectedFunnel }) => {
     };
 
     fetchEtapasComDados();
-  }, [selectedFunnel]);
+  }, [selectedFunnel, startDate, endDate]);
 
   if (loading) {
     return (
@@ -145,19 +146,28 @@ const FunnelChart = ({ t, title, selectedFunnel }) => {
                 <div className="fc-funnel-content">
                   <span className="fc-funnel-label">{etapa.nome_etapa}</span>
                   <div className="fc-funnel-values">
-                    <span className="fc-funnel-value">{formatNumber(etapa.quantidade)}</span>
-                    {index > 0 && etapas[index - 1] && (
-                      <span className="fc-funnel-loss">
-                        -{formatNumber((etapas[index - 1].quantidade - etapa.quantidade) || 0)}
-                      </span>
-                    )}
+                    {/* 🎯 DESTAQUE: Oportunidades ativas (número laranja do CRM) */}
+                    <span className="fc-funnel-value fc-funnel-active">{formatNumber(etapa.ativas || 0)}</span>
                   </div>
+                  {/* 🎯 OPORTUNIDADES CRIADAS NO PERÍODO - BADGE VERDE */}
+                  {etapa.criadasPeriodo > 0 && (
+                    <div className="fc-funnel-created-today">
+                      +{formatNumber(etapa.criadasPeriodo)}
+                    </div>
+                  )}
+                  
+                  {/* 🎯 OPORTUNIDADES PERDIDAS NO PERÍODO - BADGE VERMELHO */}
+                  {etapa.perdidasPeriodo > 0 && (
+                    <div className="fc-funnel-lost-today">
+                      -{formatNumber(etapa.perdidasPeriodo)}
+                    </div>
+                  )}
                 </div>
               </div>
-              {/* Taxa de conversão - apenas se não for a última etapa */}
+              {/* Taxa de passagem - apenas se não for a última etapa */}
               {index < etapas.length - 1 && etapas[index + 1] && (
                 <div className="funildash_conversion-rate-box">
-                  {etapas[index + 1].taxaConversao ? `${etapas[index + 1].taxaConversao}%` : '0%'}
+                  {etapas[index + 1].taxaPassagem ? `${etapas[index + 1].taxaPassagem}%` : '0%'}
                 </div>
               )}
             </div>

@@ -114,9 +114,10 @@
 
 .fc-funnel-content {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-between; /* ✅ VOLTAR: Nome à esquerda, números ao centro */
   align-items: center;
   width: 100%;
+  position: relative; /* ✅ Para posicionar os números no centro absoluto */
 }
 
 .fc-funnel-label {
@@ -126,9 +127,12 @@
 }
 
 .fc-funnel-values {
+  position: absolute; /* ✅ POSIÇÃO ABSOLUTA PARA CENTRALIZAR */
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%); /* ✅ CENTRALIZAR PERFEITAMENTE */
   display: flex;
   align-items: center;
-  justify-content: flex-end; /* ✅ Alinhado à direita dentro da etapa */
   gap: 12px;
 }
 
@@ -136,6 +140,49 @@
   font-size: 18px;
   font-weight: 700;
   color: #ffffff; /* ✅ Forçar branco */
+}
+
+/* 🎯 DESTAQUE PARA OPORTUNIDADES ATIVAS (estilo CRM) */
+.fc-funnel-active {
+  font-size: 24px !important; /* ✅ MENOR conforme pedido */
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* ✅ Sombra moderada */
+  /* ✅ REMOVIDO: background e padding (sem fundo transparente) */
+  display: inline-block;
+  letter-spacing: 0.5px;
+}
+
+/* 🎯 OPORTUNIDADES CRIADAS HOJE (canto direito de todas as etapas) */
+.fc-funnel-created-today {
+  position: absolute;
+  right: 16px; /* Canto direito */
+  top: 50%;
+  transform: translateY(-50%); /* Centralizar verticalmente */
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff; /* ✅ Número branco conforme solicitado */
+  background: #10b981; /* ✅ Fundo verde sólido sem opacidade */
+  padding: 6px 10px;
+  border-radius: 6px;
+  text-shadow: none; /* Remover sombra no texto branco */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra na caixa */
+}
+
+/* 🎯 OPORTUNIDADES PERDIDAS HOJE (canto esquerdo de todas as etapas) */
+.fc-funnel-lost-today {
+  position: absolute;
+  left: 16px; /* Canto esquerdo */
+  top: 50%;
+  transform: translateY(-50%); /* Centralizar verticalmente */
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff; /* Número branco */
+  background: #ef4444; /* Fundo vermelho sólido */
+  padding: 6px 10px;
+  border-radius: 6px;
+  text-shadow: none; /* Remover sombra no texto branco */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra na caixa */
 }
 
 .fc-funnel-loss {

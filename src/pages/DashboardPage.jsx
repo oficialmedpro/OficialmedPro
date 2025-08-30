@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './DashboardPage.css';
+import './DashboardPageFunnel.css';
 import MetricsSidebar from '../components/MetricsSidebar';
 import MetricsCards from '../components/MetricsCards';
 import FilterBar from '../components/FilterBar';
@@ -97,6 +98,19 @@ const DashboardPage = () => {
     const interval = setInterval(fetchRate, 60 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // Inicializar datas baseado no período padrão
+  useEffect(() => {
+    if (selectedPeriod && (!startDate || !endDate)) {
+      console.log('🗓️ Inicializando datas para o período padrão:', selectedPeriod);
+      const { start, end } = handleDatePreset(selectedPeriod);
+      if (start && end) {
+        setStartDate(start);
+        setEndDate(end);
+        console.log('📅 Datas inicializadas:', { start, end });
+      }
+    }
+  }, [selectedPeriod, startDate, endDate]);
 
   // Funções de controle
   
@@ -270,7 +284,13 @@ const DashboardPage = () => {
 
           {/* Chart Section */}
           <section className="chart-section">
-            <FunnelChart t={t} />
+            <FunnelChart 
+              t={t} 
+              selectedFunnel={selectedFunnel}
+              startDate={startDate}
+              endDate={endDate}
+              selectedPeriod={selectedPeriod}
+            />
             <MetricsSidebar 
               formatCurrency={formatCurrencyLocal} 
               t={t}

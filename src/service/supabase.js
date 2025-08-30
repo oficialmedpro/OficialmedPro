@@ -388,15 +388,23 @@ export const getFunilEtapas = async (idFunilSprint) => {
   }
 }
 
-// 🎯 FUNÇÃO PARA BUSCAR DADOS DAS OPORTUNIDADES POR ETAPA DO FUNIL
-export const getOportunidadesPorEtapaFunil = async (etapas) => {
+// 🎯 FUNÇÃO SIMPLIFICADA: BUSCAR APENAS OPORTUNIDADES ATIVAS (STATUS=OPEN) POR ETAPA
+export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, endDate = null, selectedFunnel = null) => {
   try {
-    console.log('🔍 Buscando oportunidades por etapa do funil:', etapas.map(e => e.id_sprint));
+    console.log('🔍 Buscando oportunidades ATIVAS por etapa do funil:', etapas.map(e => e.id_etapa_sprint));
+    console.log('📅 Período RECEBIDO:', { startDate, endDate });
+    console.log('🎯 Funil selecionado:', selectedFunnel);
+    console.log('📅 Tipos das datas:', typeof startDate, typeof endDate);
     
-    // Buscar todas as oportunidades ativas
-    const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,status,value,funil_nome&archived=eq.0`;
+    // Construir lista de etapas para o filtro - SINTAXE CORRETA SUPABASE
+    const etapaIds = etapas.map(e => e.id_etapa_sprint);
+    const etapaFilter = etapaIds.map(id => `crm_column.eq.${id}`).join(',');
+    
+    // BUSCAR APENAS OPORTUNIDADES ABERTAS (STATUS=OPEN) - FOCO INICIAL  
+    const openUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,crm_column,value&archived=eq.0&status=eq.open&or=(${etapaFilter})`;
+    console.log('🔍 URL oportunidades abertas:', openUrl);
 
-    const response = await fetch(url, {
+    const response = await fetch(openUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -408,55 +416,184 @@ export const getOportunidadesPorEtapaFunil = async (etapas) => {
     });
 
     if (!response.ok) {
-      const errorText = await response.text()
-      console.error('❌ Erro HTTP:', response.status, errorText)
-      throw new Error(`Erro HTTP ${response.status}: ${errorText}`)
+      const errorText = await response.text();
+      console.error('❌ Erro HTTP:', response.status, errorText);
+      throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
     }
 
-    const oportunidades = await response.json();
-    console.log(`✅ Oportunidades encontradas: ${oportunidades.length}`);
+    const oportunidadesAbertas = await response.json();
+    console.log(`✅ Oportunidades abertas encontradas: ${oportunidadesAbertas.length}`, oportunidadesAbertas);
 
-    // Contar oportunidades por status (usando os IDs das etapas)
-    const contagemPorEtapa = {};
-    const valorPorEtapa = {};
+    // 🎯 BUSCAR OPORTUNIDADES CRIADAS NO PERÍODO SELECIONADO
+    let dataInicio, dataFim;
+    if (startDate && endDate) {
+      dataInicio = startDate;
+      dataFim = endDate;
+    } else {
+      // Fallback para hoje se não há período selecionado
+      const hoje = new Date().toISOString().split('T')[0];
+      dataInicio = dataFim = hoje;
+    }
+    console.log('📅 Período para criadas:', { dataInicio, dataFim });
     
+    // Construir filtro de funil se fornecido
+    const funilFilter = selectedFunnel ? `&funil_id=eq.${selectedFunnel}` : '';
+    
+    // 1. TOTAL GERAL (para primeira etapa - ENTRADA) - COM FILTRO DE FUNIL E DATA
+    const criadasPeriodoTotalUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}`;
+    console.log('🔍 URL oportunidades criadas no período TOTAL:', criadasPeriodoTotalUrl);
+    
+    // 2. POR ETAPA ESPECÍFICA (para demais etapas) - COM FILTRO DE FUNIL E DATA
+    const criadasPeriodoPorEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,crm_column&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}&or=(${etapaFilter})`;
+    console.log('🔍 URL oportunidades criadas no período por etapa:', criadasPeriodoPorEtapaUrl);
+
+    // 🎯 3. BUSCAR PERDAS POR ETAPA (status=loss, usa lost_date)
+    const perdidasPeriodoPorEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,crm_column&archived=eq.0&lost_date=gte.${dataInicio}&lost_date=lte.${dataFim}T23:59:59&status=eq.loss${funilFilter}&or=(${etapaFilter})`;
+    console.log('🔍 URL oportunidades perdidas no período por etapa:', perdidasPeriodoPorEtapaUrl);
+
+    // Executar todas as 3 queries
+    const [criadasPeriodoTotalResponse, criadasPeriodoEtapaResponse, perdidasPeriodoEtapaResponse] = await Promise.all([
+      fetch(criadasPeriodoTotalUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': supabaseSchema,
+          'Content-Profile': supabaseSchema
+        }
+      }),
+      fetch(criadasPeriodoPorEtapaUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': supabaseSchema,
+          'Content-Profile': supabaseSchema
+        }
+      }),
+      fetch(perdidasPeriodoPorEtapaUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': supabaseSchema,
+          'Content-Profile': supabaseSchema
+        }
+      })
+    ]);
+
+    // Processar total geral
+    let criadasPeriodoTotal = 0;
+    if (criadasPeriodoTotalResponse.ok) {
+      const totalData = await criadasPeriodoTotalResponse.json();
+      criadasPeriodoTotal = totalData.length;
+      console.log(`✅ TOTAL oportunidades criadas no período: ${criadasPeriodoTotal}`);
+    }
+
+    // Organizar oportunidades criadas no período por etapa
+    const criadasPeriodoPorEtapa = {};
     etapas.forEach(etapa => {
-      contagemPorEtapa[etapa.id_sprint] = 0;
-      valorPorEtapa[etapa.id_sprint] = 0;
+      const etapaId = etapa.id_etapa_sprint.toString();
+      criadasPeriodoPorEtapa[etapaId] = 0;
     });
 
-    oportunidades.forEach(oportunidade => {
-      const status = oportunidade.status;
-      if (contagemPorEtapa.hasOwnProperty(status)) {
-        contagemPorEtapa[status]++;
+    if (criadasPeriodoEtapaResponse.ok) {
+      const criadasPeriodoData = await criadasPeriodoEtapaResponse.json();
+      console.log(`✅ Oportunidades criadas no período por etapa: ${criadasPeriodoData.length}`, criadasPeriodoData);
+      
+      // Contar por etapa
+      criadasPeriodoData.forEach(oportunidade => {
+        const crmColumn = oportunidade.crm_column?.toString();
+        if (crmColumn && criadasPeriodoPorEtapa.hasOwnProperty(crmColumn)) {
+          criadasPeriodoPorEtapa[crmColumn]++;
+        }
+      });
+      
+      console.log('📊 Criadas no período por etapa:', criadasPeriodoPorEtapa);
+    }
+
+    // Organizar perdas no período por etapa
+    const perdidasPeriodoPorEtapa = {};
+    etapas.forEach(etapa => {
+      const etapaId = etapa.id_etapa_sprint.toString();
+      perdidasPeriodoPorEtapa[etapaId] = 0;
+    });
+
+    if (perdidasPeriodoEtapaResponse.ok) {
+      const perdidasPeriodoData = await perdidasPeriodoEtapaResponse.json();
+      console.log(`✅ Oportunidades perdidas no período por etapa: ${perdidasPeriodoData.length}`, perdidasPeriodoData);
+      
+      // Contar por etapa
+      perdidasPeriodoData.forEach(oportunidade => {
+        const crmColumn = oportunidade.crm_column?.toString();
+        if (crmColumn && perdidasPeriodoPorEtapa.hasOwnProperty(crmColumn)) {
+          perdidasPeriodoPorEtapa[crmColumn]++;
+        }
+      });
+      
+      console.log('📊 Perdidas no período por etapa:', perdidasPeriodoPorEtapa);
+    }
+
+    // Organizar dados por etapa - CONTAR APENAS OPORTUNIDADES ATIVAS
+    const ativasPorEtapa = {};
+    const valorPorEtapa = {};
+    
+    // Inicializar contadores
+    etapas.forEach(etapa => {
+      const etapaId = etapa.id_etapa_sprint.toString();
+      ativasPorEtapa[etapaId] = 0;
+      valorPorEtapa[etapaId] = 0;
+    });
+
+    // Contar oportunidades ativas por etapa
+    oportunidadesAbertas.forEach(oportunidade => {
+      const crmColumn = oportunidade.crm_column?.toString();
+      if (crmColumn && ativasPorEtapa.hasOwnProperty(crmColumn)) {
+        ativasPorEtapa[crmColumn]++;
         if (oportunidade.value && !isNaN(oportunidade.value)) {
-          valorPorEtapa[status] += parseFloat(oportunidade.value);
+          valorPorEtapa[crmColumn] += parseFloat(oportunidade.value);
         }
       }
     });
 
-    // Criar resultado formatado
+    console.log('📊 Oportunidades ativas por etapa:', ativasPorEtapa);
+
+    // Criar resultado formatado - COM LÓGICA DIFERENCIADA PARA PRIMEIRA ETAPA
     const resultado = etapas.map((etapa, index) => {
-      const quantidade = contagemPorEtapa[etapa.id_sprint] || 0;
-      const valor = valorPorEtapa[etapa.id_sprint] || 0;
+      const etapaId = etapa.id_etapa_sprint.toString();
+      const ativas = ativasPorEtapa[etapaId] || 0;
+      const valor = valorPorEtapa[etapaId] || 0;
       
-      // Calcular taxa de conversão (se não for a primeira etapa)
-      let taxaConversao = null;
-      if (index > 0) {
-        const etapaAnterior = etapas[index - 1];
-        const quantidadeAnterior = contagemPorEtapa[etapaAnterior.id_sprint] || 0;
-        taxaConversao = quantidadeAnterior > 0 ? ((quantidade / quantidadeAnterior) * 100).toFixed(1) : 0;
+      // 🎯 LÓGICA DIFERENTE: PRIMEIRA ETAPA vs DEMAIS ETAPAS
+      let criadasPeriodo;
+      if (index === 0) {
+        // PRIMEIRA ETAPA (ENTRADA): Total geral de oportunidades criadas no período
+        criadasPeriodo = criadasPeriodoTotal;
+      } else {
+        // DEMAIS ETAPAS: Oportunidades criadas no período nesta etapa específica
+        criadasPeriodo = criadasPeriodoPorEtapa[etapaId] || 0;
       }
+
+      // 🎯 PERDAS: Sempre específicas por etapa
+      const perdidasPeriodo = perdidasPeriodoPorEtapa[etapaId] || 0;
 
       return {
         ...etapa,
-        quantidade,
-        valor,
-        taxaConversao
+        ativas,          // 🎯 NÚMERO PRINCIPAL: Oportunidades ativas na etapa (número laranja do CRM)
+        valor,           // Valor total das oportunidades ativas
+        total: ativas,   // Para compatibilidade com o componente atual
+        perdas: 0,       // Temporariamente zero (adicionaremos depois)
+        ganhos: 0,       // Temporariamente zero (adicionaremos depois)
+        taxaPassagem: null, // Calcularemos depois quando adicionar outras métricas
+        criadasPeriodo,  // 🎯 ENTRADA: total geral | DEMAIS: específicas da etapa
+        perdidasPeriodo  // 🎯 PERDAS: Oportunidades perdidas no período nesta etapa
       };
     });
 
-    console.log('📊 Dados do funil calculados:', resultado);
+    console.log('📊 Dados simplificados do funil calculados:', resultado);
     return resultado;
 
   } catch (error) {
