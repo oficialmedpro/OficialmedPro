@@ -107,7 +107,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  padding: 0 10px;
   transition: all 0.3s ease;
   margin: 0 auto;
 }
@@ -144,45 +144,59 @@
 
 /* 🎯 DESTAQUE PARA OPORTUNIDADES ATIVAS (estilo CRM) */
 .fc-funnel-active {
-  font-size: 24px !important; /* ✅ MENOR conforme pedido */
+  font-size: 18px !important;
   font-weight: 800 !important;
   color: #ffffff !important;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); /* ✅ Sombra moderada */
-  /* ✅ REMOVIDO: background e padding (sem fundo transparente) */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   display: inline-block;
   letter-spacing: 0.5px;
 }
 
-/* 🎯 OPORTUNIDADES CRIADAS HOJE (canto direito de todas as etapas) */
-.fc-funnel-created-today {
+/* 🎯 CONTAINER PARA BADGES LADO A LADO NO CANTO DIREITO */
+.fc-funnel-badges-container {
   position: absolute;
-  right: 16px; /* Canto direito */
+  right: 0px;
   top: 50%;
-  transform: translateY(-50%); /* Centralizar verticalmente */
-  font-size: 16px;
-  font-weight: 700;
-  color: #ffffff; /* ✅ Número branco conforme solicitado */
-  background: #10b981; /* ✅ Fundo verde sólido sem opacidade */
-  padding: 6px 10px;
-  border-radius: 6px;
-  text-shadow: none; /* Remover sombra no texto branco */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra na caixa */
+  transform: translateY(-50%);
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
-/* 🎯 OPORTUNIDADES PERDIDAS HOJE (canto esquerdo de todas as etapas) */
-.fc-funnel-lost-today {
-  position: absolute;
-  left: 16px; /* Canto esquerdo */
-  top: 50%;
-  transform: translateY(-50%); /* Centralizar verticalmente */
-  font-size: 16px;
+/* 🎯 BADGE AZUL - OPORTUNIDADES QUE PASSARAM POR ESTA ETAPA */
+.fc-funnel-passed-through {
+  font-size: 12px;
   font-weight: 700;
-  color: #ffffff; /* Número branco */
-  background: #ef4444; /* Fundo vermelho sólido */
-  padding: 6px 10px;
-  border-radius: 6px;
-  text-shadow: none; /* Remover sombra no texto branco */
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Sombra na caixa */
+  color: #ffffff;
+  background: #3b82f6;
+  padding: 2px 4px;
+  border-radius: 3px;
+  text-shadow: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 🎯 BADGE VERDE - OPORTUNIDADES CRIADAS */
+.fc-funnel-created-today {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+  background: #10b981;
+  padding: 2px 4px;
+  border-radius: 2px;
+  text-shadow: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 🎯 BADGE VERMELHO - OPORTUNIDADES PERDIDAS */
+.fc-funnel-lost-today {
+  font-size: 12px;
+  font-weight: 700;
+  color: #ffffff;
+  background: #ef4444;
+  padding: 2px 4px;
+  border-radius: 2px;
+  text-shadow: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .fc-funnel-loss {
@@ -375,5 +389,98 @@
   
   .fc-funnel-value {
     margin-right: 6px;
+  }
+}
+
+/* =================== SEÇÃO CONVERSÃO GERAL =================== */
+.fc-conversao-geral {
+  margin-top: 0px;
+  padding: 10px;
+  background: rgb(255 255 255 / 0%);
+  border-radius: 12px;
+  border: 0px solid rgba(255, 255, 255, 0.1);
+  max-width: 90%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.fc-conversao-titulo {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 16px;
+  letter-spacing: 1px;
+  opacity: 0.9;
+}
+
+.fc-conversao-metricas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fc-conversao-linha {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.fc-conversao-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #ffffff;
+  opacity: 0.95;
+  white-space: nowrap;
+}
+
+.fc-conversao-item strong {
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+/* Responsividade para conversão geral */
+@media (max-width: 768px) {
+  .fc-conversao-geral {
+    margin-top: 30px;
+    padding: 16px;
+    max-width: 95%;
+  }
+  
+  .fc-conversao-titulo {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  
+  .fc-conversao-linha {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .fc-conversao-item {
+    font-size: 13px;
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .fc-conversao-geral {
+    margin-top: 25px;
+    padding: 12px;
+    max-width: 98%;
+  }
+  
+  .fc-conversao-titulo {
+    font-size: 13px;
+  }
+  
+  .fc-conversao-item {
+    font-size: 12px;
   }
 }

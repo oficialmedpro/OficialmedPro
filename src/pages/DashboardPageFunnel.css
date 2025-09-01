@@ -1,0 +1,54 @@
+/* ========================================
+   FUNNEL CSS ESPECÍFICO PARA DASHBOARDPAGE.JSX
+   ======================================== */
+
+/* Container do funil com espaçamento */
+.dashboardpage-funnel-container {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  align-items: center;
+  position: relative;
+}
+
+/* Etapas do funil com espaçamento */
+.dashboardpage-funnel-stage {
+  position: relative;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Taxas de conversão posicionadas entre as etapas */
+.dashboardpage-conversion-rate-box {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -12px;
+  background-color: var(--accent-yellow);
+  color: #000000;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 60px;
+  text-align: center;
+  z-index: 10;
+}
+
+/* Responsividade mobile */
+@media (max-width: 768px) {
+  .dashboardpage-funnel-container {
+    gap: 15px;
+  }
+  
+  .dashboardpage-conversion-rate-box {
+    bottom: -7px;
+    font-size: 9px;
+    padding: 3px 6px;
+    min-width: 45px;
+  }
+}

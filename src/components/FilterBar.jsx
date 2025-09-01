@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './FilterBar.css';
-import { getUnidades, getFunisPorUnidade } from '../service/supabase.js';
+import { getUnidades, getFunisPorUnidade, getVendedores } from '../service/supabase.js';
 
 const FilterBar = ({ t, selectedStatus, setSelectedStatus, selectedSeller, setSelectedSeller, selectedPeriod, setSelectedPeriod, selectedFunnel, setSelectedFunnel, selectedUnit, setSelectedUnit, startDate, setStartDate, endDate, setEndDate, onUnitFilterChange, onStatusFilterChange, marketData }) => {
 
@@ -15,13 +15,10 @@ const FilterBar = ({ t, selectedStatus, setSelectedStatus, selectedSeller, setSe
   // Estado para gerenciar a lista de funis e seu carregamento
   const [funnels, setFunnels] = useState([]);
   const [loadingFunnels, setLoadingFunnels] = useState(true);
-
-  const sellers = [
-    { id: 'all', name: 'Todos os vendedores' },
-    { id: 'joao', name: 'João Silva' },
-    { id: 'maria', name: 'Maria Santos' },
-    { id: 'pedro', name: 'Pedro Costa' }
-  ];
+  
+  // Estado para gerenciar a lista de vendedores e seu carregamento
+  const [sellers, setSellers] = useState([]);
+  const [loadingSellers, setLoadingSellers] = useState(true);
 
   const periods = [
     { id: 'today', name: 'Hoje' },
@@ -93,6 +90,56 @@ const FilterBar = ({ t, selectedStatus, setSelectedStatus, selectedSeller, setSe
 
     fetchFunnels();
   }, []);
+
+  // 🎯 Buscar vendedores do Supabase - APENAS quando unidade específica for selecionada
+  useEffect(() => {
+    const fetchSellers = async () => {
+      try {
+        setLoadingSellers(true);
+        
+        console.log('🔍 DEBUG VENDEDORES:', {
+          selectedUnit,
+          units,
+          selectedUnitData: units.find(u => u.id === selectedUnit)
+        });
+        
+        // Se "Todas as Unidades" ou nenhuma unidade específica selecionada, mostrar apenas padrão
+        if (selectedUnit === 'all' || !selectedUnit) {
+          console.log('🔍 Nenhuma unidade específica selecionada, mostrando apenas padrão');
+          setSellers([{ id: 'all', name: 'Todos os vendedores', id_sprint: 'all' }]);
+          return;
+        }
+        
+        // Buscar vendedores apenas da unidade específica selecionada
+        console.log('🔍 Parâmetro que será enviado para getVendedores:', selectedUnit);
+        
+        const vendedoresData = await getVendedores(selectedUnit);
+        console.log('🔍 Dados recebidos do getVendedores:', vendedoresData);
+        
+        // Transformar os dados para o formato esperado pelo componente
+        const vendedoresFormatted = [
+          { id: 'all', name: 'Todos os vendedores', id_sprint: 'all' },
+          ...vendedoresData.map(vendedor => ({
+            id: vendedor.id_sprint, // Usar id_sprint como ID
+            name: vendedor.nome, // Usar campo 'nome' para exibição
+            id_sprint: vendedor.id_sprint,
+            id_unidade: vendedor.id_unidade
+          }))
+        ];
+        
+        setSellers(vendedoresFormatted);
+        console.log(`✅ Vendedores formatados para unidade ${selectedUnit}:`, vendedoresFormatted);
+      } catch (error) {
+        console.error('❌ Erro ao carregar vendedores:', error);
+        // Quando não tiver vendedor, deixar apenas "Todos os vendedores"
+        setSellers([{ id: 'all', name: 'Todos os vendedores', id_sprint: 'all' }]);
+      } finally {
+        setLoadingSellers(false);
+      }
+    };
+
+    fetchSellers();
+  }, [selectedUnit, units]); // Reagir à mudança de unidade selecionada
 
   // Atualizar horário em tempo real
   useEffect(() => {
@@ -178,11 +225,17 @@ const FilterBar = ({ t, selectedStatus, setSelectedStatus, selectedSeller, setSe
     } finally {
       setLoadingFunnels(false);
     }
+    
+    // 🎯 Os vendedores serão atualizados automaticamente via useEffect que reage ao selectedUnit
   };
 
   const handleSellerChange = (sellerId) => {
     setSelectedSeller(sellerId);
     setOpenDropdown(null); // Fecha o dropdown
+    console.log(`🎯 Vendedor selecionado:`, {
+      sellerId,
+      vendedorData: sellers.find(s => s.id === sellerId)
+    });
   };
 
   return (
@@ -380,22 +433,31 @@ const FilterBar = ({ t, selectedStatus, setSelectedStatus, selectedSeller, setSe
             <button 
               className="fb-dropdown-button"
               onClick={() => toggleDropdown('sellers')}
+              disabled={loadingSellers}
             >
-              <span>{sellers.find(s => s.id === selectedSeller)?.name || 'Todos os vendedores'}</span>
+              <span>
+                {loadingSellers ? 'Carregando...' : 
+                  sellers.find(s => s.id === selectedSeller)?.name || 'Todos os vendedores'
+                }
+              </span>
               <span className="fb-dropdown-arrow">▼</span>
             </button>
             
-            {openDropdown === 'sellers' && (
+            {openDropdown === 'sellers' && !loadingSellers && (
               <div className="fb-dropdown-menu">
-                {sellers.map((seller) => (
-                  <div 
-                    key={seller.id}
-                    className={`fb-dropdown-item ${selectedSeller === seller.id ? 'fb-selected' : ''}`}
-                    onClick={() => handleSellerChange(seller.id)}
-                  >
-                    {seller.name}
-                  </div>
-                ))}
+                {sellers.length === 0 ? (
+                  <div className="fb-dropdown-item">Nenhum vendedor encontrado.</div>
+                ) : (
+                  sellers.map((seller) => (
+                    <div 
+                      key={seller.id}
+                      className={`fb-dropdown-item ${selectedSeller === seller.id ? 'fb-selected' : ''}`}
+                      onClick={() => handleSellerChange(seller.id)}
+                    >
+                      {seller.name}
+                    </div>
+                  ))
+                )}
               </div>
             )}
           </div>

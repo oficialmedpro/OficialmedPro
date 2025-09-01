@@ -179,6 +179,35 @@
   min-width: 200px;
 }
 
+/* Scrollbar personalizada para dropdowns */
+.fb-dropdown-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.fb-dropdown-menu::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  margin: 4px;
+}
+
+.fb-dropdown-menu::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.fb-dropdown-menu::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--accent-blue-dark), #1d4ed8);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+  transform: scale(1.1);
+}
+
+/* Scrollbar para Firefox */
+.fb-dropdown-menu {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-blue) var(--bg-primary);
+}
+
 /* Menu dropdown específico para Status - mais compacto */
 .fb-status-dropdown .fb-dropdown-menu {
   min-width: 120px !important;
@@ -249,10 +278,6 @@
   vertical-align: middle;
 }
 
-.fb-dropdown-menu::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, var(--accent-blue-dark), var(--accent-blue));
-  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
-}
 
 /* Estilos específicos para o dropdown de período */
 .fb-period-menu {

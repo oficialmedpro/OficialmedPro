@@ -10,7 +10,7 @@
 :root {
   /* Modo Dark (padrão) */
   --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
+  --bg-secondary: #171e31;
   --bg-tertiary: #334155;
   --text-primary: #ffffff;
   --text-secondary: #94a3b8;
@@ -1248,7 +1248,7 @@
 /* =================== FUNNEL STAGES =================== */
 .funnel-stage {
   position: relative;
-  margin-bottom: 0;
+  margin-bottom: 32px; /* ✅ Espaçamento entre etapas */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1277,29 +1277,30 @@
 .funnel-label {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary);
+  color: #ffffff !important; /* ✅ Forçar branco para os textos das etapas */
 }
 
 .funnel-values {
   display: flex;
   align-items: center;
-  gap: 16px;
+  justify-content: flex-end; /* ✅ Alinhado à direita dentro da etapa */
+  gap: 12px;
 }
 
 .funnel-value {
   font-size: 18px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: #ffffff; /* ✅ Forçar branco */
 }
 
 .funnel-loss {
   font-size: 14px;
-  color: var(--accent-red);
   font-weight: 600;
   background-color: var(--accent-red);
   color: #ffffff;
   padding: 4px 8px;
   border-radius: 4px;
+  display: inline-block; /* ✅ Garantir alinhamento inline */
 }
 
 .funnel-gain {
@@ -1313,7 +1314,10 @@
 }
 
 .conversion-rate-box {
-  position: relative;
+  position: absolute;
+  left: 50%; /* ✅ Centralizar horizontalmente */
+  transform: translateX(-50%); /* ✅ Ajuste fino do centro */
+  bottom: -24px; /* ✅ Posicionado embaixo da etapa */
   background-color: var(--accent-yellow);
   color: #000000;
   padding: 6px 12px;
@@ -1322,7 +1326,6 @@
   font-weight: 600;
   min-width: 60px;
   text-align: center;
-  margin: -4px 0;
   z-index: 10;
 }
 
@@ -1870,6 +1873,8 @@
   .funnel-stage[data-stage="4"] .funnel-bar { width: 80%; }
   .funnel-stage[data-stage="5"] .funnel-bar { width: 75%; }
   .funnel-stage[data-stage="6"] .funnel-bar { width: 70%; }
+  
+
   
   .funnel-bar {
     padding: 0 10px;

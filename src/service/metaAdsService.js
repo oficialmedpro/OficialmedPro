@@ -549,6 +549,311 @@ class MetaAdsService {
   }
 
   /**
+   * Função auxiliar para fazer retry com delay
+   * @param {Function} fn - Função a ser executada
+   * @param {number} maxRetries - Máximo de tentativas
+   * @param {number} delay - Delay entre tentativas em ms
+   * @returns {Promise}
+   */
+  async retryWithDelay(fn, maxRetries = 3, delay = 1000) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        
+        // Se for limite de requisições, aguardar mais tempo
+        if (error.message.includes('User request limit reached')) {
+          const waitTime = delay * Math.pow(2, attempt - 1); // Exponential backoff
+          console.log(`⚠️ Limite de requisições atingido. Aguardando ${waitTime}ms antes da tentativa ${attempt + 1}...`);
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+        } else {
+          // Para outros erros, aguardar o delay padrão
+          console.log(`⚠️ Tentativa ${attempt} falhou. Aguardando ${delay}ms antes da tentativa ${attempt + 1}...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+  }
+
+  /**
+   * Busca grupos de anúncios (Ad Sets) de uma campanha específica
+   * @param {string} campaignId - ID da campanha
+   * @returns {Promise<Array>}
+   */
+  async getAdSets(campaignId) {
+    try {
+      if (!this.isConfigured()) {
+        throw new Error('Credenciais do Meta Ads não configuradas');
+      }
+
+      console.log('🔍 Buscando grupos de anúncios da campanha:', campaignId);
+
+      return await this.retryWithDelay(async () => {
+        const response = await axios.get(
+          `${this.baseUrl}/${campaignId}/adsets`,
+          {
+            params: {
+              access_token: this.accessToken,
+              limit: 500,
+              fields: 'id,name,status,optimization_goal,billing_event,bid_amount,bid_strategy,daily_budget,lifetime_budget,targeting,created_time,updated_time,start_time,stop_time'
+            }
+          }
+        );
+
+        const adSets = response.data.data || [];
+        console.log('✅ Grupos de anúncios encontrados:', adSets.length);
+        return adSets;
+      });
+    } catch (error) {
+      // Log mais detalhado do erro
+      if (error.response?.data?.error) {
+        const apiError = error.response.data.error;
+        console.error('❌ Erro detalhado da API:', {
+          code: apiError.code,
+          message: apiError.message,
+          subcode: apiError.error_subcode,
+          type: apiError.type
+        });
+        
+        // Se for erro de permissão ou campanha não encontrada, retornar array vazio
+        if (apiError.code === 100 || apiError.code === 190 || 
+            apiError.message?.includes('does not exist') ||
+            apiError.message?.includes('permission')) {
+          console.warn(`⚠️ Campanha ${campaignId} sem permissão ou não encontrada, retornando array vazio`);
+          return [];
+        }
+      }
+      
+      console.error('❌ Erro ao buscar grupos de anúncios:', error.response?.data || error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Busca anúncios (Ads) de um grupo de anúncios específico
+   * @param {string} adSetId - ID do grupo de anúncios
+   * @returns {Promise<Array>}
+   */
+  async getAds(adSetId) {
+    try {
+      if (!this.isConfigured()) {
+        throw new Error('Credenciais do Meta Ads não configuradas');
+      }
+
+      console.log('🔍 Buscando anúncios do grupo:', adSetId);
+
+      return await this.retryWithDelay(async () => {
+        const response = await axios.get(
+          `${this.baseUrl}/${adSetId}/ads`,
+          {
+            params: {
+              access_token: this.accessToken,
+              limit: 500,
+              fields: 'id,name,status,creative,adset_id,campaign_id,created_time,updated_time,start_time,stop_time'
+            }
+          }
+        );
+
+        const ads = response.data.data || [];
+        console.log('✅ Anúncios encontrados:', ads.length);
+        return ads;
+      });
+    } catch (error) {
+      // Log mais detalhado do erro
+      if (error.response?.data?.error) {
+        const apiError = error.response.data.error;
+        console.error('❌ Erro detalhado da API:', {
+          code: apiError.code,
+          message: apiError.message,
+          subcode: apiError.error_subcode,
+          type: apiError.type
+        });
+        
+        // Se for erro de permissão ou grupo não encontrado, retornar array vazio
+        if (apiError.code === 100 || apiError.code === 190 || 
+            apiError.message?.includes('does not exist') ||
+            apiError.message?.includes('permission')) {
+          console.warn(`⚠️ Grupo ${adSetId} sem permissão ou não encontrado, retornando array vazio`);
+          return [];
+        }
+      }
+      
+      console.error('❌ Erro ao buscar anúncios:', error.response?.data || error);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Busca todos os grupos de anúncios de todas as campanhas
+   * @returns {Promise<Array>}
+   */
+  async getAllAdSets() {
+    try {
+      if (!this.isConfigured()) {
+        throw new Error('Credenciais do Meta Ads não configuradas');
+      }
+
+      console.log('🔍 Buscando grupos de anúncios através de campanhas...');
+
+      // Primeiro buscar todas as campanhas
+      const campaigns = await this.getCampaigns();
+      if (campaigns.length === 0) {
+        console.log('⚠️ Nenhuma campanha encontrada, retornando array vazio');
+        return [];
+      }
+
+      let allAdSets = [];
+      let processedCampaigns = 0;
+
+      // Processar campanhas em lotes menores para evitar limite de requisições
+      const batchSize = 3; // Processar apenas 3 campanhas por vez
+      
+      for (let i = 0; i < campaigns.length; i += batchSize) {
+        const batch = campaigns.slice(i, i + batchSize);
+        console.log(`🔍 Processando lote ${Math.floor(i / batchSize) + 1}/${Math.ceil(campaigns.length / batchSize)}`);
+        
+        // Processar lote atual
+        for (const campaign of batch) {
+          try {
+            console.log(`🔍 Processando campanha ${campaign.name} (${campaign.id})`);
+            
+            // Buscar grupos de anúncios da campanha
+            const adSets = await this.getAdSets(campaign.id);
+            
+            // Se retornou array vazio, a campanha não tem grupos ou não tem permissão
+            if (adSets.length === 0) {
+              console.log(`ℹ️ Campanha ${campaign.name} não tem grupos de anúncios ou sem permissão`);
+              processedCampaigns++;
+              continue;
+            }
+            
+            // Adicionar informações da campanha aos grupos
+            const adSetsWithContext = adSets.map(adSet => ({
+              ...adSet,
+              campaign_id: campaign.id,
+              campaign_name: campaign.name
+            }));
+            
+            allAdSets.push(...adSetsWithContext);
+            
+            processedCampaigns++;
+            console.log(`✅ Campanha ${campaign.name} processada (${processedCampaigns}/${campaigns.length}) - ${adSets.length} grupos encontrados`);
+            
+          } catch (campaignError) {
+            console.warn(`⚠️ Erro ao processar campanha ${campaign.id}:`, campaignError.message);
+            // Continuar com a próxima campanha
+            processedCampaigns++;
+          }
+        }
+        
+        // Aguardar entre lotes para evitar limite de requisições
+        if (i + batchSize < campaigns.length) {
+          console.log('⏳ Aguardando 2 segundos antes do próximo lote...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
+
+      console.log('✅ Total de grupos de anúncios encontrados através de campanhas:', allAdSets.length);
+      return allAdSets;
+    } catch (error) {
+      console.error('❌ Erro ao buscar todos os grupos de anúncios:', error.message);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
+   * Busca todos os anúncios de todas as campanhas através de grupos de anúncios
+   * @returns {Promise<Array>}
+   */
+  async getAllAds() {
+    try {
+      if (!this.isConfigured()) {
+        throw new Error('Credenciais do Meta Ads não configuradas');
+      }
+
+      console.log('🔍 Buscando anúncios através de campanhas e grupos...');
+
+      // Primeiro buscar todas as campanhas
+      const campaigns = await this.getCampaigns();
+      if (campaigns.length === 0) {
+        console.log('⚠️ Nenhuma campanha encontrada, retornando array vazio');
+        return [];
+      }
+
+      let allAds = [];
+      let processedCampaigns = 0;
+
+      // Processar campanhas em lotes menores para evitar limite de requisições
+      const batchSize = 2; // Processar apenas 2 campanhas por vez (mais lento para anúncios)
+      
+      for (let i = 0; i < campaigns.length; i += batchSize) {
+        const batch = campaigns.slice(i, i + batchSize);
+        console.log(`🔍 Processando lote ${Math.floor(i / batchSize) + 1}/${Math.ceil(campaigns.length / batchSize)}`);
+        
+        // Processar lote atual
+        for (const campaign of batch) {
+          try {
+            console.log(`🔍 Processando campanha ${campaign.name} (${campaign.id})`);
+            
+            // Buscar grupos de anúncios da campanha
+            const adSets = await this.getAdSets(campaign.id);
+            
+            // Para cada grupo, buscar anúncios
+            for (const adSet of adSets) {
+              try {
+                const ads = await this.getAds(adSet.id);
+                
+                // Se retornou array vazio, o grupo não tem anúncios ou não tem permissão
+                if (ads.length === 0) {
+                  console.log(`ℹ️ Grupo ${adSet.name} não tem anúncios ou sem permissão`);
+                  continue;
+                }
+                
+                // Adicionar informações da campanha e grupo aos anúncios
+                const adsWithContext = ads.map(ad => ({
+                  ...ad,
+                  campaign_id: campaign.id,
+                  campaign_name: campaign.name,
+                  adset_id: adSet.id,
+                  adset_name: adSet.name
+                }));
+                allAds.push(...adsWithContext);
+                
+                console.log(`✅ Grupo ${adSet.name} processado - ${ads.length} anúncios encontrados`);
+              } catch (adError) {
+                console.warn(`⚠️ Erro ao buscar anúncios do grupo ${adSet.id}:`, adError.message);
+                // Continuar com o próximo grupo
+              }
+            }
+            
+            processedCampaigns++;
+            console.log(`✅ Campanha ${campaign.name} processada (${processedCampaigns}/${campaigns.length})`);
+            
+          } catch (campaignError) {
+            console.warn(`⚠️ Erro ao processar campanha ${campaign.id}:`, campaignError.message);
+            // Continuar com a próxima campanha
+          }
+        }
+        
+        // Aguardar entre lotes para evitar limite de requisições
+        if (i + batchSize < campaigns.length) {
+          console.log('⏳ Aguardando 3 segundos antes do próximo lote...');
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      }
+
+      console.log('✅ Total de anúncios encontrados através de campanhas:', allAds.length);
+      return allAds;
+    } catch (error) {
+      console.error('❌ Erro ao buscar todos os anúncios:', error.message);
+      throw this.handleApiError(error);
+    }
+  }
+
+  /**
    * Trata erros da API de forma consistente
    * @param {Error} error - Erro da requisição
    * @returns {Error}
@@ -566,7 +871,17 @@ class MetaAdsService {
         return new Error('Token de acesso inválido ou expirado. Renove o token de acesso.');
       }
       
+      // Tratamento específico para limite de requisições
+      if (apiError.message?.includes('User request limit reached')) {
+        return new Error('User request limit reached');
+      }
+      
       return new Error(`Erro na API do Meta: ${apiError.message || 'Erro desconhecido'}`);
+    }
+    
+    // Verificar se é um erro de limite de requisições na mensagem
+    if (error.message?.includes('User request limit reached')) {
+      return new Error('User request limit reached');
     }
     
     return new Error(error.message || 'Erro desconhecido na API do Meta');

@@ -99,9 +99,9 @@ const DashboardPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Inicializar datas baseado no período padrão
+  // Inicializar datas baseado no período padrão (apenas uma vez)
   useEffect(() => {
-    if (selectedPeriod && (!startDate || !endDate)) {
+    if (selectedPeriod === 'today' && !startDate && !endDate) {
       console.log('🗓️ Inicializando datas para o período padrão:', selectedPeriod);
       const { start, end } = handleDatePreset(selectedPeriod);
       if (start && end) {
@@ -110,7 +110,7 @@ const DashboardPage = () => {
         console.log('📅 Datas inicializadas:', { start, end });
       }
     }
-  }, [selectedPeriod, startDate, endDate]);
+  }, [selectedPeriod]);
 
   // Funções de controle
   

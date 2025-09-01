@@ -442,48 +442,18 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
     // 1. TOTAL GERAL (para primeira etapa - ENTRADA) - COM FILTRO DE FUNIL E DATA
     const criadasPeriodoTotalUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}`;
     console.log('🔍 URL oportunidades criadas no período TOTAL:', criadasPeriodoTotalUrl);
-    
-    // 2. POR ETAPA ESPECÍFICA (para demais etapas) - COM FILTRO DE FUNIL E DATA
-    const criadasPeriodoPorEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,crm_column&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}&or=(${etapaFilter})`;
-    console.log('🔍 URL oportunidades criadas no período por etapa:', criadasPeriodoPorEtapaUrl);
 
-    // 🎯 3. BUSCAR PERDAS POR ETAPA (status=loss, usa lost_date)
-    const perdidasPeriodoPorEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,crm_column&archived=eq.0&lost_date=gte.${dataInicio}&lost_date=lte.${dataFim}T23:59:59&status=eq.loss${funilFilter}&or=(${etapaFilter})`;
-    console.log('🔍 URL oportunidades perdidas no período por etapa:', perdidasPeriodoPorEtapaUrl);
-
-    // Executar todas as 3 queries
-    const [criadasPeriodoTotalResponse, criadasPeriodoEtapaResponse, perdidasPeriodoEtapaResponse] = await Promise.all([
-      fetch(criadasPeriodoTotalUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
-        }
-      }),
-      fetch(criadasPeriodoPorEtapaUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
-        }
-      }),
-      fetch(perdidasPeriodoPorEtapaUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
-        }
-      })
-    ]);
+    // 🎯 EXECUTAR QUERY PARA TOTAL GERAL (ENTRADA)
+    const criadasPeriodoTotalResponse = await fetch(criadasPeriodoTotalUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+        'Content-Profile': supabaseSchema
+      }
+    });
 
     // Processar total geral
     let criadasPeriodoTotal = 0;
@@ -491,50 +461,120 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
       const totalData = await criadasPeriodoTotalResponse.json();
       criadasPeriodoTotal = totalData.length;
       console.log(`✅ TOTAL oportunidades criadas no período: ${criadasPeriodoTotal}`);
+    } else {
+      const errorText = await criadasPeriodoTotalResponse.text();
+      console.error('❌ Erro na query de total criadas:', criadasPeriodoTotalResponse.status, errorText);
     }
 
-    // Organizar oportunidades criadas no período por etapa
+    // 🎯 BUSCAR DADOS ESPECÍFICOS POR ETAPA (CRIADAS E PERDIDAS)
     const criadasPeriodoPorEtapa = {};
-    etapas.forEach(etapa => {
-      const etapaId = etapa.id_etapa_sprint.toString();
-      criadasPeriodoPorEtapa[etapaId] = 0;
-    });
+    const perdidasPeriodoPorEtapa = {};
 
-    if (criadasPeriodoEtapaResponse.ok) {
-      const criadasPeriodoData = await criadasPeriodoEtapaResponse.json();
-      console.log(`✅ Oportunidades criadas no período por etapa: ${criadasPeriodoData.length}`, criadasPeriodoData);
+    // Para cada etapa, fazer queries específicas
+    for (const etapa of etapas) {
+      const etapaId = etapa.id_etapa_sprint.toString();
       
-      // Contar por etapa
-      criadasPeriodoData.forEach(oportunidade => {
-        const crmColumn = oportunidade.crm_column?.toString();
-        if (crmColumn && criadasPeriodoPorEtapa.hasOwnProperty(crmColumn)) {
-          criadasPeriodoPorEtapa[crmColumn]++;
+      // 🎯 QUERY ESPECÍFICA: Criadas hoje E que estão na etapa X
+      const criadasEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59&crm_column=eq.${etapa.id_etapa_sprint}${funilFilter}`;
+      
+      // 🎯 QUERY ESPECÍFICA: Perdidas hoje E que estão na etapa X
+      const perdidasEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.lost&lost_date=gte.${dataInicio}&lost_date=lte.${dataFim}T23:59:59&crm_column=eq.${etapa.id_etapa_sprint}${funilFilter}`;
+      
+      console.log(`🔍 Etapa ${etapa.nome_etapa} (${etapaId}):`);
+      console.log(`   - Criadas: ${criadasEtapaUrl}`);
+      console.log(`   - Perdidas: ${perdidasEtapaUrl}`);
+
+      try {
+        // Executar queries em paralelo para esta etapa
+        const [criadasResponse, perdidasResponse] = await Promise.all([
+          fetch(criadasEtapaUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+              'apikey': supabaseServiceKey,
+              'Accept-Profile': supabaseSchema,
+              'Content-Profile': supabaseSchema
+            }
+          }),
+          fetch(perdidasEtapaUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+              'apikey': supabaseServiceKey,
+              'Accept-Profile': supabaseSchema,
+              'Content-Profile': supabaseSchema
+            }
+          })
+        ]);
+
+        // Processar criadas
+        if (criadasResponse.ok) {
+          const criadasData = await criadasResponse.json();
+          criadasPeriodoPorEtapa[etapaId] = criadasData.length;
+          console.log(`   ✅ Criadas: ${criadasData.length}`);
+        } else {
+          console.error(`   ❌ Erro criadas etapa ${etapaId}:`, criadasResponse.status);
+          criadasPeriodoPorEtapa[etapaId] = 0;
         }
-      });
-      
-      console.log('📊 Criadas no período por etapa:', criadasPeriodoPorEtapa);
+
+        // Processar perdidas
+        if (perdidasResponse.ok) {
+          const perdidasData = await perdidasResponse.json();
+          perdidasPeriodoPorEtapa[etapaId] = perdidasData.length;
+          console.log(`   ✅ Perdidas: ${perdidasData.length}`);
+        } else {
+          console.error(`   ❌ Erro perdidas etapa ${etapaId}:`, perdidasResponse.status);
+          perdidasPeriodoPorEtapa[etapaId] = 0;
+        }
+
+      } catch (error) {
+        console.error(`❌ Erro ao buscar dados da etapa ${etapaId}:`, error);
+        criadasPeriodoPorEtapa[etapaId] = 0;
+        perdidasPeriodoPorEtapa[etapaId] = 0;
+      }
     }
 
-    // Organizar perdas no período por etapa
-    const perdidasPeriodoPorEtapa = {};
-    etapas.forEach(etapa => {
-      const etapaId = etapa.id_etapa_sprint.toString();
-      perdidasPeriodoPorEtapa[etapaId] = 0;
-    });
+    console.log('📊 RESULTADO - Criadas no período por etapa:', criadasPeriodoPorEtapa);
+    console.log('📊 RESULTADO - Perdidas no período por etapa:', perdidasPeriodoPorEtapa);
 
-    if (perdidasPeriodoEtapaResponse.ok) {
-      const perdidasPeriodoData = await perdidasPeriodoEtapaResponse.json();
-      console.log(`✅ Oportunidades perdidas no período por etapa: ${perdidasPeriodoData.length}`, perdidasPeriodoData);
-      
-      // Contar por etapa
-      perdidasPeriodoData.forEach(oportunidade => {
-        const crmColumn = oportunidade.crm_column?.toString();
-        if (crmColumn && perdidasPeriodoPorEtapa.hasOwnProperty(crmColumn)) {
-          perdidasPeriodoPorEtapa[crmColumn]++;
+    // 🎯 BUSCAR OPORTUNIDADES FECHADAS (GANHAS) CRIADAS HOJE
+    console.log('💰 Buscando oportunidades ganhas criadas hoje...');
+    const fechadasHojeUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}`;
+    console.log('🔍 URL oportunidades fechadas hoje:', fechadasHojeUrl);
+
+    // Variáveis para conversão geral
+    let fechadasHoje = [];
+    let valorTotalFechadas = 0;
+
+    try {
+      const fechadasResponse = await fetch(fechadasHojeUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': supabaseSchema,
+          'Content-Profile': supabaseSchema
         }
       });
-      
-      console.log('📊 Perdidas no período por etapa:', perdidasPeriodoPorEtapa);
+
+      if (fechadasResponse.ok) {
+        fechadasHoje = await fechadasResponse.json();
+        valorTotalFechadas = fechadasHoje.reduce((total, opp) => {
+          const valor = parseFloat(opp.value) || 0;
+          return total + valor;
+        }, 0);
+
+        console.log(`✅ Oportunidades fechadas hoje: ${fechadasHoje.length}`);
+        console.log(`💰 Valor total fechado: R$ ${valorTotalFechadas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+      } else {
+        console.error('❌ Erro ao buscar oportunidades fechadas:', fechadasResponse.status);
+      }
+
+    } catch (error) {
+      console.error('❌ Erro ao processar oportunidades fechadas:', error);
     }
 
     // Organizar dados por etapa - CONTAR APENAS OPORTUNIDADES ATIVAS
@@ -567,14 +607,13 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
       const ativas = ativasPorEtapa[etapaId] || 0;
       const valor = valorPorEtapa[etapaId] || 0;
       
-      // 🎯 LÓGICA DIFERENTE: PRIMEIRA ETAPA vs DEMAIS ETAPAS
-      let criadasPeriodo;
+      // 🎯 USAR DADOS ESPECÍFICOS POR ETAPA PARA TODAS AS ETAPAS
+      let criadasPeriodo = criadasPeriodoPorEtapa[etapaId] || 0;
+      
+      // 🎯 ADICIONAR PROPRIEDADE PARA O TOTAL GERAL (para referência)
       if (index === 0) {
-        // PRIMEIRA ETAPA (ENTRADA): Total geral de oportunidades criadas no período
-        criadasPeriodo = criadasPeriodoTotal;
-      } else {
-        // DEMAIS ETAPAS: Oportunidades criadas no período nesta etapa específica
-        criadasPeriodo = criadasPeriodoPorEtapa[etapaId] || 0;
+        // Adicionar total geral como propriedade separada
+        etapa.totalGeralCriadas = criadasPeriodoTotal;
       }
 
       // 🎯 PERDAS: Sempre específicas por etapa
@@ -593,8 +632,84 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
       };
     });
 
-    console.log('📊 Dados simplificados do funil calculados:', resultado);
-    return resultado;
+    // 🎯 CALCULAR QUANTOS PASSARAM POR CADA ETAPA
+    console.log('📊 Calculando quantos passaram por cada etapa...');
+    console.log('🔍 Estado atual dos dados antes do cálculo:', resultado.map(r => ({
+      nome: r.nome_etapa,
+      criadasPeriodo: r.criadasPeriodo,
+      perdidasPeriodo: r.perdidasPeriodo
+    })));
+
+    for (let i = 0; i < resultado.length; i++) {
+      if (i === 0) {
+        // PRIMEIRA ETAPA (ENTRADA): Total geral de leads criados hoje (não específico da etapa)
+        resultado[i].passaramPorEtapa = resultado[i].totalGeralCriadas || 0;
+        console.log(`✅ ENTRADA ${resultado[i].nome_etapa}: ${resultado[i].passaramPorEtapa} passaram (= total geral criado: ${resultado[i].totalGeralCriadas})`);
+        console.log(`   📊 Na etapa específica ficaram: ${resultado[i].criadasPeriodo}`);
+      } else {
+        // DEMAIS ETAPAS: Anteriores que passaram - os que ficaram na etapa anterior
+        const etapaAnterior = resultado[i - 1];
+        const ficouNaAnterior = etapaAnterior.criadasPeriodo || 0; // leads que ficaram na etapa anterior
+        const passaramAnterior = etapaAnterior.passaramPorEtapa || 0;
+        
+        resultado[i].passaramPorEtapa = passaramAnterior - ficouNaAnterior;
+        
+        // Garantir que não seja negativo
+        if (resultado[i].passaramPorEtapa < 0) {
+          console.log(`⚠️ VALOR NEGATIVO DETECTADO para ${resultado[i].nome_etapa}: ${resultado[i].passaramPorEtapa}. Ajustando para 0.`);
+          resultado[i].passaramPorEtapa = 0;
+        }
+        
+        console.log(`✅ ${resultado[i].nome_etapa}: ${resultado[i].passaramPorEtapa} passaram`);
+        console.log(`   🔢 Cálculo: ${passaramAnterior} (anterior.passaram) - ${ficouNaAnterior} (anterior.ficou) = ${resultado[i].passaramPorEtapa}`);
+        console.log(`   📊 Etapa anterior (${etapaAnterior.nome_etapa}): passaram=${passaramAnterior}, ficou=${ficouNaAnterior}`);
+      }
+    }
+
+    console.log('📊 Resultado final - Quantos passaram por etapa:', resultado.map(r => ({
+      nome: r.nome_etapa,
+      passaram: r.passaramPorEtapa,
+      criadas: r.criadasPeriodo
+    })));
+
+    // 🎯 CALCULAR TAXA DE PASSAGEM BASEADA NOS QUE PASSARAM
+    console.log('📊 Calculando taxas de passagem baseadas nos que passaram...');
+    for (let i = 0; i < resultado.length; i++) {
+      if (i < resultado.length - 1) {
+        // Há uma próxima etapa para calcular a taxa
+        const etapaAtual = resultado[i];
+        const proximaEtapa = resultado[i + 1];
+        
+        const passaramAtual = etapaAtual.passaramPorEtapa || 0;
+        const passaramProxima = proximaEtapa.passaramPorEtapa || 0;
+        
+        if (passaramAtual > 0) {
+          const taxa = (passaramProxima / passaramAtual) * 100;
+          proximaEtapa.taxaPassagem = Math.round(taxa * 10) / 10; // Arredondar para 1 casa decimal
+          
+          console.log(`✅ Taxa ${etapaAtual.nome_etapa} → ${proximaEtapa.nome_etapa}: ${passaramProxima}/${passaramAtual} = ${proximaEtapa.taxaPassagem}%`);
+        } else {
+          proximaEtapa.taxaPassagem = 0;
+          console.log(`⚠️ Taxa ${etapaAtual.nome_etapa} → ${proximaEtapa.nome_etapa}: 0% (nenhum lead passou pela etapa atual)`);
+        }
+      }
+    }
+
+    console.log('📊 Dados do funil com taxas de passagem calculadas:', resultado);
+
+    // 🎯 RETORNAR DADOS DO FUNIL + CONVERSÃO GERAL
+    const resultadoCompleto = {
+      etapas: resultado,
+      conversaoGeral: {
+        totalCriadas: criadasPeriodoTotal,
+        totalFechadas: fechadasHoje ? fechadasHoje.length : 0,
+        taxaConversao: criadasPeriodoTotal > 0 ? ((fechadasHoje ? fechadasHoje.length : 0) / criadasPeriodoTotal) * 100 : 0,
+        valorTotal: valorTotalFechadas || 0,
+        ticketMedio: (fechadasHoje && fechadasHoje.length > 0) ? (valorTotalFechadas || 0) / fechadasHoje.length : 0
+      }
+    };
+
+    return resultadoCompleto;
 
   } catch (error) {
     console.error('❌ Erro ao buscar dados do funil:', error);
