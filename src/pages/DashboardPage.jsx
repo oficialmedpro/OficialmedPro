@@ -22,7 +22,7 @@ import {
 import BandeiraEUA from '../../icones/eua.svg';
 import BandeiraBrasil from '../../icones/brasil.svg';
 
-const DashboardPage = () => {
+const DashboardPage = ({ onLogout }) => {
   // Estados para o dashboard
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -253,6 +253,7 @@ const DashboardPage = () => {
         isDarkMode={isDarkMode}
         currentLanguage={currentLanguage}
         changeLanguage={changeLanguage}
+        onLogout={onLogout}
       />
 
       {/* FilterBar Fixo */}

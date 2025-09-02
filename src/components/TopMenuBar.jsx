@@ -14,7 +14,8 @@ const TopMenuBar = ({
   toggleTheme, 
   isDarkMode,
   currentLanguage,
-  changeLanguage
+  changeLanguage,
+  onLogout
 }) => {
   const navigate = useNavigate();
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
@@ -128,6 +129,17 @@ const TopMenuBar = ({
         <div className="tmb-user-avatar-container">
           <div className="tmb-user-avatar">U</div>
         </div>
+
+        {/* Botão de Logout */}
+        {onLogout && (
+          <button 
+            className="tmb-logout-btn" 
+            title="Sair" 
+            onClick={onLogout}
+          >
+            🚪
+          </button>
+        )}
       </div>
     </header>
   );
