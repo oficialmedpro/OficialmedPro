@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  oficialmed-pwa:
+    image: oficialmedpro/oficialmed-pwa:latest
+    container_name: oficialmed-pwa
+    restart: unless-stopped
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Security
+    security_opt:
+      - no-new-privileges:true
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    
+    # Traefik labels
+    labels:
+      - "traefik.enable=true"
+      
+      # HTTP to HTTPS redirect
+      - "traefik.http.routers.oficialmed-pwa-http.rule=Host(`bi.oficialmed.com.br`)"
+      - "traefik.http.routers.oficialmed-pwa-http.entrypoints=web"
+      - "traefik.http.routers.oficialmed-pwa-http.middlewares=redirect-to-https"
+      
+      # HTTPS
+      - "traefik.http.routers.oficialmed-pwa.rule=Host(`bi.oficialmed.com.br`)"
+      - "traefik.http.routers.oficialmed-pwa.entrypoints=websecure"
+      - "traefik.http.routers.oficialmed-pwa.tls=true"
+      - "traefik.http.routers.oficialmed-pwa.tls.certresolver=letsencrypt"
+      
+      # Service
+      - "traefik.http.services.oficialmed-pwa.loadbalancer.server.port=80"
+      
+      # Security middleware
+      - "traefik.http.routers.oficialmed-pwa.middlewares=security-headers"
+      
+      # Middleware definitions
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.redirect-to-https.redirectscheme.permanent=true"
+      
+      - "traefik.http.middlewares.security-headers.headers.frameDeny=true"
+      - "traefik.http.middlewares.security-headers.headers.sslRedirect=true"
+      - "traefik.http.middlewares.security-headers.headers.browserXssFilter=true"
+      - "traefik.http.middlewares.security-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.security-headers.headers.forceSTSHeader=true"
+      - "traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.security-headers.headers.stsPreload=true"
+      - "traefik.http.middlewares.security-headers.headers.stsSeconds=31536000"
+    
+    # Networks
+    networks:
+      - traefik
+
+networks:
+  traefik:
+    external: true
