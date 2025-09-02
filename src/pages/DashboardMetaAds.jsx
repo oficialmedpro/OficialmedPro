@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';v
+import React, { useState, useEffect } from 'react';
 import './MetaAdsDashboard.css';
 import MetricsSidebarMetaAds from '../components/MetricsSidebarMetaAds';
 import MetricsCards from '../components/MetricsCards';
