@@ -1,0 +1,100 @@
+/* ========================================
+   PERFORMANCE THERMOMETER COMPONENT STYLES
+   ======================================== */
+
+/* Container principal do termômetro de performance */
+.performance-thermometer-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 240px;
+  width: 100%;
+}
+
+/* Gauge do termômetro */
+.performance-thermometer-gauge {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 135px;
+}
+
+/* SVG do termômetro */
+.performance-thermometer-svg {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
+  width: 240px;
+  height: 135px;
+}
+
+/* Arco do termômetro */
+.performance-thermometer-arc {
+  transition: stroke-dasharray 2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Ponteiro do termômetro */
+.performance-thermometer-pointer {
+  transition: transform 2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Responsividade para mobile */
+@media (max-width: 768px) {
+  .performance-thermometer-container {
+    min-width: 200px;
+  }
+  
+  .performance-thermometer-svg {
+    width: 200px;
+    height: 120px;
+  }
+}
+
+/* Responsividade para telas muito pequenas */
+@media (max-width: 480px) {
+  .performance-thermometer-container {
+    min-width: 180px;
+  }
+  
+  .performance-thermometer-svg {
+    width: 180px;
+    height: 100px;
+  }
+}
+
+/* Animações específicas do termômetro */
+@keyframes performance-thermometer-fill {
+  from {
+    stroke-dasharray: 0 235;
+  }
+  to {
+    stroke-dasharray: var(--thermometer-fill) 235;
+  }
+}
+
+/* Estados de hover para interatividade */
+.performance-thermometer-container:hover .performance-thermometer-svg {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
+  transform: scale(1.02);
+  transition: all 0.3s ease;
+}
+
+/* Modo escuro específico do termômetro */
+.dark-theme .performance-thermometer-svg {
+  filter: drop-shadow(0 2px 6px rgba(255, 255, 255, 0.1));
+}
+
+.dark-theme .performance-thermometer-container:hover .performance-thermometer-svg {
+  filter: drop-shadow(0 4px 8px rgba(255, 255, 255, 0.2));
+}
+
+/* Modo claro específico do termômetro */
+.light-theme .performance-thermometer-svg {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
+}
+
+.light-theme .performance-thermometer-container:hover .performance-thermometer-svg {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+

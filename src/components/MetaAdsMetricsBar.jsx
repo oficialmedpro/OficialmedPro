@@ -357,6 +357,16 @@ const MetaAdsMetricsBar = ({
   useEffect(() => {
     console.log('🔄 useEffect do MetaAdsMetricsBar iniciado');
     
+    // Timeout para evitar carregamento infinito
+    const timeoutId = setTimeout(() => {
+      if (isLoading) {
+        console.warn('⏰ Timeout de carregamento atingido - usando dados parciais');
+        setError('Timeout de carregamento - usando dados parciais');
+        setHasPartialData(true);
+        setIsLoading(false);
+      }
+    }, 30000); // 30 segundos de timeout
+    
     const fetchMetaData = async () => {
       try {
         console.log('🔍 fetchMetaData iniciado');
@@ -602,6 +612,11 @@ const MetaAdsMetricsBar = ({
     };
 
     fetchMetaData();
+    
+    // Cleanup do timeout
+    return () => {
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   // Função para atualizar listas de filtros
@@ -929,9 +944,21 @@ const MetaAdsMetricsBar = ({
         </div>
       )}
       
-      {hasPartialData && error && !error.includes('Limite de requisições') && (
+      {hasPartialData && error && !error.includes('Limite de requisições') && !error.includes('Timeout') && (
         <div className="meta-ads-partial-warning">
           <span>⚠️ Dados parciais: Campanhas carregadas, grupos e anúncios não disponíveis</span>
+        </div>
+      )}
+      
+      {hasPartialData && error && error.includes('Timeout') && (
+        <div className="meta-ads-partial-warning">
+          <span>⚠️ Timeout de carregamento - usando dados parciais</span>
+          <div className="retry-info">
+            <small>⏰ O carregamento demorou muito - usando dados parciais</small>
+            <button onClick={retryLoadData} className="retry-btn">
+              🔄 Tentar Novamente
+            </button>
+          </div>
         </div>
       )}
       

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './FilterBar.css';
 import { getUnidades, getFunisPorUnidade, getVendedores } from '../service/supabase.js';
+import { handleDatePreset } from '../utils/utils.js';
 
-const FilterBar = ({ t, selectedStatus, setSelectedStatus, selectedSeller, setSelectedSeller, selectedPeriod, setSelectedPeriod, selectedFunnel, setSelectedFunnel, selectedUnit, setSelectedUnit, startDate, setStartDate, endDate, setEndDate, onUnitFilterChange, onStatusFilterChange, marketData }) => {
+const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSelectedPeriod, selectedFunnel, setSelectedFunnel, selectedUnit, setSelectedUnit, startDate, setStartDate, endDate, setEndDate, onUnitFilterChange, onSellerFilterChange, marketData }) => {
 
   
   // Estado único para controlar qual dropdown está aberto (accordion)
@@ -232,6 +233,25 @@ const FilterBar = ({ t, selectedStatus, setSelectedStatus, selectedSeller, setSe
   const handleSellerChange = (sellerId) => {
     setSelectedSeller(sellerId);
     setOpenDropdown(null); // Fecha o dropdown
+    
+    // 🎯 FILTRO DE VENDEDOR: Aplicar filtro por user_id na tabela oportunidade_sprint
+    if (onSellerFilterChange) {
+      const selectedSellerData = sellers.find(s => s.id === sellerId);
+      if (selectedSellerData) {
+        // Se for "Todos os vendedores", passa null para não filtrar
+        const filterValue = sellerId === 'all' ? null : selectedSellerData.id_sprint;
+        console.log(`🎯 Filtro de vendedor aplicado:`, {
+          sellerName: selectedSellerData.name,
+          idSprint: selectedSellerData.id_sprint,
+          filterValue: filterValue,
+          message: filterValue ? `Filtrando oportunidades com user_id = "${filterValue}"` : 'Mostrando todos os vendedores'
+        });
+        
+        // Chama o callback do componente pai para aplicar o filtro
+        onSellerFilterChange(filterValue);
+      }
+    }
+    
     console.log(`🎯 Vendedor selecionado:`, {
       sellerId,
       vendedorData: sellers.find(s => s.id === sellerId)
@@ -352,80 +372,6 @@ const FilterBar = ({ t, selectedStatus, setSelectedStatus, selectedSeller, setSe
           </div>
         </div>
 
-        {/* Filtro de Status */}
-        <div className="fb-filter-group">
-          <div className="fb-dropdown-container fb-status-dropdown">
-            <button 
-              className="fb-dropdown-button"
-              onClick={() => toggleDropdown('status')}
-            >
-              <span>{selectedStatus === 'sale' ? 'Venda' : selectedStatus === 'won' ? 'Ganho' : 'Cadastrado'}</span>
-              <span className="fb-dropdown-arrow">▼</span>
-            </button>
-            
-            {openDropdown === 'status' && (
-              <div className="fb-dropdown-menu">
-                <div 
-                  className={`fb-dropdown-item ${selectedStatus === 'sale' ? 'fb-selected' : ''}`}
-                  onClick={() => {
-                    setSelectedStatus('sale');
-                    setOpenDropdown(null);
-                    
-                    // 🎯 FILTRO: Venda → status_orcamento = 'aprovado'
-                    if (onStatusFilterChange) {
-                      onStatusFilterChange({
-                        type: 'sale',
-                        field: 'status_orcamento',
-                        value: 'aprovado',
-                        description: 'Orçamentos aprovados pelo vendedor'
-                      });
-                    }
-                  }}
-                >
-                  Venda
-                </div>
-                <div 
-                  className={`fb-dropdown-item ${selectedStatus === 'won' ? 'fb-selected' : ''}`}
-                  onClick={() => {
-                    setSelectedStatus('won');
-                    setOpenDropdown(null);
-                    
-                    // 🎯 FILTRO: Ganho → status = 'gain'
-                    if (onStatusFilterChange) {
-                      onStatusFilterChange({
-                        type: 'won',
-                        field: 'status',
-                        value: 'gain',
-                        description: 'Oportunidades ganhas no CRM'
-                      });
-                    }
-                  }}
-                >
-                  Ganho
-                </div>
-                <div 
-                  className={`fb-dropdown-item ${selectedStatus === 'registered' ? 'fb-selected' : ''}`}
-                  onClick={() => {
-                    setSelectedStatus('registered');
-                    setOpenDropdown(null);
-                    
-                    // 🎯 FILTRO: Cadastro → primecadastro = 1
-                    if (onStatusFilterChange) {
-                      onStatusFilterChange({
-                        type: 'registered',
-                        field: 'primecadastro',
-                        value: 1,
-                        description: 'Clientes cadastrados no ERP'
-                      });
-                    }
-                  }}
-                >
-                  Cadastrado
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
 
         {/* Filtro de Vendedores */}
         <div className="fb-filter-group">
@@ -491,9 +437,13 @@ const FilterBar = ({ t, selectedStatus, setSelectedStatus, selectedSeller, setSe
                       className={`fb-dropdown-item ${selectedPeriod === period.id ? 'fb-selected' : ''}`}
                       onClick={() => {
                         setSelectedPeriod(period.id);
-                        // Limpar datas personalizadas quando selecionar período pré-definido
-                        setStartDate('');
-                        setEndDate('');
+                        // Calcular datas corretas baseado no período selecionado
+                        const { start, end } = handleDatePreset(period.id);
+                        if (start && end) {
+                          setStartDate(start);
+                          setEndDate(end);
+                          console.log(`📅 Período ${period.name} aplicado:`, { start, end });
+                        }
                         setOpenDropdown(null);
                       }}
                     >
@@ -532,10 +482,18 @@ const FilterBar = ({ t, selectedStatus, setSelectedStatus, selectedSeller, setSe
                     className="fb-apply-period-btn"
                     onClick={() => {
                       if (startDate && endDate) {
+                        console.log('🎯 APLICANDO PERÍODO PERSONALIZADO:', { 
+                          startDate, 
+                          endDate, 
+                          startDateType: typeof startDate,
+                          endDateType: typeof endDate 
+                        });
                         setSelectedPeriod('custom');
                         setOpenDropdown(null);
-                        // Opcional: mostrar mensagem de confirmação
-                        console.log(`Período personalizado aplicado: ${startDate} a ${endDate}`);
+                        // Força um re-render para garantir que as datas sejam aplicadas
+                        console.log(`📅 Período personalizado aplicado: ${startDate} até ${endDate}`);
+                      } else {
+                        console.log('❌ ERRO: Datas não definidas para período personalizado:', { startDate, endDate });
                       }
                     }}
                     disabled={!startDate || !endDate}

@@ -1,3 +1,11 @@
+// Função para obter data atual no fuso horário de São Paulo
+export const getTodayDateSP = () => {
+  const now = new Date();
+  // Converter para fuso horário de São Paulo (America/Sao_Paulo)
+  const spDate = new Date(now.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+  return spDate.toISOString().split('T')[0];
+};
+
 // Função para converter valores
 export const convertCurrency = (value, fromCurrency = 'BRL', usdRate) => {
   if (fromCurrency === 'USD') return value;
@@ -88,7 +96,9 @@ export const fetchUsdRate = async () => {
 
 // Função para lidar com presets de data
 export const handleDatePreset = (preset) => {
-  const today = new Date();
+  // Usar data atual no fuso horário de São Paulo
+  const todaySP = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+  const today = todaySP;
   let start, end;
   
   switch (preset) {

@@ -207,7 +207,7 @@ class MetaAdsService {
           params: {
             access_token: this.accessToken,
             limit: 500,
-            fields: 'id,name,status,objective,budget_remaining,budget_remaining_currency,spend_cap,spend_cap_currency,daily_budget,daily_budget_currency,lifetime_budget,lifetime_budget_currency,created_time,updated_time,start_time,stop_time'
+            fields: 'id,name,status,objective,budget_remaining,budget_remaining_currency,spend_cap,spend_cap_currency,daily_budget,daily_budget_currency,lifetime_budget,lifetime_budget_currency,created_time,updated_time'
           }
         }
       );
@@ -598,7 +598,7 @@ class MetaAdsService {
             params: {
               access_token: this.accessToken,
               limit: 500,
-              fields: 'id,name,status,optimization_goal,billing_event,bid_amount,bid_strategy,daily_budget,lifetime_budget,targeting,created_time,updated_time,start_time,stop_time'
+              fields: 'id,name,status,optimization_goal,billing_event,bid_amount,bid_strategy,daily_budget,lifetime_budget,targeting,created_time,updated_time'
             }
           }
         );
@@ -652,7 +652,7 @@ class MetaAdsService {
             params: {
               access_token: this.accessToken,
               limit: 500,
-              fields: 'id,name,status,creative,adset_id,campaign_id,created_time,updated_time,start_time,stop_time'
+              fields: 'id,name,status,creative,adset_id,campaign_id,created_time,updated_time'
             }
           }
         );

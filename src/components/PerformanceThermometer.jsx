@@ -1,4 +1,5 @@
 import React from 'react';
+import './PerformanceThermometer.css';
 
 const PerformanceThermometer = ({ currentValue, previousValue, change, isPositive, color }) => {
   const current = parseInt(currentValue.toString().replace(/[^\d]/g, ''));
@@ -20,10 +21,10 @@ const PerformanceThermometer = ({ currentValue, previousValue, change, isPositiv
   const angle = Math.min((performanceScore / 200) * 180, 180);
   
   return (
-    <div className="performance-thermometer">
+    <div className="performance-thermometer-container">
       {/* Termômetro semicircular */}
-      <div className="thermometer-gauge">
-        <svg width="240" height="135" viewBox="0 0 240 135" className="thermometer-svg">
+      <div className="performance-thermometer-gauge">
+        <svg width="240" height="135" viewBox="0 0 240 135" className="performance-thermometer-svg">
           {/* Gradiente do termômetro */}
           <defs>
             <linearGradient id={`thermo-gradient-${color}`} x1="0%" y1="0%" x2="100%" y2="0%">
@@ -41,7 +42,7 @@ const PerformanceThermometer = ({ currentValue, previousValue, change, isPositiv
             strokeWidth="15"
             fill="none"
             strokeLinecap="round"
-            className="thermometer-arc"
+            className="performance-thermometer-arc"
           />
           
           {/* Marcações de escala - apenas pontos sem números */}
@@ -63,7 +64,7 @@ const PerformanceThermometer = ({ currentValue, previousValue, change, isPositiv
           
           {/* Ponteiro do termômetro */}
           <g 
-            className="thermometer-pointer" 
+            className="performance-thermometer-pointer" 
             style={{ 
               transformOrigin: '120px 105px',
               transform: `rotate(${angle - 90}deg)`,

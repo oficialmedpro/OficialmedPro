@@ -921,25 +921,7 @@
   border: 1px solid rgba(16, 185, 129, 0.3);
 }
 
-/* Termômetro semicircular de performance */
-.performance-thermometer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  min-width: 240px;
-}
-
-.thermometer-gauge {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.thermometer-svg {
-  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.3));
-}
+/* Estilos do termômetro movidos para PerformanceThermometer.css */
 
 .thermometer-arc {
   animation: drawThermometer 2s ease-out;
@@ -1065,14 +1047,7 @@
     padding: 4px 10px;
   }
   
-  .performance-thermometer {
-    min-width: 200px;
-  }
-  
-  .thermometer-svg {
-    width: 200px;
-    height: 120px;
-  }
+  /* Estilos responsivos do termômetro movidos para PerformanceThermometer.css */
   
   .performance-badge {
     padding: 3px 8px;

@@ -31,6 +31,13 @@
   min-width: 80px;
 }
 
+.fc-source-item.total {
+  background-color: #374151;
+  color: #ffffff;
+  font-weight: 600;
+  min-width: 120px;
+}
+
 .fc-source-item.google {
   background-color: #4285f4;
   color: #ffffff;
@@ -75,14 +82,22 @@
   font-size: 14px;
   font-weight: 600;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.fc-source-line {
+  display: flex;
   align-items: center;
   gap: 4px;
+  font-size: 12px;
 }
 
 .fc-source-percentage {
-  font-size: 14px;
-  font-weight: 600;
-  opacity: 1;
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.8;
 }
 
 .fc-source-count {
@@ -142,14 +157,18 @@
   color: #ffffff; /* ✅ Forçar branco */
 }
 
-/* 🎯 DESTAQUE PARA OPORTUNIDADES ATIVAS (estilo CRM) */
+/* 🎯 DESTAQUE PARA OPORTUNIDADES ATIVAS (estilo CRM) - COM FUNDO AZUL PETRÓLEO */
 .fc-funnel-active {
   font-size: 18px !important;
   font-weight: 800 !important;
   color: #ffffff !important;
+  background-color: #1e3a5f; /* Azul petróleo */
+  padding: 4px 8px;
+  border-radius: 4px;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   display: inline-block;
   letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* 🎯 CONTAINER PARA BADGES LADO A LADO NO CANTO DIREITO */
@@ -159,6 +178,15 @@
   top: 50%;
   transform: translateY(-50%);
   display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Linha superior dos badges principais - ALINHADOS HORIZONTALMENTE */
+.fc-funnel-badges-row {
+  display: flex;
+  flex-direction: row;
   gap: 8px;
   align-items: center;
 }
@@ -228,11 +256,12 @@
   font-weight: 600;
   min-width: 50px;
   text-align: center;
+  text-shadow: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  top: 60px;
-  z-index: 2;
+  right: 40px;
+  bottom: -43px;
+  z-index: 3;
 }
 
 /* Ajustes específicos para criar o efeito de funil */
@@ -275,6 +304,62 @@
   margin-bottom: 0;
 }
 
+/* =================== LEGENDA =================== */
+.fc-legend {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin: 20px 0;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fc-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fc-legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.fc-legend-text {
+  font-size: 11px;
+  font-weight: 500;
+  color: #ffffff;
+  opacity: 0.9;
+  white-space: nowrap;
+}
+
+/* Cores da legenda */
+.fc-legend-active {
+  background-color: #1e3a5f; /* Azul petróleo - Oportunidades Abertas */
+}
+
+.fc-legend-passed {
+  background-color: #3b82f6; /* Azul - Passaram na Etapa */
+}
+
+.fc-legend-created {
+  background-color: #10b981; /* Verde - Criadas no Período */
+}
+
+.fc-legend-lost {
+  background-color: #ef4444; /* Vermelho - Perdidas no Período */
+}
+
+.fc-legend-conversion {
+  background-color: #fbbf24; /* Amarelo - Taxa de Passagem */
+}
+
 /* =================== RESPONSIVIDADE =================== */
 @media (max-width: 1024px) {
   .fc-funnel-bar {
@@ -294,6 +379,22 @@
   /* Ajustar gap para mobile */
   .fc-funnel-container {
     gap: 15px;
+  }
+  
+  /* Responsividade da legenda */
+  .fc-legend {
+    gap: 12px;
+    margin: 15px 0;
+    padding: 10px;
+  }
+  
+  .fc-legend-text {
+    font-size: 10px;
+  }
+  
+  .fc-legend-color {
+    width: 10px;
+    height: 10px;
   }
   
   .fc-source-count {
@@ -330,19 +431,11 @@
   }
   
   .funildash_conversion-rate-box {
-    background: #fbbf24;
-    color: #000000;
-    padding: 4px 8px;
-    border-radius: 4px;
     font-size: 9px;
-    font-weight: 600;
+    padding: 5px 8px;
     min-width: 40px;
-    text-align: center;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    top: 50px;
-    z-index: 2;
+    right: 30px; /* Proporcional ao desktop */
+    bottom: -35px; /* Proporcional ao desktop */
   }
   
   .fc-funnel-stage {
@@ -363,20 +456,29 @@
 }
 
 @media (max-width: 480px) {
+  /* Responsividade da legenda mobile */
+  .fc-legend {
+    gap: 8px;
+    margin: 12px 0;
+    padding: 8px;
+    flex-direction: column;
+  }
+  
+  .fc-legend-text {
+    font-size: 9px;
+  }
+  
+  .fc-legend-color {
+    width: 8px;
+    height: 8px;
+  }
+  
   .funildash_conversion-rate-box {
-    background: #fbbf24;
-    color: #000000;
-    padding: 3px 6px;
-    border-radius: 4px;
     font-size: 8px;
-    font-weight: 600;
+    padding: 4px 6px;
     min-width: 35px;
-    text-align: center;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    top: 45px;
-    z-index: 2;
+    right: 20px; /* Proporcional ao desktop */
+    bottom: -30px; /* Proporcional ao desktop */
   }
   
   .fc-funnel-stage {

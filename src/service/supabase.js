@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { getTodayDateSP } from '../utils/utils.js'
 
 // Configurações do Supabase
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -14,7 +15,7 @@ export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 })
 
 // Função para obter o cliente com schema específico
-const getSupabaseWithSchema = (schema) => {
+export const getSupabaseWithSchema = (schema) => {
   console.log('🔧 Criando cliente Supabase com schema:', schema)
   return createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
@@ -389,19 +390,33 @@ export const getFunilEtapas = async (idFunilSprint) => {
 }
 
 // 🎯 FUNÇÃO SIMPLIFICADA: BUSCAR APENAS OPORTUNIDADES ATIVAS (STATUS=OPEN) POR ETAPA
-export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, endDate = null, selectedFunnel = null) => {
+export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, endDate = null, selectedFunnel = null, selectedSeller = null) => {
   try {
     console.log('🔍 Buscando oportunidades ATIVAS por etapa do funil:', etapas.map(e => e.id_etapa_sprint));
     console.log('📅 Período RECEBIDO:', { startDate, endDate });
     console.log('🎯 Funil selecionado:', selectedFunnel);
+    console.log('👤 Vendedor selecionado:', selectedSeller);
     console.log('📅 Tipos das datas:', typeof startDate, typeof endDate);
+    
+    // 🎯 DEBUG ESPECÍFICO PARA PERÍODOS LONGOS
+    const isPeriodoLongo = startDate !== endDate && startDate && endDate;
+    if (isPeriodoLongo) {
+      console.log('📆 PERÍODO LONGO DETECTADO:', {
+        inicio: startDate,
+        fim: endDate,
+        diasDiferenca: Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24))
+      });
+    }
     
     // Construir lista de etapas para o filtro - SINTAXE CORRETA SUPABASE
     const etapaIds = etapas.map(e => e.id_etapa_sprint);
     const etapaFilter = etapaIds.map(id => `crm_column.eq.${id}`).join(',');
     
+    // Construir filtro de vendedor se fornecido
+    const sellerFilter = selectedSeller && selectedSeller !== 'all' ? `&user_id=eq.${selectedSeller}` : '';
+    
     // BUSCAR APENAS OPORTUNIDADES ABERTAS (STATUS=OPEN) - FOCO INICIAL  
-    const openUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,crm_column,value&archived=eq.0&status=eq.open&or=(${etapaFilter})`;
+    const openUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,crm_column,value,user_id&archived=eq.0&status=eq.open&or=(${etapaFilter})${sellerFilter}`;
     console.log('🔍 URL oportunidades abertas:', openUrl);
 
     const response = await fetch(openUrl, {
@@ -430,8 +445,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
       dataInicio = startDate;
       dataFim = endDate;
     } else {
-      // Fallback para hoje se não há período selecionado
-      const hoje = new Date().toISOString().split('T')[0];
+      // Fallback para hoje (SP) se não há período selecionado
+      const hoje = getTodayDateSP();
       dataInicio = dataFim = hoje;
     }
     console.log('📅 Período para criadas:', { dataInicio, dataFim });
@@ -439,9 +454,18 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
     // Construir filtro de funil se fornecido
     const funilFilter = selectedFunnel ? `&funil_id=eq.${selectedFunnel}` : '';
     
-    // 1. TOTAL GERAL (para primeira etapa - ENTRADA) - COM FILTRO DE FUNIL E DATA
-    const criadasPeriodoTotalUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}`;
+    // 1. TOTAL GERAL (para primeira etapa - ENTRADA) - COM FILTRO DE FUNIL, DATA E VENDEDOR
+    const criadasPeriodoTotalUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}`;
     console.log('🔍 URL oportunidades criadas no período TOTAL:', criadasPeriodoTotalUrl);
+    
+    // 🎯 LOG ESPECÍFICO PARA DEBUG DE PERÍODOS LONGOS
+    if (isPeriodoLongo) {
+      console.log('📆 QUERY PARA PERÍODO LONGO:', {
+        dataInicio,
+        dataFim: `${dataFim}T23:59:59`,
+        urlCompleta: criadasPeriodoTotalUrl
+      });
+    }
 
     // 🎯 EXECUTAR QUERY PARA TOTAL GERAL (ENTRADA)
     const criadasPeriodoTotalResponse = await fetch(criadasPeriodoTotalUrl, {
@@ -474,11 +498,11 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
     for (const etapa of etapas) {
       const etapaId = etapa.id_etapa_sprint.toString();
       
-      // 🎯 QUERY ESPECÍFICA: Criadas hoje E que estão na etapa X
-      const criadasEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59&crm_column=eq.${etapa.id_etapa_sprint}${funilFilter}`;
+      // 🎯 QUERY ESPECÍFICA: Criadas hoje E que estão na etapa X - COM FILTRO DE VENDEDOR
+      const criadasEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59&crm_column=eq.${etapa.id_etapa_sprint}${funilFilter}${sellerFilter}`;
       
-      // 🎯 QUERY ESPECÍFICA: Perdidas hoje E que estão na etapa X
-      const perdidasEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.lost&lost_date=gte.${dataInicio}&lost_date=lte.${dataFim}T23:59:59&crm_column=eq.${etapa.id_etapa_sprint}${funilFilter}`;
+      // 🎯 QUERY ESPECÍFICA: Perdidas hoje E que estão na etapa X - COM FILTRO DE VENDEDOR
+      const perdidasEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.lost&lost_date=gte.${dataInicio}&lost_date=lte.${dataFim}T23:59:59&crm_column=eq.${etapa.id_etapa_sprint}${funilFilter}${sellerFilter}`;
       
       console.log(`🔍 Etapa ${etapa.nome_etapa} (${etapaId}):`);
       console.log(`   - Criadas: ${criadasEtapaUrl}`);
@@ -539,9 +563,263 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
     console.log('📊 RESULTADO - Criadas no período por etapa:', criadasPeriodoPorEtapa);
     console.log('📊 RESULTADO - Perdidas no período por etapa:', perdidasPeriodoPorEtapa);
 
-    // 🎯 BUSCAR OPORTUNIDADES FECHADAS (GANHAS) CRIADAS HOJE
+    // 🎯 BUSCAR DADOS REAIS PARA SOURCES BAR (ORIGENS DE OPORTUNIDADES)
+    console.log('📊 Buscando dados das origens de oportunidades...');
+    
+    // Variáveis para sources
+    let sourcesData = {
+      google: 0,
+      meta: 0,
+      whatsapp: 0,
+      organico: 0,
+      prescritor: 0,
+      franquia: 0,
+      total: criadasPeriodoTotal
+    };
+
+    try {
+      // 1. GOOGLE (utm_source = 'google' OU 'GoogleAds') - COM FILTRO DE VENDEDOR
+      const googleUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}&or=(utm_source.eq.google,utm_source.eq.GoogleAds)`;
+      console.log('🔍 URL Google:', googleUrl);
+
+      // 2. META ADS - COM FILTRO DE VENDEDOR
+      const metaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}&origem_oportunidade=eq.Meta Ads`;
+      console.log('🔍 URL Meta:', metaUrl);
+
+      // 3. WHATSAPP (origem_oportunidade IS NULL OR vazio OR 'whatsapp') - COM FILTRO DE VENDEDOR
+      const whatsappUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}&or=(origem_oportunidade.is.null,origem_oportunidade.eq.,origem_oportunidade.eq.whatsapp)`;
+      console.log('🔍 URL WhatsApp:', whatsappUrl);
+
+      // 4. ORGÂNICO - COM FILTRO DE VENDEDOR
+      const organicoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}&origem_oportunidade=eq.Orgânico`;
+      console.log('🔍 URL Orgânico:', organicoUrl);
+
+      // 5. PRESCRITOR - COM FILTRO DE VENDEDOR
+      const prescritorUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}&origem_oportunidade=eq.Prescritor`;
+      console.log('🔍 URL Prescritor:', prescritorUrl);
+
+      // 6. FRANQUIA - COM FILTRO DE VENDEDOR
+      const franquiaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}&origem_oportunidade=eq.Franquia`;
+      console.log('🔍 URL Franquia:', franquiaUrl);
+
+      // Executar todas as queries em paralelo
+      const [googleRes, metaRes, whatsappRes, organicoRes, prescritorRes, franquiaRes] = await Promise.all([
+        fetch(googleUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+            'Content-Profile': supabaseSchema
+          }
+        }),
+        fetch(metaUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+            'Content-Profile': supabaseSchema
+          }
+        }),
+        fetch(whatsappUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+            'Content-Profile': supabaseSchema
+          }
+        }),
+        fetch(organicoUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+            'Content-Profile': supabaseSchema
+          }
+        }),
+        fetch(prescritorUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+            'Content-Profile': supabaseSchema
+          }
+        }),
+        fetch(franquiaUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+            'Content-Profile': supabaseSchema
+          }
+        })
+      ]);
+
+      // Processar resultados
+      if (googleRes.ok) {
+        const googleData = await googleRes.json();
+        sourcesData.google = googleData.length;
+        console.log(`✅ Google: ${sourcesData.google} oportunidades`);
+      }
+
+      if (metaRes.ok) {
+        const metaData = await metaRes.json();
+        sourcesData.meta = metaData.length;
+        console.log(`✅ Meta: ${sourcesData.meta} oportunidades`);
+      }
+
+      if (whatsappRes.ok) {
+        const whatsappData = await whatsappRes.json();
+        sourcesData.whatsapp = whatsappData.length;
+        console.log(`✅ WhatsApp: ${sourcesData.whatsapp} oportunidades`);
+      }
+
+      if (organicoRes.ok) {
+        const organicoData = await organicoRes.json();
+        sourcesData.organico = organicoData.length;
+        console.log(`✅ Orgânico: ${sourcesData.organico} oportunidades`);
+      }
+
+      if (prescritorRes.ok) {
+        const prescritorData = await prescritorRes.json();
+        sourcesData.prescritor = prescritorData.length;
+        console.log(`✅ Prescritor: ${sourcesData.prescritor} oportunidades`);
+      }
+
+      if (franquiaRes.ok) {
+        const franquiaData = await franquiaRes.json();
+        sourcesData.franquia = franquiaData.length;
+        console.log(`✅ Franquia: ${sourcesData.franquia} oportunidades`);
+      }
+
+      console.log('📊 Dados das origens CRIADAS calculados:', sourcesData);
+
+      // 🎯 AGORA BUSCAR OPORTUNIDADES ABERTAS (ATIVAS) POR ORIGEM
+      console.log('📊 Buscando oportunidades ABERTAS por origem...');
+
+      // URLs para oportunidades abertas por origem (status=open) - COM FILTRO DE VENDEDOR
+      const googleAbertasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.open${funilFilter}${sellerFilter}&or=(utm_source.eq.google,utm_source.eq.GoogleAds)`;
+      const metaAbertasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.open${funilFilter}${sellerFilter}&origem_oportunidade=eq.Meta Ads`;
+      const whatsappAbertasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.open${funilFilter}${sellerFilter}&or=(origem_oportunidade.is.null,origem_oportunidade.eq.,origem_oportunidade.eq.whatsapp)`;
+      const organicoAbertasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.open${funilFilter}${sellerFilter}&origem_oportunidade=eq.Orgânico`;
+      const prescritorAbertasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.open${funilFilter}${sellerFilter}&origem_oportunidade=eq.Prescritor`;
+      const franquiaAbertasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.open${funilFilter}${sellerFilter}&origem_oportunidade=eq.Franquia`;
+
+      // Executar queries de oportunidades abertas
+      const [googleAbertasRes, metaAbertasRes, whatsappAbertasRes, organicoAbertasRes, prescritorAbertasRes, franquiaAbertasRes] = await Promise.all([
+        fetch(googleAbertasUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+            'Content-Profile': supabaseSchema
+          }
+        }),
+        fetch(metaAbertasUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+            'Content-Profile': supabaseSchema
+          }
+        }),
+        fetch(whatsappAbertasUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+            'Content-Profile': supabaseSchema
+          }
+        }),
+        fetch(organicoAbertasUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+            'Content-Profile': supabaseSchema
+          }
+        }),
+        fetch(prescritorAbertasUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+            'Content-Profile': supabaseSchema
+          }
+        }),
+        fetch(franquiaAbertasUrl, {
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+            'Content-Profile': supabaseSchema
+          }
+        })
+      ]);
+
+      // Processar oportunidades abertas e adicionar aos dados
+      if (googleAbertasRes.ok) {
+        const googleAbertasData = await googleAbertasRes.json();
+        sourcesData.google = { criadas: sourcesData.google, abertas: googleAbertasData.length };
+        console.log(`✅ Google: ${sourcesData.google.criadas} criadas / ${sourcesData.google.abertas} abertas`);
+      }
+
+      if (metaAbertasRes.ok) {
+        const metaAbertasData = await metaAbertasRes.json();
+        sourcesData.meta = { criadas: sourcesData.meta, abertas: metaAbertasData.length };
+        console.log(`✅ Meta: ${sourcesData.meta.criadas} criadas / ${sourcesData.meta.abertas} abertas`);
+      }
+
+      if (whatsappAbertasRes.ok) {
+        const whatsappAbertasData = await whatsappAbertasRes.json();
+        sourcesData.whatsapp = { criadas: sourcesData.whatsapp, abertas: whatsappAbertasData.length };
+        console.log(`✅ WhatsApp: ${sourcesData.whatsapp.criadas} criadas / ${sourcesData.whatsapp.abertas} abertas`);
+      }
+
+      if (organicoAbertasRes.ok) {
+        const organicoAbertasData = await organicoAbertasRes.json();
+        sourcesData.organico = { criadas: sourcesData.organico, abertas: organicoAbertasData.length };
+        console.log(`✅ Orgânico: ${sourcesData.organico.criadas} criadas / ${sourcesData.organico.abertas} abertas`);
+      }
+
+      if (prescritorAbertasRes.ok) {
+        const prescritorAbertasData = await prescritorAbertasRes.json();
+        sourcesData.prescritor = { criadas: sourcesData.prescritor, abertas: prescritorAbertasData.length };
+        console.log(`✅ Prescritor: ${sourcesData.prescritor.criadas} criadas / ${sourcesData.prescritor.abertas} abertas`);
+      }
+
+      if (franquiaAbertasRes.ok) {
+        const franquiaAbertasData = await franquiaAbertasRes.json();
+        sourcesData.franquia = { criadas: sourcesData.franquia, abertas: franquiaAbertasData.length };
+        console.log(`✅ Franquia: ${sourcesData.franquia.criadas} criadas / ${sourcesData.franquia.abertas} abertas`);
+      }
+
+      console.log('📊 Dados completos das origens:', sourcesData);
+
+    } catch (error) {
+      console.error('❌ Erro ao buscar dados das origens:', error);
+    }
+
+    // 🎯 BUSCAR OPORTUNIDADES FECHADAS (GANHAS) CRIADAS HOJE - COM FILTRO DE VENDEDOR
     console.log('💰 Buscando oportunidades ganhas criadas hoje...');
-    const fechadasHojeUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}`;
+    const fechadasHojeUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}`;
     console.log('🔍 URL oportunidades fechadas hoje:', fechadasHojeUrl);
 
     // Variáveis para conversão geral
@@ -697,7 +975,7 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
 
     console.log('📊 Dados do funil com taxas de passagem calculadas:', resultado);
 
-    // 🎯 RETORNAR DADOS DO FUNIL + CONVERSÃO GERAL
+    // 🎯 RETORNAR DADOS DO FUNIL + CONVERSÃO GERAL + SOURCES
     const resultadoCompleto = {
       etapas: resultado,
       conversaoGeral: {
@@ -706,6 +984,15 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
         taxaConversao: criadasPeriodoTotal > 0 ? ((fechadasHoje ? fechadasHoje.length : 0) / criadasPeriodoTotal) * 100 : 0,
         valorTotal: valorTotalFechadas || 0,
         ticketMedio: (fechadasHoje && fechadasHoje.length > 0) ? (valorTotalFechadas || 0) / fechadasHoje.length : 0
+      },
+      sourcesData: sourcesData || {
+        google: { criadas: 0, abertas: 0 },
+        meta: { criadas: 0, abertas: 0 },
+        whatsapp: { criadas: 0, abertas: 0 },
+        organico: { criadas: 0, abertas: 0 },
+        prescritor: { criadas: 0, abertas: 0 },
+        franquia: { criadas: 0, abertas: 0 },
+        total: criadasPeriodoTotal
       }
     };
 
