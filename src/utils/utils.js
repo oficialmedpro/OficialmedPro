@@ -6,6 +6,29 @@ export const getTodayDateSP = () => {
   return spDate.toISOString().split('T')[0];
 };
 
+// Função para converter data local para GMT-3 (São Paulo) para consultas no Supabase
+export const convertDateToSaoPauloTZ = (dateString, isEndOfDay = false) => {
+  if (!dateString) return '';
+  
+  // Cria uma data no formato YYYY-MM-DD assumindo timezone de São Paulo
+  const date = new Date(dateString + 'T' + (isEndOfDay ? '23:59:59' : '00:00:00'));
+  
+  // Ajusta para UTC considerando GMT-3 (adiciona 3 horas para compensar)
+  const utcDate = new Date(date.getTime() + (3 * 60 * 60 * 1000));
+  
+  return utcDate.toISOString().replace('.000Z', '');
+};
+
+// Função para obter data de início do dia em São Paulo (00:00:00 GMT-3)
+export const getStartOfDaySP = (dateString) => {
+  return convertDateToSaoPauloTZ(dateString, false);
+};
+
+// Função para obter data de fim do dia em São Paulo (23:59:59 GMT-3)  
+export const getEndOfDaySP = (dateString) => {
+  return convertDateToSaoPauloTZ(dateString, true);
+};
+
 // Função para converter valores
 export const convertCurrency = (value, fromCurrency = 'BRL', usdRate) => {
   if (fromCurrency === 'USD') return value;

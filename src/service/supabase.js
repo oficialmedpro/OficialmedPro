@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { getTodayDateSP } from '../utils/utils.js'
+import { getTodayDateSP, getStartOfDaySP, getEndOfDaySP } from '../utils/utils.js'
 
 // Configurações do Supabase
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
@@ -442,27 +442,36 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
     // 🎯 BUSCAR OPORTUNIDADES CRIADAS NO PERÍODO SELECIONADO
     let dataInicio, dataFim;
     if (startDate && endDate) {
-      dataInicio = startDate;
-      dataFim = endDate;
+      // Converter datas para UTC considerando fuso de São Paulo
+      dataInicio = getStartOfDaySP(startDate);
+      dataFim = getEndOfDaySP(endDate);
     } else {
       // Fallback para hoje (SP) se não há período selecionado
       const hoje = getTodayDateSP();
-      dataInicio = dataFim = hoje;
+      dataInicio = getStartOfDaySP(hoje);
+      dataFim = getEndOfDaySP(hoje);
     }
-    console.log('📅 Período para criadas:', { dataInicio, dataFim });
+    console.log('📅 Período para criadas (UTC ajustado para SP):', { 
+      startDate, 
+      endDate, 
+      dataInicioUTC: dataInicio, 
+      dataFimUTC: dataFim 
+    });
     
     // Construir filtro de funil se fornecido
     const funilFilter = selectedFunnel ? `&funil_id=eq.${selectedFunnel}` : '';
     
     // 1. TOTAL GERAL (para primeira etapa - ENTRADA) - COM FILTRO DE FUNIL, DATA E VENDEDOR
-    const criadasPeriodoTotalUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}`;
+    const criadasPeriodoTotalUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${funilFilter}${sellerFilter}`;
     console.log('🔍 URL oportunidades criadas no período TOTAL:', criadasPeriodoTotalUrl);
     
     // 🎯 LOG ESPECÍFICO PARA DEBUG DE PERÍODOS LONGOS
     if (isPeriodoLongo) {
-      console.log('📆 QUERY PARA PERÍODO LONGO:', {
-        dataInicio,
-        dataFim: `${dataFim}T23:59:59`,
+      console.log('📆 QUERY PARA PERÍODO LONGO (com timezone São Paulo):', {
+        dataInicioOriginal: startDate,
+        dataFimOriginal: endDate,
+        dataInicioUTC: dataInicio,
+        dataFimUTC: dataFim,
         urlCompleta: criadasPeriodoTotalUrl
       });
     }
@@ -498,11 +507,11 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
     for (const etapa of etapas) {
       const etapaId = etapa.id_etapa_sprint.toString();
       
-      // 🎯 QUERY ESPECÍFICA: Criadas hoje E que estão na etapa X - COM FILTRO DE VENDEDOR
-      const criadasEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59&crm_column=eq.${etapa.id_etapa_sprint}${funilFilter}${sellerFilter}`;
+      // 🎯 QUERY ESPECÍFICA: Criadas no período E que estão na etapa X - COM FILTRO DE VENDEDOR (timezone SP)
+      const criadasEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}&crm_column=eq.${etapa.id_etapa_sprint}${funilFilter}${sellerFilter}`;
       
-      // 🎯 QUERY ESPECÍFICA: Perdidas hoje E que estão na etapa X - COM FILTRO DE VENDEDOR
-      const perdidasEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.lost&lost_date=gte.${dataInicio}&lost_date=lte.${dataFim}T23:59:59&crm_column=eq.${etapa.id_etapa_sprint}${funilFilter}${sellerFilter}`;
+      // 🎯 QUERY ESPECÍFICA: Perdidas no período E que estão na etapa X - COM FILTRO DE VENDEDOR (timezone SP)
+      const perdidasEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.lost&lost_date=gte.${dataInicio}&lost_date=lte.${dataFim}&crm_column=eq.${etapa.id_etapa_sprint}${funilFilter}${sellerFilter}`;
       
       console.log(`🔍 Etapa ${etapa.nome_etapa} (${etapaId}):`);
       console.log(`   - Criadas: ${criadasEtapaUrl}`);
@@ -578,28 +587,28 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
     };
 
     try {
-      // 1. GOOGLE (utm_source = 'google' OU 'GoogleAds') - COM FILTRO DE VENDEDOR
-      const googleUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}&or=(utm_source.eq.google,utm_source.eq.GoogleAds)`;
+      // 1. GOOGLE (utm_source = 'google' OU 'GoogleAds') - COM FILTRO DE VENDEDOR (timezone SP)
+      const googleUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${funilFilter}${sellerFilter}&or=(utm_source.eq.google,utm_source.eq.GoogleAds)`;
       console.log('🔍 URL Google:', googleUrl);
 
-      // 2. META ADS - COM FILTRO DE VENDEDOR
-      const metaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}&origem_oportunidade=eq.Meta Ads`;
+      // 2. META ADS - COM FILTRO DE VENDEDOR (timezone SP)
+      const metaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${funilFilter}${sellerFilter}&origem_oportunidade=eq.Meta Ads`;
       console.log('🔍 URL Meta:', metaUrl);
 
-      // 3. WHATSAPP (origem_oportunidade IS NULL OR vazio OR 'whatsapp') - COM FILTRO DE VENDEDOR
-      const whatsappUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}&or=(origem_oportunidade.is.null,origem_oportunidade.eq.,origem_oportunidade.eq.whatsapp)`;
+      // 3. WHATSAPP (origem_oportunidade IS NULL OR vazio OR 'whatsapp') - COM FILTRO DE VENDEDOR (timezone SP)
+      const whatsappUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${funilFilter}${sellerFilter}&or=(origem_oportunidade.is.null,origem_oportunidade.eq.,origem_oportunidade.eq.whatsapp)`;
       console.log('🔍 URL WhatsApp:', whatsappUrl);
 
-      // 4. ORGÂNICO - COM FILTRO DE VENDEDOR
-      const organicoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}&origem_oportunidade=eq.Orgânico`;
+      // 4. ORGÂNICO - COM FILTRO DE VENDEDOR (timezone SP)
+      const organicoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${funilFilter}${sellerFilter}&origem_oportunidade=eq.Orgânico`;
       console.log('🔍 URL Orgânico:', organicoUrl);
 
-      // 5. PRESCRITOR - COM FILTRO DE VENDEDOR
-      const prescritorUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}&origem_oportunidade=eq.Prescritor`;
+      // 5. PRESCRITOR - COM FILTRO DE VENDEDOR (timezone SP)
+      const prescritorUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${funilFilter}${sellerFilter}&origem_oportunidade=eq.Prescritor`;
       console.log('🔍 URL Prescritor:', prescritorUrl);
 
-      // 6. FRANQUIA - COM FILTRO DE VENDEDOR
-      const franquiaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}&origem_oportunidade=eq.Franquia`;
+      // 6. FRANQUIA - COM FILTRO DE VENDEDOR (timezone SP)
+      const franquiaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${funilFilter}${sellerFilter}&origem_oportunidade=eq.Franquia`;
       console.log('🔍 URL Franquia:', franquiaUrl);
 
       // Executar todas as queries em paralelo
@@ -819,7 +828,7 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
 
     // 🎯 BUSCAR OPORTUNIDADES FECHADAS (GANHAS) CRIADAS HOJE - COM FILTRO DE VENDEDOR
     console.log('💰 Buscando oportunidades ganhas criadas hoje...');
-    const fechadasHojeUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${funilFilter}${sellerFilter}`;
+    const fechadasHojeUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${funilFilter}${sellerFilter}`;
     console.log('🔍 URL oportunidades fechadas hoje:', fechadasHojeUrl);
 
     // Variáveis para conversão geral
