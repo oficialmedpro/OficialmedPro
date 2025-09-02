@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './Login.css';
+import LogoOficialmedLight from '../../icones/icone_oficialmed_modo_light.svg';
 
 const Login = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({
@@ -51,7 +52,7 @@ const Login = ({ onLogin }) => {
     <div className="login-container">
       <div className="login-box">
         <div className="login-header">
-          <img src="/icones/icone_oficialmed_modo_light.svg" alt="OficialMed Pro" className="login-logo" />
+          <img src={LogoOficialmedLight} alt="OficialMed Pro" className="login-logo" />
           <h1>BI OficialMed Pro</h1>
           <p>Acesso ao Dashboard</p>
         </div>
