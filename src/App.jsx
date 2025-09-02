@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import DashboardPage from './pages/DashboardPage'
 import DashboardMetaAds from './pages/DashboardMetaAds'
 import Login from './components/Login'
+import autoSyncService from './service/autoSyncService'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -35,12 +36,27 @@ function App() {
 
     checkAuth();
   }, []);
+  
+  // Inicializar serviço de sincronização automática quando usuário estiver autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      // O serviço já inicia automaticamente, mas garantir que está rodando
+      const status = autoSyncService.getStatus();
+      if (!status.isRunning) {
+        autoSyncService.start();
+      }
+      console.log('🔄 Serviço de sincronização automática ativo');
+    }
+  }, [isAuthenticated]);
 
   const handleLogin = () => {
     setIsAuthenticated(true);
   };
 
   const handleLogout = () => {
+    // Parar serviço de sincronização ao fazer logout
+    autoSyncService.stop();
+    
     localStorage.removeItem('isAuthenticated');
     localStorage.removeItem('loginTime');
     setIsAuthenticated(false);

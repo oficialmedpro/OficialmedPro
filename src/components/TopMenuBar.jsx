@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { syncFollowUpStage, checkFollowUpSync } from '../service/sprintHubSyncService';
+import autoSyncService from '../service/autoSyncService';
 import './TopMenuBar.css';
 
 // Importar ícones SVG
@@ -19,10 +21,62 @@ const TopMenuBar = ({
 }) => {
   const navigate = useNavigate();
   const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
+  const [isSyncing, setIsSyncing] = useState(false);
   const languageDropdownRef = useRef(null);
+  
+  // Verificar se é admin (temporário - baseado nas credenciais fixas)
+  const isAdmin = true; // Por enquanto sempre admin, depois implementar lógica real
 
   const toggleLanguageDropdown = () => {
     setShowLanguageDropdown(!showLanguageDropdown);
+  };
+
+  // Função para sincronização manual
+  const handleSync = async () => {
+    if (isSyncing) return;
+    
+    setIsSyncing(true);
+    try {
+      // Usar o serviço de sincronização automática para manter consistência
+      await autoSyncService.forcSync();
+      
+      // Status será atualizado automaticamente via evento
+    } catch (error) {
+      console.error('❌ Erro na sincronização manual:', error);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  // Carregar status do serviço de sincronização ao montar
+  useEffect(() => {
+    const status = autoSyncService.getStatus();
+    setLastSyncTime(status.lastSyncTime);
+    
+    // Escutar atualizações do serviço
+    const handleSyncUpdate = (event) => {
+      setLastSyncTime(event.detail.lastSyncTime);
+    };
+    
+    window.addEventListener('syncStatusUpdated', handleSyncUpdate);
+    
+    return () => {
+      window.removeEventListener('syncStatusUpdated', handleSyncUpdate);
+    };
+  }, []);
+
+  // Não é mais necessário - o autoSyncService já gerencia isso
+
+  // Formatar data/hora da última sincronização
+  const formatSyncTime = (date) => {
+    if (!date) return 'Nunca';
+    return date.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit', 
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   // Fechar dropdown quando clicar fora dele
@@ -62,6 +116,35 @@ const TopMenuBar = ({
           className="tmb-search-input" 
           placeholder="Buscar..."
         />
+      </div>
+
+      {/* Status de Sincronização */}
+      <div className="tmb-sync-status">
+        <div className="tmb-sync-info">
+          <span className="tmb-sync-label">Última sincronização:</span>
+          <span className="tmb-sync-time">{formatSyncTime(lastSyncTime)}</span>
+        </div>
+        
+        {/* Botão de sincronização - apenas para admin */}
+        {isAdmin && (
+          <button 
+            className={`tmb-sync-btn ${isSyncing ? 'syncing' : ''}`}
+            onClick={handleSync}
+            disabled={isSyncing}
+            title="Sincronizar dados do SprintHub"
+          >
+            {isSyncing ? (
+              <>
+                <span className="tmb-sync-spinner"></span>
+                Sincronizando...
+              </>
+            ) : (
+              <>
+                🔄 Sincronizar
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Container para os ícones da direita - apenas no desktop */}
