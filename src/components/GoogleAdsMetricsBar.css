@@ -1,0 +1,459 @@
+/* ========================================
+   GOOGLE ADS METRICS BAR - CSS PERSONALIZADO
+   ========================================
+   Componente: GoogleAdsMetricsBar
+   Objetivo: Barra de métricas do Google Ads com filtros em cascata
+   Tema: Suporte a modo light e dark
+   ======================================== */
+
+/* Container Principal */
+.google-ads-metrics-bar {
+  background: var(--google-ads-bg, #ffffff);
+  border: 1px solid var(--google-ads-border, #e0e0e0);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 16px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Modo Dark */
+.google-ads-metrics-bar.dark-mode {
+  --google-ads-bg: #1a1a1a;
+  --google-ads-border: #333333;
+  --google-ads-text: #ffffff;
+  --google-ads-text-secondary: #b0b0b0;
+  --google-ads-input-bg: #2a2a2a;
+  --google-ads-input-border: #444444;
+  --google-ads-select-bg: #2a2a2a;
+  --google-ads-select-border: #444444;
+  --google-ads-hover-bg: #333333;
+  --google-ads-active-bg: #4285f4;
+  --google-ads-success: #34a853;
+  --google-ads-warning: #fbbc04;
+  --google-ads-error: #ea4335;
+}
+
+.google-ads-metrics-bar.dark-mode {
+  background: #171e31;
+  border-color: #334155;
+  color: var(--google-ads-text);
+}
+
+.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-title {
+  color: var(--google-ads-text);
+}
+
+.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-status {
+  color: var(--google-ads-text-secondary);
+}
+
+.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-filter-label {
+  color: var(--google-ads-text);
+}
+
+.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-filter-select {
+  background: #0f172a;
+  border-color: #334155;
+  color: var(--google-ads-text);
+}
+
+.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-filter-select:disabled {
+  background: #0f172a;
+}
+
+.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-filter-select option {
+  background: #0f172a;
+  color: var(--google-ads-text);
+}
+
+.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-summary {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-summary-item {
+  border-bottom-color: #334155;
+}
+
+.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-summary-label {
+  color: var(--google-ads-text-secondary);
+}
+
+.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-summary-value {
+  color: var(--google-ads-text);
+}
+
+.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-loading {
+  color: var(--google-ads-text-secondary);
+}
+
+.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-spinner {
+  border-color: #334155;
+  border-top-color: var(--google-ads-active-bg);
+}
+
+.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-header {
+  border-bottom: 1px solid #334155;
+}
+
+/* Modo Light */
+.google-ads-metrics-bar:not(.dark-mode) {
+  --google-ads-bg: #ffffff;
+  --google-ads-border: #e0e0e0;
+  --google-ads-text: #202124;
+  --google-ads-text-secondary: #5f6368;
+  --google-ads-input-bg: #ffffff;
+  --google-ads-input-border: #dadce0;
+  --google-ads-select-bg: #ffffff;
+  --google-ads-select-border: #dadce0;
+  --google-ads-hover-bg: #f8f9fa;
+  --google-ads-active-bg: #4285f4;
+  --google-ads-success: #34a853;
+  --google-ads-warning: #fbbc04;
+  --google-ads-error: #ea4335;
+}
+
+/* Header com Logo */
+.google-ads-metrics-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #334155;
+}
+
+.google-ads-metrics-bar-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.google-ads-metrics-bar-logo-img {
+  width: 200px;
+  height: 40px;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+
+.google-ads-metrics-bar-logo-img:hover {
+  transform: scale(1.05);
+}
+
+.google-ads-metrics-bar-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--google-ads-text);
+  letter-spacing: -0.02em;
+}
+
+.google-ads-metrics-bar-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--google-ads-text-secondary);
+}
+
+.google-ads-metrics-bar-status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--google-ads-success);
+  animation: pulse 2s infinite;
+}
+
+.google-ads-metrics-bar-status-indicator.active {
+  background: var(--google-ads-success);
+}
+
+.google-ads-metrics-bar-status-indicator.inactive {
+  background: var(--google-ads-error);
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+/* Filtros em Cascata */
+.google-ads-metrics-bar-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.google-ads-metrics-bar-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.google-ads-metrics-bar-filter-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--google-ads-text);
+  margin-bottom: 4px;
+}
+
+.google-ads-metrics-bar-filter-select {
+  padding: 10px 12px;
+  border: 1px solid var(--google-ads-select-border);
+  border-radius: 8px;
+  background: var(--google-ads-select-bg);
+  color: var(--google-ads-text);
+  font-size: 14px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.google-ads-metrics-bar-filter-select:focus {
+  outline: none;
+  border-color: var(--google-ads-active-bg);
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+}
+
+.google-ads-metrics-bar-filter-select:hover:not(:disabled) {
+  border-color: var(--google-ads-active-bg);
+}
+
+.google-ads-metrics-bar-filter-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--google-ads-hover-bg);
+}
+
+.google-ads-metrics-bar-filter-select option {
+  background: var(--google-ads-select-bg);
+  color: var(--google-ads-text);
+  padding: 8px;
+}
+
+/* Resumo da Seleção */
+.google-ads-metrics-bar-summary {
+  background: var(--google-ads-hover-bg);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid var(--google-ads-border);
+}
+
+.google-ads-metrics-bar-summary-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--google-ads-border);
+}
+
+.google-ads-metrics-bar-summary-item:last-child {
+  border-bottom: none;
+}
+
+.google-ads-metrics-bar-summary-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--google-ads-text-secondary);
+}
+
+.google-ads-metrics-bar-summary-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--google-ads-text);
+  text-align: right;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Estado de Carregamento */
+.google-ads-metrics-bar-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--google-ads-text-secondary);
+}
+
+.google-ads-metrics-bar-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--google-ads-border);
+  border-top: 3px solid var(--google-ads-active-bg);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .google-ads-metrics-bar {
+    padding: 16px;
+    margin: 12px 0;
+  }
+  
+  .google-ads-metrics-bar-filters {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .google-ads-metrics-bar-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  
+  .google-ads-metrics-bar-logo {
+    gap: 8px;
+  }
+  
+  .google-ads-metrics-bar-title {
+    font-size: 16px;
+  }
+  
+  .google-ads-metrics-bar-summary-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .google-ads-metrics-bar-summary-value {
+    text-align: left;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .google-ads-metrics-bar {
+    padding: 12px;
+    margin: 8px 0;
+  }
+  
+  .google-ads-metrics-bar-logo-img {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .google-ads-metrics-bar-title {
+    font-size: 14px;
+  }
+  
+  .google-ads-metrics-bar-filter-select {
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+}
+
+/* Animações e Transições */
+.google-ads-metrics-bar {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Estados de Hover e Focus */
+.google-ads-metrics-bar:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.google-ads-metrics-bar-filter-select:focus {
+  transform: translateY(-1px);
+}
+
+/* Indicadores de Status */
+.google-ads-metrics-bar-status-indicator {
+  position: relative;
+}
+
+.google-ads-metrics-bar-status-indicator::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 50%;
+  background: var(--google-ads-success);
+  opacity: 0.3;
+  animation: ripple 2s infinite;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Melhorias de Acessibilidade */
+.google-ads-metrics-bar-filter-select:focus-visible {
+  outline: 2px solid var(--google-ads-active-bg);
+  outline-offset: 2px;
+}
+
+.google-ads-metrics-bar-filter-label {
+  cursor: pointer;
+}
+
+/* Estados de Erro e Sucesso */
+.google-ads-metrics-bar-filter-select.error {
+  border-color: var(--google-ads-error);
+  box-shadow: 0 0 0 3px rgba(234, 67, 53, 0.1);
+}
+
+.google-ads-metrics-bar-filter-select.success {
+  border-color: var(--google-ads-success);
+  box-shadow: 0 0 0 3px rgba(52, 168, 83, 0.1);
+}
+
+/* Tooltip para informações adicionais */
+.google-ads-metrics-bar-tooltip {
+  position: relative;
+  cursor: help;
+}
+
+.google-ads-metrics-bar-tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--google-ads-text);
+  color: var(--google-ads-bg);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
+
+.google-ads-metrics-bar-tooltip:hover::after {
+  opacity: 1;
+  visibility: visible;
+}

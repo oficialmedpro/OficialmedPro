@@ -1,5 +1,6 @@
 import DashboardPage from '../pages/DashboardPage';
 import DashboardMetaAds from '../pages/DashboardMetaAds';
+import DashboardGoogleAds from '../pages/DashboardGoogleAds';
 
 // Configuração das rotas da aplicação
 export const routes = [
@@ -14,6 +15,12 @@ export const routes = [
     element: <DashboardMetaAds />,
     label: 'Dashboard MetaAds',
     icon: '📈'
+  },
+  {
+    path: '/google-ads',
+    element: <DashboardGoogleAds />,
+    label: 'Dashboard GoogleAds',
+    icon: '🔍'
   }
 ];
 

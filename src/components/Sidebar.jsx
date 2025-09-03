@@ -98,7 +98,8 @@ const Sidebar = ({
       subItems: [
         { icon: 'funil-compra', label: translations.funilCompra, active: true },
         { icon: 'funil-recompra', label: translations.funilRecompra, active: false },
-        { icon: 'dashboard-meta', label: 'Dashboard MetaAds', active: false }
+        { icon: 'dashboard-meta', label: 'Dashboard MetaAds', active: false },
+        { icon: 'dashboard-google', label: 'Dashboard GoogleAds', active: false }
       ]
     },
     {
@@ -190,6 +191,8 @@ const Sidebar = ({
                         e.stopPropagation();
                         if (subItem.label === 'Dashboard MetaAds') {
                           navigate('/meta-ads');
+                        } else if (subItem.label === 'Dashboard GoogleAds') {
+                          navigate('/google-ads');
                         } else {
                           console.log(`Clicked on ${subItem.label}`);
                         }
@@ -212,6 +215,8 @@ const Sidebar = ({
                     onClick={() => {
                       if (subItem.label === 'Dashboard MetaAds') {
                         navigate('/meta-ads');
+                      } else if (subItem.label === 'Dashboard GoogleAds') {
+                        navigate('/google-ads');
                       } else {
                         console.log(`Clicked on ${subItem.label}`);
                       }

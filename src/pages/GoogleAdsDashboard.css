@@ -1,0 +1,123 @@
+/* ========================================
+   GOOGLE ADS DASHBOARD - CSS PERSONALIZADO
+   ========================================
+   Página: DashboardGoogleAds
+   Objetivo: Dashboard específico para Google Ads
+   Tema: Suporte a modo light e dark
+   ======================================== */
+
+/* Importar estilos base do Meta Ads Dashboard */
+@import './MetaAdsDashboard.css';
+
+/* Sobrescrever estilos específicos para Google Ads */
+.google-ads-dashboard {
+  /* Estilos específicos do Google Ads */
+}
+
+/* Header específico do Google Ads */
+.google-ads-dashboard .dashboard-header {
+  background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+  color: white;
+}
+
+/* Cards específicos do Google Ads */
+.google-ads-dashboard .metrics-card {
+  border-left: 4px solid #4285f4;
+}
+
+.google-ads-dashboard .metrics-card:hover {
+  border-left-color: #34a853;
+  transform: translateY(-2px);
+}
+
+/* Filtros específicos do Google Ads */
+.google-ads-dashboard .filter-section {
+  background: rgba(66, 133, 244, 0.05);
+  border: 1px solid rgba(66, 133, 244, 0.1);
+}
+
+/* Botões específicos do Google Ads */
+.google-ads-dashboard .btn-primary {
+  background: #4285f4;
+  border-color: #4285f4;
+}
+
+.google-ads-dashboard .btn-primary:hover {
+  background: #3367d6;
+  border-color: #3367d6;
+}
+
+/* Status indicators específicos do Google Ads */
+.google-ads-dashboard .status-active {
+  color: #34a853;
+}
+
+.google-ads-dashboard .status-paused {
+  color: #fbbc04;
+}
+
+.google-ads-dashboard .status-removed {
+  color: #ea4335;
+}
+
+/* Modo Dark específico para Google Ads */
+.google-ads-dashboard.dark-mode {
+  --google-ads-primary: #4285f4;
+  --google-ads-secondary: #34a853;
+  --google-ads-warning: #fbbc04;
+  --google-ads-error: #ea4335;
+  --google-ads-bg: #1a1a1a;
+  --google-ads-surface: #2a2a2a;
+  --google-ads-text: #ffffff;
+  --google-ads-text-secondary: #b0b0b0;
+}
+
+/* Modo Light específico para Google Ads */
+.google-ads-dashboard:not(.dark-mode) {
+  --google-ads-primary: #4285f4;
+  --google-ads-secondary: #34a853;
+  --google-ads-warning: #fbbc04;
+  --google-ads-error: #ea4335;
+  --google-ads-bg: #ffffff;
+  --google-ads-surface: #f8f9fa;
+  --google-ads-text: #202124;
+  --google-ads-text-secondary: #5f6368;
+}
+
+/* Animações específicas do Google Ads */
+.google-ads-dashboard .fade-in {
+  animation: googleAdsFadeIn 0.5s ease-out;
+}
+
+@keyframes googleAdsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsividade específica do Google Ads */
+@media (max-width: 768px) {
+  .google-ads-dashboard .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .google-ads-dashboard .filter-section {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .google-ads-dashboard .dashboard-header {
+    padding: 16px;
+  }
+  
+  .google-ads-dashboard .metrics-card {
+    padding: 16px;
+  }
+}

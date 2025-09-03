@@ -254,11 +254,11 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-bottom: 20px;
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.05);
+  margin-bottom: 10px;
+  padding: 0px;
+  background: rgba(255, 255, 255, 0.00);
   border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 0px solid rgba(255, 255, 255, 0.1);
 }
 
 .ms-filter-group {
@@ -273,12 +273,12 @@
 
 .ms-filter-button {
   width: 100%;
-  padding: 10px 12px;
+  padding: 8px 8px;
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
+  border-radius: 4px;
   color: var(--text-primary);
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -290,6 +290,13 @@
 .ms-filter-button:hover {
   background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ms-filter-button:active {
+  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .ms-filter-arrow {
@@ -462,4 +469,119 @@
     padding: 6px 8px;
     font-size: 11px;
   }
+}
+
+/* Estilos para itens de campanha */
+.ms-campaign-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.ms-campaign-name {
+  flex: 1;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+.ms-campaign-spend {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 500;
+  min-width: 60px;
+  text-align: right;
+}
+
+.ms-filter-item:hover .ms-campaign-spend {
+  color: #374151;
+}
+
+.ms-filter-item.ms-selected .ms-campaign-spend {
+  color: #ffffff;
+}
+
+/* Estilos para informações adicionais do Meta */
+.ms-meta-info {
+  margin-top: 8px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #9ca3af;
+  line-height: 1.3;
+}
+
+.ms-meta-info small {
+  display: block;
+}
+
+/* Estilos para botão desabilitado */
+.ms-filter-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ms-filter-button:disabled:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Scrollbar personalizada para ms-users-sidebar (igual ao FilterBar) */
+.ms-users-sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ms-users-sidebar::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  margin: 4px;
+}
+
+.ms-users-sidebar::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.ms-users-sidebar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--accent-blue-dark), #1d4ed8);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+  transform: scale(1.1);
+}
+
+/* Scrollbar para Firefox */
+.ms-users-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-blue) var(--bg-primary);
+}
+
+/* Scrollbar personalizada para dropdowns do Meta (igual ao FilterBar) */
+.ms-filter-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ms-filter-menu::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  margin: 4px;
+}
+
+.ms-filter-menu::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--accent-blue), var(--accent-blue-dark));
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.ms-filter-menu::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--accent-blue-dark), #1d4ed8);
+  box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
+  transform: scale(1.1);
+}
+
+/* Scrollbar para Firefox nos dropdowns */
+.ms-filter-menu {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-blue) var(--bg-primary);
 }

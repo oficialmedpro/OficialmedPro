@@ -1,0 +1,148 @@
+/* ========================================
+   METRICS SIDEBAR GOOGLE ADS - CSS PERSONALIZADO
+   ========================================
+   Componente: MetricsSidebarGoogleAds
+   Objetivo: Sidebar de métricas do Google Ads
+   Tema: Suporte a modo light e dark
+   ======================================== */
+
+.metrics-sidebar-google-ads {
+  background: var(--google-ads-bg, #ffffff);
+  border: 1px solid var(--google-ads-border, #e0e0e0);
+  border-radius: 12px;
+  padding: 20px;
+  margin: 16px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.metrics-sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--google-ads-border, #e0e0e0);
+}
+
+.metrics-sidebar-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--google-ads-text, #202124);
+  margin: 0;
+}
+
+.metrics-sidebar-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--google-ads-text-secondary, #5f6368);
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #34a853;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.active {
+  background: #34a853;
+}
+
+.status-indicator.inactive {
+  background: #ea4335;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.metrics-sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.metric-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--google-ads-border, #e0e0e0);
+}
+
+.metric-item:last-child {
+  border-bottom: none;
+}
+
+.metric-label {
+  font-size: 14px;
+  color: var(--google-ads-text-secondary, #5f6368);
+}
+
+.metric-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--google-ads-text, #202124);
+}
+
+/* Modo Dark */
+.metrics-sidebar-google-ads.dark-mode {
+  --google-ads-bg: #1a1a1a;
+  --google-ads-border: #333333;
+  --google-ads-text: #ffffff;
+  --google-ads-text-secondary: #b0b0b0;
+}
+
+/* Modo Light */
+.metrics-sidebar-google-ads:not(.dark-mode) {
+  --google-ads-bg: #ffffff;
+  --google-ads-border: #e0e0e0;
+  --google-ads-text: #202124;
+  --google-ads-text-secondary: #5f6368;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .metrics-sidebar-google-ads {
+    padding: 16px;
+    margin: 12px 0;
+  }
+  
+  .metrics-sidebar-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  
+  .metrics-sidebar-content {
+    gap: 12px;
+  }
+  
+  .metric-item {
+    padding: 8px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .metrics-sidebar-google-ads {
+    padding: 12px;
+    margin: 8px 0;
+  }
+  
+  .metrics-sidebar-header h3 {
+    font-size: 16px;
+  }
+  
+  .metric-label {
+    font-size: 13px;
+  }
+  
+  .metric-value {
+    font-size: 14px;
+  }
+}

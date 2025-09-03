@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import DashboardPage from './pages/DashboardPage'
 import DashboardMetaAds from './pages/DashboardMetaAds'
+import DashboardGoogleAds from './pages/DashboardGoogleAds'
 import Login from './components/Login'
 import autoSyncService from './service/autoSyncService'
 
@@ -90,6 +91,7 @@ function App() {
         <Route path="/" element={<DashboardPage onLogout={handleLogout} />} />
         <Route path="/dashboard" element={<DashboardPage onLogout={handleLogout} />} />
         <Route path="/meta-ads" element={<DashboardMetaAds onLogout={handleLogout} />} />
+        <Route path="/google-ads" element={<DashboardGoogleAds onLogout={handleLogout} />} />
       </Routes>
     </Router>
   )

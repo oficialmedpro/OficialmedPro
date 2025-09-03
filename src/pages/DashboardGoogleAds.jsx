@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import './DashboardPage.css';
-import './DashboardPageFunnel.css';
-import MetricsSidebar from '../components/MetricsSidebar';
+import './GoogleAdsDashboard.css';
+import MetricsSidebarGoogleAds from '../components/MetricsSidebarGoogleAds';
 import MetricsCards from '../components/MetricsCards';
 import FilterBar from '../components/FilterBar';
 import TopMenuBar from '../components/TopMenuBar';
 import Sidebar from '../components/Sidebar';
-import FunnelChart from '../components/FunnelChart';
+import GoogleAdsFunnelCards from '../components/GoogleAdsFunnelCards';
+import '../components/GoogleAdsFunnelCards.css';
+import TrafficFunnel from '../components/TrafficFunnel';
 import StatsSection from '../components/StatsSection';
 import TimelineChart from '../components/TimelineChart';
-import SyncVerifier from '../components/SyncVerifier';
+import GoogleAdsMetricsBar from '../components/GoogleAdsMetricsBar';
+import GoogleAdsMetricsCards from '../components/GoogleAdsMetricsCards';
 import { translations } from '../data/translations';
 import { getStatsCards, getMenuItems } from '../data/statsData';
 import { 
@@ -19,11 +21,11 @@ import {
   handleDatePreset 
 } from '../utils/utils';
 
-// Importar bandeiras
+// Importar bandeiras e logos
 import BandeiraEUA from '../../icones/eua.svg';
 import BandeiraBrasil from '../../icones/brasil.svg';
 
-const DashboardPage = ({ onLogout }) => {
+const DashboardGoogleAds = ({ onLogout }) => {
   // Estados para o dashboard
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -100,25 +102,12 @@ const DashboardPage = ({ onLogout }) => {
     return () => clearInterval(interval);
   }, []);
 
-  // Inicializar datas baseado no período padrão (apenas uma vez)
-  useEffect(() => {
-    if (selectedPeriod === 'today' && !startDate && !endDate) {
-      console.log('🗓️ Inicializando datas para o período padrão:', selectedPeriod);
-      const { start, end } = handleDatePreset(selectedPeriod);
-      if (start && end) {
-        setStartDate(start);
-        setEndDate(end);
-        console.log('📅 Datas inicializadas:', { start, end });
-      }
-    }
-  }, [selectedPeriod]);
-
   // Funções de controle
   
   // 🎯 Função para lidar com mudanças no filtro de unidade
   const handleUnitFilterChange = (filterValue) => {
     setUnitFilterValue(filterValue);
-    console.log(`🎯 Dashboard: Filtro de unidade alterado para:`, filterValue);
+    console.log(`🎯 Dashboard GoogleAds: Filtro de unidade alterado para:`, filterValue);
     
     // Aqui você pode implementar a lógica para filtrar as oportunidades
     // baseado no unidade_id usando o valor do codigo_sprint
@@ -135,7 +124,7 @@ const DashboardPage = ({ onLogout }) => {
   // 🎯 Função para lidar com mudanças no filtro de status
   const handleStatusFilterChange = (filterData) => {
     setStatusFilterValue(filterData);
-    console.log(`🎯 Dashboard: Filtro de status alterado para:`, filterData);
+    console.log(`🎯 Dashboard GoogleAds: Filtro de status alterado para:`, filterData);
     
     // Aqui você pode implementar a lógica para filtrar as oportunidades
     // baseado no status selecionado
@@ -281,48 +270,115 @@ const DashboardPage = ({ onLogout }) => {
 
       {/* Main Content */}
       <main className="main-content">
-          {/* Stats Section */}
-          {/* Debug: Verificar valores antes de passar para StatsSection */}
-          {console.log('🎨 DashboardPage: Passando para StatsSection:', { 
-            startDate, 
-            endDate, 
-            selectedFunnel, 
-            selectedUnit, 
-            selectedSeller 
-          })}
-          <StatsSection 
-            statsCards={statsCards} 
-            startDate={startDate}
-            endDate={endDate}
-            selectedFunnel={selectedFunnel}
-            selectedUnit={selectedUnit}
-            selectedSeller={selectedSeller}
-          />
+        {/* Google Ads Header */}
+        <GoogleAdsMetricsBar 
+          isDarkMode={isDarkMode}
+          onAccountChange={(account) => {
+            console.log(`🎯 GoogleAds Conta alterada para:`, account);
+          }}
+          onCampaignChange={(campaign) => {
+            console.log(`🎯 GoogleAds Campanha alterada para:`, campaign);
+          }}
+          onAdGroupChange={(adGroup) => {
+            console.log(`🎯 GoogleAds Grupo de Anúncios alterado para:`, adGroup);
+          }}
+          onAdChange={(ad) => {
+            console.log(`🎯 GoogleAds Anúncio alterado para:`, ad);
+          }}
+        />
 
-          {/* Chart Section */}
-          <section className="chart-section">
-            <FunnelChart 
-              t={t} 
-              selectedFunnel={selectedFunnel}
-              startDate={startDate}
-              endDate={endDate}
-              selectedPeriod={selectedPeriod}
-            />
-            <MetricsSidebar 
-              formatCurrency={formatCurrencyLocal} 
-              t={t}
-              selectedPeriod={selectedPeriod}
-              startDate={startDate}
-              endDate={endDate}
-              selectedUnit={selectedUnit}
-            />
-          </section>
+        {/* Google Ads Funnel Section - Cards exatos como tela 28 */}
+        <GoogleAdsFunnelCards>
+          {/* Google Ads Metrics Cards - 4 cards de métricas */}
+          <GoogleAdsMetricsCards 
+            isDarkMode={isDarkMode}
+            formatCurrency={formatCurrencyLocal}
+            googleAdsData={{
+              balance: 35000.00,
+              balanceChange: '+8.5%',
+              campaigns: 12,
+              activeCampaigns: 8,
+              adGroups: 24,
+              activeAdGroups: 20,
+              ads: 60,
+              activeAds: 55
+            }}
+          />
+        </GoogleAdsFunnelCards>
+        
+        {/* CRM Integration Section */}
+        <section className="crm-integration-section">
+          <div className="crm-section-header">
+            <div className="crm-platform-icon crm-sources-icon">G</div>
+            <span className="crm-platform-name">Integração Google Ads com CRM</span>
+          </div>
+          
+          <div className="crm-metrics-grid">
+            <div className="crm-metric-group">
+              <h4 className="crm-group-title">📊 Status dos Leads</h4>
+              <div className="crm-metrics-row">
+                <div className="crm-metric-item converted">
+                  <div className="crm-metric-label">✅ Convertidos</div>
+                  <div className="crm-metric-value">2.1K</div>
+                  <div className="crm-metric-percentage">18.2%</div>
+                </div>
+                <div className="crm-metric-item lost">
+                  <div className="crm-metric-label">❌ Perdidos</div>
+                  <div className="crm-metric-value">2.8K</div>
+                  <div className="crm-metric-percentage">24.3%</div>
+                </div>
+                <div className="crm-metric-item open">
+                  <div className="crm-metric-label">🔄 Em Aberto</div>
+                  <div className="crm-metric-value">6.6K</div>
+                  <div className="crm-metric-percentage">57.5%</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="crm-metric-group">
+              <h4 className="crm-group-title">💰 Performance Financeira</h4>
+              <div className="crm-metrics-row">
+                <div className="crm-metric-item roas">
+                  <div className="crm-metric-label">ROAS</div>
+                  <div className="crm-metric-value">4.1x</div>
+                  <div className="crm-metric-percentage">410%</div>
+                </div>
+                <div className="crm-metric-item roi">
+                  <div className="crm-metric-label">ROI</div>
+                  <div className="crm-metric-value">310%</div>
+                  <div className="crm-metric-percentage">310%</div>
+                </div>
+                <div className="crm-metric-item conversion">
+                  <div className="crm-metric-label">Taxa Conversão</div>
+                  <div className="crm-metric-value">18.2%</div>
+                  <div className="crm-metric-percentage">18.2%</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="crm-metric-group">
+              <h4 className="crm-group-title">⏱️ Tempo Médio</h4>
+              <div className="crm-metrics-row">
+                <div className="crm-metric-item time">
+                  <div className="crm-metric-label">Fechamento</div>
+                  <div className="crm-metric-value">14 dias</div>
+                  <div className="crm-metric-percentage">14 dias</div>
+                </div>
+                <div className="crm-metric-item loss-rate">
+                  <div className="crm-metric-label">Taxa de Perda</div>
+                  <div className="crm-metric-value">24.3%</div>
+                  <div className="crm-metric-percentage">24.3%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Traffic Funnel & Performance Section */}
+        <TrafficFunnel />
 
         {/* Timeline Chart - Performance dos Últimos 7 Dias */}
         <TimelineChart selectedDate={endDate} t={t} />
-
-        {/* Verificador de Sincronização */}
-        <SyncVerifier />
 
         {/* Metrics Cards Section */}
         <MetricsCards formatCurrency={formatCurrencyLocal} t={t} />
@@ -363,6 +419,4 @@ const DashboardPage = ({ onLogout }) => {
   );
 };
 
-export default DashboardPage;
-
-
+export default DashboardGoogleAds;
