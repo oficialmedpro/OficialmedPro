@@ -1,0 +1,36 @@
+services:
+  # Backend Node.js API
+  - type: web
+    name: oficialmed-google-ads-api
+    env: node
+    plan: free
+    buildCommand: "cd api && npm install"
+    startCommand: "cd api && npm start"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: VITE_SUPABASE_SCHEMA
+        value: api
+
+  # Frontend React Static Site  
+  - type: web
+    name: oficialmed-frontend
+    env: static
+    plan: free
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: ./dist
+    headers:
+      - path: /api/*
+        name: Access-Control-Allow-Origin
+        value: "*"
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://oficialmed-google-ads-api.onrender.com/*
+    envVars:
+      - key: NODE_ENV
+        value: production

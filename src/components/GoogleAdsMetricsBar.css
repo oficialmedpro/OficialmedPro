@@ -6,16 +6,17 @@
    Tema: Suporte a modo light e dark
    ======================================== */
 
-/* Container Principal */
+/* Container Principal - Modo Light por padrão */
 .google-ads-metrics-bar {
-  background: var(--google-ads-bg, #ffffff);
-  border: 1px solid var(--google-ads-border, #e0e0e0);
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
   border-radius: 12px;
   padding: 20px;
   margin: 16px 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #202124;
 }
 
 /* Modo Dark */
@@ -115,14 +116,14 @@
   --google-ads-error: #ea4335;
 }
 
-/* Header com Logo */
+/* Header com Logo - Modo Light por padrão */
 .google-ads-metrics-bar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #334155;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .google-ads-metrics-bar-logo {
@@ -154,7 +155,7 @@
   align-items: center;
   gap: 8px;
   font-size: 14px;
-  color: var(--google-ads-text-secondary);
+  color: #5f6368;
 }
 
 .google-ads-metrics-bar-status-indicator {
@@ -171,6 +172,14 @@
 
 .google-ads-metrics-bar-status-indicator.inactive {
   background: var(--google-ads-error);
+}
+
+.google-ads-metrics-bar-status-indicator.demo {
+  background: #fbbc04;
+}
+
+.google-ads-metrics-bar-status-indicator.error {
+  background: #ea4335;
 }
 
 @keyframes pulse {
@@ -196,16 +205,16 @@
 .google-ads-metrics-bar-filter-label {
   font-size: 14px;
   font-weight: 500;
-  color: var(--google-ads-text);
+  color: #202124;
   margin-bottom: 4px;
 }
 
 .google-ads-metrics-bar-filter-select {
   padding: 10px 12px;
-  border: 1px solid var(--google-ads-select-border);
+  border: 1px solid #e0e0e0;
   border-radius: 8px;
-  background: var(--google-ads-select-bg);
-  color: var(--google-ads-text);
+  background: #ffffff;
+  color: #202124;
   font-size: 14px;
   transition: all 0.2s ease;
   cursor: pointer;
@@ -224,21 +233,21 @@
 .google-ads-metrics-bar-filter-select:disabled {
   opacity: 0.6;
   cursor: not-allowed;
-  background: var(--google-ads-hover-bg);
+  background: #f8f9fa;
 }
 
 .google-ads-metrics-bar-filter-select option {
-  background: var(--google-ads-select-bg);
-  color: var(--google-ads-text);
+  background: #ffffff;
+  color: #202124;
   padding: 8px;
 }
 
-/* Resumo da Seleção */
+/* Resumo da Seleção - Modo Light por padrão */
 .google-ads-metrics-bar-summary {
-  background: var(--google-ads-hover-bg);
+  background: #f8f9fa;
   border-radius: 8px;
   padding: 16px;
-  border: 1px solid var(--google-ads-border);
+  border: 1px solid #e0e0e0;
 }
 
 .google-ads-metrics-bar-summary-item {
@@ -246,7 +255,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 8px 0;
-  border-bottom: 1px solid var(--google-ads-border);
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .google-ads-metrics-bar-summary-item:last-child {
@@ -256,13 +265,13 @@
 .google-ads-metrics-bar-summary-label {
   font-size: 14px;
   font-weight: 500;
-  color: var(--google-ads-text-secondary);
+  color: #5f6368;
 }
 
 .google-ads-metrics-bar-summary-value {
   font-size: 14px;
   font-weight: 600;
-  color: var(--google-ads-text);
+  color: #202124;
   text-align: right;
   max-width: 200px;
   overflow: hidden;
@@ -270,21 +279,21 @@
   white-space: nowrap;
 }
 
-/* Estado de Carregamento */
+/* Estado de Carregamento - Modo Light por padrão */
 .google-ads-metrics-bar-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 40px 20px;
-  color: var(--google-ads-text-secondary);
+  color: #5f6368;
 }
 
 .google-ads-metrics-bar-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid var(--google-ads-border);
-  border-top: 3px solid var(--google-ads-active-bg);
+  border: 3px solid #e0e0e0;
+  border-top: 3px solid #4285f4;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 16px;
@@ -457,3 +466,74 @@
   opacity: 1;
   visibility: visible;
 }
+
+
+/* ========================================
+   FILTRO DE CAMPANHAS NO HEADER
+   ======================================== */
+
+/* Filtro de Campanhas no Header */
+.google-ads-metrics-bar-campaign-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.campaign-filter-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+}
+
+.campaign-filter-select {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  background: white;
+  color: #333;
+  cursor: pointer;
+}
+
+.campaign-filter-select:hover {
+  border-color: #4285f4;
+}
+
+.campaign-filter-select:focus {
+  outline: none;
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+/* Dark mode styles */
+.google-ads-metrics-bar.dark-mode .campaign-filter-label {
+  color: #ccc;
+}
+
+.google-ads-metrics-bar.dark-mode .campaign-filter-select {
+  background: #0f172a;
+  color: #fff;
+  border-color: #334155;
+}
+
+.google-ads-metrics-bar.dark-mode .campaign-filter-select:hover {
+  border-color: #4285f4;
+}
+
+/* Ajustar header para acomodar o filtro */
+.google-ads-metrics-bar-header {
+  display: flex !important;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  border-radius: 8px 8px 0 0;
+}
+
+.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-header {
+  background: #0f172a;
+  border-bottom: 1px solid #334155;
+}
+

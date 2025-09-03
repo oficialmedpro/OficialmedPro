@@ -20,6 +20,7 @@ import {
   fetchUsdRate, 
   handleDatePreset 
 } from '../utils/utils';
+import { googleAdsService } from '../service/googleAdsService';
 
 // Importar bandeiras e logos
 import BandeiraEUA from '../../icones/eua.svg';
@@ -48,6 +49,15 @@ const DashboardGoogleAds = ({ onLogout }) => {
     eur: 5.45,
     ibov: 125432,
     lastUpdate: new Date()
+  });
+
+  // Estados para dados do Google Ads
+  const [googleAdsData, setGoogleAdsData] = useState({
+    stats: null,
+    campaigns: [],
+    customerInfo: null,
+    isLoading: true,
+    error: null
   });
 
   // Traduções
@@ -101,6 +111,45 @@ const DashboardGoogleAds = ({ onLogout }) => {
     const interval = setInterval(fetchRate, 60 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
+
+  // 🎯 Carregar dados do Google Ads
+  useEffect(() => {
+    const loadGoogleAdsData = async () => {
+      try {
+        console.log('🔍 DashboardGoogleAds: Carregando dados do Google Ads...');
+        setGoogleAdsData(prev => ({ ...prev, isLoading: true, error: null }));
+
+        // Carregar dados do dashboard
+        const dashboardData = await googleAdsService.getDashboardData({
+          dateRange: { startDate, endDate },
+          unidadeId: unitFilterValue || 1
+        });
+
+        console.log('✅ DashboardGoogleAds: Dados carregados com sucesso:', dashboardData);
+
+        setGoogleAdsData({
+          stats: dashboardData.stats,
+          campaigns: dashboardData.campaigns,
+          customerInfo: {
+            customerId: dashboardData.customerId,
+            unidadeId: dashboardData.unidadeId
+          },
+          isLoading: false,
+          error: null
+        });
+
+      } catch (error) {
+        console.error('❌ DashboardGoogleAds: Erro ao carregar dados:', error);
+        setGoogleAdsData(prev => ({
+          ...prev,
+          isLoading: false,
+          error: error.message || 'Erro ao carregar dados do Google Ads'
+        }));
+      }
+    };
+
+    loadGoogleAdsData();
+  }, [startDate, endDate, unitFilterValue]);
 
   // Funções de controle
   
@@ -288,12 +337,12 @@ const DashboardGoogleAds = ({ onLogout }) => {
         />
 
         {/* Google Ads Funnel Section - Cards exatos como tela 28 */}
-        <GoogleAdsFunnelCards>
+        <GoogleAdsFunnelCards isDarkMode={isDarkMode}>
           {/* Google Ads Metrics Cards - 4 cards de métricas */}
           <GoogleAdsMetricsCards 
             isDarkMode={isDarkMode}
             formatCurrency={formatCurrencyLocal}
-            googleAdsData={{
+            googleAdsData={googleAdsData.stats || {
               balance: 35000.00,
               balanceChange: '+8.5%',
               campaigns: 12,
@@ -303,6 +352,11 @@ const DashboardGoogleAds = ({ onLogout }) => {
               ads: 60,
               activeAds: 55
             }}
+            selectedCampaign={null}
+            selectedAdGroup={null}
+            selectedAd={null}
+            isLoading={googleAdsData.isLoading}
+            error={googleAdsData.error}
           />
         </GoogleAdsFunnelCards>
         

@@ -7,12 +7,16 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "backend:install": "cd api && npm install",
+    "backend:dev": "cd api && npm run dev",
+    "backend:start": "cd api && npm start",
+    "dev:full": "concurrently \"npm run dev\" \"npm run backend:dev\"",
+    "install:all": "npm install && npm run backend:install"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.56.0",
     "axios": "^1.11.0",
-    "google-ads-api": "^21.0.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.8.2",
@@ -23,6 +27,7 @@
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^9.2.1",
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",

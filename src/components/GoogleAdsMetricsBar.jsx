@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './GoogleAdsMetricsBar.css';
+import { googleAdsApiService } from '../service/googleAdsApiService.js';
 
 // Importar logos do Google Ads
 import GoogleAdsLogoDark from '../assets/google_ads_dark.png';
@@ -24,63 +25,92 @@ const GoogleAdsMetricsBar = ({
   const [adGroups, setAdGroups] = useState([]);
   const [ads, setAds] = useState([]);
 
-  // Estado de carregamento
+  // Estados de carregamento e conexão
   const [loading, setLoading] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState('Conectando...');
+  const [error, setError] = useState(null);
+  const [hasRealCredentials, setHasRealCredentials] = useState(false);
+  const [campaignFilter, setCampaignFilter] = useState('active'); // 'active' ou 'all'
 
-  // Simular dados da Unidade 1 (Apucarana)
+  // Carregar dados reais da API do Google Ads
   useEffect(() => {
-    const loadGoogleAdsData = async () => {
-      try {
-        setLoading(true);
-        
-        // Simular dados da Unidade 1 - Apucarana
-        const mockAccounts = [
-          {
-            id: '1',
-            name: 'Unidade 1 - Apucarana',
-            status: 'active',
-            currency: 'BRL',
-            timezone: 'America/Sao_Paulo'
-          }
-        ];
-
-        const mockCampaigns = [
-          { id: '1', name: 'Campanha Principal - Apucarana', status: 'active', budget: 5000 },
-          { id: '2', name: 'Campanha Sazonal - Apucarana', status: 'active', budget: 3000 },
-          { id: '3', name: 'Campanha Promocional - Apucarana', status: 'paused', budget: 2000 }
-        ];
-
-        const mockAdGroups = [
-          { id: '1', name: 'Grupo Principal - Produtos', status: 'active', campaignId: '1' },
-          { id: '2', name: 'Grupo Secundário - Serviços', status: 'active', campaignId: '1' },
-          { id: '3', name: 'Grupo Sazonal - Ofertas', status: 'active', campaignId: '2' }
-        ];
-
-        const mockAds = [
-          { id: '1', name: 'Anúncio Principal - Produto A', status: 'active', adGroupId: '1' },
-          { id: '2', name: 'Anúncio Secundário - Produto B', status: 'active', adGroupId: '1' },
-          { id: '3', name: 'Anúncio de Serviço - Consulta', status: 'active', adGroupId: '2' }
-        ];
-
-        setAccounts(mockAccounts);
-        setCampaigns(mockCampaigns);
-        setAdGroups(mockAdGroups);
-        setAds(mockAds);
-
-        // Selecionar automaticamente a conta da Unidade 1
-        if (mockAccounts.length > 0) {
-          setSelectedAccount(mockAccounts[0]);
-        }
-
-      } catch (error) {
-        console.error('Erro ao carregar dados do Google Ads:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadGoogleAdsData();
-  }, []);
+  }, [campaignFilter]); // Recarregar quando o filtro mudar
+
+  const loadGoogleAdsData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      setConnectionStatus('Conectando...');
+
+      console.log('🔍 Carregando dados reais do Google Ads...');
+
+      // Testar conexão primeiro
+      const connectionTest = await googleAdsApiService.testConnection();
+      
+      if (!connectionTest.success) {
+        throw new Error(connectionTest.error || 'Falha na conexão com Google Ads API');
+      }
+
+      // Verificar se tem credenciais reais
+      const hasRealCreds = connectionTest.isRealData;
+      
+      if (!hasRealCreds) {
+        throw new Error('Credenciais do Google Ads não configuradas - apenas dados reais são permitidos');
+      }
+      
+      setHasRealCredentials(hasRealCreds);
+      setConnectionStatus('Conectado');
+
+      // Buscar campanhas reais (por padrão apenas ativas)
+      const realCampaigns = await googleAdsApiService.getCampaigns(campaignFilter);
+      console.log(`✅ Campanhas reais carregadas (${campaignFilter}):`, realCampaigns.length);
+
+      // Se não tem campanhas reais, não criar dados mockados
+      if (realCampaigns.length === 0) {
+        console.log('⚠️ Nenhuma campanha real encontrada - não exibir dados mockados');
+        setAccounts([]);
+        setCampaigns([]);
+        return;
+      }
+
+      // Criar conta baseada na unidade real
+      const realAccount = {
+        id: '1',
+        name: 'Unidade 1 - Apucarana',
+        status: 'active',
+        currency: 'BRL',
+        timezone: 'America/Sao_Paulo'
+      };
+
+      // Mapear campanhas reais para o formato esperado
+      const mappedCampaigns = realCampaigns.map(campaign => ({
+        id: campaign.id.toString(),
+        name: campaign.name,
+        status: campaign.status ? campaign.status.toLowerCase() : 'unknown',
+        accountId: '1',
+        channelType: campaign.channelType
+      }));
+
+      setAccounts([realAccount]);
+      setCampaigns(mappedCampaigns);
+      setSelectedAccount(realAccount);
+
+      console.log('✅ Dados reais do Google Ads carregados com sucesso');
+
+    } catch (error) {
+      console.error('❌ Erro ao carregar dados reais do Google Ads:', error);
+      setError(error.message);
+      setConnectionStatus('Erro na conexão');
+      setHasRealCredentials(false);
+      
+      // NÃO carregar dados mockados - apenas dados reais
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
 
   // Handlers para mudanças de seleção
   const handleAccountChange = (account) => {
@@ -97,7 +127,7 @@ const GoogleAdsMetricsBar = ({
     }
   };
 
-  const handleCampaignChange = (campaign) => {
+  const handleCampaignChange = async (campaign) => {
     setSelectedCampaign(campaign);
     setSelectedAdGroup(null);
     setSelectedAd(null);
@@ -107,9 +137,32 @@ const GoogleAdsMetricsBar = ({
     if (onCampaignChange) {
       onCampaignChange(campaign);
     }
+
+    // Carregar grupos de anúncios reais
+    if (campaign) {
+      try {
+        console.log('🔍 Carregando grupos de anúncios para campanha:', campaign.name);
+        const realAdGroups = await googleAdsApiService.getAdGroups(campaign.id);
+        
+        const mappedAdGroups = realAdGroups.map(adGroup => ({
+          id: adGroup.id.toString(),
+          name: adGroup.name,
+          status: adGroup.status ? adGroup.status.toLowerCase() : 'unknown',
+          campaignId: campaign.id
+        }));
+
+        setAdGroups(mappedAdGroups);
+        console.log('✅ Grupos de anúncios carregados:', mappedAdGroups.length);
+      } catch (error) {
+        console.error('❌ Erro ao carregar grupos de anúncios:', error);
+        setAdGroups([]);
+      }
+    }
   };
 
-  const handleAdGroupChange = (adGroup) => {
+
+
+  const handleAdGroupChange = async (adGroup) => {
     setSelectedAdGroup(adGroup);
     setSelectedAd(null);
     setAds([]);
@@ -117,7 +170,30 @@ const GoogleAdsMetricsBar = ({
     if (onAdGroupChange) {
       onAdGroupChange(adGroup);
     }
+
+    // Carregar anúncios reais
+    if (adGroup) {
+      try {
+        console.log('🔍 Carregando anúncios para grupo:', adGroup.name);
+        const realAds = await googleAdsApiService.getAds(adGroup.id);
+        
+        const mappedAds = realAds.map(ad => ({
+          id: ad.id.toString(),
+          name: ad.name || `Anúncio ${ad.id}`,
+          status: ad.status ? ad.status.toLowerCase() : 'unknown',
+          adGroupId: adGroup.id
+        }));
+
+        setAds(mappedAds);
+        console.log('✅ Anúncios carregados:', mappedAds.length);
+      } catch (error) {
+        console.error('❌ Erro ao carregar anúncios:', error);
+        setAds([]);
+      }
+    }
   };
+
+
 
   const handleAdChange = (ad) => {
     setSelectedAd(ad);
@@ -151,23 +227,52 @@ const GoogleAdsMetricsBar = ({
     );
   }
 
-  return (
-    <div className={`google-ads-metrics-bar ${isDarkMode ? 'dark-mode' : ''}`}>
-      {/* Header com Logo */}
-      <div className="google-ads-metrics-bar-header">
-        <div className="google-ads-metrics-bar-logo">
-          <img 
-            src={isDarkMode ? GoogleAdsLogoDark : GoogleAdsLogoLight} 
-            alt="Google Ads" 
-            className="google-ads-metrics-bar-logo-img"
-          />
-          <span className="google-ads-metrics-bar-title">Google Ads</span>
-        </div>
-        <div className="google-ads-metrics-bar-status">
-          <span className="google-ads-metrics-bar-status-indicator active"></span>
-          <span>Conectado</span>
+  // Se não tem credenciais reais ou não tem dados, não mostrar nada
+  if (!hasRealCredentials || accounts.length === 0) {
+    return (
+      <div className="google-ads-metrics-bar">
+        <div className="google-ads-metrics-bar-error">
+          <span>❌ Credenciais do Google Ads não configuradas</span>
+          <p>Configure as credenciais na tabela 'unidades' do Supabase para exibir dados reais</p>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className={`google-ads-metrics-bar ${isDarkMode ? 'dark-mode' : ''}`}>
+      {/* Header com Logo - Só aparece se tiver credenciais reais */}
+      {hasRealCredentials && (
+        <div className="google-ads-metrics-bar-header">
+          <div className="google-ads-metrics-bar-logo">
+            <img 
+              src={isDarkMode ? GoogleAdsLogoDark : GoogleAdsLogoLight} 
+              alt="Google Ads" 
+              className="google-ads-metrics-bar-logo-img"
+            />
+          </div>
+          <div className="google-ads-metrics-bar-status">
+            <span className={`google-ads-metrics-bar-status-indicator ${
+              connectionStatus === 'Conectado' ? 'active' : 
+              connectionStatus === 'Modo Demo' ? 'demo' : 'error'
+            }`}></span>
+            <span>{connectionStatus}</span>
+          </div>
+          
+          {/* Filtro de Status das Campanhas */}
+          <div className="google-ads-metrics-bar-campaign-filter">
+            <label className="campaign-filter-label">Campanhas:</label>
+            <select 
+              className="campaign-filter-select"
+              value={campaignFilter}
+              onChange={(e) => setCampaignFilter(e.target.value)}
+            >
+              <option value="active">Apenas Ativas</option>
+              <option value="all">Todas (Ativas + Pausadas)</option>
+            </select>
+          </div>
+        </div>
+      )}
 
       {/* Filtros em Cascata */}
       <div className="google-ads-metrics-bar-filters">

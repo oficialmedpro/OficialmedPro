@@ -12,6 +12,24 @@
   gap: 20px;
   margin: 20px 0;
   padding: 0;
+  background: transparent;
+  color: #ffffff;
+}
+
+/* Modo Light por padrão */
+.google-ads-funnel-cards {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 20px;
+  color: #202124;
+}
+
+/* Modo Dark */
+.google-ads-funnel-cards.dark-mode {
+  background: #171e31;
+  border: 1px solid #334155;
+  color: #ffffff;
 }
 
 /* Responsividade */
