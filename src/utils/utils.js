@@ -119,9 +119,22 @@ export const fetchUsdRate = async () => {
 
 // Função para lidar com presets de data
 export const handleDatePreset = (preset) => {
-  // Usar data atual no fuso horário de São Paulo
-  const todaySP = new Date(new Date().toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
-  const today = todaySP;
+  // Função para obter data no fuso de São Paulo (GMT-3)
+  const getSaoPauloDate = (offset = 0) => {
+    const now = new Date();
+    const saoPauloOffset = -3 * 60; // GMT-3 em minutos
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const saoPauloTime = new Date(utc + (saoPauloOffset * 60000));
+    
+    // Adicionar offset em dias se necessário
+    if (offset !== 0) {
+      saoPauloTime.setDate(saoPauloTime.getDate() + offset);
+    }
+    
+    return saoPauloTime.toISOString().split('T')[0];
+  };
+
+  const today = getSaoPauloDate(0);
   let start, end;
   
   switch (preset) {
@@ -129,32 +142,50 @@ export const handleDatePreset = (preset) => {
       start = end = today;
       break;
     case 'yesterday':
-      start = end = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+      start = end = getSaoPauloDate(-1);
       break;
     case 'last7Days':
-      start = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+      start = getSaoPauloDate(-6);
       end = today;
       break;
     case 'thisMonth':
-      start = new Date(today.getFullYear(), today.getMonth(), 1);
+      const currentDate = new Date();
+      const saoPauloOffset = -3 * 60;
+      const utc = currentDate.getTime() + (currentDate.getTimezoneOffset() * 60000);
+      const saoPauloDate = new Date(utc + (saoPauloOffset * 60000));
+      
+      const firstDay = new Date(saoPauloDate.getFullYear(), saoPauloDate.getMonth(), 1);
+      start = firstDay.toISOString().split('T')[0];
       end = today;
       break;
     case 'thisQuarter':
-      const quarter = Math.floor(today.getMonth() / 3);
-      start = new Date(today.getFullYear(), quarter * 3, 1);
+      const spDate = new Date();
+      const spUtc = spDate.getTime() + (spDate.getTimezoneOffset() * 60000);
+      const spTime = new Date(spUtc + (-3 * 60 * 60000));
+      
+      const quarter = Math.floor(spTime.getMonth() / 3);
+      const quarterStart = new Date(spTime.getFullYear(), quarter * 3, 1);
+      start = quarterStart.toISOString().split('T')[0];
       end = today;
       break;
     case 'thisYear':
-      start = new Date(today.getFullYear(), 0, 1);
+      const yearDate = new Date();
+      const yearUtc = yearDate.getTime() + (yearDate.getTimezoneOffset() * 60000);
+      const yearSP = new Date(yearUtc + (-3 * 60 * 60000));
+      
+      const yearStart = new Date(yearSP.getFullYear(), 0, 1);
+      start = yearStart.toISOString().split('T')[0];
       end = today;
       break;
     default:
       return { start: null, end: null };
   }
   
+  console.log(`📅 handleDatePreset(${preset}): ${start} - ${end}`);
+  
   return {
-    start: start.toISOString().split('T')[0],
-    end: end.toISOString().split('T')[0]
+    start,
+    end
   };
 };
 

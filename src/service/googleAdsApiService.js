@@ -130,6 +130,26 @@ class GoogleAdsApiService {
   }
 
   /**
+   * Busca saldo da conta Google Ads
+   */
+  async getAccountBalance() {
+    try {
+      console.log('🔍 Buscando saldo da conta Google Ads...');
+      const response = await this.fetchFromBackend('/account-balance');
+      
+      if (response.success) {
+        console.log('✅ Saldo da conta carregado:', response.data);
+        return response.data;
+      } else {
+        throw new Error(response.error || 'Falha ao buscar saldo da conta');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar saldo da conta:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Busca estatísticas/métricas
    */
   async getStats(startDate, endDate) {

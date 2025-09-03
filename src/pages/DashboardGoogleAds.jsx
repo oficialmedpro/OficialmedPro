@@ -11,7 +11,6 @@ import TrafficFunnel from '../components/TrafficFunnel';
 import StatsSection from '../components/StatsSection';
 import TimelineChart from '../components/TimelineChart';
 import GoogleAdsMetricsBar from '../components/GoogleAdsMetricsBar';
-import GoogleAdsMetricsCards from '../components/GoogleAdsMetricsCards';
 import { translations } from '../data/translations';
 import { getStatsCards, getMenuItems } from '../data/statsData';
 import { 
@@ -20,7 +19,7 @@ import {
   fetchUsdRate, 
   handleDatePreset 
 } from '../utils/utils';
-import { googleAdsService } from '../service/googleAdsService';
+import { googleAdsApiService } from '../service/googleAdsApiService';
 
 // Importar bandeiras e logos
 import BandeiraEUA from '../../icones/eua.svg';
@@ -33,6 +32,15 @@ const DashboardGoogleAds = ({ onLogout }) => {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [showCalendar, setShowCalendar] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState('pt-BR');
+  // Função para obter data de hoje no fuso de São Paulo
+  const getTodayInSaoPaulo = () => {
+    const hoje = new Date();
+    const saoPauloOffset = -3 * 60; // GMT-3 em minutos
+    const utc = hoje.getTime() + (hoje.getTimezoneOffset() * 60000);
+    const saoPauloTime = new Date(utc + (saoPauloOffset * 60000));
+    return saoPauloTime.toISOString().split('T')[0];
+  };
+
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [usdRate, setUsdRate] = useState(5.0);
@@ -60,8 +68,29 @@ const DashboardGoogleAds = ({ onLogout }) => {
     error: null
   });
 
+  // Estados para seleções do Google Ads
+  const [googleAdsSelections, setGoogleAdsSelections] = useState({
+    selectedAccount: null,
+    selectedCampaign: null,
+    selectedAdGroup: null,
+    selectedAd: null
+  });
+
   // Traduções
   const t = translations[currentLanguage];
+
+  // Inicializar com data de hoje no fuso de São Paulo
+  useEffect(() => {
+    const today = getTodayInSaoPaulo();
+    console.log('📅 DashboardGoogleAds: Inicializando com data de hoje SP:', today);
+    setStartDate(today);
+    setEndDate(today);
+  }, []);
+
+  // Debug: Monitorar mudanças nas datas
+  useEffect(() => {
+    console.log('📅 DashboardGoogleAds: Estados de data atualizados:', { startDate, endDate });
+  }, [startDate, endDate]);
 
   // Atualizar dados de mercado automaticamente
   useEffect(() => {
@@ -120,7 +149,7 @@ const DashboardGoogleAds = ({ onLogout }) => {
         setGoogleAdsData(prev => ({ ...prev, isLoading: true, error: null }));
 
         // Carregar dados do dashboard
-        const dashboardData = await googleAdsService.getDashboardData({
+        const dashboardData = await googleAdsApiService.getDashboardData({
           dateRange: { startDate, endDate },
           unidadeId: unitFilterValue || 1
         });
@@ -322,43 +351,55 @@ const DashboardGoogleAds = ({ onLogout }) => {
         {/* Google Ads Header */}
         <GoogleAdsMetricsBar 
           isDarkMode={isDarkMode}
+          dateRange={{ startDate, endDate }}
           onAccountChange={(account) => {
-            console.log(`🎯 GoogleAds Conta alterada para:`, account);
+            console.log(`🎯 DashboardGoogleAds: Conta alterada para:`, account);
+            const newSelections = {
+              selectedAccount: account,
+              selectedCampaign: null,
+              selectedAdGroup: null,
+              selectedAd: null
+            };
+            console.log('🔄 DashboardGoogleAds: Atualizando seleções:', newSelections);
+            setGoogleAdsSelections(newSelections);
           }}
           onCampaignChange={(campaign) => {
             console.log(`🎯 GoogleAds Campanha alterada para:`, campaign);
+            setGoogleAdsSelections(prev => ({
+              ...prev,
+              selectedCampaign: campaign,
+              selectedAdGroup: null,
+              selectedAd: null
+            }));
           }}
           onAdGroupChange={(adGroup) => {
             console.log(`🎯 GoogleAds Grupo de Anúncios alterado para:`, adGroup);
+            setGoogleAdsSelections(prev => ({
+              ...prev,
+              selectedAdGroup: adGroup,
+              selectedAd: null
+            }));
           }}
           onAdChange={(ad) => {
             console.log(`🎯 GoogleAds Anúncio alterado para:`, ad);
+            setGoogleAdsSelections(prev => ({
+              ...prev,
+              selectedAd: ad
+            }));
           }}
         />
 
-        {/* Google Ads Funnel Section - Cards exatos como tela 28 */}
-        <GoogleAdsFunnelCards isDarkMode={isDarkMode}>
-          {/* Google Ads Metrics Cards - 4 cards de métricas */}
-          <GoogleAdsMetricsCards 
-            isDarkMode={isDarkMode}
-            formatCurrency={formatCurrencyLocal}
-            googleAdsData={googleAdsData.stats || {
-              balance: 35000.00,
-              balanceChange: '+8.5%',
-              campaigns: 12,
-              activeCampaigns: 8,
-              adGroups: 24,
-              activeAdGroups: 20,
-              ads: 60,
-              activeAds: 55
-            }}
-            selectedCampaign={null}
-            selectedAdGroup={null}
-            selectedAd={null}
-            isLoading={googleAdsData.isLoading}
-            error={googleAdsData.error}
-          />
-        </GoogleAdsFunnelCards>
+        {/* Google Ads Funnel Section - Cards com 5 métricas e gráficos */}
+        <GoogleAdsFunnelCards 
+          isDarkMode={isDarkMode}
+          selectedAccount={googleAdsSelections.selectedAccount}
+          selectedCampaign={googleAdsSelections.selectedCampaign}
+          selectedAdGroup={googleAdsSelections.selectedAdGroup}
+          selectedAd={googleAdsSelections.selectedAd}
+          dateRange={{ startDate, endDate }}
+        />
+
+
         
         {/* CRM Integration Section */}
         <section className="crm-integration-section">

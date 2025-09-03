@@ -2,47 +2,291 @@
    GOOGLE ADS FUNNEL CARDS - CSS PERSONALIZADO
    ========================================
    Componente: GoogleAdsFunnelCards
-   Objetivo: Container para cards do funil do Google Ads
+   Objetivo: 5 cards de métricas com gráficos do funil Google Ads
    Tema: Suporte a modo light e dark
    ======================================== */
 
+/* Container Principal */
 .google-ads-funnel-cards {
   display: flex;
   flex-direction: column;
   gap: 20px;
   margin: 20px 0;
-  padding: 0;
-  background: transparent;
-  color: #ffffff;
-}
-
-/* Modo Light por padrão */
-.google-ads-funnel-cards {
+  padding: 20px;
   background: #ffffff;
   border: 1px solid #e0e0e0;
   border-radius: 12px;
-  padding: 20px;
   color: #202124;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
 /* Modo Dark */
 .google-ads-funnel-cards.dark-mode {
-  background: #171e31;
+  background: #0f172a;
   border: 1px solid #334155;
   color: #ffffff;
 }
 
+/* Grid dos 5 Cards de Métricas */
+.funnel-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+/* Card Individual de Métrica */
+.funnel-metric-card {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 120px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Dark Mode para Cards */
+.google-ads-funnel-cards.dark-mode .funnel-metric-card {
+  background: #171e31;
+  border: 1px solid #334155;
+}
+
+
+/* Header do Card (Título + Valor) */
+.metric-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.metric-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.google-ads-funnel-cards.dark-mode .metric-title {
+  color: #94a3b8;
+}
+
+.metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.google-ads-funnel-cards.dark-mode .metric-value {
+  color: #ffffff;
+}
+
+/* Footer do Card (Mudança % + Gráfico) */
+.metric-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: auto;
+}
+
+.metric-change {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.metric-change.positive {
+  color: #059669;
+  background: rgba(5, 150, 105, 0.1);
+}
+
+.metric-change.negative {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.google-ads-funnel-cards.dark-mode .metric-change.positive {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+.google-ads-funnel-cards.dark-mode .metric-change.negative {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* Container do Gráfico */
+.metric-chart {
+  display: flex;
+  align-items: flex-end;
+  height: 40px;
+  width: 100px;
+}
+
+/* SVG Mini Gráfico */
+.metric-mini-chart {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.chart-line {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
+.chart-area {
+  opacity: 0.3;
+}
+
+/* Cores Específicas dos Cards */
+.funnel-metric-card.investment {
+  border-left: 4px solid #10b981;
+}
+
+.funnel-metric-card.conversions {
+  border-left: 4px solid #3b82f6;
+}
+
+.funnel-metric-card.cost-per-conversion {
+  border-left: 4px solid #ef4444;
+}
+
+.funnel-metric-card.clicks {
+  border-left: 4px solid #f59e0b;
+}
+
+.funnel-metric-card.avg-cpc {
+  border-left: 4px solid #8b5cf6;
+}
+
+/* Estados de Loading e Empty */
+.funnel-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #64748b;
+  gap: 16px;
+}
+
+.google-ads-funnel-cards.dark-mode .funnel-loading {
+  color: #94a3b8;
+}
+
+.funnel-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e2e8f0;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.google-ads-funnel-cards.dark-mode .funnel-spinner {
+  border-color: #334155;
+  border-top-color: #3b82f6;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.funnel-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+}
+
+.google-ads-funnel-cards.dark-mode .funnel-empty {
+  color: #94a3b8;
+}
+
 /* Responsividade */
+@media (max-width: 1200px) {
+  .funnel-metrics-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+  
+  .funnel-metric-card {
+    min-height: 110px;
+  }
+  
+  .metric-value {
+    font-size: 18px;
+  }
+}
+
 @media (max-width: 768px) {
   .google-ads-funnel-cards {
-    gap: 16px;
+    padding: 16px;
     margin: 16px 0;
+  }
+  
+  .funnel-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  
+  .funnel-metric-card {
+    min-height: 100px;
+    padding: 14px;
+  }
+  
+  .metric-value {
+    font-size: 16px;
+  }
+  
+  .metric-chart {
+    width: 80px;
+    height: 30px;
+  }
+  
+  .metric-change {
+    font-size: 10px;
   }
 }
 
 @media (max-width: 480px) {
-  .google-ads-funnel-cards {
-    gap: 12px;
-    margin: 12px 0;
+  .funnel-metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .funnel-metric-card {
+    min-height: 90px;
+    padding: 12px;
+  }
+  
+  .metric-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .metric-chart {
+    width: 100%;
+    height: 25px;
   }
 }
+
+/* Animações removidas para evitar piscadas */
+

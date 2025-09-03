@@ -2,12 +2,9 @@
 
 /* Botão de Logout */
 .tmb-logout-btn {
-  background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+  background: none;
   border: none;
-  border-radius: 8px;
-  color: white;
   cursor: pointer;
-  font-size: 16px;
   height: 36px;
   width: 36px;
   display: flex;
@@ -18,9 +15,12 @@
 }
 
 .tmb-logout-btn:hover {
-  background: linear-gradient(135deg, #c53030 0%, #9c2a2a 100%);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(197, 48, 48, 0.3);
+}
+
+.tmb-logout-icon {
+  width: 24px;
+  height: 24px;
 }
 .tmb-top-menu-bar {
   position: fixed;

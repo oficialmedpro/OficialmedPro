@@ -361,6 +361,70 @@ app.get('/api/adgroups/:adGroupId/ads', async (req, res) => {
 });
 
 /**
+ * Buscar saldo da conta Google Ads
+ */
+app.get('/api/account-balance', async (req, res) => {
+  try {
+    const { customer } = await initializeGoogleAdsClient();
+
+    console.log('🔍 Buscando saldo da conta Google Ads...');
+
+    // Consultar informações da conta incluindo orçamento
+    const accountData = await customer.query(`
+      SELECT 
+        customer.id,
+        customer.descriptive_name,
+        customer.currency_code,
+        customer.time_zone,
+        customer.status
+      FROM customer
+      WHERE customer.id = ${customer.id}
+    `);
+
+    // Buscar campanhas e seus orçamentos
+    const campaignBudgets = await customer.query(`
+      SELECT 
+        campaign_budget.amount_micros,
+        campaign_budget.delivery_method,
+        campaign_budget.status,
+        campaign_budget.type
+      FROM campaign_budget
+      WHERE campaign_budget.status = 'ENABLED'
+    `);
+
+    // Calcular orçamento total disponível
+    const totalBudgetMicros = campaignBudgets.reduce((acc, budget) => {
+      return acc + (parseInt(budget.campaign_budget.amount_micros) || 0);
+    }, 0);
+
+    const totalBudget = totalBudgetMicros / 1000000; // Converter micros para reais
+
+    const result = {
+      accountId: customer.id,
+      descriptiveName: accountData[0]?.customer?.descriptive_name || 'Conta Google Ads',
+      currencyCode: accountData[0]?.customer?.currency_code || 'BRL',
+      timeZone: accountData[0]?.customer?.time_zone || 'America/Sao_Paulo',
+      totalBudget: totalBudget,
+      activeCampaignBudgets: campaignBudgets.length
+    };
+
+    console.log('✅ Saldo da conta calculado:', result);
+
+    res.json({
+      success: true,
+      data: result
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao buscar saldo da conta:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
  * Buscar métricas de performance
  */
 app.get('/api/stats', async (req, res) => {
@@ -370,9 +434,35 @@ app.get('/api/stats', async (req, res) => {
 
     console.log(`🔍 Buscando estatísticas de ${startDate} a ${endDate}`);
 
-    // Definir período padrão se não fornecido
-    const start = startDate || '2024-01-01';
-    const end = endDate || new Date().toISOString().split('T')[0];
+    // Função para obter data no fuso de São Paulo (GMT-3)
+    const getSaoPauloDate = (dateString) => {
+      if (!dateString) return null;
+      
+      // Se a data já está no formato correto, usar
+      if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return dateString;
+      }
+      
+      // Converter considerando fuso de São Paulo
+      const date = new Date(dateString);
+      const saoPauloOffset = -3 * 60; // GMT-3 em minutos
+      const utc = date.getTime() + (date.getTimezoneOffset() * 60000);
+      const saoPauloTime = new Date(utc + (saoPauloOffset * 60000));
+      
+      return saoPauloTime.toISOString().split('T')[0];
+    };
+
+    // Definir período padrão se não fornecido (usar data atual de SP)
+    const hoje = new Date();
+    const saoPauloOffset = -3 * 60; // GMT-3 em minutos
+    const utc = hoje.getTime() + (hoje.getTimezoneOffset() * 60000);
+    const saoPauloTime = new Date(utc + (saoPauloOffset * 60000));
+    const dataHojeSP = saoPauloTime.toISOString().split('T')[0];
+
+    const start = getSaoPauloDate(startDate) || dataHojeSP;
+    const end = getSaoPauloDate(endDate) || dataHojeSP;
+
+    console.log(`📅 Período ajustado para fuso SP: ${start} a ${end}`);
 
     const stats = await customer.query(`
       SELECT 

@@ -11,7 +11,8 @@ const GoogleAdsMetricsBar = ({
   onAccountChange, 
   onCampaignChange, 
   onAdGroupChange, 
-  onAdChange 
+  onAdChange,
+  dateRange 
 }) => {
   // Estados para os filtros
   const [selectedAccount, setSelectedAccount] = useState(null);
@@ -31,6 +32,7 @@ const GoogleAdsMetricsBar = ({
   const [error, setError] = useState(null);
   const [hasRealCredentials, setHasRealCredentials] = useState(false);
   const [campaignFilter, setCampaignFilter] = useState('active'); // 'active' ou 'all'
+  const [accountBalance, setAccountBalance] = useState(0);
 
   // Carregar dados reais da API do Google Ads
   useEffect(() => {
@@ -95,6 +97,23 @@ const GoogleAdsMetricsBar = ({
       setAccounts([realAccount]);
       setCampaigns(mappedCampaigns);
       setSelectedAccount(realAccount);
+
+      // Buscar saldo real da conta (orçamento total)
+      try {
+        const balanceData = await googleAdsApiService.getAccountBalance();
+        const realBalance = balanceData.totalBudget || 0;
+        setAccountBalance(realBalance);
+        console.log('💰 Saldo real da conta carregado:', realBalance);
+      } catch (balanceError) {
+        console.warn('⚠️ Não foi possível carregar saldo da conta:', balanceError);
+        setAccountBalance(0); // Não mostrar valor fictício
+      }
+
+      // Notificar o componente pai sobre a seleção automática da conta
+      if (onAccountChange) {
+        console.log('🔔 GoogleAdsMetricsBar: Notificando seleção automática da conta:', realAccount);
+        onAccountChange(realAccount);
+      }
 
       console.log('✅ Dados reais do Google Ads carregados com sucesso');
 
@@ -251,12 +270,40 @@ const GoogleAdsMetricsBar = ({
               className="google-ads-metrics-bar-logo-img"
             />
           </div>
+          
           <div className="google-ads-metrics-bar-status">
             <span className={`google-ads-metrics-bar-status-indicator ${
               connectionStatus === 'Conectado' ? 'active' : 
               connectionStatus === 'Modo Demo' ? 'demo' : 'error'
             }`}></span>
             <span>{connectionStatus}</span>
+          </div>
+
+          {/* Saldo da Conta */}
+          <div className="google-ads-metrics-bar-balance">
+            <span className="balance-label">Saldo:</span>
+            <span className="balance-value">R$ {accountBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+          </div>
+
+          {/* Período dos Dados */}
+          <div className="google-ads-metrics-bar-period">
+            <span className="period-label">Período:</span>
+            <span className="period-value">
+              {(() => {
+                console.log('📅 GoogleAdsMetricsBar: dateRange recebido:', dateRange);
+                
+                if (dateRange?.startDate && dateRange?.endDate) {
+                  // Garantir que as datas sejam formatadas corretamente sem alterar fuso horário
+                  const startFormatted = dateRange.startDate.split('-').reverse().join('/');
+                  const endFormatted = dateRange.endDate.split('-').reverse().join('/');
+                  const periodText = `${startFormatted} - ${endFormatted}`;
+                  console.log('📅 GoogleAdsMetricsBar: Período formatado:', periodText);
+                  return periodText;
+                } else {
+                  return 'Últimos 30 dias';
+                }
+              })()}
+            </span>
           </div>
           
           {/* Filtro de Status das Campanhas */}
@@ -360,33 +407,6 @@ const GoogleAdsMetricsBar = ({
         </div>
       </div>
 
-      {/* Resumo da Seleção */}
-      {selectedAccount && (
-        <div className="google-ads-metrics-bar-summary">
-          <div className="google-ads-metrics-bar-summary-item">
-            <span className="google-ads-metrics-bar-summary-label">Conta:</span>
-            <span className="google-ads-metrics-bar-summary-value">{selectedAccount.name}</span>
-          </div>
-          {selectedCampaign && (
-            <div className="google-ads-metrics-bar-summary-item">
-              <span className="google-ads-metrics-bar-summary-label">Campanha:</span>
-              <span className="google-ads-metrics-bar-summary-value">{selectedCampaign.name}</span>
-            </div>
-          )}
-          {selectedAdGroup && (
-            <div className="google-ads-metrics-bar-summary-item">
-              <span className="google-ads-metrics-bar-summary-label">Grupo:</span>
-              <span className="google-ads-metrics-bar-summary-value">{selectedAdGroup.name}</span>
-            </div>
-          )}
-          {selectedAd && (
-            <div className="google-ads-metrics-bar-summary-item">
-              <span className="google-ads-metrics-bar-summary-label">Anúncio:</span>
-              <span className="google-ads-metrics-bar-summary-value">{selectedAd.name}</span>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };

@@ -69,22 +69,6 @@
   color: var(--google-ads-text);
 }
 
-.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-summary {
-  background: #0f172a;
-  border-color: #334155;
-}
-
-.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-summary-item {
-  border-bottom-color: #334155;
-}
-
-.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-summary-label {
-  color: var(--google-ads-text-secondary);
-}
-
-.google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-summary-value {
-  color: var(--google-ads-text);
-}
 
 .google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-loading {
   color: var(--google-ads-text-secondary);
@@ -242,42 +226,6 @@
   padding: 8px;
 }
 
-/* Resumo da Seleção - Modo Light por padrão */
-.google-ads-metrics-bar-summary {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 16px;
-  border: 1px solid #e0e0e0;
-}
-
-.google-ads-metrics-bar-summary-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.google-ads-metrics-bar-summary-item:last-child {
-  border-bottom: none;
-}
-
-.google-ads-metrics-bar-summary-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #5f6368;
-}
-
-.google-ads-metrics-bar-summary-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #202124;
-  text-align: right;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 /* Estado de Carregamento - Modo Light por padrão */
 .google-ads-metrics-bar-loading {
@@ -318,8 +266,17 @@
   
   .google-ads-metrics-bar-header {
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     align-items: flex-start;
+  }
+
+  .google-ads-metrics-bar-balance,
+  .google-ads-metrics-bar-period {
+    font-size: 11px;
+  }
+
+  .balance-value {
+    font-size: 12px;
   }
   
   .google-ads-metrics-bar-logo {
@@ -330,16 +287,6 @@
     font-size: 16px;
   }
   
-  .google-ads-metrics-bar-summary-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
-  
-  .google-ads-metrics-bar-summary-value {
-    text-align: left;
-    max-width: 100%;
-  }
 }
 
 @media (max-width: 480px) {
@@ -521,15 +468,79 @@
   border-color: #4285f4;
 }
 
-/* Ajustar header para acomodar o filtro */
+/* Saldo da Conta */
+.google-ads-metrics-bar-balance {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.balance-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+}
+
+.balance-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.google-ads-metrics-bar.dark-mode .balance-label {
+  color: #94a3b8;
+}
+
+.google-ads-metrics-bar.dark-mode .balance-value {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+}
+
+/* Período dos Dados */
+.google-ads-metrics-bar-period {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.period-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #666;
+}
+
+.period-value {
+  font-size: 12px;
+  font-weight: 500;
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 3px 6px;
+  border-radius: 3px;
+}
+
+.google-ads-metrics-bar.dark-mode .period-label {
+  color: #94a3b8;
+}
+
+.google-ads-metrics-bar.dark-mode .period-value {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.15);
+}
+
+/* Ajustar header para acomodar todos os elementos */
 .google-ads-metrics-bar-header {
   display: flex !important;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
   padding: 12px 16px;
   background: #f8f9fa;
   border-bottom: 1px solid #e9ecef;
   border-radius: 8px 8px 0 0;
+  justify-content: space-between;
+  flex-wrap: wrap;
 }
 
 .google-ads-metrics-bar.dark-mode .google-ads-metrics-bar-header {

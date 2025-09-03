@@ -220,7 +220,7 @@ const TopMenuBar = ({
             title="Sair" 
             onClick={onLogout}
           >
-            🚪
+            <img src="/src/assets/sair.png" alt="Sair" className="tmb-logout-icon" />
           </button>
         )}
       </div>
