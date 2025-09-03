@@ -9,6 +9,7 @@ import Sidebar from '../components/Sidebar';
 import FunnelChart from '../components/FunnelChart';
 import StatsSection from '../components/StatsSection';
 import TimelineChart from '../components/TimelineChart';
+import SyncVerifier from '../components/SyncVerifier';
 import { translations } from '../data/translations';
 import { getStatsCards, getMenuItems } from '../data/statsData';
 import { 
@@ -281,7 +282,22 @@ const DashboardPage = ({ onLogout }) => {
       {/* Main Content */}
       <main className="main-content">
           {/* Stats Section */}
-          <StatsSection statsCards={statsCards} />
+          {/* Debug: Verificar valores antes de passar para StatsSection */}
+          {console.log('🎨 DashboardPage: Passando para StatsSection:', { 
+            startDate, 
+            endDate, 
+            selectedFunnel, 
+            selectedUnit, 
+            selectedSeller 
+          })}
+          <StatsSection 
+            statsCards={statsCards} 
+            startDate={startDate}
+            endDate={endDate}
+            selectedFunnel={selectedFunnel}
+            selectedUnit={selectedUnit}
+            selectedSeller={selectedSeller}
+          />
 
           {/* Chart Section */}
           <section className="chart-section">
@@ -303,6 +319,9 @@ const DashboardPage = ({ onLogout }) => {
 
         {/* Timeline Chart - Performance dos Últimos 7 Dias */}
         <TimelineChart selectedDate={endDate} t={t} />
+
+        {/* Verificador de Sincronização */}
+        <SyncVerifier />
 
         {/* Metrics Cards Section */}
         <MetricsCards formatCurrency={formatCurrencyLocal} t={t} />

@@ -13,41 +13,64 @@ const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 // 🎯 FUNÇÃO PARA BUSCAR DADOS DAS MÉTRICAS PRINCIPAIS
 export const getThermometerMetrics = async (startDate = null, endDate = null, selectedFunnel = null, selectedUnit = null, selectedSeller = null) => {
   try {
-    console.log('🌡️ ThermometerService: Buscando métricas do termômetro...');
-    console.log('📅 Período:', { startDate, endDate });
-    console.log('🎯 Filtros:', { selectedFunnel, selectedUnit, selectedSeller });
+    console.log('='.repeat(80));
+    console.log('🌡️ ThermometerService: INICIANDO BUSCA DE MÉTRICAS');
+    console.log('📅 Parâmetros recebidos:');
+    console.log('  - startDate:', startDate, typeof startDate);
+    console.log('  - endDate:', endDate, typeof endDate);
+    console.log('  - selectedFunnel:', selectedFunnel, typeof selectedFunnel);
+    console.log('  - selectedUnit:', selectedUnit, typeof selectedUnit);
+    console.log('  - selectedSeller:', selectedSeller, typeof selectedSeller);
+    console.log('='.repeat(80));
 
     // Fallback para datas se não estiverem definidas
     let dataInicio = startDate;
     let dataFim = endDate;
     
-    if (!dataInicio || !dataFim) {
+    if (!dataInicio || !dataFim || dataInicio === '' || dataFim === '') {
       const hoje = new Date().toISOString().split('T')[0];
       dataInicio = hoje;
       dataFim = hoje;
       console.log('⚠️ ThermometerService: Usando datas fallback (hoje):', { dataInicio, dataFim });
+      console.log('Razão do fallback - startDate:', startDate, 'endDate:', endDate);
+    } else {
+      console.log('✅ ThermometerService: Usando datas fornecidas:', { dataInicio, dataFim });
     }
 
-    // Construir filtros baseados nos parâmetros
-    const funilFilter = selectedFunnel && selectedFunnel !== 'all' ? `&funil_id=eq.${selectedFunnel}` : '';
-    const unidadeFilter = selectedUnit && selectedUnit !== 'all' ? `&unidade_id=eq.%5B${selectedUnit}%5D` : '';
-    const sellerFilter = selectedSeller && selectedSeller !== 'all' ? `&user_id=eq.${selectedSeller}` : '';
+    // Construir filtros baseados nos parâmetros (CORRIGIDO)
+    // Verificar se valores são válidos antes de aplicar filtros
+    let funilFilter = '';
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      funilFilter = `&funil_id=eq.${selectedFunnel}`;
+    }
+    
+    let unidadeFilter = '';
+    if (selectedUnit && selectedUnit !== 'all' && selectedUnit !== '' && selectedUnit !== 'undefined') {
+      // Corrigir formato da unidade - pode estar vindo com formato incorreto
+      const unidadeFormatada = selectedUnit.toString().replace(/[\[\]]/g, '');
+      unidadeFilter = `&unidade_id=eq.%5B${unidadeFormatada}%5D`;
+    }
+    
+    let sellerFilter = '';
+    if (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined') {
+      sellerFilter = `&user_id=eq.${selectedSeller}`;
+    }
     const filtrosCombinados = funilFilter + unidadeFilter + sellerFilter;
 
-    console.log('🔍 Filtros aplicados:', filtrosCombinados);
+    console.log('🔍 Filtros construídos:');
+    console.log('  - funilFilter:', funilFilter);
+    console.log('  - unidadeFilter:', unidadeFilter);
+    console.log('  - sellerFilter:', sellerFilter);
+    console.log('  - filtrosCombinados:', filtrosCombinados);
     console.log('🔍 Filtros detalhados:', { 
       funil: selectedFunnel, 
       unidade: selectedUnit, 
       vendedor: selectedSeller 
     });
 
-    // 🎯 1. TOTAL DE OPORTUNIDADES - DUAS CONSULTAS:
-    // 1A. Oportunidades abertas (número principal)
-    const totalOportunidadesAbertasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open${filtrosCombinados}`;
-    // 1B. Oportunidades criadas no período (valor embaixo)
-    const totalOportunidadesCriadasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${filtrosCombinados}`;
-    console.log('🔍 URL Total Oportunidades Abertas:', totalOportunidadesAbertasUrl);
-    console.log('🔍 URL Total Oportunidades Criadas no Período:', totalOportunidadesCriadasUrl);
+    // 🎯 1. TOTAL DE OPORTUNIDADES - Oportunidades criadas no período selecionado (dados reais)
+    const totalOportunidadesUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${filtrosCombinados}`;
+    console.log('🔍 URL Total Oportunidades (período):', totalOportunidadesUrl);
 
     // 🎯 2. OPORTUNIDADES PERDIDAS (Status = lost E lost_date no período)
     // Construir URL passo a passo para debug
@@ -88,33 +111,29 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
     const ticketMedioUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=value&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicio}&gain_date=lte.${dataFim}T23:59:59&value=not.is.null${filtrosCombinados}`;
     console.log('🔍 URL Ticket Médio (ganhas no período):', ticketMedioUrl);
 
-    // 🎯 4. ORÇAMENTO EM NEGOCIAÇÃO (Tentar buscar etapa específica se funil selecionado)
+    // 🎯 4. ORÇAMENTO EM NEGOCIAÇÃO - Oportunidades na etapa ORÇAMENTO REALIZADO (crm_column 207 e 206)
+    // Para ser mais específico, buscar oportunidades nas etapas de orçamento dos funis principais
     let orcamentoNegociacaoUrl;
-    let etapaOrcamentoId = null;
     
     if (selectedFunnel && selectedFunnel !== 'all') {
-      try {
-        console.log('🔍 Buscando etapa ORÇAMENTO REALIZADO para o funil:', selectedFunnel);
-        const etapas = await getFunilEtapas(selectedFunnel);
-        const etapaOrcamento = etapas.find(etapa => 
-          etapa.nome_etapa && etapa.nome_etapa.toLowerCase().includes('orçamento') && 
-          etapa.nome_etapa.toLowerCase().includes('realizado')
-        );
-        
-        if (etapaOrcamento) {
-          etapaOrcamentoId = etapaOrcamento.id_etapa_sprint;
-          orcamentoNegociacaoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open&crm_column=eq.${etapaOrcamentoId}${sellerFilter}${unidadeFilter}`;
-          console.log('✅ Etapa ORÇAMENTO REALIZADO encontrada:', etapaOrcamentoId);
-        } else {
-          console.log('⚠️ Etapa ORÇAMENTO REALIZADO não encontrada, usando status genérico');
-          orcamentoNegociacaoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&or=(status.eq.open,status.eq.negotiation)${filtrosCombinados}`;
-        }
-      } catch (error) {
-        console.error('❌ Erro ao buscar etapas do funil:', error);
-        orcamentoNegociacaoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&or=(status.eq.open,status.eq.negotiation)${filtrosCombinados}`;
+      // Funil específico selecionado
+      if (selectedFunnel === '6') {
+        // COMERCIAL APUCARANA - etapa ORÇAMENTO REALIZADO (ID 207)
+        orcamentoNegociacaoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&crm_column=eq.207&funil_id=eq.6${sellerFilter}${unidadeFilter}`;
+        console.log('🎯 Usando etapa ORÇAMENTO REALIZADO (207) do funil COMERCIAL APUCARANA');
+      } else if (selectedFunnel === '14') {
+        // RECOMPRA - etapa ORÇAMENTOS (ID 206)
+        orcamentoNegociacaoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&crm_column=eq.206&funil_id=eq.14${sellerFilter}${unidadeFilter}`;
+        console.log('🎯 Usando etapa ORÇAMENTOS (206) do funil RECOMPRA');
+      } else {
+        // Outros funis - buscar por status aberto no período
+        orcamentoNegociacaoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${filtrosCombinados}`;
+        console.log('🎯 Usando oportunidades abertas no período para funil:', selectedFunnel);
       }
     } else {
-      orcamentoNegociacaoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&or=(status.eq.open,status.eq.negotiation)${filtrosCombinados}`;
+      // Todos os funis - buscar etapas de orçamento dos principais funis
+      orcamentoNegociacaoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&or=(crm_column.eq.207,crm_column.eq.206)${sellerFilter}${unidadeFilter}`;
+      console.log('🎯 Usando etapas ORÇAMENTO de todos os funis (207, 206)');
     }
     
     console.log('🔍 URL Orçamento Negociação:', orcamentoNegociacaoUrl);
@@ -125,24 +144,13 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
 
     // Executar todas as queries em paralelo
     const [
-      totalAbertasResponse,
-      totalCriadasResponse, 
+      totalOportunidadesResponse,
       perdidasResponse,
       ticketMedioResponse,
       orcamentoResponse,
       ganhasResponse
     ] = await Promise.all([
-      fetch(totalOportunidadesAbertasUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
-        }
-      }),
-      fetch(totalOportunidadesCriadasUrl, {
+      fetch(totalOportunidadesUrl, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
@@ -195,10 +203,8 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
     ]);
 
     // Processar resultados
-    let totalOportunidadesAbertas = 0;
-    let valorTotalAbertas = 0;
-    let totalOportunidadesCriadas = 0;
-    let valorTotalCriadas = 0;
+    let totalOportunidades = 0;
+    let valorTotalOportunidades = 0;
     let oportunidadesPerdidas = 0;
     let valorPerdidas = 0;
     let ticketMedio = 0;
@@ -207,30 +213,17 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
     let oportunidadesGanhas = 0;
     let valorGanhas = 0;
 
-    // 1A. Total de Oportunidades Abertas
-    if (totalAbertasResponse.ok) {
-      const totalAbertasData = await totalAbertasResponse.json();
-      totalOportunidadesAbertas = totalAbertasData.length;
-      valorTotalAbertas = totalAbertasData.reduce((total, opp) => {
+    // 1. Total de Oportunidades (criadas no período)
+    if (totalOportunidadesResponse.ok) {
+      const totalOportunidadesData = await totalOportunidadesResponse.json();
+      totalOportunidades = totalOportunidadesData.length;
+      valorTotalOportunidades = totalOportunidadesData.reduce((total, opp) => {
         const valor = parseFloat(opp.value) || 0;
         return total + valor;
       }, 0);
-      console.log(`✅ Total Oportunidades Abertas: ${totalOportunidadesAbertas} (R$ ${valorTotalAbertas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
+      console.log(`✅ Total Oportunidades (período ${dataInicio} a ${dataFim}): ${totalOportunidades} (R$ ${valorTotalOportunidades.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
-      console.error('❌ Erro ao buscar oportunidades abertas:', totalAbertasResponse.status);
-    }
-
-    // 1B. Total de Oportunidades Criadas no Período
-    if (totalCriadasResponse.ok) {
-      const totalCriadasData = await totalCriadasResponse.json();
-      totalOportunidadesCriadas = totalCriadasData.length;
-      valorTotalCriadas = totalCriadasData.reduce((total, opp) => {
-        const valor = parseFloat(opp.value) || 0;
-        return total + valor;
-      }, 0);
-      console.log(`✅ Total Oportunidades Criadas no Período: ${totalOportunidadesCriadas} (R$ ${valorTotalCriadas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
-    } else {
-      console.error('❌ Erro ao buscar oportunidades criadas:', totalCriadasResponse.status);
+      console.error('❌ Erro ao buscar total de oportunidades:', totalOportunidadesResponse.status);
     }
 
     // 2. Oportunidades Perdidas
@@ -280,8 +273,7 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
         const valor = parseFloat(opp.value) || 0;
         return total + valor;
       }, 0);
-      const metodoUsado = etapaOrcamentoId ? `etapa ORÇAMENTO REALIZADO (${etapaOrcamentoId})` : 'status genérico';
-      console.log(`✅ Orçamento Negociação (${metodoUsado}): ${orcamentoNegociacao} (R$ ${valorOrcamentoNegociacao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
+      console.log(`✅ Orçamento Negociação (etapas específicas): ${orcamentoNegociacao} (R$ ${valorOrcamentoNegociacao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
       console.error('❌ Erro ao buscar orçamento negociação:', orcamentoResponse.status);
     }
@@ -299,32 +291,26 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
       console.error('❌ Erro ao buscar oportunidades ganhas:', ganhasResponse.status);
     }
 
-    // 🎯 DADOS ANTERIORES - USANDO VALORES PADRÃO (sem estimativas)
-    console.log('📊 Usando dados padrão para comparação (sem consulta ao período anterior)');
-    const dadosAnteriores = {
-      totalOportunidades: 0, // Será comparado com as abertas
-      oportunidadesPerdidas: 0,
-      ticketMedio: 0,
-      orcamentoNegociacao: 0,
-      oportunidadesGanhas: 0
-    };
+    // 🎯 DADOS ANTERIORES - Buscar dados do período anterior para comparação
+    console.log('📊 Buscando dados do período anterior para comparação...');
+    const dadosAnteriores = await getThermometerMetricsAnteriores(dataInicio, dataFim, selectedFunnel, selectedUnit, selectedSeller);
 
-    // 🎯 FORMATAR DADOS PARA O COMPONENTE
+    // 🎯 FORMATAR DADOS PARA O COMPONENTE (APENAS DADOS REAIS)
     const metrics = {
       totalOportunidades: {
-        current: totalOportunidadesAbertas, // Número principal: oportunidades abertas
+        current: totalOportunidades, // Número principal: oportunidades criadas no período
         previous: dadosAnteriores.totalOportunidades,
-        value: valorTotalCriadas, // Valor embaixo: soma das criadas no período
-        meta: 2300, // Meta configurável
+        value: valorTotalOportunidades, // Valor embaixo: soma das oportunidades
+        meta: 100, // Meta ajustável baseada no período
         change: dadosAnteriores.totalOportunidades > 0 ? 
-          ((totalOportunidadesAbertas - dadosAnteriores.totalOportunidades) / dadosAnteriores.totalOportunidades) * 100 : 0,
-        isPositive: totalOportunidadesAbertas >= dadosAnteriores.totalOportunidades
+          ((totalOportunidades - dadosAnteriores.totalOportunidades) / dadosAnteriores.totalOportunidades) * 100 : 0,
+        isPositive: totalOportunidades >= dadosAnteriores.totalOportunidades
       },
       oportunidadesPerdidas: {
         current: oportunidadesPerdidas,
         previous: dadosAnteriores.oportunidadesPerdidas,
         value: valorPerdidas,
-        meta: 120, // Meta configurável
+        meta: Math.max(20, Math.round(oportunidadesPerdidas * 1.2)), // Meta dinâmica
         change: dadosAnteriores.oportunidadesPerdidas > 0 ? 
           ((oportunidadesPerdidas - dadosAnteriores.oportunidadesPerdidas) / dadosAnteriores.oportunidadesPerdidas) * 100 : 0,
         isPositive: oportunidadesPerdidas <= dadosAnteriores.oportunidadesPerdidas // Menos perdidas = positivo
@@ -333,7 +319,7 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
         current: ticketMedio,
         previous: dadosAnteriores.ticketMedio,
         value: ticketMedio,
-        meta: 3200, // Meta configurável
+        meta: Math.max(1000, Math.round(ticketMedio * 1.1)), // Meta dinâmica
         change: dadosAnteriores.ticketMedio > 0 ? 
           ((ticketMedio - dadosAnteriores.ticketMedio) / dadosAnteriores.ticketMedio) * 100 : 0,
         isPositive: ticketMedio >= dadosAnteriores.ticketMedio
@@ -342,7 +328,7 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
         current: orcamentoNegociacao,
         previous: dadosAnteriores.orcamentoNegociacao,
         value: valorOrcamentoNegociacao,
-        meta: 95, // Meta configurável
+        meta: Math.max(10, Math.round(orcamentoNegociacao * 1.1)), // Meta dinâmica
         change: dadosAnteriores.orcamentoNegociacao > 0 ? 
           ((orcamentoNegociacao - dadosAnteriores.orcamentoNegociacao) / dadosAnteriores.orcamentoNegociacao) * 100 : 0,
         isPositive: orcamentoNegociacao >= dadosAnteriores.orcamentoNegociacao
@@ -351,7 +337,7 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
         current: oportunidadesGanhas,
         previous: dadosAnteriores.oportunidadesGanhas,
         value: valorGanhas,
-        meta: 200, // Meta configurável
+        meta: Math.max(10, Math.round(oportunidadesGanhas * 1.2)), // Meta dinâmica
         change: dadosAnteriores.oportunidadesGanhas > 0 ? 
           ((oportunidadesGanhas - dadosAnteriores.oportunidadesGanhas) / dadosAnteriores.oportunidadesGanhas) * 100 : 0,
         isPositive: oportunidadesGanhas >= dadosAnteriores.oportunidadesGanhas
@@ -442,22 +428,22 @@ const getThermometerMetricsAnteriores = async (startDate, endDate, selectedFunne
 
     // Fallback se não conseguir buscar dados anteriores
     return {
-      totalOportunidades: 1000,
-      oportunidadesPerdidas: 100,
-      ticketMedio: 2500,
-      orcamentoNegociacao: 60,
-      oportunidadesGanhas: 150
+      totalOportunidades: 0,
+      oportunidadesPerdidas: 0,
+      ticketMedio: 0,
+      orcamentoNegociacao: 0,
+      oportunidadesGanhas: 0
     };
 
   } catch (error) {
     console.error('❌ Erro ao buscar dados anteriores:', error);
     // Fallback
     return {
-      totalOportunidades: 1000,
-      oportunidadesPerdidas: 100,
-      ticketMedio: 2500,
-      orcamentoNegociacao: 60,
-      oportunidadesGanhas: 150
+      totalOportunidades: 0,
+      oportunidadesPerdidas: 0,
+      ticketMedio: 0,
+      orcamentoNegociacao: 0,
+      oportunidadesGanhas: 0
     };
   }
 };
@@ -588,5 +574,6 @@ export const testThermometerConnection = async () => {
     return { success: false, error: error.message };
   }
 };
+
 
 

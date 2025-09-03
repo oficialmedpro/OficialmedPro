@@ -9,11 +9,21 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
 
   // Buscar dados reais do Supabase
   useEffect(() => {
+    console.log('⚡ StatsSection useEffect ACIONADO!');
+    console.log('Props atuais:', { startDate, endDate, selectedFunnel, selectedUnit, selectedSeller });
+    
     const fetchRealMetrics = async () => {
       try {
         setLoading(true);
+        console.log('='.repeat(60));
         console.log('🌡️ StatsSection: Buscando métricas reais...');
-        console.log('🔍 StatsSection: Parâmetros:', { startDate, endDate, selectedFunnel, selectedUnit, selectedSeller });
+        console.log('🔍 StatsSection: Parâmetros recebidos:');
+        console.log('  - startDate:', startDate);
+        console.log('  - endDate:', endDate);
+        console.log('  - selectedFunnel:', selectedFunnel);
+        console.log('  - selectedUnit:', selectedUnit);
+        console.log('  - selectedSeller:', selectedSeller);
+        console.log('='.repeat(60));
         
         const metrics = await getThermometerMetrics(startDate, endDate, selectedFunnel, selectedUnit, selectedSeller);
         setRealMetrics(metrics);
