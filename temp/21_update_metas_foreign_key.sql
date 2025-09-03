@@ -191,3 +191,4 @@ WHERE vendedor_id = (SELECT id FROM api.vendedores WHERE nome = 'Rosana Guarnier
 -- 4. Ajuste os nomes das tabelas se necessário
 
 
+
