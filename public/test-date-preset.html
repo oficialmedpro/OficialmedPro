@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste handleDatePreset</title>
+</head>
+<body>
+    <h2>Teste da Função handleDatePreset</h2>
+    <button onclick="testToday()">Testar 'today'</button>
+    <div id="result"></div>
+
+    <script>
+        // Função para obter data no fuso de São Paulo (GMT-3)
+        const getSaoPauloDate = (offset = 0) => {
+            const now = new Date();
+            const saoPauloOffset = -3 * 60; // GMT-3 em minutos
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const saoPauloTime = new Date(utc + (saoPauloOffset * 60000));
+            
+            // Adicionar offset em dias se necessário
+            if (offset !== 0) {
+                saoPauloTime.setDate(saoPauloTime.getDate() + offset);
+            }
+            
+            return saoPauloTime.toISOString().split('T')[0];
+        };
+
+        const handleDatePreset = (preset) => {
+            const today = getSaoPauloDate(0);
+            let start, end;
+            
+            switch (preset) {
+                case 'today':
+                    start = end = today;
+                    break;
+                default:
+                    return { start: null, end: null };
+            }
+            
+            console.log(`📅 handleDatePreset(${preset}): ${start} - ${end}`);
+            
+            return {
+                start,
+                end
+            };
+        };
+
+        function testToday() {
+            const now = new Date();
+            const result = handleDatePreset('today');
+            
+            document.getElementById('result').innerHTML = `
+                <h3>Resultado do Teste:</h3>
+                <p><strong>Data/Hora atual do sistema:</strong> ${now.toLocaleString('pt-BR', {timeZone: 'America/Sao_Paulo'})}</p>
+                <p><strong>Fuso horário atual:</strong> ${Intl.DateTimeFormat().resolvedOptions().timeZone}</p>
+                <p><strong>handleDatePreset('today') retornou:</strong></p>
+                <p>Start: ${result.start}</p>
+                <p>End: ${result.end}</p>
+                <p><strong>Data esperada:</strong> 2025-09-03</p>
+            `;
+            
+            console.log('Teste handleDatePreset:', result);
+        }
+    </script>
+</body>
+</html>
