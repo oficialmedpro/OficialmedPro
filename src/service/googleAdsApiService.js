@@ -1,5 +1,7 @@
-// Novo serviço que usa o backend real
-const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:3002/api' : 'https://oficialmed-backend.onrender.com/api';
+// Novo serviço que usa Edge Functions do Supabase
+const API_BASE_URL = import.meta.env.DEV 
+  ? 'http://localhost:54321/functions/v1/google-ads-api' 
+  : 'https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api';
 
 class GoogleAdsApiService {
   constructor() {

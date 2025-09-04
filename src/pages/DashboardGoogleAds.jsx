@@ -100,7 +100,7 @@ const DashboardGoogleAds = ({ onLogout }) => {
     };
     
     updateData();
-    const interval = setInterval(updateData, 30000);
+    const interval = setInterval(updateData, 300000); // 5 minutos
     return () => clearInterval(interval);
   }, []);
 

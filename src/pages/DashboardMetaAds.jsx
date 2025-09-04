@@ -10,7 +10,7 @@ import '../components/MetaAdsFunnelCards.css';
 import TrafficFunnel from '../components/TrafficFunnel';
 import StatsSection from '../components/StatsSection';
 import TimelineChart from '../components/TimelineChart';
-import MetaAdsMetricsBar from '../components/MetaAdsMetricsBar';
+import RealMetaAdsMetricsBar from '../components/RealMetaAdsMetricsBar';
 import MetaAdsMetricsCards from '../components/MetaAdsMetricsCards';
 import { translations } from '../data/translations';
 import { getStatsCards, getMenuItems } from '../data/statsData';
@@ -270,10 +270,12 @@ const DashboardMetaAds = ({ onLogout }) => {
 
       {/* Main Content */}
       <main className="main-content">
-        {/* Meta Ads Header */}
-        <MetaAdsMetricsBar 
+        {/* Meta Ads Header - DADOS REAIS */}
+        <RealMetaAdsMetricsBar 
           isDarkMode={isDarkMode}
           formatCurrency={formatCurrencyLocal}
+          selectedUnit={selectedUnit}
+          selectedPeriod={selectedPeriod}
           onFilterChange={(filterType, value) => {
             console.log(`🎯 Filtro ${filterType} alterado para:`, value);
             // Aqui você pode implementar a lógica para filtrar os dados
