@@ -1,5 +1,5 @@
 // Novo serviço que usa o backend real
-const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:3002/api' : '/api';
+const API_BASE_URL = import.meta.env.DEV ? 'http://localhost:3002/api' : 'https://oficialmed-backend.onrender.com/api';
 
 class GoogleAdsApiService {
   constructor() {
