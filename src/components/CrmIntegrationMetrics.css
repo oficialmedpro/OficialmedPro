@@ -1,0 +1,351 @@
+/* CrmIntegrationMetrics.css - Estilos exclusivos para métricas de integração com CRM */
+
+.crm-integration-metrics {
+  margin: 2rem 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.crm-section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+  padding: 0;
+}
+
+.crm-platform-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #ffffff;
+}
+
+.crm-sources-icon {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.crm-platform-name {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.crm-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+}
+
+.crm-metric-group {
+  background: rgb(15 23 42);
+  border: 1px solid rgb(51 65 85);
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.crm-metric-group:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  border-color: #3b82f6;
+}
+
+.crm-group-title {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 1rem 0;
+  padding: 0;
+  text-align: left;
+}
+
+.crm-metrics-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.crm-metric-item {
+  flex: 1;
+  min-width: 120px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.crm-metric-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.crm-metric-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.crm-metric-item:hover::before {
+  opacity: 1;
+}
+
+/* Cores específicas para cada tipo de métrica */
+.crm-metric-item.converted {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.crm-metric-item.converted::before {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+.crm-metric-item.lost {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.crm-metric-item.lost::before {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.crm-metric-item.open {
+  border-color: rgba(59, 130, 246, 0.3);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.crm-metric-item.open::before {
+  background: linear-gradient(90deg, #3b82f6, #2563eb);
+}
+
+.crm-metric-item.roas {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.crm-metric-item.roas::before {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+
+.crm-metric-item.roi {
+  border-color: rgba(139, 92, 246, 0.3);
+  background: rgba(139, 92, 246, 0.05);
+}
+
+.crm-metric-item.roi::before {
+  background: linear-gradient(90deg, #8b5cf6, #7c3aed);
+}
+
+.crm-metric-item.conversion {
+  border-color: rgba(34, 197, 94, 0.3);
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.crm-metric-item.conversion::before {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.crm-metric-item.time {
+  border-color: rgba(6, 182, 212, 0.3);
+  background: rgba(6, 182, 212, 0.05);
+}
+
+.crm-metric-item.time::before {
+  background: linear-gradient(90deg, #06b6d4, #0891b2);
+}
+
+.crm-metric-item.loss-rate {
+  border-color: rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.crm-metric-item.loss-rate::before {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.crm-metric-label {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: #9ca3af;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.crm-metric-value {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.crm-metric-percentage {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Estados de loading e erro */
+.crm-metrics-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  background: rgb(15 23 42);
+  border: 1px solid rgb(51 65 85);
+  border-radius: 12px;
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(59, 130, 246, 0.3);
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.crm-metrics-loading span {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+.crm-metrics-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  background: rgb(15 23 42);
+  border: 1px solid rgb(239, 68, 68);
+  border-radius: 12px;
+  gap: 1rem;
+  text-align: center;
+}
+
+.error-icon {
+  font-size: 32px;
+}
+
+.crm-metrics-error span {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  color: #ef4444;
+}
+
+.retry-button {
+  background: #3b82f6;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retry-button:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+/* Responsividade */
+@media (max-width: 1200px) {
+  .crm-metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  
+  .crm-metric-group {
+    padding: 1.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .crm-metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .crm-metrics-row {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .crm-metric-item {
+    min-width: auto;
+  }
+  
+  .crm-metric-group {
+    padding: 1rem;
+  }
+  
+  .crm-metric-value {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .crm-section-header {
+    margin-bottom: 1rem;
+  }
+  
+  .crm-platform-name {
+    font-size: 16px;
+  }
+  
+  .crm-group-title {
+    font-size: 14px;
+  }
+  
+  .crm-metric-value {
+    font-size: 18px;
+  }
+  
+  .crm-metric-label {
+    font-size: 11px;
+  }
+  
+  .crm-metric-percentage {
+    font-size: 12px;
+  }
+}
+

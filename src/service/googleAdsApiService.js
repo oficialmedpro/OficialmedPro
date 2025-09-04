@@ -1,7 +1,5 @@
 // Novo serviço que usa Edge Functions do Supabase
-const API_BASE_URL = import.meta.env.DEV 
-  ? 'http://localhost:54321/functions/v1/google-ads-api' 
-  : 'https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api';
+const API_BASE_URL = 'https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api'; // Sempre usar produção
 
 class GoogleAdsApiService {
   constructor() {
@@ -20,6 +18,7 @@ class GoogleAdsApiService {
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
           ...options.headers
         },
         ...options

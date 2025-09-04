@@ -126,13 +126,7 @@ const FUNNEL_CARDS_DATA = [
 export default function MetaAdsFunnelCards({ items = FUNNEL_CARDS_DATA, children }) {
   return (
     <div className="meta-funnel-cards-container">
-      {/* Header */}
-      <div className="funnel-cards-header">
-        <h2 className="funnel-cards-title">Métricas de Performance Meta Ads</h2>
-        <span className="funnel-cards-period">Últimos 30 dias</span>
-      </div>
-
-      {/* Conteúdo opcional entre header e grid */}
+      {/* Conteúdo opcional */}
       {children}
 
       {/* Cards Grid */}

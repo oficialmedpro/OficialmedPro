@@ -8,7 +8,7 @@
   border-radius: 12px;
   margin-bottom: 2rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgb(51 64 84);
 }
 
 /* Logo */
@@ -36,7 +36,7 @@
 /* Filtros */
 .meta-ads-metrics-bar .meta-ads-filters {
   display: flex;
-  gap: 1.5rem;
+  gap: 0.2rem;
   align-items: center;
   flex-wrap: wrap;
 }
@@ -51,12 +51,12 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 6px;
   color: #ffffff;
-  font-size: 0.875rem;
-  padding: 0.5rem 0.75rem;
+  font-size: 0.7rem;
+  padding: 0rem 0.2rem;
   min-width: 140px;
   cursor: pointer;
   transition: all 0.3s ease;
-  height: 35px;
+  height: 30px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -64,9 +64,9 @@
 
 .meta-ads-metrics-bar .meta-filter-status {
   min-width: 140px;
-  background: rgb(30 41 59);
-  border-color: rgba(0, 212, 255, 0.3);
-  height: 35px;
+  background: rgb(15 23 42);
+  border-color: rgb(51 65 85);
+  height: 28px;
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -379,68 +379,233 @@
   white-space: pre-wrap;
 }
 
-/* Estilos específicos para RealMetaAdsMetricsBar */
+/* Estilos específicos para RealMetaAdsMetricsBar - Baseado no funnel-cards-grid */
 .meta-ads-metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: stretch;
+  gap: 15px;
+  overflow-x: auto;
+  padding: 4px;
+  margin-top: 0rem;
+  background: transparent;
+  border: none;
+  border-radius: 0;
 }
 
 .meta-metric-item {
+  flex: 1;
+  min-width: 200px;
+  background: #0f172a;
+  border: 1px solid rgb(51 65 85);
+  border-radius: 12px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 0.75rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
   transition: all 0.3s ease;
+  position: relative;
+  min-height: 160px;
+  justify-content: space-between;
 }
 
-.meta-metric-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  transform: translateY(-2px);
+.meta-metric-change {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  margin-bottom: 16px;
 }
+
+.meta-metric-change.positive {
+  color: #10b981;
+}
+
+.meta-metric-change.negative {
+  color: #ef4444;
+}
+
+.meta-metric-change::before {
+  content: '↗';
+  font-size: 0.875rem;
+}
+
 
 .meta-metric-label {
-  font-size: 0.75rem;
-  color: #94a3b8;
-  margin-bottom: 0.5rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
   font-weight: 500;
+  color: #9ca3af;
+  margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .meta-metric-value {
-  font-size: 1.25rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 26px;
   font-weight: 700;
   color: #ffffff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  margin-bottom: 6px;
+  line-height: 1.2;
 }
 
-.meta-account-info {
-  margin-top: 0.5rem;
+.meta-metric-chart {
+  height: 40px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+/* Taxa de conversão na base - igual ao funnel cards */
+.meta-metric-conversion {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
   text-align: center;
+  margin-top: auto;
+  padding: 4px 8px;
+  background: rgb(15 23 42);
+  border-radius: 4px;
 }
 
-.meta-account-info small {
-  color: #64748b;
-  font-size: 0.75rem;
+/* Arrow between cards - igual ao funnel cards */
+.card-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  opacity: 0.6;
+  margin: 0 8px;
 }
+
+.arrow-icon {
+  width: 20px;
+  height: 20px;
+  color: #4B5563;
+}
+
+.triangle-arrow {
+  flex-shrink: 0;
+}
+
+.meta-metric-chart svg {
+  width: 100%;
+  height: 100%;
+}
+
+.sparkline-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.sparkline-svg path {
+  transition: all 0.3s ease;
+}
+
+.meta-metric-chart .area-fill {
+  opacity: 0.3;
+}
+
+.meta-metric-chart .area-stroke {
+  stroke-width: 2.5;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+
+.meta-metric-chart .area-fill {
+  opacity: 0.3;
+  transition: opacity 0.3s ease;
+}
+
+.meta-metric-item:hover .meta-metric-chart .area-fill {
+  opacity: 0.5;
+}
+
+.meta-metric-item:hover .meta-metric-chart .area-stroke {
+  stroke-width: 3;
+}
+
+.meta-metric-item:hover .sparkline-svg path[stroke] {
+  stroke-width: 2.5;
+  filter: brightness(1.1);
+}
+
+.meta-metric-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  border-color: #3b82f6;
+}
+
+/* Responsividade - Baseado no funnel-cards-grid */
+@media (max-width: 1200px) {
+  .meta-ads-metrics-grid {
+    gap: 12px;
+  }
+  
+  .meta-metric-item {
+    min-width: 180px;
+    padding: 18px;
+  }
+  
+  .meta-metric-value {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 768px) {
+  .meta-ads-metrics-grid {
+    gap: 8px;
+    padding-bottom: 8px;
+  }
+  
+  .meta-metric-item {
+    min-width: 160px;
+    padding: 16px;
+  }
+  
+  .meta-metric-value {
+    font-size: 20px;
+  }
+  
+  .meta-metric-chart {
+    height: 35px;
+  }
+}
+
+@media (max-width: 480px) {
+  .meta-metric-item {
+    min-width: 140px;
+    padding: 14px;
+  }
+  
+  .meta-metric-label {
+    font-size: 12px;
+  }
+  
+  .meta-metric-value {
+    font-size: 18px;
+  }
+  
+  .meta-metric-change {
+    font-size: 11px;
+  }
+  
+  .meta-metric-chart {
+    height: 30px;
+  }
+}
+
+
 
 .meta-ads-info {
   margin-top: 1rem;
   text-align: center;
   padding: 0.75rem;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgb(15 23 42);
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgb(51 65 85);
 }
 
 .meta-ads-info small {

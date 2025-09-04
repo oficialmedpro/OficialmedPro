@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -10,7 +9,6 @@ const corsHeaders = {
 // Configurações do Supabase
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!
 const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const supabase = createClient(supabaseUrl, supabaseKey)
 
 // Cache de credenciais
 let cachedCredentials: any = null
@@ -36,37 +34,49 @@ async function getGoogleAdsCredentials() {
 
     console.log('🔍 Buscando credenciais do Supabase...')
     
-    const { data, error } = await supabase
-      .from('unidades')
-      .select('*')
-      .eq('codigo_sprint->0', 1)
-      .single()
+    const response = await fetch(`${supabaseUrl}/rest/v1/unidades?select=*&codigo_sprint=eq.[1]`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`,
+        'apikey': supabaseKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    })
 
-    if (error || !data) {
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+    }
+
+    const data = await response.json()
+    if (!data || data.length === 0) {
       throw new Error('Unidade Apucarana não encontrada')
     }
 
+    const unidade = data[0]
+    
     // Validar credenciais
-    if (!data.google_customer_id || !data.google_developer_token || 
-        !data.google_client_id || !data.google_client_secret || 
-        !data.google_refresh_token || !data.google_ads_active) {
+    if (!unidade.google_customer_id || !unidade.google_developer_token || 
+        !unidade.google_client_id || !unidade.google_client_secret || 
+        !unidade.google_refresh_token || !unidade.google_ads_active) {
       throw new Error('Credenciais incompletas para unidade Apucarana')
     }
 
     const credentials = {
-      customer_id: data.google_customer_id.replace(/-/g, ''), // Remover hífens
-      developer_token: data.google_developer_token,
-      client_id: data.google_client_id,
-      client_secret: data.google_client_secret,
-      refresh_token: data.google_refresh_token,
-      unidade_name: data.unidade
+      customer_id: unidade.google_customer_id.replace(/-/g, ''), // Remover hífens
+      developer_token: unidade.google_developer_token,
+      client_id: unidade.google_client_id,
+      client_secret: unidade.google_client_secret,
+      refresh_token: unidade.google_refresh_token,
+      unidade_name: unidade.unidade
     }
 
     // Cache por 5 minutos
     cachedCredentials = credentials
     credentialsExpiry = Date.now() + (5 * 60 * 1000)
 
-    console.log('✅ Credenciais carregadas para:', data.unidade)
+    console.log('✅ Credenciais carregadas para:', unidade.unidade)
     return credentials
 
   } catch (error) {
@@ -181,7 +191,10 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url)
-    const path = url.pathname.replace('/functions/v1/google-ads-api', '')
+    const path = url.pathname.replace('/google-ads-api', '')
+    
+    console.log('🔍 Path recebido:', path)
+    console.log('🔍 URL completa:', req.url)
     
     // Roteamento baseado no path
     switch (path) {
@@ -282,7 +295,7 @@ async function handleGetCampaigns(status: string) {
   try {
     const credentials = await getGoogleAdsCredentials()
     
-    console.log(`🔍 Buscando campanhas (filtro: ${status}) para customer: ${credentials.customer_id}...`)
+    console.log(`🔍 Buscando campanhas (filtro: ${status})...`)
 
     let whereClause
     if (status === 'active') {
@@ -292,8 +305,6 @@ async function handleGetCampaigns(status: string) {
     } else {
       whereClause = "WHERE campaign.status != 'REMOVED'"
     }
-
-    console.log(`📝 Query que será executada: SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type FROM campaign ${whereClause} ORDER BY campaign.name`)
 
     const results = await queryGoogleAds(credentials, `
       SELECT 
@@ -306,42 +317,15 @@ async function handleGetCampaigns(status: string) {
       ORDER BY campaign.name
     `)
 
-    console.log(`🔍 DEBUG - Resultado bruto da API Google Ads:`, JSON.stringify(results, null, 2))
-    console.log(`🔍 DEBUG - Número de resultados recebidos: ${results.length}`)
+    const mappedCampaigns = results.map((row: any) => ({
+      id: row.campaign.id,
+      name: row.campaign.name,
+      status: statusMap[row.campaign.status] || row.campaign.status,
+      channelType: row.campaign.advertising_channel_type,
+      type: 'SEARCH'
+    }))
 
-    if (results.length === 0) {
-      console.log('⚠️ ATENÇÃO: API retornou 0 campanhas - Verificando se há campanhas sem filtros...')
-      
-      // Fazer uma query sem filtros para ver se existem campanhas
-      const allResults = await queryGoogleAds(credentials, `
-        SELECT 
-          campaign.id,
-          campaign.name,
-          campaign.status,
-          campaign.advertising_channel_type
-        FROM campaign
-        ORDER BY campaign.name
-        LIMIT 10
-      `)
-      
-      console.log(`🔍 DEBUG - Campanhas sem filtro (até 10): ${allResults.length} encontradas`)
-      console.log(`🔍 DEBUG - Campanhas sem filtro:`, JSON.stringify(allResults, null, 2))
-    }
-
-    const mappedCampaigns = results.map((row: any) => {
-      console.log(`🔍 DEBUG - Processando campanha:`, JSON.stringify(row, null, 2))
-      
-      return {
-        id: row.campaign.id,
-        name: row.campaign.name,
-        status: statusMap[row.campaign.status] || row.campaign.status,
-        channelType: row.campaign.advertising_channel_type,
-        type: 'SEARCH'
-      }
-    })
-
-    console.log(`✅ ${mappedCampaigns.length} campanhas encontradas e mapeadas`)
-    console.log(`✅ Campanhas mapeadas:`, JSON.stringify(mappedCampaigns, null, 2))
+    console.log(`✅ ${mappedCampaigns.length} campanhas encontradas`)
 
     return new Response(
       JSON.stringify({
@@ -352,14 +336,8 @@ async function handleGetCampaigns(status: string) {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error(`❌ Erro completo ao buscar campanhas:`, error)
-    
     return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message,
-        details: error.stack || 'Stack não disponível'
-      }),
+      JSON.stringify({ success: false, error: error.message }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

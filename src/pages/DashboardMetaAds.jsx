@@ -5,13 +5,11 @@ import MetricsCards from '../components/MetricsCards';
 import FilterBar from '../components/FilterBar';
 import TopMenuBar from '../components/TopMenuBar';
 import Sidebar from '../components/Sidebar';
-import MetaAdsFunnelCards from '../components/MetaAdsFunnelCards';
-import '../components/MetaAdsFunnelCards.css';
 import TrafficFunnel from '../components/TrafficFunnel';
 import StatsSection from '../components/StatsSection';
 import TimelineChart from '../components/TimelineChart';
 import RealMetaAdsMetricsBar from '../components/RealMetaAdsMetricsBar';
-import MetaAdsMetricsCards from '../components/MetaAdsMetricsCards';
+import CrmIntegrationMetrics from '../components/CrmIntegrationMetrics';
 import { translations } from '../data/translations';
 import { getStatsCards, getMenuItems } from '../data/statsData';
 import { 
@@ -283,92 +281,21 @@ const DashboardMetaAds = ({ onLogout }) => {
           }}
         />
 
-        {/* Meta Ads Funnel Section - Cards exatos como tela 28 */}
-        <MetaAdsFunnelCards>
-          {/* Meta Ads Metrics Cards - 4 cards de métricas */}
-          <MetaAdsMetricsCards 
-            isDarkMode={isDarkMode}
-            formatCurrency={formatCurrencyLocal}
-            metaData={{
-              balance: 42483.35,
-              balanceChange: '-15.0%',
-              campaigns: 18,
-              activeCampaigns: 9,
-              adSets: 18,
-              activeAdSets: 18,
-              ads: 45,
-              activeAds: 45
-            }}
-          />
-        </MetaAdsFunnelCards>
         
-        {/* CRM Integration Section */}
-        <section className="crm-integration-section">
-          <div className="crm-section-header">
-            <div className="crm-platform-icon crm-sources-icon">I</div>
-            <span className="crm-platform-name">Integração com CRM</span>
-          </div>
-          
-          <div className="crm-metrics-grid">
-            <div className="crm-metric-group">
-              <h4 className="crm-group-title">📊 Status dos Leads</h4>
-              <div className="crm-metrics-row">
-                <div className="crm-metric-item converted">
-                  <div className="crm-metric-label">✅ Convertidos</div>
-                  <div className="crm-metric-value">1.2K</div>
-                  <div className="crm-metric-percentage">13.8%</div>
-                </div>
-                <div className="crm-metric-item lost">
-                  <div className="crm-metric-label">❌ Perdidos</div>
-                  <div className="crm-metric-value">3.8K</div>
-                  <div className="crm-metric-percentage">43.7%</div>
-                </div>
-                <div className="crm-metric-item open">
-                  <div className="crm-metric-label">🔄 Em Aberto</div>
-                  <div className="crm-metric-value">3.7K</div>
-                  <div className="crm-metric-percentage">42.5%</div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="crm-metric-group">
-              <h4 className="crm-group-title">💰 Performance Financeira</h4>
-              <div className="crm-metrics-row">
-                <div className="crm-metric-item roas">
-                  <div className="crm-metric-label">ROAS</div>
-                  <div className="crm-metric-value">3.2x</div>
-                  <div className="crm-metric-percentage">320%</div>
-                </div>
-                <div className="crm-metric-item roi">
-                  <div className="crm-metric-label">ROI</div>
-                  <div className="crm-metric-value">220%</div>
-                  <div className="crm-metric-percentage">220%</div>
-                </div>
-                <div className="crm-metric-item conversion">
-                  <div className="crm-metric-label">Taxa Conversão</div>
-                  <div className="crm-metric-value">13.8%</div>
-                  <div className="crm-metric-percentage">13.8%</div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="crm-metric-group">
-              <h4 className="crm-group-title">⏱️ Tempo Médio</h4>
-              <div className="crm-metrics-row">
-                <div className="crm-metric-item time">
-                  <div className="crm-metric-label">Fechamento</div>
-                  <div className="crm-metric-value">18 dias</div>
-                  <div className="crm-metric-percentage">18 dias</div>
-                </div>
-                <div className="crm-metric-item loss-rate">
-                  <div className="crm-metric-label">Taxa de Perda</div>
-                  <div className="crm-metric-value">43.7%</div>
-                  <div className="crm-metric-percentage">43.7%</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* CRM Integration Section - DADOS REAIS */}
+        <CrmIntegrationMetrics 
+          isDarkMode={isDarkMode}
+          formatCurrency={formatCurrencyLocal}
+          filters={{
+            unit: selectedUnit,
+            status: selectedStatus,
+            period: selectedPeriod,
+            funnel: selectedFunnel
+          }}
+          onMetricsUpdate={(metrics) => {
+            console.log('📊 CRM Metrics atualizadas:', metrics);
+          }}
+        />
 
         {/* Traffic Funnel & Performance Section */}
         <TrafficFunnel />

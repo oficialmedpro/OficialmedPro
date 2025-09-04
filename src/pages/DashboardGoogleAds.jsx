@@ -10,7 +10,7 @@ import '../components/GoogleAdsFunnelCards.css';
 import TrafficFunnel from '../components/TrafficFunnel';
 import StatsSection from '../components/StatsSection';
 import TimelineChart from '../components/TimelineChart';
-import GoogleAdsMetricsBar from '../components/GoogleAdsMetricsBar';
+import SimpleGoogleAdsMetricsBar from '../components/SimpleGoogleAdsMetricsBar';
 import { translations } from '../data/translations';
 import { getStatsCards, getMenuItems } from '../data/statsData';
 import { 
@@ -349,7 +349,7 @@ const DashboardGoogleAds = ({ onLogout }) => {
       {/* Main Content */}
       <main className="main-content">
         {/* Google Ads Header */}
-        <GoogleAdsMetricsBar 
+        <SimpleGoogleAdsMetricsBar 
           isDarkMode={isDarkMode}
           dateRange={{ startDate, endDate }}
           onAccountChange={(account) => {

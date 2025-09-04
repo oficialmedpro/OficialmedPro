@@ -338,7 +338,7 @@ class UnitMetaService {
 
       // URLs para diferentes status
       // TODO: Adicionar campos UTM quando disponíveis: utm_campaign,utm_content,utm_source,utm_term
-      const baseUrl = `${this.supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,status,create_date,gain_date,lost_date,observacoes&origem_oportunidade=eq.Meta Ads${unitFilter}${campaignFilterStr}`;
+      const baseUrl = `${this.supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,status,create_date,gain_date,lost_date&origem_oportunidade=eq.Meta Ads${unitFilter}${campaignFilterStr}`;
       
       const ganhAsUrl = `${baseUrl}&status=eq.gain&gain_date=gte.${dateRange.since}&gain_date=lte.${dateRange.until}T23:59:59`;
       const perdidasUrl = `${baseUrl}&status=eq.lost&lost_date=gte.${dateRange.since}&lost_date=lte.${dateRange.until}T23:59:59`;
@@ -478,6 +478,244 @@ class UnitMetaService {
   }
 
   /**
+   * Calcula métricas filtradas para campanha/grupo/anúncio específico
+   * @param {Object} dateRange - Período {since: 'YYYY-MM-DD', until: 'YYYY-MM-DD'}
+   * @param {string} unitCode - Código da unidade
+   * @param {Object} campaignFilter - Filtros específicos {campaignName, adSetId, adId}
+   * @returns {Promise<Object>}
+   */
+  async getFilteredMetaMetrics(dateRange, unitCode = null, campaignFilter = null) {
+    try {
+      console.log('🎯 Calculando métricas FILTRADAS Meta Ads...');
+      console.log('📅 Período:', dateRange);
+      console.log('🏢 Unidade:', unitCode || 'Apucarana (padrão)');
+      console.log('🔍 Filtros aplicados:', campaignFilter);
+
+      // Obter credenciais da unidade
+      const credentials = await this.getUnitCredentials(unitCode);
+      
+      // Buscar contas de anúncios do Business Manager
+      const adAccountsResponse = await axios.get(
+        `${this.metaBaseUrl}/${credentials.businessId}/owned_ad_accounts`,
+        {
+          params: {
+            access_token: credentials.accessToken,
+            fields: 'id,name,account_status,account_id',
+            limit: 100
+          }
+        }
+      );
+
+      const adAccounts = adAccountsResponse.data.data || [];
+      const activeAccounts = adAccounts.filter(account => 
+        account.account_status === 1 || account.account_status === 2
+      );
+
+      if (activeAccounts.length === 0) {
+        throw new Error('Nenhuma conta de anúncios ativa encontrada');
+      }
+
+      // Usar a primeira conta ativa
+      const firstAccount = activeAccounts[0];
+      const workingAccountId = (firstAccount.account_id || firstAccount.id).startsWith('act_') 
+        ? (firstAccount.account_id || firstAccount.id)
+        : `act_${firstAccount.account_id || firstAccount.id}`;
+
+      console.log('🎯 Usando conta Meta:', workingAccountId, '(', firstAccount.name, ')');
+
+      let totalSpend = 0;
+      let totalLeads = 0;
+      let totalImpressions = 0;
+      let totalClicks = 0;
+      let totalReach = 0;
+      let filteredCampaigns = [];
+
+      // Se não há filtros específicos, buscar todas as campanhas [OficialMedPro]
+      if (!campaignFilter || campaignFilter.campaignName === 'all') {
+        console.log('🌐 Buscando TODAS as campanhas [OficialMedPro]');
+        
+        const campaignsResponse = await axios.get(
+          `${this.metaBaseUrl}/${workingAccountId}/campaigns`,
+          {
+            params: {
+              access_token: credentials.accessToken,
+              limit: 500,
+              fields: `name,insights.time_range({"since":"${dateRange.since}","until":"${dateRange.until}"}){spend,actions,action_values,impressions,clicks,reach}`
+            }
+          }
+        );
+
+        const allCampaigns = campaignsResponse.data.data || [];
+        filteredCampaigns = allCampaigns.filter(campaign => 
+          campaign.name && campaign.name.startsWith('[OficialMedPro]')
+        );
+      } else {
+        console.log('🎯 Buscando campanha específica:', campaignFilter.campaignName);
+        
+        // Buscar campanhas e filtrar pela específica
+        const campaignsResponse = await axios.get(
+          `${this.metaBaseUrl}/${workingAccountId}/campaigns`,
+          {
+            params: {
+              access_token: credentials.accessToken,
+              limit: 500,
+              fields: `name,insights.time_range({"since":"${dateRange.since}","until":"${dateRange.until}"}){spend,actions,action_values,impressions,clicks,reach}`
+            }
+          }
+        );
+
+        const allCampaigns = campaignsResponse.data.data || [];
+        filteredCampaigns = allCampaigns.filter(campaign => 
+          campaign.name === campaignFilter.campaignName
+        );
+      }
+
+      console.log(`✅ Campanhas filtradas encontradas: ${filteredCampaigns.length}`);
+
+      // Processar dados das campanhas filtradas
+      console.log('🔍 PROCESSAMENTO DETALHADO DAS CAMPANHAS FILTRADAS:');
+      console.log('==================================================');
+
+      for (const campaign of filteredCampaigns) {
+        if (campaign.insights && campaign.insights.data && campaign.insights.data.length > 0) {
+          const insights = campaign.insights.data[0];
+          
+          // Somar gastos
+          const spend = parseFloat(insights.spend) || 0;
+          totalSpend += spend;
+          
+          // Somar impressões, cliques, alcance
+          const campaignImpressions = parseInt(insights.impressions) || 0;
+          const campaignClicks = parseInt(insights.clicks) || 0;
+          const campaignReach = parseInt(insights.reach) || 0;
+          
+          totalImpressions += campaignImpressions;
+          totalClicks += campaignClicks;
+          totalReach += campaignReach;
+          
+          // Calcular leads DESTA CAMPANHA
+          let campaignLeads = 0;
+          if (insights.actions) {
+            const leadActions = insights.actions.filter(action => 
+              action.action_type === 'onsite_conversion.messaging_conversation_started_7d' ||
+              action.action_type === 'lead' ||
+              action.action_type === 'onsite_conversion.lead_grouped'
+            );
+            
+            leadActions.forEach(action => {
+              campaignLeads += parseInt(action.value) || 0;
+            });
+          }
+          
+          // Somar ao total
+          totalLeads += campaignLeads;
+          
+          console.log(`📊 Campanha: ${campaign.name}`);
+          console.log(`   💰 Gasto: $${spend.toFixed(2)}`);
+          console.log(`   👥 Leads: ${campaignLeads}`);
+          console.log(`   👁️ Impressões: ${campaignImpressions.toLocaleString()}`);
+          console.log(`   👆 Cliques: ${campaignClicks}`);
+        } else {
+          console.log(`📊 Campanha: ${campaign.name} - SEM INSIGHTS`);
+        }
+      }
+
+      console.log('==================================================');
+      console.log(`🎯 TOTAIS FILTRADOS:`);
+      console.log(`   💰 Gasto Total: $${totalSpend.toFixed(2)}`);
+      console.log(`   👥 Leads Total: ${totalLeads}`);
+      console.log(`   👁️ Impressões Total: ${totalImpressions.toLocaleString()}`);
+      console.log(`   👆 Cliques Total: ${totalClicks}`);
+      console.log('==================================================');
+
+      // Buscar oportunidades do Supabase APENAS se não há filtro específico de campanha
+      let oportunidadesFechadas = 0;
+      let valorGanho = 0;
+      let oportunidadesPerdidas = 0;
+      let valorPerda = 0;
+      let oportunidadesAbertas = 0;
+
+      if (!campaignFilter || campaignFilter.campaignName === 'all') {
+        console.log('🌐 Buscando oportunidades do Supabase (todas as campanhas)');
+        const supabaseOpportunities = await this.getMetaAdsOpportunities(dateRange, unitCode, campaignFilter);
+        
+        oportunidadesFechadas = supabaseOpportunities.oportunidadesFechadas;
+        valorGanho = supabaseOpportunities.valorGanho;
+        oportunidadesPerdidas = supabaseOpportunities.oportunidadesPerdidas;
+        valorPerda = supabaseOpportunities.valorPerda;
+        oportunidadesAbertas = supabaseOpportunities.oportunidadesAbertas;
+      } else {
+        console.log('🎯 Campanha específica selecionada - não buscando oportunidades do Supabase');
+        console.log('📋 Motivo: Oportunidades não distinguem campanha específica (campos UTM não preenchidos)');
+      }
+
+      // Calcular métricas derivadas
+      const taxaConversao = totalLeads > 0 ? (oportunidadesFechadas / totalLeads) * 100 : 0;
+      const roas = totalSpend > 0 ? valorGanho / totalSpend : 0;
+
+      // Métricas finais
+      const metrics = {
+        // Dados brutos do Meta Ads
+        totalInvestido: totalSpend,
+        leadsGerados: totalLeads,
+        totalClicks: totalClicks,
+        totalImpressions: totalImpressions,
+        totalReach: totalReach,
+        
+        // Dados de oportunidades (apenas quando todas as campanhas)
+        oportunidadesFechadas,
+        valorGanho,
+        oportunidadesPerdidas,
+        valorPerda,
+        oportunidadesAbertas,
+        
+        // Métricas calculadas
+        taxaConversao,
+        roas,
+        
+        // Dados contextuais
+        campanhas: {
+          total: filteredCampaigns.length,
+          detalhes: filteredCampaigns.map(c => ({
+            name: c.name,
+            spend: c.insights?.data?.[0]?.spend || 0
+          }))
+        },
+        
+        accountInfo: {
+          accountId: workingAccountId,
+          accountName: firstAccount.name,
+          businessId: credentials.businessId,
+          unitName: credentials.unitName
+        },
+        periodo: dateRange,
+        unidade: unitCode || this.defaultUnit.codigo_sprint,
+        timestamp: new Date().toISOString()
+      };
+
+      console.log('🎯 MÉTRICAS FILTRADAS FINAIS:');
+      console.log('==========================================');
+      console.log(`💰 Total Investido: R$ ${totalSpend.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+      console.log(`👥 Leads Gerados: ${totalLeads}`);
+      console.log(`✅ Oportunidades Fechadas: ${oportunidadesFechadas}`);
+      console.log(`📈 Taxa de Conversão: ${taxaConversao.toFixed(2)}%`);
+      console.log(`🎯 ROAS: ${roas.toFixed(2)}x`);
+      console.log(`💚 Valor Ganho: R$ ${valorGanho.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+      console.log(`❌ Oportunidades Perdidas: ${oportunidadesPerdidas}`);
+      console.log(`💔 Valor Perda: R$ ${valorPerda.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+      console.log(`🟡 Oportunidades Abertas: ${oportunidadesAbertas}`);
+      console.log(`🏢 Conta: ${firstAccount.name}`);
+      console.log('==========================================');
+
+      return metrics;
+
+    } catch (error) {
+      console.error('❌ Erro ao calcular métricas filtradas:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Calcula todas as métricas Meta Ads completas
    * @param {Object} dateRange - Período {since: 'YYYY-MM-DD', until: 'YYYY-MM-DD'}
    * @param {string} unitCode - Código da unidade
@@ -495,6 +733,12 @@ class UnitMetaService {
         console.log('🎯 Filtros específicos:', campaignFilter);
       }
 
+      // Se há filtros específicos, usar função filtrada
+      if (campaignFilter && campaignFilter.campaignName !== 'all') {
+        console.log('🎯 Usando métricas filtradas para campanha específica');
+        return await this.getFilteredMetaMetrics(dateRange, unitCode, campaignFilter);
+      }
+
       // Buscar dados em paralelo
       const [metaCampaignsData, supabaseOpportunities] = await Promise.all([
         this.getOficialMedProCampaigns(dateRange, unitCode),
@@ -504,6 +748,9 @@ class UnitMetaService {
       // Dados das campanhas Meta
       const totalInvestido = metaCampaignsData.totalSpend;
       const leadsGerados = metaCampaignsData.totalLeads;
+      const totalClicks = metaCampaignsData.totalClicks;
+      const totalImpressions = metaCampaignsData.totalImpressions;
+      const totalReach = metaCampaignsData.totalReach;
 
       // DEBUG DETALHADO - Leads por período
       console.log('🔍 DEBUG - Análise de Leads por Período:');
@@ -576,9 +823,14 @@ class UnitMetaService {
 
       // Métricas finais
       const metrics = {
-        // Dados brutos
+        // Dados brutos do Meta Ads
         totalInvestido,
         leadsGerados,
+        totalClicks,
+        totalImpressions,
+        totalReach,
+        
+        // Dados de oportunidades
         oportunidadesFechadas,
         valorGanho,
         oportunidadesPerdidas,
@@ -608,6 +860,9 @@ class UnitMetaService {
       console.log('==========================================');
       console.log(`💰 Total Investido: R$ ${totalInvestido.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
       console.log(`👥 Leads Gerados: ${leadsGerados}`);
+      console.log(`👆 Cliques Total: ${totalClicks}`);
+      console.log(`👁️ Impressões Total: ${totalImpressions.toLocaleString('pt-BR')}`);
+      console.log(`🎯 Alcance Total: ${totalReach.toLocaleString('pt-BR')}`);
       console.log(`✅ Oportunidades Fechadas: ${oportunidadesFechadas}`);
       console.log(`📈 Taxa de Conversão: ${taxaConversao.toFixed(2)}%`);
       console.log(`🎯 ROAS: ${roas.toFixed(2)}x`);

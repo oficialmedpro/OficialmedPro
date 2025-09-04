@@ -55,6 +55,8 @@ const GoogleAdsMetricsBar = ({
       }
 
       // Verificar se tem credenciais reais
+      console.log('🔍 DEBUG connectionTest completo:', connectionTest);
+      console.log('🔍 DEBUG isRealData:', connectionTest.isRealData, typeof connectionTest.isRealData);
       const hasRealCreds = connectionTest.isRealData;
       
       if (!hasRealCreds) {
