@@ -21,6 +21,14 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
     console.log('  - selectedFunnel:', selectedFunnel, typeof selectedFunnel);
     console.log('  - selectedUnit:', selectedUnit, typeof selectedUnit);
     console.log('  - selectedSeller:', selectedSeller, typeof selectedSeller);
+    
+    // Debug adicional para entender formato da unidade
+    if (selectedUnit && selectedUnit !== 'all') {
+      console.log('🔍 DEBUG UNIDADE:');
+      console.log('  - Valor bruto:', JSON.stringify(selectedUnit));
+      console.log('  - String value:', selectedUnit.toString());
+      console.log('  - Tem colchetes?', selectedUnit.toString().includes('['));
+    }
     console.log('='.repeat(80));
 
     // Fallback para datas se não estiverem definidas
@@ -46,9 +54,14 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
     
     let unidadeFilter = '';
     if (selectedUnit && selectedUnit !== 'all' && selectedUnit !== '' && selectedUnit !== 'undefined') {
-      // Corrigir formato da unidade - pode estar vindo com formato incorreto
-      const unidadeFormatada = selectedUnit.toString().replace(/[\[\]]/g, '');
-      unidadeFilter = `&unidade_id=eq.%5B${unidadeFormatada}%5D`;
+      // O FilterBar passa o valor como "[1]", que é o formato correto na tabela
+      // Precisamos codificar os colchetes para URL: [1] -> %5B1%5D
+      const unidadeValue = selectedUnit.toString();
+      const unidadeEncoded = encodeURIComponent(unidadeValue);
+      
+      unidadeFilter = `&unidade_id=eq.${unidadeEncoded}`;
+      console.log('🔍 Filtro unidade com colchetes codificados:', unidadeFilter);
+      console.log('🔍 Valor original:', unidadeValue, '-> Codificado:', unidadeEncoded);
     }
     
     let sellerFilter = '';
@@ -67,6 +80,35 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
       unidade: selectedUnit, 
       vendedor: selectedSeller 
     });
+    
+    // 🔬 TESTE: Buscar algumas oportunidades para ver o formato do unidade_id
+    if (selectedUnit && selectedUnit !== 'all') {
+      try {
+        const testUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,unidade_id,title&limit=5`;
+        console.log('🔬 TESTE: Buscando amostras para ver formato unidade_id:', testUrl);
+        
+        const testResponse = await fetch(testUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+            'Content-Profile': supabaseSchema
+          }
+        });
+        
+        if (testResponse.ok) {
+          const testData = await testResponse.json();
+          console.log('🔬 AMOSTRAS de unidade_id encontradas:');
+          testData.forEach((item, index) => {
+            console.log(`  [${index}] id: ${item.id}, unidade_id: "${item.unidade_id}" (tipo: ${typeof item.unidade_id}), título: ${item.title?.substring(0, 50)}...`);
+          });
+        }
+      } catch (testError) {
+        console.log('⚠️ Erro no teste de amostragem:', testError);
+      }
+    }
 
     // 🎯 1. TOTAL DE OPORTUNIDADES - Oportunidades criadas no período selecionado (dados reais)
     const totalOportunidadesUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${filtrosCombinados}`;
@@ -86,8 +128,9 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
       console.log('🔍 Adicionando filtro funil:', selectedFunnel);
     }
     if (selectedUnit && selectedUnit !== 'all') {
-      oportunidadesPerdidasUrl += `&unidade_id=eq.%5B${selectedUnit}%5D`;
-      console.log('🔍 Adicionando filtro unidade:', selectedUnit, '-> %5B' + selectedUnit + '%5D');
+      const unidadeEncoded = encodeURIComponent(selectedUnit.toString());
+      oportunidadesPerdidasUrl += `&unidade_id=eq.${unidadeEncoded}`;
+      console.log('🔍 Adicionando filtro unidade:', selectedUnit, '-> ', unidadeEncoded);
     }
     if (selectedSeller && selectedSeller !== 'all') {
       oportunidadesPerdidasUrl += `&user_id=eq.${selectedSeller}`;
@@ -574,6 +617,7 @@ export const testThermometerConnection = async () => {
     return { success: false, error: error.message };
   }
 };
+
 
 
 

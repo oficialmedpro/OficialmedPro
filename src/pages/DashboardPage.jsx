@@ -281,23 +281,27 @@ const DashboardPage = ({ onLogout }) => {
 
       {/* Main Content */}
       <main className="main-content">
-          {/* Stats Section */}
-          {/* Debug: Verificar valores antes de passar para StatsSection */}
-          {console.log('🎨 DashboardPage: Passando para StatsSection:', { 
-            startDate, 
-            endDate, 
-            selectedFunnel, 
-            selectedUnit, 
-            selectedSeller 
-          })}
-          <StatsSection 
-            statsCards={statsCards} 
-            startDate={startDate}
-            endDate={endDate}
-            selectedFunnel={selectedFunnel}
-            selectedUnit={selectedUnit}
-            selectedSeller={selectedSeller}
-          />
+          {/* Stats Section - Só aparece quando uma unidade específica for selecionada */}
+          {selectedUnit && selectedUnit !== 'all' && (
+            <>
+              {/* Debug: Verificar valores antes de passar para StatsSection */}
+              {console.log('🎨 DashboardPage: Passando para StatsSection:', { 
+                startDate, 
+                endDate, 
+                selectedFunnel, 
+                selectedUnit, 
+                selectedSeller 
+              })}
+              <StatsSection 
+                statsCards={statsCards} 
+                startDate={startDate}
+                endDate={endDate}
+                selectedFunnel={selectedFunnel}
+                selectedUnit={selectedUnit}
+                selectedSeller={selectedSeller}
+              />
+            </>
+          )}
 
           {/* Chart Section */}
           <section className="chart-section">
