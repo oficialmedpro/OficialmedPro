@@ -36,7 +36,12 @@ const SimpleGoogleAdsMetricsBar = ({
       const url = `${API_BASE_URL}${endpoint}`;
       console.log(`🔍 Fazendo requisição: ${url}`);
 
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`
+        }
+      });
 
       if (!response.ok) {
         const error = await response.text();

@@ -5,7 +5,7 @@ import MetricsCards from '../components/MetricsCards';
 import FilterBar from '../components/FilterBar';
 import TopMenuBar from '../components/TopMenuBar';
 import Sidebar from '../components/Sidebar';
-import TrafficFunnel from '../components/TrafficFunnel';
+import MetaAdsTrafficFunnel from '../components/MetaAdsTrafficFunnel';
 import StatsSection from '../components/StatsSection';
 import TimelineChart from '../components/TimelineChart';
 import RealMetaAdsMetricsBar from '../components/RealMetaAdsMetricsBar';
@@ -298,7 +298,7 @@ const DashboardMetaAds = ({ onLogout }) => {
         />
 
         {/* Traffic Funnel & Performance Section */}
-        <TrafficFunnel />
+        <MetaAdsTrafficFunnel isDarkMode={isDarkMode} />
 
         {/* Timeline Chart - Performance dos Últimos 7 Dias */}
         <TimelineChart selectedDate={endDate} t={t} />

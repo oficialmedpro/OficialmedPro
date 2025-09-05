@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './FilterBar.css';
-import { getUnidades, getFunisPorUnidade, getVendedores } from '../service/supabase.js';
+import { getUnidades, getFunisPorUnidade, getVendedores, getOrigens } from '../service/FilterBarService.js';
 import { handleDatePreset } from '../utils/utils.js';
 
-const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSelectedPeriod, selectedFunnel, setSelectedFunnel, selectedUnit, setSelectedUnit, startDate, setStartDate, endDate, setEndDate, onUnitFilterChange, onSellerFilterChange, marketData }) => {
+const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSelectedPeriod, selectedFunnel, setSelectedFunnel, selectedUnit, setSelectedUnit, selectedOrigin, setSelectedOrigin, startDate, setStartDate, endDate, setEndDate, onUnitFilterChange, onSellerFilterChange, onOriginFilterChange, marketData }) => {
 
   
   // Estado único para controlar qual dropdown está aberto (accordion)
@@ -20,6 +20,10 @@ const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSe
   // Estado para gerenciar a lista de vendedores e seu carregamento
   const [sellers, setSellers] = useState([]);
   const [loadingSellers, setLoadingSellers] = useState(true);
+  
+  // Estado para gerenciar a lista de origens e seu carregamento
+  const [origins, setOrigins] = useState([]);
+  const [loadingOrigins, setLoadingOrigins] = useState(true);
 
   const periods = [
     { id: 'today', name: 'Hoje' },
@@ -142,6 +146,26 @@ const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSe
     fetchSellers();
   }, [selectedUnit, units]); // Reagir à mudança de unidade selecionada
 
+  // 🎯 Buscar origens das oportunidades
+  useEffect(() => {
+    const fetchOrigins = async () => {
+      try {
+        setLoadingOrigins(true);
+        const origensData = await getOrigens();
+        
+        setOrigins(origensData);
+        console.log('✅ Origens carregadas:', origensData);
+      } catch (error) {
+        console.error('❌ Erro ao carregar origens:', error);
+        setOrigins([{ id: 'all', name: 'Todas as origens', origem: 'all' }]);
+      } finally {
+        setLoadingOrigins(false);
+      }
+    };
+
+    fetchOrigins();
+  }, []);
+
   // Atualizar horário em tempo real
   useEffect(() => {
     const updateTime = () => {
@@ -255,6 +279,34 @@ const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSe
     console.log(`🎯 Vendedor selecionado:`, {
       sellerId,
       vendedorData: sellers.find(s => s.id === sellerId)
+    });
+  };
+
+  const handleOriginChange = (originId) => {
+    setSelectedOrigin(originId);
+    setOpenDropdown(null); // Fecha o dropdown
+    
+    // 🎯 FILTRO DE ORIGEM: Aplicar filtro por origem_oportunidade na tabela oportunidade_sprint
+    if (onOriginFilterChange) {
+      const selectedOriginData = origins.find(o => o.id === originId);
+      if (selectedOriginData) {
+        // Se for "Todas as origens", passa null para não filtrar
+        const filterValue = originId === 'all' ? null : selectedOriginData.origem;
+        console.log(`🎯 Filtro de origem aplicado:`, {
+          originName: selectedOriginData.name,
+          origem: selectedOriginData.origem,
+          filterValue: filterValue,
+          message: filterValue ? `Filtrando oportunidades com origem_oportunidade = "${filterValue}"` : 'Mostrando todas as origens'
+        });
+        
+        // Chama o callback do componente pai para aplicar o filtro
+        onOriginFilterChange(filterValue);
+      }
+    }
+    
+    console.log(`🎯 Origem selecionada:`, {
+      originId,
+      origemData: origins.find(o => o.id === originId)
     });
   };
 
@@ -401,6 +453,42 @@ const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSe
                       onClick={() => handleSellerChange(seller.id)}
                     >
                       {seller.name}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Filtro de Origens */}
+        <div className="fb-filter-group">
+          <div className="fb-dropdown-container">
+            <button 
+              className="fb-dropdown-button"
+              onClick={() => toggleDropdown('origins')}
+              disabled={loadingOrigins}
+            >
+              <span>
+                {loadingOrigins ? 'Carregando...' : 
+                  origins.find(o => o.id === selectedOrigin)?.name || 'Todas as origens'
+                }
+              </span>
+              <span className="fb-dropdown-arrow">▼</span>
+            </button>
+            
+            {openDropdown === 'origins' && !loadingOrigins && (
+              <div className="fb-dropdown-menu">
+                {origins.length === 0 ? (
+                  <div className="fb-dropdown-item">Nenhuma origem encontrada.</div>
+                ) : (
+                  origins.map((origin) => (
+                    <div 
+                      key={origin.id}
+                      className={`fb-dropdown-item ${selectedOrigin === origin.id ? 'fb-selected' : ''}`}
+                      onClick={() => handleOriginChange(origin.id)}
+                    >
+                      {origin.name}
                     </div>
                   ))
                 )}

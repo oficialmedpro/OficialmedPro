@@ -1,0 +1,440 @@
+/* ========================================
+   META ADS TRAFFIC FUNNEL - CSS EXCLUSIVO
+   ======================================== */
+
+.meta-ads-traffic-funnel {
+  background: #0f172a;
+  border-radius: 16px;
+  padding: 32px;
+  margin-bottom: 32px;
+  border: 1px solid rgb(51 65 85);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* ========================================
+   HEADER
+   ======================================== */
+
+.funnel-header {
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.funnel-title-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.funnel-icon {
+  font-size: 32px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.funnel-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.funnel-subtitle {
+  font-size: 16px;
+  color: #94a3b8;
+  font-weight: 400;
+  margin: 0;
+}
+
+/* ========================================
+   MAIN GRID
+   ======================================== */
+
+.funnel-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 32px;
+}
+
+/* ========================================
+   TRAFFIC FUNNEL (LEFT SIDE)
+   ======================================== */
+
+.traffic-funnel-container {
+  background: #1e293b;
+  border: 1px solid rgb(51 65 85);
+  border-radius: 16px;
+  padding: 24px;
+  height: fit-content;
+}
+
+.funnel-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.funnel-section-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.refresh-btn {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: #3b82f6;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.refresh-btn:hover {
+  background: rgba(59, 130, 246, 0.2);
+  transform: rotate(180deg);
+}
+
+/* Funnel Stages */
+.funnel-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+}
+
+.funnel-stage {
+  position: relative;
+}
+
+.funnel-bar {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border: none;
+  border-radius: 8px;
+  padding: 16px 20px;
+  position: relative;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.funnel-bar:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.funnel-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.funnel-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.funnel-values {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.funnel-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.funnel-change {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.funnel-change.positive {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+/* Conversion Rate Boxes */
+.conversion-rate {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: -10px;
+  z-index: 2;
+}
+
+.conversion-rate .conversion-text {
+  background: #fbbf24;
+  color: #000000;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 50px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Funnel Metrics */
+.funnel-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.metric-item {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.metric-item:hover {
+  background: rgba(59, 130, 246, 0.2);
+  transform: translateY(-2px);
+}
+
+.metric-label {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+  font-weight: 500;
+  display: block;
+}
+
+.metric-value {
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 600;
+  display: block;
+}
+
+/* ========================================
+   PERFORMANCE CARDS (RIGHT SIDE)
+   ======================================== */
+
+.performance-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.performance-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  flex: 1;
+}
+
+.performance-card {
+  background: #1e293b;
+  border: 1px solid rgb(51 65 85);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+  min-height: 120px;
+}
+
+.performance-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.card-icon {
+  font-size: 16px;
+  opacity: 0.7;
+}
+
+.card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+}
+
+.performance-metric {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.performance-metric .metric-label {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.performance-metric .metric-value {
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.performance-metric .metric-value.positive {
+  color: #10b981;
+}
+
+/* ========================================
+   CAMPAIGNS TABLE
+   ======================================== */
+
+.campaigns-section {
+  background: #1e293b;
+  border: 1px solid rgb(51 65 85);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.campaigns-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.campaigns-table {
+  overflow-x: auto;
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+  gap: 16px;
+  padding: 16px;
+  background: #0f172a;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.header-cell {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  text-align: center;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+  gap: 16px;
+  padding: 16px;
+  background: #0f172a;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.table-row:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+}
+
+.table-cell {
+  font-size: 14px;
+  color: #ffffff;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ========================================
+   RESPONSIVIDADE
+   ======================================== */
+
+@media (max-width: 1200px) {
+  .funnel-main-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  
+  .performance-cards-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .meta-ads-traffic-funnel {
+    padding: 20px;
+  }
+  
+  .funnel-title {
+    font-size: 24px;
+  }
+  
+  .performance-cards-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .funnel-metrics {
+    grid-template-columns: 1fr;
+  }
+  
+  .table-header,
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .header-cell,
+  .table-cell {
+    text-align: left;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .meta-ads-traffic-funnel {
+    padding: 16px;
+  }
+  
+  .traffic-funnel-container {
+    padding: 16px;
+  }
+  
+  .campaigns-section {
+    padding: 16px;
+  }
+  
+  .performance-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}

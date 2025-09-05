@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './CrmIntegrationMetrics.css';
-import { crmService } from '../service/crmService';
+import { getAllMetaAdsOpportunitiesMetrics } from '../service/metaAdsOpportunitiesService';
 
 /**
  * CrmIntegrationMetrics.jsx
@@ -16,19 +16,21 @@ const CrmIntegrationMetrics = ({
 }) => {
   const [metrics, setMetrics] = useState({
     leads: {
-      converted: { value: 0, percentage: '0.0' },
-      lost: { value: 0, percentage: '0.0' },
-      open: { value: 0, percentage: '0.0' },
-      total: 0
+      convertidas: { count: 0, value: 0, percentage: 0 },
+      perdidas: { count: 0, value: 0, percentage: 0 },
+      emAberto: { count: 0, value: 0, percentage: 0 },
+      total: { count: 0, value: 0 }
     },
     financial: {
-      roas: { value: '0.0x', percentage: '0%' },
-      roi: { value: '0%', percentage: '0%' },
-      conversionRate: { value: '0.0%', percentage: '0.0%' }
+      roas: 0,
+      roi: 0,
+      conversionRate: 0,
+      valorGanho: 0,
+      valorPerda: 0
     },
     time: {
-      avgClosingTime: { value: '0 dias', percentage: '0 dias' },
-      lossRate: { value: '0%', percentage: '0%' }
+      closingTime: 0,
+      lossRate: 0
     }
   });
 
@@ -42,14 +44,66 @@ const CrmIntegrationMetrics = ({
       setError(null);
       
       console.log('🔄 CrmIntegrationMetrics: Carregando métricas...', filters);
+
+      // Calcular datas baseado no período selecionado
+      const today = new Date();
+      let startDate, endDate;
+
+      const period = filters?.period || 'today';
+      switch (period) {
+        case 'today':
+          startDate = endDate = today.toISOString().split('T')[0];
+          break;
+        case 'yesterday':
+          const yesterday = new Date(today);
+          yesterday.setDate(today.getDate() - 1);
+          startDate = endDate = yesterday.toISOString().split('T')[0];
+          break;
+        case 'last7Days':
+          const last7Days = new Date(today);
+          last7Days.setDate(today.getDate() - 7);
+          startDate = last7Days.toISOString().split('T')[0];
+          endDate = today.toISOString().split('T')[0];
+          break;
+        case 'thisMonth':
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+          endDate = today.toISOString().split('T')[0];
+          break;
+        case 'thisQuarter':
+          const quarter = Math.floor(today.getMonth() / 3);
+          startDate = new Date(today.getFullYear(), quarter * 3, 1).toISOString().split('T')[0];
+          endDate = today.toISOString().split('T')[0];
+          break;
+        case 'thisYear':
+          startDate = new Date(today.getFullYear(), 0, 1).toISOString().split('T')[0];
+          endDate = today.toISOString().split('T')[0];
+          break;
+        default:
+          startDate = endDate = today.toISOString().split('T')[0];
+      }
+
+      // Usar filtros do props
+      const unitCode = filters?.unit || 'all';
+      const funnelCode = filters?.funnel || 'all';
+      const sellerCode = filters?.seller || 'all';
+
+      console.log('📅 Datas calculadas:', { startDate, endDate });
+      console.log('🔍 Filtros aplicados:', { unitCode, funnelCode, sellerCode });
       
-      const crmMetrics = await crmService.getAllCrmMetrics(filters);
+      const crmMetrics = await getAllMetaAdsOpportunitiesMetrics(
+        startDate, 
+        endDate, 
+        unitCode, 
+        funnelCode, 
+        sellerCode
+      );
+      
       setMetrics(crmMetrics);
       
       // Notificar componente pai sobre atualização
       onMetricsUpdate(crmMetrics);
       
-      console.log('✅ CrmIntegrationMetrics: Métricas carregadas com sucesso');
+      console.log('✅ CrmIntegrationMetrics: Métricas carregadas com sucesso:', crmMetrics);
       
     } catch (err) {
       console.error('❌ CrmIntegrationMetrics: Erro ao carregar métricas:', err);
@@ -119,22 +173,22 @@ const CrmIntegrationMetrics = ({
       <div className="crm-metrics-grid">
         {/* Status dos Leads */}
         <div className="crm-metric-group">
-          <h4 className="crm-group-title">📊 Status dos Leads</h4>
+          <h4 className="crm-group-title">📊 Status das Oportunidades</h4>
           <div className="crm-metrics-row">
             <div className="crm-metric-item converted">
               <div className="crm-metric-label">✅ Convertidos</div>
-              <div className="crm-metric-value">{formatLargeNumber(metrics.leads.converted.value)}</div>
-              <div className="crm-metric-percentage">{metrics.leads.converted.percentage}%</div>
+              <div className="crm-metric-value">{formatLargeNumber(metrics.leads?.convertidas?.count || 0)}</div>
+              <div className="crm-metric-percentage">{(metrics.leads?.convertidas?.percentage || 0).toFixed(1)}%</div>
             </div>
             <div className="crm-metric-item lost">
               <div className="crm-metric-label">❌ Perdidos</div>
-              <div className="crm-metric-value">{formatLargeNumber(metrics.leads.lost.value)}</div>
-              <div className="crm-metric-percentage">{metrics.leads.lost.percentage}%</div>
+              <div className="crm-metric-value">{formatLargeNumber(metrics.leads?.perdidas?.count || 0)}</div>
+              <div className="crm-metric-percentage">{(metrics.leads?.perdidas?.percentage || 0).toFixed(1)}%</div>
             </div>
             <div className="crm-metric-item open">
               <div className="crm-metric-label">🔄 Em Aberto</div>
-              <div className="crm-metric-value">{formatLargeNumber(metrics.leads.open.value)}</div>
-              <div className="crm-metric-percentage">{metrics.leads.open.percentage}%</div>
+              <div className="crm-metric-value">{formatLargeNumber(metrics.leads?.emAberto?.count || 0)}</div>
+              <div className="crm-metric-percentage">{(metrics.leads?.emAberto?.percentage || 0).toFixed(1)}%</div>
             </div>
           </div>
         </div>
@@ -145,18 +199,18 @@ const CrmIntegrationMetrics = ({
           <div className="crm-metrics-row">
             <div className="crm-metric-item roas">
               <div className="crm-metric-label">ROAS</div>
-              <div className="crm-metric-value">{metrics.financial.roas.value}</div>
-              <div className="crm-metric-percentage">{metrics.financial.roas.percentage}</div>
+              <div className="crm-metric-value">{(metrics.financial?.roas || 0).toFixed(1)}x</div>
+              <div className="crm-metric-percentage">{((metrics.financial?.roas || 0) * 100).toFixed(0)}%</div>
             </div>
             <div className="crm-metric-item roi">
               <div className="crm-metric-label">ROI</div>
-              <div className="crm-metric-value">{metrics.financial.roi.value}</div>
-              <div className="crm-metric-percentage">{metrics.financial.roi.percentage}</div>
+              <div className="crm-metric-value">{(metrics.financial?.roi || 0).toFixed(0)}%</div>
+              <div className="crm-metric-percentage">{(metrics.financial?.roi || 0).toFixed(0)}%</div>
             </div>
             <div className="crm-metric-item conversion">
               <div className="crm-metric-label">Taxa Conversão</div>
-              <div className="crm-metric-value">{metrics.financial.conversionRate.value}</div>
-              <div className="crm-metric-percentage">{metrics.financial.conversionRate.percentage}</div>
+              <div className="crm-metric-value">{(metrics.financial?.conversionRate || 0).toFixed(1)}%</div>
+              <div className="crm-metric-percentage">{(metrics.financial?.conversionRate || 0).toFixed(1)}%</div>
             </div>
           </div>
         </div>
@@ -167,13 +221,13 @@ const CrmIntegrationMetrics = ({
           <div className="crm-metrics-row">
             <div className="crm-metric-item time">
               <div className="crm-metric-label">Fechamento</div>
-              <div className="crm-metric-value">{metrics.time.avgClosingTime.value}</div>
-              <div className="crm-metric-percentage">{metrics.time.avgClosingTime.percentage}</div>
+              <div className="crm-metric-value">{(metrics.time?.closingTime || 0).toFixed(0)} dias</div>
+              <div className="crm-metric-percentage">{(metrics.time?.closingTime || 0).toFixed(0)} dias</div>
             </div>
             <div className="crm-metric-item loss-rate">
               <div className="crm-metric-label">Taxa de Perda</div>
-              <div className="crm-metric-value">{metrics.time.lossRate.value}</div>
-              <div className="crm-metric-percentage">{metrics.time.lossRate.percentage}</div>
+              <div className="crm-metric-value">{(metrics.time?.lossRate || 0).toFixed(1)}%</div>
+              <div className="crm-metric-percentage">{(metrics.time?.lossRate || 0).toFixed(1)}%</div>
             </div>
           </div>
         </div>

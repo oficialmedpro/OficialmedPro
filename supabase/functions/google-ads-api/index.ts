@@ -36,13 +36,44 @@ async function getGoogleAdsCredentials() {
 
     console.log('🔍 Buscando credenciais do Supabase...')
     
+    // Debug: ver todas as unidades primeiro
+    const { data: allData, error: allError } = await supabase
+      .schema('api')
+      .from('unidades')
+      .select('id, unidade, codigo_sprint, google_customer_id')
+    
+    console.log('🔍 TODAS as unidades na tabela:')
+    console.log(JSON.stringify(allData, null, 2))
+    
     const { data, error } = await supabase
+      .schema('api')
       .from('unidades')
       .select('*')
-      .eq('codigo_sprint->0', 1)
+      .eq('codigo_sprint', '[1]')
       .single()
 
+    console.log('🔍 Resultado da busca por codigo_sprint = "[1]":')
+    console.log('Data:', JSON.stringify(data, null, 2))
+    console.log('Error:', error)
+
     if (error || !data) {
+      // Tentar sem aspas
+      const { data: data2, error: error2 } = await supabase
+        .schema('api')
+        .from('unidades')
+        .select('*')
+        .eq('codigo_sprint', [1])
+        .single()
+        
+      console.log('🔍 Tentativa 2 - codigo_sprint = [1]:')
+      console.log('Data2:', JSON.stringify(data2, null, 2))
+      console.log('Error2:', error2)
+      
+      if (data2) {
+        console.log('✅ Encontrou na segunda tentativa!')
+        throw new Error('Unidade Apucarana não encontrada')
+      }
+      
       throw new Error('Unidade Apucarana não encontrada')
     }
 
@@ -181,7 +212,20 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url)
-    const path = url.pathname.replace('/functions/v1/google-ads-api', '')
+    const originalPath = url.pathname
+    let path = url.pathname.replace('/functions/v1/google-ads-api', '')
+    
+    // Se o path ainda contém 'google-ads-api', remover também
+    if (path.startsWith('/google-ads-api')) {
+      path = path.replace('/google-ads-api', '')
+    }
+    
+    console.log(`🚀 ROTEAMENTO DEBUG:`)
+    console.log(`🚀 URL completa: ${req.url}`)
+    console.log(`🚀 Pathname original: ${originalPath}`)
+    console.log(`🚀 Path processado: "${path}"`)
+    console.log(`🚀 Método: ${req.method}`)
+    console.log(`🚀 Query params: ${url.search}`)
     
     // Roteamento baseado no path
     switch (path) {
@@ -199,6 +243,9 @@ serve(async (req) => {
       
       case '/account-balance':
         return await handleGetAccountBalance()
+        
+      case '/debug-unidades':
+        return await handleDebugUnidades()
       
       default:
         // Verificar se é um path de grupos de anúncios ou anúncios
@@ -213,8 +260,20 @@ serve(async (req) => {
           return await handleGetAds(adGroupAdsMatch[1])
         }
         
+        console.log(`❌ ROTA NÃO ENCONTRADA:`)
+        console.log(`❌ Path recebido: "${path}"`)
+        console.log(`❌ Rotas disponíveis: ["/test-connection", "/campaigns", "/stats", "/account-balance"]`)
+        
         return new Response(
-          JSON.stringify({ success: false, error: 'Endpoint não encontrado' }),
+          JSON.stringify({ 
+            success: false, 
+            error: 'Endpoint não encontrado',
+            debug: {
+              receivedPath: path,
+              originalPath: url.pathname,
+              availableRoutes: ['/test-connection', '/campaigns', '/stats', '/account-balance']
+            }
+          }),
           { 
             status: 404, 
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -282,7 +341,10 @@ async function handleGetCampaigns(status: string) {
   try {
     const credentials = await getGoogleAdsCredentials()
     
-    console.log(`🔍 Buscando campanhas (filtro: ${status}) para customer: ${credentials.customer_id}...`)
+    console.log(`🔍 INÍCIO DEBUG CAMPANHAS`)
+    console.log(`🔍 Filtro solicitado: ${status}`)
+    console.log(`🔍 Customer ID: ${credentials.customer_id}`)
+    console.log(`🔍 Developer Token: ${credentials.developer_token ? '✅ Presente' : '❌ Ausente'}`)
 
     let whereClause
     if (status === 'active') {
@@ -295,6 +357,8 @@ async function handleGetCampaigns(status: string) {
 
     console.log(`📝 Query que será executada: SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type FROM campaign ${whereClause} ORDER BY campaign.name`)
 
+    // PRIMEIRA TENTATIVA: Query com filtro
+    console.log(`🚀 PRIMEIRA TENTATIVA: Query com filtro`)
     const results = await queryGoogleAds(credentials, `
       SELECT 
         campaign.id,
@@ -306,29 +370,47 @@ async function handleGetCampaigns(status: string) {
       ORDER BY campaign.name
     `)
 
-    console.log(`🔍 DEBUG - Resultado bruto da API Google Ads:`, JSON.stringify(results, null, 2))
-    console.log(`🔍 DEBUG - Número de resultados recebidos: ${results.length}`)
+    console.log(`📊 RESULTADO PRIMEIRA TENTATIVA:`)
+    console.log(`📊 Número de resultados: ${results.length}`)
+    console.log(`📊 Dados brutos:`, JSON.stringify(results, null, 2))
 
-    if (results.length === 0) {
-      console.log('⚠️ ATENÇÃO: API retornou 0 campanhas - Verificando se há campanhas sem filtros...')
-      
-      // Fazer uma query sem filtros para ver se existem campanhas
-      const allResults = await queryGoogleAds(credentials, `
-        SELECT 
-          campaign.id,
-          campaign.name,
-          campaign.status,
-          campaign.advertising_channel_type
-        FROM campaign
-        ORDER BY campaign.name
-        LIMIT 10
-      `)
-      
-      console.log(`🔍 DEBUG - Campanhas sem filtro (até 10): ${allResults.length} encontradas`)
-      console.log(`🔍 DEBUG - Campanhas sem filtro:`, JSON.stringify(allResults, null, 2))
-    }
+    // SEGUNDA TENTATIVA: Query sem filtros para diagnóstico
+    console.log(`🚀 SEGUNDA TENTATIVA: Query sem filtros (diagnóstico)`)
+    const allResults = await queryGoogleAds(credentials, `
+      SELECT 
+        campaign.id,
+        campaign.name,
+        campaign.status,
+        campaign.advertising_channel_type
+      FROM campaign
+      ORDER BY campaign.name
+      LIMIT 20
+    `)
+    
+    console.log(`📊 RESULTADO SEGUNDA TENTATIVA:`)
+    console.log(`📊 Número total de campanhas na conta: ${allResults.length}`)
+    console.log(`📊 Todas as campanhas:`, JSON.stringify(allResults, null, 2))
 
-    const mappedCampaigns = results.map((row: any) => {
+    // TERCEIRA TENTATIVA: Query básica para teste
+    console.log(`🚀 TERCEIRA TENTATIVA: Query básica`)
+    const basicResults = await queryGoogleAds(credentials, `
+      SELECT campaign.id
+      FROM campaign
+      LIMIT 5
+    `)
+    
+    console.log(`📊 RESULTADO TERCEIRA TENTATIVA:`)
+    console.log(`📊 IDs básicos encontrados: ${basicResults.length}`)
+    console.log(`📊 IDs:`, JSON.stringify(basicResults, null, 2))
+
+    // Usar os resultados com filtro ou todos se não houver nenhum
+    const finalResults = results.length > 0 ? results : allResults
+    
+    console.log(`🎯 RESULTADO FINAL ESCOLHIDO:`)
+    console.log(`🎯 Usando resultados: ${results.length > 0 ? 'com filtro' : 'todos (sem filtro)'}`)
+    console.log(`🎯 Quantidade: ${finalResults.length}`)
+
+    const mappedCampaigns = finalResults.map((row: any) => {
       console.log(`🔍 DEBUG - Processando campanha:`, JSON.stringify(row, null, 2))
       
       return {
@@ -342,12 +424,19 @@ async function handleGetCampaigns(status: string) {
 
     console.log(`✅ ${mappedCampaigns.length} campanhas encontradas e mapeadas`)
     console.log(`✅ Campanhas mapeadas:`, JSON.stringify(mappedCampaigns, null, 2))
+    console.log(`🔍 FIM DEBUG CAMPANHAS`)
 
     return new Response(
       JSON.stringify({
         success: true,
         data: mappedCampaigns,
-        count: mappedCampaigns.length
+        count: mappedCampaigns.length,
+        debug: {
+          filteredResults: results.length,
+          allResults: allResults.length,
+          basicResults: basicResults.length,
+          finalUsed: finalResults.length
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
@@ -528,6 +617,73 @@ async function handleGetAccountBalance() {
   } catch (error) {
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    )
+  }
+}
+
+/**
+ * Debug das unidades no Supabase
+ */
+async function handleDebugUnidades() {
+  try {
+    console.log('🔍 DEBUG UNIDADES - Iniciando verificação...')
+    
+    // Verificar todas as unidades
+    const { data: allUnits, error: allError } = await supabase
+      .from('unidades')
+      .select('*')
+    
+    console.log('🔍 TODAS AS UNIDADES:')
+    console.log(JSON.stringify(allUnits, null, 2))
+    
+    if (allError) {
+      console.error('❌ Erro ao buscar unidades:', allError)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: allError.message,
+          details: allError 
+        }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+    
+    // Procurar especificamente por Apucarana
+    const apucaranaUnits = allUnits?.filter(unit => 
+      unit.unidade?.toLowerCase().includes('apucarana') ||
+      unit.google_customer_id === '8802039556'
+    ) || []
+    
+    console.log('🔍 UNIDADES APUCARANA ENCONTRADAS:')
+    console.log(JSON.stringify(apucaranaUnits, null, 2))
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        debug: {
+          totalUnidades: allUnits?.length || 0,
+          todasUnidades: allUnits,
+          unidadesApucarana: apucaranaUnits,
+          searchedFor: ['apucarana', '8802039556']
+        }
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  } catch (error) {
+    console.error('❌ Erro no debug das unidades:', error)
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        stack: error.stack 
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
