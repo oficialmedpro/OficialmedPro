@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { syncFollowUpStage, checkFollowUpSync } from '../service/sprintHubSyncService';
 import autoSyncService from '../service/autoSyncService';
-import { generateDuplicateReport, performFullCleanup } from '../service/duplicateCleanupService';
-import { syncTodayOnly, syncAll, checkFullSync } from '../service/unifiedSyncService';
-import todaySyncService from '../service/todaySyncService';
-import detacorretaIncremental from '../service/detacorreta_incremental';
+// Imports temporariamente removidos - arquivos não existem no repositório
+// import { generateDuplicateReport, performFullCleanup } from '../service/duplicateCleanupService';
+// import { syncTodayOnly, syncAll, checkFullSync } from '../service/unifiedSyncService';
+// import todaySyncService from '../service/todaySyncService';
+// import detacorretaIncremental from '../service/detacorreta_incremental';
 import './TopMenuBar.css';
 
 // Importar ícones SVG
@@ -366,124 +367,17 @@ const TopMenuBar = ({
     }
   };
 
-  // Função para limpar duplicatas
+  // Funções temporariamente desabilitadas - dependem de arquivos não commitados
   const handleCleanDuplicates = async () => {
-    if (isCleaningDuplicates) return;
-    
-    setIsCleaningDuplicates(true);
-    console.log('🧹 Iniciando limpeza de duplicatas...');
-    
-    try {
-      // Primeiro, gerar relatório
-      const report = await generateDuplicateReport();
-      
-      if (report.duplicates === 0) {
-        alert('✅ Nenhuma duplicata encontrada!');
-        return;
-      }
-      
-      const confirmClean = confirm(
-        `🔍 Encontradas ${report.duplicates} grupos de duplicatas (${report.totalRecords} registros duplicados).\n\n` +
-        `Deseja remover as duplicatas? (Mantém apenas o registro mais recente)`
-      );
-      
-      if (!confirmClean) {
-        console.log('❌ Limpeza cancelada pelo usuário');
-        return;
-      }
-      
-      // Executar limpeza
-      const result = await performFullCleanup();
-      
-      if (result.success) {
-        alert(`✅ Limpeza concluída!\n\n` +
-          `🧹 Duplicatas removidas: ${result.removed}\n` +
-          `📊 Grupos processados: ${result.processed}`);
-      } else {
-        alert(`❌ Erro na limpeza: ${result.error}`);
-      }
-      
-    } catch (error) {
-      console.error('❌ Erro na limpeza de duplicatas:', error);
-      alert('❌ Erro na limpeza. Verifique o console para detalhes.');
-    } finally {
-      setIsCleaningDuplicates(false);
-    }
+    alert('🚧 Função temporariamente desabilitada - em manutenção');
   };
 
-  // Função para sincronização completa
   const handleFullSync = async () => {
-    if (isFullSyncing) return;
-    
-    const confirmSync = confirm(
-      '⚠️ ATENÇÃO: Sincronização completa irá processar TODAS as oportunidades!\n\n' +
-      'Isso pode demorar vários minutos e fazer muitas operações no banco.\n\n' +
-      'Deseja continuar?'
-    );
-    
-    if (!confirmSync) return;
-    
-    setIsFullSyncing(true);
-    console.log('🔄 Iniciando sincronização COMPLETA...');
-    
-    try {
-      const result = await syncAll({
-        onProgress: (progress) => {
-          console.log(`📊 Progresso: ${progress.stage} - ${progress.status}`);
-        }
-      });
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      const message = `✅ Sincronização COMPLETA concluída!\n\n` +
-        `📊 Processadas: ${result.totalProcessed}\n` +
-        `➕ Inseridas: ${result.totalInserted}\n` +
-        `🔄 Atualizadas: ${result.totalUpdated}\n` +
-        `⚪ Já atualizadas: ${result.totalSkipped}\n` +
-        `❌ Erros: ${result.totalErrors}\n` +
-        `⏱️ Duração: ${result.duration}s`;
-      
-      alert(message);
-                  
-                } catch (error) {
-      console.error('❌ Erro na sincronização completa:', error);
-      alert(`❌ Erro na sincronização: ${error.message}`);
-    } finally {
-      setIsFullSyncing(false);
-    }
+    alert('🚧 Função temporariamente desabilitada - em manutenção');
   };
 
-  // Função para verificar sincronização
   const handleCheckSync = async () => {
-    if (isCheckingSync) return;
-    
-    setIsCheckingSync(true);
-    console.log('🔍 Verificando sincronização...');
-    
-    try {
-      const result = await checkFullSync();
-      
-      if (result.error) {
-        throw new Error(result.error);
-      }
-      
-      const message = `📊 RELATÓRIO DE SINCRONIZAÇÃO\n\n` +
-        `📈 SprintHub: ${result.totalSprintHub.toLocaleString()} oportunidades\n` +
-        `✅ Supabase: ${result.totalSupabase.toLocaleString()} oportunidades\n` +
-        `❌ Faltando: ${result.totalMissing.toLocaleString()} oportunidades\n` +
-        `📊 Taxa: ${result.percentualGeral}%\n` +
-        `⏱️ Duração: ${result.duration}s`;
-      
-      alert(message);
-      
-    } catch (error) {
-      console.error('❌ Erro na verificação:', error);
-      alert(`❌ Erro na verificação: ${error.message}`);
-    } finally {
-      setIsCheckingSync(false);
-    }
+    alert('🚧 Função temporariamente desabilitada - em manutenção');
   };
 
   // Carregar status do serviço de sincronização ao montar
