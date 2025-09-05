@@ -18,8 +18,8 @@ class AutoSyncService {
         // Carregar último tempo de sincronização
         this.loadLastSyncTime();
         
-        // Iniciar serviço automaticamente
-        this.start();
+        // TEMPORARIAMENTE DESABILITADO - CONFLITO COM SYNC MANUAL
+        // this.start();
     }
 
     // Verificar se está dentro do horário de funcionamento (06:00 - 22:00 São Paulo)
@@ -110,8 +110,14 @@ class AutoSyncService {
         window.dispatchEvent(event);
     }
 
-    // Iniciar serviço
+    // Iniciar serviço - DESABILITADO PERMANENTEMENTE
     start() {
+        console.log('🛑 SERVIÇO DE SINCRONIZAÇÃO AUTOMÁTICA DESABILITADO');
+        console.log('🔒 Use apenas sincronização manual via botões');
+        return;
+        
+        // CÓDIGO ORIGINAL COMENTADO PARA SEGURANÇA
+        /*
         if (this.isRunning) {
             console.log('⚠️ Serviço de sincronização já está rodando');
             return;
@@ -138,6 +144,7 @@ class AutoSyncService {
 
         console.log('✅ Serviço de sincronização automática iniciado');
         console.log('⏰ Funcionamento: 06:00 - 22:00 (São Paulo) | Intervalo: 2 horas');
+        */
     }
 
     // Parar serviço

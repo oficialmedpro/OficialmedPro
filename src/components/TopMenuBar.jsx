@@ -2,6 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { syncFollowUpStage, checkFollowUpSync } from '../service/sprintHubSyncService';
 import autoSyncService from '../service/autoSyncService';
+import { generateDuplicateReport, performFullCleanup } from '../service/duplicateCleanupService';
+import { syncTodayOnly, syncAll, checkFullSync } from '../service/unifiedSyncService';
+import todaySyncService from '../service/todaySyncService';
+import detacorretaIncremental from '../service/detacorreta_incremental';
 import './TopMenuBar.css';
 
 // Importar ícones SVG
@@ -24,10 +28,28 @@ const TopMenuBar = ({
   const [lastSyncTime, setLastSyncTime] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isSyncingToday, setIsSyncingToday] = useState(false);
+  const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
+  const [isFullSyncing, setIsFullSyncing] = useState(false);
+  const [isCheckingSync, setIsCheckingSync] = useState(false);
   const languageDropdownRef = useRef(null);
   
   // Verificar se é admin (temporário - baseado nas credenciais fixas)
   const isAdmin = true; // Por enquanto sempre admin, depois implementar lógica real
+
+  // Função para parsear datas brasileiras (DD/MM/YYYY)
+  const parseBrazilianDate = (dateString) => {
+    if (!dateString) return null;
+    
+    if (dateString.includes('/')) {
+      // Formato brasileiro DD/MM/YYYY
+      const [day, month, year] = dateString.split('/');
+      const date = new Date(year, month - 1, day);
+      return date.toISOString();
+    } else {
+      // Formato ISO ou outro
+      return new Date(dateString).toISOString();
+    }
+  };
 
   const toggleLanguageDropdown = () => {
     setShowLanguageDropdown(!showLanguageDropdown);
@@ -72,9 +94,17 @@ const TopMenuBar = ({
         body: postData
       });
       
-      const opportunities = await response.json();
+      const allOpportunities = await response.json();
       
-      console.log(`📊 Total oportunidades encontradas: ${opportunities.length}`);
+      console.log(`📊 Total oportunidades da etapa 232: ${allOpportunities.length}`);
+      
+      // Debug: mostrar JSON completo da primeira oportunidade
+      if (allOpportunities.length > 0) {
+        console.log('🔍 JSON COMPLETO DA PRIMEIRA OPORTUNIDADE:');
+        console.log(JSON.stringify(allOpportunities[0], null, 2));
+        console.log('🔍 CAMPOS DISPONÍVEIS:');
+        console.log(Object.keys(allOpportunities[0]));
+      }
       console.log('📅 Comparando datas:');
       
       const today = new Date();
@@ -117,232 +147,342 @@ const TopMenuBar = ({
     }
   };
 
-  // Função para sincronizar oportunidades faltantes de hoje
+  // Função para sincronizar APENAS oportunidades CRIADAS HOJE da etapa CADASTRO
   const handleSyncToday = async () => {
     if (isSyncingToday) return;
     
+    const confirmSync = confirm(
+      '🔄 SINCRONIZAÇÃO - ETAPA CADASTRO CRIADAS HOJE\n\n' +
+      '🎯 Funil: 6 (COMERCIAL APUCARANA)\n' +
+      '📋 Etapa: APENAS CADASTRO (232)\n' +
+      '📅 Filtro: APENAS CRIADAS hoje (createDate)\n\n' +
+      'Esta operação irá:\n' +
+      '• Buscar APENAS na etapa CADASTRO\n' +
+      '• Filtrar por createDate = hoje\n' +
+      '• Inserir apenas as novas no Supabase\n\n' +
+      'Deseja continuar?'
+    );
+    
+    if (!confirmSync) return;
+    
     setIsSyncingToday(true);
-    console.log('🔄 Iniciando sincronização de oportunidades faltantes de hoje...');
     
     try {
+      console.log('🔄 SINCRONIZANDO ETAPA CADASTRO - CRIADAS HOJE...');
+      
+      // Configurações
       const SPRINTHUB_URL = 'https://sprinthub-api-master.sprinthub.app';
       const API_TOKEN = '9ad36c85-5858-4960-9935-e73c3698dd0c';
       const INSTANCE = 'oficialmed';
       const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
       const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
       
-      let totalInserted = 0;
-      let totalUpdated = 0;
-      let totalProcessed = 0;
-      let totalSkipped = 0;
+      // 1. Buscar oportunidades da etapa CADASTRO (232)
+      console.log('🔍 1. Buscando etapa CADASTRO...');
+      const postData = JSON.stringify({ page: 0, limit: 100, columnId: 232 });
       
-      // Funis da unidade Apucarana
-      const funis = [
-        { id: 6, stages: [130, 231, 82, 207, 83, 85, 232] },
-        { id: 14, stages: [227, 202, 228, 229, 206, 203, 204, 230, 205, 241, 146, 147, 167, 148, 168, 149, 169, 150] }
-      ];
+      const response = await fetch(`${SPRINTHUB_URL}/crm/opportunities/6?apitoken=${API_TOKEN}&i=${INSTANCE}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: postData
+      });
       
-      const today = new Date().toDateString();
-      console.log('📅 Data de hoje para comparação:', today);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       
-      for (const funil of funis) {
-        console.log(`🎯 Processando Funil ${funil.id}...`);
+      const allOpportunities = await response.json();
+      console.log(`📊 Total na etapa CADASTRO: ${allOpportunities.length}`);
+      
+      // 2. Filtrar APENAS as CRIADAS hoje
+      console.log('🔍 2. Filtrando por createDate = hoje...');
+      const today = new Date().toLocaleDateString('pt-BR'); // DD/MM/YYYY
+      console.log(`📅 Data de hoje: ${today}`);
+      
+      const todayOpportunities = allOpportunities.filter(opp => {
+        if (!opp.createDate) {
+          return false;
+        }
         
-        for (const stageId of funil.stages) {
-          try {
-            console.log(`  📊 Processando Etapa ${stageId}...`);
-            
-            // 🔄 BUSCAR TODAS AS PÁGINAS DA ETAPA
-            let page = 0;
-            let hasMoreData = true;
-            let stageOppCount = 0;
-            let stageTodayCount = 0;
-            
-            while (hasMoreData) {
-              console.log(`    📄 Página ${page}...`);
-              
-              const postData = JSON.stringify({ page: page, limit: 50, columnId: stageId });
-              const response = await fetch(`${SPRINTHUB_URL}/crm/opportunities/${funil.id}?apitoken=${API_TOKEN}&i=${INSTANCE}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: postData
-              });
-              
-              if (!response.ok) {
-                console.log(`    ❌ Erro HTTP ${response.status} na página ${page}`);
-                break;
-              }
-              
-              const opportunities = await response.json();
-              if (!Array.isArray(opportunities) || opportunities.length === 0) {
-                console.log(`    ⚪ Página ${page} vazia ou inválida`);
-                break;
-              }
-              
-              stageOppCount += opportunities.length;
-              console.log(`    📊 Página ${page}: ${opportunities.length} oportunidades`);
-              
-              // Filtrar apenas oportunidades de hoje
-              const todayOpps = opportunities.filter(opp => {
-                if (!opp.createDate) return false;
-                const oppDate = new Date(opp.createDate).toDateString();
-                const todayString = new Date().toDateString();
-                return oppDate === todayString;
-              });
-              
-              stageTodayCount += todayOpps.length;
-              console.log(`    📅 Página ${page}: ${todayOpps.length} de hoje`);
-              
-              // Se retornou menos que 50, é a última página
-              if (opportunities.length < 50) {
-                hasMoreData = false;
-                console.log(`    ✅ Última página da etapa ${stageId} (retornou ${opportunities.length})`);
-              }
-            
-              // Processar cada oportunidade de hoje desta página
-              for (const opp of todayOpps) {
-                totalProcessed++;
-                
-                try {
-                  // Verificar se existe no Supabase (buscar mais dados para comparar)
-                  const checkResponse = await fetch(`${SUPABASE_URL}/rest/v1/oportunidade_sprint?id=eq.${opp.id}&select=id,update_date`, {
-                    headers: {
-                      'Accept': 'application/json',
-                      'Authorization': `Bearer ${SUPABASE_KEY}`,
-                      'apikey': SUPABASE_KEY,
-                      'Accept-Profile': 'api'
-                    }
-                  });
-                  
-                  if (!checkResponse.ok) continue;
-                  const existing = await checkResponse.json();
-                  
-                  // Mapear dados da oportunidade
-                  const fields = opp.fields || {};
-                  const lead = opp.dataLead || {};
-                  
-                  const mappedOpp = {
-                    id: opp.id,
-                    title: opp.title,
-                    value: parseFloat(opp.value) || 0.00,
-                    crm_column: opp.crm_column,
-                    lead_id: opp.lead_id,
-                    status: opp.status,
-                    loss_reason: opp.loss_reason || null,
-                    gain_reason: opp.gain_reason || null,
-                    user_id: opp.user || null,
-                    create_date: opp.createDate ? new Date(opp.createDate).toISOString() : null,
-                    update_date: opp.updateDate ? new Date(opp.updateDate).toISOString() : null,
-                    lost_date: opp.lost_date || null,
-                    gain_date: opp.gain_date || null,
-                    origem_oportunidade: fields["ORIGEM OPORTUNIDADE"] || null,
-                    qualificacao: fields["QUALIFICACAO"] || null,
-                    status_orcamento: fields["Status Orcamento"] || null,
-                    lead_firstname: lead.firstname || null,
-                    lead_email: lead.email || null,
-                    lead_whatsapp: lead.whatsapp || null,
-                    archived: opp.archived || 0,
-                    synced_at: new Date().toISOString(),
-                    funil_id: funil.id,
-                    unidade_id: '[1]'
-                  };
-                  
-                  if (!existing || existing.length === 0) {
-                    // ➕ NÃO EXISTE - INSERIR
-                    const insertResponse = await fetch(`${SUPABASE_URL}/rest/v1/oportunidade_sprint`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${SUPABASE_KEY}`,
-                        'apikey': SUPABASE_KEY,
-                        'Accept-Profile': 'api'
-                      },
-                      body: JSON.stringify(mappedOpp)
-                    });
-                    
-                    if (insertResponse.ok) {
-                      totalInserted++;
-                      console.log(`    ➕ Inserida: ${opp.id} - ${opp.title}`);
-                    } else {
-                      console.error(`    ❌ Erro ao inserir ${opp.id}: ${insertResponse.status}`);
-                    }
-                    
-                  } else {
-                    // 🔄 EXISTE - VERIFICAR SE PRECISA ATUALIZAR
-                    const existingRecord = existing[0];
-                    const sprintHubDate = new Date(opp.updateDate);
-                    const supabaseDate = new Date(existingRecord.update_date);
-                    
-                    if (sprintHubDate > supabaseDate) {
-                      // SprintHub mais recente - atualizar
-                      const updateResponse = await fetch(`${SUPABASE_URL}/rest/v1/oportunidade_sprint?id=eq.${opp.id}`, {
-                        method: 'PATCH',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${SUPABASE_KEY}`,
-                          'apikey': SUPABASE_KEY,
-                          'Accept-Profile': 'api'
-                        },
-                        body: JSON.stringify(mappedOpp)
-                      });
-                      
-                      if (updateResponse.ok) {
-                        totalUpdated++;
-                        console.log(`    🔄 Atualizada: ${opp.id} - ${opp.title}`);
-                      } else {
-                        console.error(`    ❌ Erro ao atualizar ${opp.id}: ${updateResponse.status}`);
-                      }
-                    } else {
-                      totalSkipped++;
-                      console.log(`    ⚪ Já atualizada: ${opp.id}`);
-                    }
-                  }
-                  
-                  await new Promise(resolve => setTimeout(resolve, 100)); // Rate limiting
-                  
-                } catch (error) {
-                  console.error(`    ❌ Erro processando ${opp.id}:`, error);
-                }
-              }
-              
-              // Próxima página
-              page++;
-              await new Promise(resolve => setTimeout(resolve, 200)); // Rate limiting entre páginas
+        // Converter data ISO para data brasileira
+        const createDate = new Date(opp.createDate);
+        const createDateBR = createDate.toLocaleDateString('pt-BR'); // DD/MM/YYYY
+        const isToday = createDateBR === today;
+        
+        console.log(`   📅 ID ${opp.id}: createDate="${opp.createDate}" -> "${createDateBR}" === "${today}" = ${isToday ? '✅' : '❌'}`);
+        
+        return isToday;
+      });
+      
+      console.log(`📊 RESULTADO FILTRO: ${todayOpportunities.length} oportunidades criadas hoje`);
+      
+      if (todayOpportunities.length === 0) {
+        alert('✅ Nenhuma oportunidade criada hoje na etapa CADASTRO');
+        return;
+      }
+      
+      // 3. Mostrar quais foram encontradas
+      console.log('📋 OPORTUNIDADES CRIADAS HOJE:');
+      todayOpportunities.forEach((opp, index) => {
+        console.log(`   ${index + 1}. ID: ${opp.id} - ${opp.title} (${opp.createDate})`);
+      });
+      
+      // 4. CONFIRMAÇÃO ANTES DE INSERIR
+      const confirmInsert = confirm(
+        `🔍 CONFIRMAÇÃO FINAL\n\n` +
+        `Encontradas exatamente ${todayOpportunities.length} oportunidades CRIADAS hoje:\n\n` +
+        todayOpportunities.map((opp, i) => `${i+1}. ${opp.id} - ${opp.title}`).join('\n') +
+        `\n\nDeseja inserir APENAS essas ${todayOpportunities.length} oportunidades no Supabase?`
+      );
+      
+      if (!confirmInsert) {
+        alert('❌ Inserção cancelada pelo usuário');
+        return;
+      }
+      
+      console.log(`💾 4. Inserindo EXATAMENTE ${todayOpportunities.length} oportunidades no Supabase...`);
+      console.log(`🔒 LISTA FINAL CONFIRMADA:`, todayOpportunities.map(opp => opp.id));
+      
+      let inserted = 0;
+      let skipped = 0;
+      let errors = 0;
+      
+      // LOOP SEGURO - processar APENAS as oportunidades filtradas
+      for (let i = 0; i < todayOpportunities.length; i++) {
+        const opp = todayOpportunities[i];
+        
+        console.log(`\n🔄 [${i+1}/${todayOpportunities.length}] Processando ID: ${opp.id}`);
+        
+        try {
+          // Verificar se já existe
+          const checkResponse = await fetch(`${SUPABASE_URL}/rest/v1/oportunidade_sprint?id=eq.${opp.id}&select=id`, {
+            headers: {
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+              'apikey': SUPABASE_KEY,
+              'Accept-Profile': 'api'
             }
-            
-            console.log(`  ✅ Etapa ${stageId} concluída: ${stageOppCount} total, ${stageTodayCount} de hoje`);
-            await new Promise(resolve => setTimeout(resolve, 300)); // Rate limiting entre etapas
-            
-            await new Promise(resolve => setTimeout(resolve, 200)); // Rate limiting entre etapas
-          } catch (error) {
-            console.error(`❌ Erro na etapa ${stageId}:`, error);
+          });
+          
+          const existsData = await checkResponse.json();
+          
+          if (existsData.length > 0) {
+            skipped++;
+            console.log(`   ⚪ JÁ EXISTE: ${opp.id} - ${opp.title}`);
+            continue;
           }
+          
+          // Mapear campos
+          const fields = opp.fields || {};
+          const lead = opp.dataLead || {};
+          const utmTags = (lead.utmTags && lead.utmTags[0]) || {};
+          
+          const mappedData = {
+            id: opp.id,
+            title: opp.title,
+            value: parseFloat(opp.value) || 0.00,
+            crm_column: opp.crm_column,
+            lead_id: opp.lead_id,
+            status: opp.status,
+            loss_reason: opp.loss_reason || null,
+            gain_reason: opp.gain_reason || null,
+            user_id: opp.user || null,
+            create_date: opp.createDate ? new Date(opp.createDate).toISOString() : null,
+            update_date: opp.updateDate ? new Date(opp.updateDate).toISOString() : null,
+            lost_date: opp.lost_date || null,
+            gain_date: opp.gain_date || null,
+            origem_oportunidade: fields["ORIGEM OPORTUNIDADE"] || null,
+            qualificacao: fields["QUALIFICACAO"] || null,
+            status_orcamento: fields["Status Orcamento"] || null,
+            utm_source: utmTags.utmSource || null,
+            utm_campaign: utmTags.utmCampaign || null,
+            utm_medium: utmTags.utmMedium || null,
+            lead_firstname: lead.firstname || null,
+            lead_email: lead.email || null,
+            lead_whatsapp: lead.whatsapp || null,
+            archived: opp.archived || 0,
+            synced_at: new Date().toISOString(),
+            funil_id: 6,
+            unidade_id: '[1]'
+          };
+          
+          console.log(`   💾 Inserindo: ${opp.id} - ${opp.title}`);
+          
+          // Inserir
+          const insertResponse = await fetch(`${SUPABASE_URL}/rest/v1/oportunidade_sprint`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+              'apikey': SUPABASE_KEY,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api'
+            },
+            body: JSON.stringify(mappedData)
+          });
+          
+          if (insertResponse.ok) {
+            inserted++;
+            console.log(`   ✅ INSERIDO: ${opp.id} - ${opp.title}`);
+          } else {
+            errors++;
+            console.log(`   ❌ ERRO: ${opp.id} - Status: ${insertResponse.status}`);
+          }
+          
+          // Rate limiting
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+        } catch (error) {
+          errors++;
+          console.error(`   ❌ ERRO: ${opp.id} - ${error.message}`);
         }
       }
       
-      console.log('\n' + '='.repeat(60));
-      console.log('📊 RELATÓRIO FINAL - SINCRONIZAÇÃO DE HOJE');
-      console.log('='.repeat(60));
-      console.log(`📈 Total processadas: ${totalProcessed}`);
-      console.log(`➕ Total inseridas: ${totalInserted}`);
-      console.log(`🔄 Total atualizadas: ${totalUpdated}`);
-      console.log(`⚪ Total já atualizadas: ${totalSkipped}`);
-      console.log('='.repeat(60));
+      console.log(`\n🔒 CONTROLE FINAL:`);
+      console.log(`   📋 Array original: ${todayOpportunities.length} itens`);
+      console.log(`   ✅ Inseridas: ${inserted}`);
+      console.log(`   ⚪ Já existiam: ${skipped}`);  
+      console.log(`   ❌ Erros: ${errors}`);
+      console.log(`   🧮 Total processado: ${inserted + skipped + errors}`)
       
-      const message = `✅ Sincronização de HOJE concluída!\n\n` +
-        `📊 Processadas: ${totalProcessed}\n` +
-        `➕ Inseridas: ${totalInserted}\n` +
-        `🔄 Atualizadas: ${totalUpdated}\n` +
-        `⚪ Já atualizadas: ${totalSkipped}\n\n` +
-        `🔍 Agora verifique no Supabase - deve ter exatamente 198 oportunidades de hoje!`;
+      // 5. Relatório final
+      const message = 
+        `✅ SINCRONIZAÇÃO CONCLUÍDA!\n\n` +
+        `📅 Data: ${today}\n` +
+        `🎯 Etapa: CADASTRO (232)\n\n` +
+        `📊 RESULTADO:\n` +
+        `• Total na etapa: ${allOpportunities.length}\n` +
+        `• Criadas hoje: ${todayOpportunities.length}\n` +
+        `• ✅ Inseridas: ${inserted}\n` +
+        `• ⚪ Já existiam: ${skipped}\n` +
+        `• ❌ Erros: ${errors}`;
       
       alert(message);
       
     } catch (error) {
-      console.error('❌ Erro na sincronização de hoje:', error);
-      alert('❌ Erro na sincronização. Verifique o console para detalhes.');
+      console.error('❌ Erro:', error);
+      alert(`❌ Erro: ${error.message}`);
     } finally {
       setIsSyncingToday(false);
+    }
+  };
+
+  // Função para limpar duplicatas
+  const handleCleanDuplicates = async () => {
+    if (isCleaningDuplicates) return;
+    
+    setIsCleaningDuplicates(true);
+    console.log('🧹 Iniciando limpeza de duplicatas...');
+    
+    try {
+      // Primeiro, gerar relatório
+      const report = await generateDuplicateReport();
+      
+      if (report.duplicates === 0) {
+        alert('✅ Nenhuma duplicata encontrada!');
+        return;
+      }
+      
+      const confirmClean = confirm(
+        `🔍 Encontradas ${report.duplicates} grupos de duplicatas (${report.totalRecords} registros duplicados).\n\n` +
+        `Deseja remover as duplicatas? (Mantém apenas o registro mais recente)`
+      );
+      
+      if (!confirmClean) {
+        console.log('❌ Limpeza cancelada pelo usuário');
+        return;
+      }
+      
+      // Executar limpeza
+      const result = await performFullCleanup();
+      
+      if (result.success) {
+        alert(`✅ Limpeza concluída!\n\n` +
+          `🧹 Duplicatas removidas: ${result.removed}\n` +
+          `📊 Grupos processados: ${result.processed}`);
+      } else {
+        alert(`❌ Erro na limpeza: ${result.error}`);
+      }
+      
+    } catch (error) {
+      console.error('❌ Erro na limpeza de duplicatas:', error);
+      alert('❌ Erro na limpeza. Verifique o console para detalhes.');
+    } finally {
+      setIsCleaningDuplicates(false);
+    }
+  };
+
+  // Função para sincronização completa
+  const handleFullSync = async () => {
+    if (isFullSyncing) return;
+    
+    const confirmSync = confirm(
+      '⚠️ ATENÇÃO: Sincronização completa irá processar TODAS as oportunidades!\n\n' +
+      'Isso pode demorar vários minutos e fazer muitas operações no banco.\n\n' +
+      'Deseja continuar?'
+    );
+    
+    if (!confirmSync) return;
+    
+    setIsFullSyncing(true);
+    console.log('🔄 Iniciando sincronização COMPLETA...');
+    
+    try {
+      const result = await syncAll({
+        onProgress: (progress) => {
+          console.log(`📊 Progresso: ${progress.stage} - ${progress.status}`);
+        }
+      });
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      const message = `✅ Sincronização COMPLETA concluída!\n\n` +
+        `📊 Processadas: ${result.totalProcessed}\n` +
+        `➕ Inseridas: ${result.totalInserted}\n` +
+        `🔄 Atualizadas: ${result.totalUpdated}\n` +
+        `⚪ Já atualizadas: ${result.totalSkipped}\n` +
+        `❌ Erros: ${result.totalErrors}\n` +
+        `⏱️ Duração: ${result.duration}s`;
+      
+      alert(message);
+                  
+                } catch (error) {
+      console.error('❌ Erro na sincronização completa:', error);
+      alert(`❌ Erro na sincronização: ${error.message}`);
+    } finally {
+      setIsFullSyncing(false);
+    }
+  };
+
+  // Função para verificar sincronização
+  const handleCheckSync = async () => {
+    if (isCheckingSync) return;
+    
+    setIsCheckingSync(true);
+    console.log('🔍 Verificando sincronização...');
+    
+    try {
+      const result = await checkFullSync();
+      
+      if (result.error) {
+        throw new Error(result.error);
+      }
+      
+      const message = `📊 RELATÓRIO DE SINCRONIZAÇÃO\n\n` +
+        `📈 SprintHub: ${result.totalSprintHub.toLocaleString()} oportunidades\n` +
+        `✅ Supabase: ${result.totalSupabase.toLocaleString()} oportunidades\n` +
+        `❌ Faltando: ${result.totalMissing.toLocaleString()} oportunidades\n` +
+        `📊 Taxa: ${result.percentualGeral}%\n` +
+        `⏱️ Duração: ${result.duration}s`;
+      
+      alert(message);
+      
+    } catch (error) {
+      console.error('❌ Erro na verificação:', error);
+      alert(`❌ Erro na verificação: ${error.message}`);
+    } finally {
+      setIsCheckingSync(false);
     }
   };
 
@@ -428,7 +568,7 @@ const TopMenuBar = ({
             <button 
               className={`tmb-sync-btn ${isSyncing ? 'syncing' : ''}`}
               onClick={handleSync}
-              disabled={isSyncing || isSyncingToday}
+              disabled={isSyncing || isSyncingToday || isCleaningDuplicates || isFullSyncing || isCheckingSync}
               title="Sincronizar dados do SprintHub"
             >
               {isSyncing ? (
@@ -446,7 +586,7 @@ const TopMenuBar = ({
             <button 
               className={`tmb-sync-btn ${isSyncingToday ? 'syncing' : ''}`}
               onClick={handleSyncToday}
-              disabled={isSyncing || isSyncingToday}
+              disabled={isSyncing || isSyncingToday || isCleaningDuplicates || isFullSyncing || isCheckingSync}
               title="Sincronizar oportunidades faltantes de hoje"
               style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
             >
@@ -458,6 +598,63 @@ const TopMenuBar = ({
               ) : (
                 <>
                   📅 Hoje
+                </>
+              )}
+            </button>
+            
+            <button 
+              className={`tmb-sync-btn ${isCleaningDuplicates ? 'syncing' : ''}`}
+              onClick={handleCleanDuplicates}
+              disabled={isSyncing || isSyncingToday || isCleaningDuplicates || isFullSyncing || isCheckingSync}
+              title="Limpar duplicatas no Supabase"
+              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}
+            >
+              {isCleaningDuplicates ? (
+                <>
+                  <span className="tmb-sync-spinner"></span>
+                  Limpando...
+                </>
+              ) : (
+                <>
+                  🧹 Limpar
+                </>
+              )}
+            </button>
+            
+            <button 
+              className={`tmb-sync-btn ${isFullSyncing ? 'syncing' : ''}`}
+              onClick={handleFullSync}
+              disabled={isSyncing || isSyncingToday || isCleaningDuplicates || isFullSyncing || isCheckingSync}
+              title="Sincronização completa (TODAS as oportunidades)"
+              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' }}
+            >
+              {isFullSyncing ? (
+                <>
+                  <span className="tmb-sync-spinner"></span>
+                  Completa...
+                </>
+              ) : (
+                <>
+                  🔄 Completa
+                </>
+              )}
+            </button>
+            
+            <button 
+              className={`tmb-sync-btn ${isCheckingSync ? 'syncing' : ''}`}
+              onClick={handleCheckSync}
+              disabled={isSyncing || isSyncingToday || isCleaningDuplicates || isFullSyncing || isCheckingSync}
+              title="Verificar status da sincronização"
+              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' }}
+            >
+              {isCheckingSync ? (
+                <>
+                  <span className="tmb-sync-spinner"></span>
+                  Verificando...
+                </>
+              ) : (
+                <>
+                  🔍 Verificar
                 </>
               )}
             </button>
