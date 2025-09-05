@@ -337,6 +337,105 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
       }
     }
 
+    // 6. BUSCAR DADOS DE SOURCES (ORIGENS DAS OPORTUNIDADES)
+    console.log('🔍 Buscando dados de sources...');
+    
+    // Buscar oportunidades abertas com origem para calcular sources
+    const sourcesUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=origem_oportunidade,utm_source&archived=eq.0&status=eq.open${funilFilter}${sellerFilter}`;
+    
+    const sourcesResponse = await fetch(sourcesUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+        'Content-Profile': supabaseSchema
+      }
+    });
+
+    let sourcesData = {
+      google: { abertas: 0, criadas: 0 },
+      meta: { abertas: 0, criadas: 0 },
+      organico: { abertas: 0, criadas: 0 },
+      whatsapp: { abertas: 0, criadas: 0 },
+      prescritor: { abertas: 0, criadas: 0 },
+      franquia: { abertas: 0, criadas: 0 },
+      total: criadasPeriodoTotal
+    };
+
+    if (sourcesResponse.ok) {
+      const sourcesOpps = await sourcesResponse.json();
+      console.log(`✅ Oportunidades para sources: ${sourcesOpps.length}`);
+      
+      // Contar por origem
+      sourcesOpps.forEach(opp => {
+        const origem = opp.origem_oportunidade || opp.utm_source || 'whatsapp';
+        const origemLower = origem.toLowerCase();
+        
+        if (origemLower.includes('google') || origemLower.includes('ads')) {
+          sourcesData.google.abertas++;
+        } else if (origemLower.includes('meta') || origemLower.includes('facebook') || origemLower.includes('instagram')) {
+          sourcesData.meta.abertas++;
+        } else if (origemLower.includes('organico') || origemLower.includes('orgânico') || origemLower.includes('organic')) {
+          sourcesData.organico.abertas++;
+        } else if (origemLower.includes('whatsapp') || origemLower.includes('zap')) {
+          sourcesData.whatsapp.abertas++;
+        } else if (origemLower.includes('prescritor') || origemLower.includes('prescrição')) {
+          sourcesData.prescritor.abertas++;
+        } else if (origemLower.includes('franquia') || origemLower.includes('franchise')) {
+          sourcesData.franquia.abertas++;
+        } else {
+          // Default para WhatsApp se não identificar
+          sourcesData.whatsapp.abertas++;
+        }
+      });
+      
+      // Buscar oportunidades criadas no período por origem
+      const sourcesCriadasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=origem_oportunidade,utm_source&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${funilFilter}${sellerFilter}`;
+      
+      const sourcesCriadasResponse = await fetch(sourcesCriadasUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': supabaseSchema,
+          'Content-Profile': supabaseSchema
+        }
+      });
+
+      if (sourcesCriadasResponse.ok) {
+        const sourcesCriadasOpps = await sourcesCriadasResponse.json();
+        console.log(`✅ Oportunidades criadas para sources: ${sourcesCriadasOpps.length}`);
+        
+        sourcesCriadasOpps.forEach(opp => {
+          const origem = opp.origem_oportunidade || opp.utm_source || 'whatsapp';
+          const origemLower = origem.toLowerCase();
+          
+          if (origemLower.includes('google') || origemLower.includes('ads')) {
+            sourcesData.google.criadas++;
+          } else if (origemLower.includes('meta') || origemLower.includes('facebook') || origemLower.includes('instagram')) {
+            sourcesData.meta.criadas++;
+          } else if (origemLower.includes('organico') || origemLower.includes('orgânico') || origemLower.includes('organic')) {
+            sourcesData.organico.criadas++;
+          } else if (origemLower.includes('whatsapp') || origemLower.includes('zap')) {
+            sourcesData.whatsapp.criadas++;
+          } else if (origemLower.includes('prescritor') || origemLower.includes('prescrição')) {
+            sourcesData.prescritor.criadas++;
+          } else if (origemLower.includes('franquia') || origemLower.includes('franchise')) {
+            sourcesData.franquia.criadas++;
+          } else {
+            sourcesData.whatsapp.criadas++;
+          }
+        });
+      }
+      
+      console.log('📊 Sources data calculado:', sourcesData);
+    } else {
+      console.log('⚠️ Erro ao buscar dados de sources, usando valores padrão');
+    }
+
     const resultadoCompleto = {
       etapas: resultado,
       conversaoGeral: {
@@ -345,7 +444,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
         taxaConversao: criadasPeriodoTotal > 0 ? ((fechadasHoje ? fechadasHoje.length : 0) / criadasPeriodoTotal) * 100 : 0,
         valorTotal: valorTotalFechadas || 0,
         ticketMedio: (fechadasHoje && fechadasHoje.length > 0) ? (valorTotalFechadas || 0) / fechadasHoje.length : 0
-      }
+      },
+      sourcesData: sourcesData
     };
 
     return resultadoCompleto;
