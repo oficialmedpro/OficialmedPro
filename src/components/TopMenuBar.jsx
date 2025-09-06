@@ -7,6 +7,7 @@ import autoSyncService from '../service/autoSyncService';
 // import { syncTodayOnly, syncAll, checkFullSync } from '../service/unifiedSyncService';
 // import todaySyncService from '../service/todaySyncService';
 // import detacorretaIncremental from '../service/detacorreta_incremental';
+import dailySyncService from '../service/dailySyncService';
 import './TopMenuBar.css';
 
 // Importar ícones SVG
@@ -32,6 +33,10 @@ const TopMenuBar = ({
   const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
   const [isFullSyncing, setIsFullSyncing] = useState(false);
   const [isCheckingSync, setIsCheckingSync] = useState(false);
+  const [isDailySyncRunning, setIsDailySyncRunning] = useState(false);
+  const [isTestingDailySync, setIsTestingDailySync] = useState(false);
+  const [isTestingAllOpen, setIsTestingAllOpen] = useState(false);
+  const [isSyncingWeekly, setIsSyncingWeekly] = useState(false);
   const languageDropdownRef = useRef(null);
   
   // Verificar se é admin (temporário - baseado nas credenciais fixas)
@@ -380,6 +385,1040 @@ const TopMenuBar = ({
     alert('🚧 Função temporariamente desabilitada - em manutenção');
   };
 
+  // 🕒 CONTROLE DO SERVIÇO DIÁRIO
+  const handleStartDailySync = async () => {
+    try {
+      const confirmStart = confirm(
+        '🚀 INICIAR SINCRONIZAÇÃO DIÁRIA AUTOMÁTICA\n\n' +
+        '🎯 O que vai acontecer:\n' +
+        '• Executa AGORA mesmo (imediatamente)\n' +
+        '• Depois executa todos os dias às 08:00\n' +
+        '• Sincroniza TODAS as etapas do funil 6\n' +
+        '• Busca apenas oportunidades criadas no dia anterior\n' +
+        '• Insere apenas registros novos (evita duplicatas)\n\n' +
+        'Deseja iniciar o serviço?'
+      );
+      
+      if (!confirmStart) return;
+      
+      const result = dailySyncService.startDailySync({ hour: 8, minute: 0, runNow: true });
+      
+      setIsDailySyncRunning(true);
+      
+      alert(
+        `🚀 SINCRONIZAÇÃO DIÁRIA INICIADA!\n\n` +
+        `✅ Executando AGORA mesmo...\n` +
+        `⏰ Próxima execução automática: ${new Date(result.nextRun).toLocaleString('pt-BR')}\n` +
+        `🔄 Depois executa todos os dias às 08:00\n\n` +
+        `Verifique o console para acompanhar o progresso!`
+      );
+      
+      console.log('✅ Sincronização diária iniciada:', result);
+      
+    } catch (error) {
+      console.error('❌ Erro ao iniciar sincronização diária:', error);
+      alert(`❌ Erro ao iniciar: ${error.message}`);
+    }
+  };
+
+  const handleStopDailySync = async () => {
+    try {
+      const confirmStop = confirm(
+        '🛑 PARAR SINCRONIZAÇÃO DIÁRIA\n\n' +
+        'Isso irá parar o serviço automático de sincronização.\n' +
+        'Você pode reinitiá-lo a qualquer momento.\n\n' +
+        'Deseja parar o serviço?'
+      );
+      
+      if (!confirmStop) return;
+      
+      const result = dailySyncService.stopDailySync();
+      
+      setIsDailySyncRunning(false);
+      
+      alert('🛑 Sincronização diária parada com sucesso!');
+      console.log('🛑 Sincronização diária parada:', result);
+      
+    } catch (error) {
+      console.error('❌ Erro ao parar sincronização diária:', error);
+      alert(`❌ Erro ao parar: ${error.message}`);
+    }
+  };
+
+  const handleTestDailySync = async () => {
+    if (isTestingDailySync) return;
+    
+    const confirmTest = confirm(
+      '🧪 TESTAR SINCRONIZAÇÃO DIÁRIA\n\n' +
+      '🔍 Modo de teste (DRY RUN):\n' +
+      '• Simula sincronização do dia anterior\n' +
+      '• NÃO insere dados reais no banco\n' +
+      '• Mostra quantas oportunidades seriam sincronizadas\n' +
+      '• Útil para verificar se está funcionando\n\n' +
+      'Deseja executar o teste?'
+    );
+    
+    if (!confirmTest) return;
+    
+    setIsTestingDailySync(true);
+    
+    try {
+      console.log('🧪 Iniciando teste de sincronização diária...');
+      
+      const result = await dailySyncService.testDailySync();
+      
+      if (result.success) {
+        alert(
+          `🧪 TESTE CONCLUÍDO!\n\n` +
+          `📅 Data testada: ${result.targetDate}\n` +
+          `🔍 Total encontradas: ${result.totalFound}\n` +
+          `✅ Seriam inseridas: ${result.totalInserted}\n` +
+          `⚪ Já existiam: ${result.totalSkipped}\n` +
+          `❌ Erros: ${result.totalErrors}\n` +
+          `⏱️ Duração: ${result.duration}s\n\n` +
+          'Verifique o console para detalhes completos.'
+        );
+      } else {
+        alert(`❌ Teste falhou: ${result.error}`);
+      }
+      
+      console.log('🧪 Resultado do teste:', result);
+      
+    } catch (error) {
+      console.error('❌ Erro no teste:', error);
+      alert(`❌ Erro no teste: ${error.message}`);
+    } finally {
+      setIsTestingDailySync(false);
+    }
+  };
+
+  // 🎯 BUSCAR ETAPA 83 (NEGOCIAÇÃO) COM STATUS="OPEN" E PAGINAÇÃO COMPLETA
+  const handleTestAllOpenOpportunities = async () => {
+    if (isTestingAllOpen) return;
+    
+    const confirmTest = confirm(
+      '🎯 SINCRONIZAÇÃO COMPLETA — TODAS ETAPAS ABERTAS\n\n' +
+      '🔍 O que será executado:\n' +
+      '• Buscar funil 6, TODAS as 7 etapas\n' +
+      '• Filtrar apenas status="open"\n' +
+      '• Paginação completa (todas as páginas)\n' +
+      '• INSERIR registros novos no Supabase\n' +
+      '• ATUALIZAR registros existentes\n' +
+      '• Log detalhado por etapa e operação\n' +
+      '• Resumo final com estatísticas completas\n\n' +
+      '⚠️ ATENÇÃO: Irá INSERIR/ATUALIZAR dados no banco!\n\n' +
+      'Deseja continuar com a sincronização completa?'
+    );
+    
+    if (!confirmTest) return;
+    
+    setIsTestingAllOpen(true);
+    
+    const startTime = performance.now();
+    
+    try {
+      console.log('🎯 INICIANDO SINCRONIZAÇÃO COMPLETA — TODAS ETAPAS ABERTAS');
+      console.log('='.repeat(80));
+      console.log(`🕒 Início: ${new Date().toLocaleTimeString('pt-BR')}`);
+      
+      // Configurações da API
+      const SPRINTHUB_CONFIG = {
+        baseUrl: 'sprinthub-api-master.sprinthub.app',
+        apiToken: '9ad36c85-5858-4960-9935-e73c3698dd0c',
+        instance: 'oficialmed'
+      };
+      
+      const SUPABASE_CONFIG = {
+        url: import.meta.env.VITE_SUPABASE_URL,
+        serviceRoleKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+      };
+      
+      const TARGET_FUNNEL = 6;
+      const TARGET_STATUS = 'open';
+      const PAGE_LIMIT = 100; // Limite máximo da API
+      
+      // 📋 TODAS AS ETAPAS DO FUNIL 6 (baseado no dailySyncService.js)
+      const FUNIL_6_STAGES = [
+        { id: 130, name: "[0] ENTRADA" },
+        { id: 231, name: "[1] ACOLHIMENTO/TRIAGEM" },
+        { id: 82, name: "[2] QUALIFICADO" },
+        { id: 207, name: "[3] ORÇAMENTO REALIZADO" },
+        { id: 83, name: "[4] NEGOCIAÇÃO" },
+        { id: 85, name: "[5] FOLLOW UP" },
+        { id: 232, name: "[6] CADASTRO" }
+      ];
+      
+      console.log('🎯 CONFIGURAÇÃO DA SINCRONIZAÇÃO:');
+      console.log(`   📊 Funil: ${TARGET_FUNNEL} (COMERCIAL APUCARANA)`);
+      console.log(`   📋 Etapas: ${FUNIL_6_STAGES.length} etapas (TODAS)`);
+      console.log(`   🔓 Status: "${TARGET_STATUS}"`);
+      console.log(`   📄 Limit por página: ${PAGE_LIMIT}`);
+      console.log('='.repeat(80));
+      
+      // 💾 FUNÇÃO PARA MAPEAR CAMPOS (baseada no sprintHubSyncService.js)
+      const mapOpportunityFields = (opportunity) => {
+        const fields = opportunity.fields || {};
+        const lead = opportunity.dataLead || {};
+        const utmTags = (lead.utmTags && lead.utmTags[0]) || {};
+
+        return {
+          id: opportunity.id,
+          title: opportunity.title,
+          value: parseFloat(opportunity.value) || 0.00,
+          crm_column: opportunity.crm_column,
+          lead_id: opportunity.lead_id,
+          status: opportunity.status,
+          loss_reason: opportunity.loss_reason || null,
+          gain_reason: opportunity.gain_reason || null,
+          user_id: opportunity.user || null,
+          
+          // Datas importantes
+          create_date: opportunity.createDate ? new Date(opportunity.createDate).toISOString() : null,
+          update_date: opportunity.updateDate ? new Date(opportunity.updateDate).toISOString() : null,
+          lost_date: opportunity.lost_date || null,
+          gain_date: opportunity.gain_date || null,
+          
+          // Campos específicos
+          origem_oportunidade: fields["ORIGEM OPORTUNIDADE"] || null,
+          qualificacao: fields["QUALIFICACAO"] || null,
+          status_orcamento: fields["Status Orcamento"] || null,
+          
+          // UTM
+          utm_source: utmTags.utmSource || null,
+          utm_campaign: utmTags.utmCampaign || null,
+          utm_medium: utmTags.utmMedium || null,
+          
+          // Lead
+          lead_firstname: lead.firstname || null,
+          lead_email: lead.email || null,
+          lead_whatsapp: lead.whatsapp || null,
+          
+          // Controle
+          archived: opportunity.archived || 0,
+          synced_at: new Date().toISOString(),
+          
+          // Funil
+          funil_id: TARGET_FUNNEL,
+          unidade_id: '[1]'
+        };
+      };
+      
+      // 🔍 FUNÇÃO PARA VERIFICAR SE EXISTE NO SUPABASE (com dados para comparação)
+      const checkInSupabase = async (opportunityId) => {
+        try {
+          const response = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/oportunidade_sprint?id=eq.${opportunityId}&select=id,update_date`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
+              'apikey': SUPABASE_CONFIG.serviceRoleKey,
+              'Accept-Profile': 'api'
+            }
+          });
+
+          if (!response.ok) return null;
+          
+          const data = await response.json();
+          return Array.isArray(data) && data.length > 0 ? data[0] : null;
+          
+        } catch (error) {
+          console.error(`❌ Erro ao verificar ID ${opportunityId}:`, error);
+          return null;
+        }
+      };
+      
+      // 💾 FUNÇÃO PARA INSERIR NO SUPABASE
+      const insertToSupabase = async (data) => {
+        try {
+          const response = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/oportunidade_sprint`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
+              'apikey': SUPABASE_CONFIG.serviceRoleKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api',
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(data)
+          });
+
+          return { success: response.ok, status: response.status };
+          
+        } catch (error) {
+          console.error('❌ Erro ao inserir:', error);
+          return { success: false, error: error.message };
+        }
+      };
+      
+      // 🔄 FUNÇÃO PARA ATUALIZAR NO SUPABASE
+      const updateInSupabase = async (opportunityId, data) => {
+        try {
+          const response = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/oportunidade_sprint?id=eq.${opportunityId}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
+              'apikey': SUPABASE_CONFIG.serviceRoleKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api',
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(data)
+          });
+
+          return { success: response.ok, status: response.status };
+          
+        } catch (error) {
+          console.error('❌ Erro ao atualizar:', error);
+          return { success: false, error: error.message };
+        }
+      };
+      
+      let allOpportunities = [];
+      let totalApiCalls = 0;
+      
+      // Estatísticas globais
+      let totalInserted = 0;
+      let totalUpdated = 0;
+      let totalSkipped = 0;
+      let totalErrors = 0;
+      
+      // 🔄 PROCESSAR CADA ETAPA DO FUNIL
+      for (const stage of FUNIL_6_STAGES) {
+        console.log(`\n📋 PROCESSANDO ETAPA: ${stage.name} (ID: ${stage.id})`);
+        console.log('-'.repeat(60));
+        
+        let currentPage = 0;
+        let hasMorePages = true;
+        let stageOpportunities = [];
+        let stageInserted = 0;
+        let stageUpdated = 0;
+        let stageSkipped = 0;
+        let stageErrors = 0;
+        
+        // Paginação completa para esta etapa
+        while (hasMorePages) {
+          totalApiCalls++;
+          console.log(`\n📄 ${stage.name} - Página ${currentPage + 1}:`);
+          console.log(`🔍 Buscando etapa ${stage.id}, página ${currentPage}, limit ${PAGE_LIMIT}...`);
+        
+          try {
+            const postData = JSON.stringify({ 
+              page: currentPage, 
+              limit: PAGE_LIMIT, 
+              columnId: stage.id 
+            });
+            
+            const pageStartTime = performance.now();
+            
+            const response = await fetch(`https://${SPRINTHUB_CONFIG.baseUrl}/crm/opportunities/${TARGET_FUNNEL}?apitoken=${SPRINTHUB_CONFIG.apiToken}&i=${SPRINTHUB_CONFIG.instance}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: postData
+            });
+            
+            const pageEndTime = performance.now();
+            const pageTime = (pageEndTime - pageStartTime).toFixed(0);
+            
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error(`❌ Erro HTTP ${response.status} na página ${currentPage + 1}:`, errorText);
+              break;
+            }
+            
+            const pageOpportunities = await response.json();
+            const opportunitiesArray = Array.isArray(pageOpportunities) ? pageOpportunities : [];
+            
+            console.log(`📊 Página ${currentPage + 1}: ${opportunitiesArray.length} registros retornados (${pageTime}ms)`);
+            
+            // Verificar se há dados na página
+            if (opportunitiesArray.length === 0) {
+              console.log('🏁 Página vazia - fim da paginação desta etapa');
+              hasMorePages = false;
+            } else {
+              // Filtrar apenas status="open" nesta página
+              const openOppsThisPage = opportunitiesArray.filter(opp => opp.status === TARGET_STATUS);
+              
+              console.log(`   🔓 Status "open" nesta página: ${openOppsThisPage.length}/${opportunitiesArray.length}`);
+              
+              // 💾 PROCESSAR E INSERIR/ATUALIZAR CADA OPORTUNIDADE
+              if (openOppsThisPage.length > 0) {
+                console.log(`   💾 Processando ${openOppsThisPage.length} oportunidades...`);
+                
+                for (const opp of openOppsThisPage) {
+                  try {
+                    // Verificar se já existe (com dados para comparação)
+                    const existingRecord = await checkInSupabase(opp.id);
+                    const mappedData = mapOpportunityFields(opp);
+                    
+                    if (!existingRecord) {
+                      // INSERIR: Registro não existe
+                      const result = await insertToSupabase(mappedData);
+                      
+                      if (result.success) {
+                        totalInserted++;
+                        stageInserted++;
+                        console.log(`     ✅ INSERIDO: ${opp.id} - ${opp.title}`);
+                      } else {
+                        totalErrors++;
+                        stageErrors++;
+                        console.log(`     ❌ Erro inserção: ${opp.id} - Status: ${result.status}`);
+                      }
+                    } else {
+                      // ATUALIZAR: Verificar se precisa atualizar
+                      const sprintHubDate = new Date(opp.updateDate);
+                      const supabaseDate = new Date(existingRecord.update_date);
+                      
+                      if (sprintHubDate > supabaseDate) {
+                        // Dados do SprintHub são mais recentes
+                        const result = await updateInSupabase(opp.id, mappedData);
+                        
+                        if (result.success) {
+                          totalUpdated++;
+                          stageUpdated++;
+                          console.log(`     🔄 ATUALIZADO: ${opp.id} - ${opp.title}`);
+                        } else {
+                          totalErrors++;
+                          stageErrors++;
+                          console.log(`     ❌ Erro atualização: ${opp.id} - Status: ${result.status}`);
+                        }
+                      } else {
+                        // Dados já estão atualizados
+                        totalSkipped++;
+                        stageSkipped++;
+                        console.log(`     ⚪ Já atualizado: ${opp.id} - ${opp.title}`);
+                      }
+                    }
+                    
+                    // Rate limiting entre operações
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                  } catch (error) {
+                    totalErrors++;
+                    stageErrors++;
+                    console.error(`     ❌ Erro processando ${opp.id}:`, error);
+                  }
+                }
+                
+                // Mostrar resumo da página
+                console.log(`   📊 Página processada: ${stageInserted} inseridas | ${stageUpdated} atualizadas | ${stageSkipped} já atualizadas | ${stageErrors} erros`);
+              }
+              
+              // Adicionar ao array geral
+              stageOpportunities.push(...openOppsThisPage);
+              
+              // Se retornou menos que o limite, é a última página
+              if (opportunitiesArray.length < PAGE_LIMIT) {
+                console.log('🏁 Última página desta etapa detectada (< limite)');
+                hasMorePages = false;
+              } else {
+                currentPage++;
+              }
+            }
+            
+            // Rate limiting entre páginas
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+          } catch (error) {
+            console.error(`❌ Erro na página ${currentPage + 1} da etapa ${stage.name}:`, error);
+            hasMorePages = false;
+          }
+        }
+        
+        // Resumo da etapa
+        console.log(`\n📊 RESUMO ETAPA ${stage.name}:`);
+        console.log(`   📊 Total encontradas: ${stageOpportunities.length}`);
+        console.log(`   ✅ Inseridas: ${stageInserted}`);
+        console.log(`   🔄 Atualizadas: ${stageUpdated}`);
+        console.log(`   ⚪ Já atualizadas: ${stageSkipped}`);
+        console.log(`   ❌ Erros: ${stageErrors}`);
+        
+        // Adicionar ao array geral para estatísticas finais
+        allOpportunities.push(...stageOpportunities);
+        
+        // Rate limiting entre etapas
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      const endTime = performance.now();
+      const totalTime = (endTime - startTime) / 1000; // em segundos
+      
+      // 📊 RELATÓRIO FINAL
+      console.log('\n' + '='.repeat(80));
+      console.log('📊 RELATÓRIO FINAL — SINCRONIZAÇÃO COMPLETA TODAS ETAPAS');
+      console.log('='.repeat(80));
+      console.log(`🕒 Tempo de execução: ${totalTime.toFixed(2)}s`);
+      console.log(`📋 Etapas processadas: ${FUNIL_6_STAGES.length}`);
+      console.log(`🔄 Total de chamadas à API: ${totalApiCalls}`);
+      console.log(`📊 Total registros encontrados: ${allOpportunities.length}`);
+      console.log(`💾 ESTATÍSTICAS DE SINCRONIZAÇÃO:`);
+      console.log(`   ✅ Inseridos: ${totalInserted}`);
+      console.log(`   🔄 Atualizados: ${totalUpdated}`);
+      console.log(`   ⚪ Já atualizados: ${totalSkipped}`);
+      console.log(`   ❌ Erros: ${totalErrors}`);
+      
+      if (allOpportunities.length > 0) {
+        // IDs organizados
+        const allIds = allOpportunities.map(opp => opp.id).sort((a, b) => a - b);
+        const firstIds = allIds.slice(0, 5);
+        const lastIds = allIds.slice(-5);
+        
+        console.log(`🆔 Primeiros IDs: ${firstIds.join(', ')}`);
+        if (allOpportunities.length > 5) {
+          console.log(`🆔 Últimos IDs: ${lastIds.join(', ')}`);
+        }
+        
+        // Tabela resumo
+        console.log('\n📋 TABELA RESUMO:');
+        console.log('┌─────────────────────────────────┬──────────┐');
+        console.log('│ Métrica                         │ Valor    │');
+        console.log('├─────────────────────────────────┼──────────┤');
+        console.log(`│ Funil                           │ ${TARGET_FUNNEL}        │`);
+        console.log(`│ Etapas processadas              │ ${FUNIL_6_STAGES.length}        │`);
+        console.log(`│ Status filtrado                 │ ${TARGET_STATUS}     │`);
+        console.log(`│ Chamadas API                    │ ${totalApiCalls.toString().padEnd(8)} │`);
+        console.log(`│ Registros encontrados           │ ${allOpportunities.length.toString().padEnd(8)} │`);
+        console.log('├─────────────────────────────────┼──────────┤');
+        console.log(`│ ✅ Inseridos no Supabase        │ ${totalInserted.toString().padEnd(8)} │`);
+        console.log(`│ 🔄 Atualizados no Supabase      │ ${totalUpdated.toString().padEnd(8)} │`);
+        console.log(`│ ⚪ Já atualizados               │ ${totalSkipped.toString().padEnd(8)} │`);
+        console.log(`│ ❌ Erros                        │ ${totalErrors.toString().padEnd(8)} │`);
+        console.log('├─────────────────────────────────┼──────────┤');
+        console.log(`│ Tempo total (s)                 │ ${totalTime.toFixed(2).padEnd(8)} │`);
+        console.log(`│ Tempo médio por etapa (s)       │ ${FUNIL_6_STAGES.length > 0 ? (totalTime / FUNIL_6_STAGES.length).toFixed(2).padEnd(8) : '0'.padEnd(8)} │`);
+        console.log('└─────────────────────────────────┴──────────┘');
+        
+        // Amostra de dados
+        console.log('\n🔍 AMOSTRA DE DADOS (primeiras 3 oportunidades):');
+        allOpportunities.slice(0, 3).forEach((opp, index) => {
+          console.log(`\n${index + 1}. ID: ${opp.id}`);
+          console.log(`   📋 Título: ${opp.title}`);
+          console.log(`   💰 Valor: R$ ${parseFloat(opp.value || 0).toFixed(2)}`);
+          console.log(`   📅 Criação: ${opp.createDate ? new Date(opp.createDate).toLocaleDateString('pt-BR') : 'N/A'}`);
+          console.log(`   👤 Responsável: ${opp.user || 'N/A'}`);
+          console.log(`   🔗 Lead ID: ${opp.lead_id || 'N/A'}`);
+        });
+        
+      } else {
+        console.log('❌ Nenhuma oportunidade encontrada com os critérios especificados');
+      }
+      
+      console.log('\n='.repeat(80));
+      console.log('✅ SINCRONIZAÇÃO CONCLUÍDA COM SUCESSO!');
+      console.log(`🕒 Finalizada em: ${new Date().toLocaleTimeString('pt-BR')}`);
+      console.log('='.repeat(80));
+      
+      // Alert final
+      alert(
+        `🎯 SINCRONIZAÇÃO COMPLETA — TODAS ETAPAS\n\n` +
+        `✅ Sincronização concluída com sucesso!\n\n` +
+        `📊 RESULTADOS:\n` +
+        `• Etapas processadas: ${FUNIL_6_STAGES.length}\n` +
+        `• Registros encontrados: ${allOpportunities.length}\n` +
+        `• ✅ Inseridos: ${totalInserted}\n` +
+        `• 🔄 Atualizados: ${totalUpdated}\n` +
+        `• ⚪ Já atualizados: ${totalSkipped}\n` +
+        `• ❌ Erros: ${totalErrors}\n` +
+        `• ⏱️ Tempo total: ${totalTime.toFixed(2)}s\n\n` +
+        `🔍 Verifique o console para relatório completo!`
+      );
+      
+    } catch (error) {
+      console.error('❌ ERRO NO TESTE:', error);
+      console.error('Stack trace:', error.stack);
+      alert(`❌ Erro no teste: ${error.message}\n\nVerifique o console para mais detalhes.`);
+    } finally {
+      setIsTestingAllOpen(false);
+    }
+  };
+
+  // 📅 SINCRONIZAR OPORTUNIDADES CRIADAS NOS ÚLTIMOS 7 DIAS (TODOS OS STATUS)
+  const handleSyncWeeklyOpportunities = async () => {
+    if (isSyncingWeekly) return;
+    
+    // Calcular período dos últimos 7 dias
+    const now = new Date();
+    const sevenDaysAgo = new Date(now);
+    sevenDaysAgo.setDate(now.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(now);
+    endDate.setHours(23, 59, 59, 999);
+    
+    const confirmTest = confirm(
+      '📅 ATUALIZAÇÃO SEMANAL — ÚLTIMOS 7 DIAS\n\n' +
+      '🔍 O que será executado:\n' +
+      '• Buscar funil 6, TODAS as 7 etapas\n' +
+      '• Filtrar por data de CRIAÇÃO dos últimos 7 dias\n' +
+      '• TODOS os status (open, won, lost, etc.)\n' +
+      '• Paginação completa (todas as páginas)\n' +
+      '• INSERIR registros novos no Supabase\n' +
+      '• ATUALIZAR registros existentes\n' +
+      '• Log detalhado por etapa e operação\n\n' +
+      `📅 Período: ${sevenDaysAgo.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}\n\n` +
+      '⚠️ ATENÇÃO: Irá INSERIR/ATUALIZAR dados no banco!\n\n' +
+      'Deseja continuar com a atualização semanal?'
+    );
+    
+    if (!confirmTest) return;
+    
+    setIsSyncingWeekly(true);
+    
+    const startTime = performance.now();
+    
+    try {
+      console.log('📅 INICIANDO ATUALIZAÇÃO SEMANAL — ÚLTIMOS 7 DIAS');
+      console.log('='.repeat(80));
+      console.log(`🕒 Início: ${new Date().toLocaleTimeString('pt-BR')}`);
+      console.log(`📅 Período: ${sevenDaysAgo.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`);
+      
+      // Configurações da API
+      const SPRINTHUB_CONFIG = {
+        baseUrl: 'sprinthub-api-master.sprinthub.app',
+        apiToken: '9ad36c85-5858-4960-9935-e73c3698dd0c',
+        instance: 'oficialmed'
+      };
+      
+      const SUPABASE_CONFIG = {
+        url: import.meta.env.VITE_SUPABASE_URL,
+        serviceRoleKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+      };
+      
+      const TARGET_FUNNEL = 6;
+      const PAGE_LIMIT = 100;
+      
+      // 📋 TODAS AS ETAPAS DO FUNIL 6
+      const FUNIL_6_STAGES = [
+        { id: 130, name: "[0] ENTRADA" },
+        { id: 231, name: "[1] ACOLHIMENTO/TRIAGEM" },
+        { id: 82, name: "[2] QUALIFICADO" },
+        { id: 207, name: "[3] ORÇAMENTO REALIZADO" },
+        { id: 83, name: "[4] NEGOCIAÇÃO" },
+        { id: 85, name: "[5] FOLLOW UP" },
+        { id: 232, name: "[6] CADASTRO" }
+      ];
+      
+      console.log('🎯 CONFIGURAÇÃO DA ATUALIZAÇÃO SEMANAL:');
+      console.log(`   📊 Funil: ${TARGET_FUNNEL} (COMERCIAL APUCARANA)`);
+      console.log(`   📋 Etapas: ${FUNIL_6_STAGES.length} etapas (TODAS)`);
+      console.log(`   📅 Filtro: createDate dos últimos 7 dias (TODOS os status)`);
+      console.log(`   📄 Limit por página: ${PAGE_LIMIT}`);
+      console.log('='.repeat(80));
+      
+      // 💾 FUNÇÃO PARA VERIFICAR SE A DATA ESTÁ NOS ÚLTIMOS 7 DIAS
+      const isInLast7Days = (createDate) => {
+        if (!createDate) return false;
+        
+        try {
+          const oppDate = new Date(createDate);
+          return oppDate >= sevenDaysAgo && oppDate <= endDate;
+        } catch (error) {
+          return false;
+        }
+      };
+      
+      // 💾 FUNÇÃO PARA MAPEAR CAMPOS (baseada no sprintHubSyncService.js)
+      const mapOpportunityFields = (opportunity) => {
+        const fields = opportunity.fields || {};
+        const lead = opportunity.dataLead || {};
+        const utmTags = (lead.utmTags && lead.utmTags[0]) || {};
+
+        return {
+          id: opportunity.id,
+          title: opportunity.title,
+          value: parseFloat(opportunity.value) || 0.00,
+          crm_column: opportunity.crm_column,
+          lead_id: opportunity.lead_id,
+          status: opportunity.status,
+          loss_reason: opportunity.loss_reason || null,
+          gain_reason: opportunity.gain_reason || null,
+          user_id: opportunity.user || null,
+          
+          // Datas importantes
+          create_date: opportunity.createDate ? new Date(opportunity.createDate).toISOString() : null,
+          update_date: opportunity.updateDate ? new Date(opportunity.updateDate).toISOString() : null,
+          lost_date: opportunity.lost_date || null,
+          gain_date: opportunity.gain_date || null,
+          
+          // Campos específicos
+          origem_oportunidade: fields["ORIGEM OPORTUNIDADE"] || null,
+          qualificacao: fields["QUALIFICACAO"] || null,
+          status_orcamento: fields["Status Orcamento"] || null,
+          
+          // UTM
+          utm_source: utmTags.utmSource || null,
+          utm_campaign: utmTags.utmCampaign || null,
+          utm_medium: utmTags.utmMedium || null,
+          
+          // Lead
+          lead_firstname: lead.firstname || null,
+          lead_email: lead.email || null,
+          lead_whatsapp: lead.whatsapp || null,
+          
+          // Controle
+          archived: opportunity.archived || 0,
+          synced_at: new Date().toISOString(),
+          
+          // Funil
+          funil_id: TARGET_FUNNEL,
+          unidade_id: '[1]'
+        };
+      };
+      
+      // 🔍 FUNÇÃO PARA VERIFICAR SE EXISTE NO SUPABASE (com dados para comparação)
+      const checkInSupabase = async (opportunityId) => {
+        try {
+          const response = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/oportunidade_sprint?id=eq.${opportunityId}&select=id,update_date`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
+              'apikey': SUPABASE_CONFIG.serviceRoleKey,
+              'Accept-Profile': 'api'
+            }
+          });
+
+          if (!response.ok) return null;
+          
+          const data = await response.json();
+          return Array.isArray(data) && data.length > 0 ? data[0] : null;
+          
+        } catch (error) {
+          console.error(`❌ Erro ao verificar ID ${opportunityId}:`, error);
+          return null;
+        }
+      };
+      
+      // 💾 FUNÇÃO PARA INSERIR NO SUPABASE
+      const insertToSupabase = async (data) => {
+        try {
+          const response = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/oportunidade_sprint`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
+              'apikey': SUPABASE_CONFIG.serviceRoleKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api',
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(data)
+          });
+
+          return { success: response.ok, status: response.status };
+          
+        } catch (error) {
+          console.error('❌ Erro ao inserir:', error);
+          return { success: false, error: error.message };
+        }
+      };
+      
+      // 🔄 FUNÇÃO PARA ATUALIZAR NO SUPABASE
+      const updateInSupabase = async (opportunityId, data) => {
+        try {
+          const response = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/oportunidade_sprint?id=eq.${opportunityId}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
+              'apikey': SUPABASE_CONFIG.serviceRoleKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api',
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(data)
+          });
+
+          return { success: response.ok, status: response.status };
+          
+        } catch (error) {
+          console.error('❌ Erro ao atualizar:', error);
+          return { success: false, error: error.message };
+        }
+      };
+      
+      let allOpportunities = [];
+      let totalApiCalls = 0;
+      
+      // Estatísticas globais
+      let totalInserted = 0;
+      let totalUpdated = 0;
+      let totalSkipped = 0;
+      let totalErrors = 0;
+      
+      // 🔄 PROCESSAR CADA ETAPA DO FUNIL
+      for (const stage of FUNIL_6_STAGES) {
+        console.log(`\n📋 PROCESSANDO ETAPA: ${stage.name} (ID: ${stage.id})`);
+        console.log('-'.repeat(60));
+        
+        let currentPage = 0;
+        let hasMorePages = true;
+        let stageOpportunities = [];
+        let stageInserted = 0;
+        let stageUpdated = 0;
+        let stageSkipped = 0;
+        let stageErrors = 0;
+        
+        // Paginação completa para esta etapa
+        while (hasMorePages) {
+          totalApiCalls++;
+          console.log(`\n📄 ${stage.name} - Página ${currentPage + 1}:`);
+          console.log(`🔍 Buscando etapa ${stage.id}, página ${currentPage}, limit ${PAGE_LIMIT}...`);
+        
+          try {
+            const postData = JSON.stringify({ 
+              page: currentPage, 
+              limit: PAGE_LIMIT, 
+              columnId: stage.id 
+            });
+            
+            const pageStartTime = performance.now();
+            
+            const response = await fetch(`https://${SPRINTHUB_CONFIG.baseUrl}/crm/opportunities/${TARGET_FUNNEL}?apitoken=${SPRINTHUB_CONFIG.apiToken}&i=${SPRINTHUB_CONFIG.instance}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: postData
+            });
+            
+            const pageEndTime = performance.now();
+            const pageTime = (pageEndTime - pageStartTime).toFixed(0);
+            
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error(`❌ Erro HTTP ${response.status} na página ${currentPage + 1}:`, errorText);
+              break;
+            }
+            
+            const pageOpportunities = await response.json();
+            const opportunitiesArray = Array.isArray(pageOpportunities) ? pageOpportunities : [];
+            
+            console.log(`📊 Página ${currentPage + 1}: ${opportunitiesArray.length} registros retornados (${pageTime}ms)`);
+            
+            // Verificar se há dados na página
+            if (opportunitiesArray.length === 0) {
+              console.log('🏁 Página vazia - fim da paginação desta etapa');
+              hasMorePages = false;
+            } else {
+              // Filtrar por data de criação dos últimos 7 dias (TODOS os status)
+              const last7DaysOpps = opportunitiesArray.filter(opp => isInLast7Days(opp.createDate));
+              
+              console.log(`   📅 Criadas nos últimos 7 dias: ${last7DaysOpps.length}/${opportunitiesArray.length}`);
+              
+              // 💾 PROCESSAR E INSERIR/ATUALIZAR CADA OPORTUNIDADE
+              if (last7DaysOpps.length > 0) {
+                console.log(`   💾 Processando ${last7DaysOpps.length} oportunidades...`);
+                
+                for (const opp of last7DaysOpps) {
+                  try {
+                    // Verificar se já existe (com dados para comparação)
+                    const existingRecord = await checkInSupabase(opp.id);
+                    const mappedData = mapOpportunityFields(opp);
+                    
+                    if (!existingRecord) {
+                      // INSERIR: Registro não existe
+                      const result = await insertToSupabase(mappedData);
+                      
+                      if (result.success) {
+                        totalInserted++;
+                        stageInserted++;
+                        console.log(`     ✅ INSERIDO: ${opp.id} - ${opp.title} (${opp.status})`);
+                      } else {
+                        totalErrors++;
+                        stageErrors++;
+                        console.log(`     ❌ Erro inserção: ${opp.id} - Status: ${result.status}`);
+                      }
+                    } else {
+                      // ATUALIZAR: Verificar se precisa atualizar
+                      const sprintHubDate = new Date(opp.updateDate);
+                      const supabaseDate = new Date(existingRecord.update_date);
+                      
+                      if (sprintHubDate > supabaseDate) {
+                        // Dados do SprintHub são mais recentes
+                        const result = await updateInSupabase(opp.id, mappedData);
+                        
+                        if (result.success) {
+                          totalUpdated++;
+                          stageUpdated++;
+                          console.log(`     🔄 ATUALIZADO: ${opp.id} - ${opp.title} (${opp.status})`);
+                        } else {
+                          totalErrors++;
+                          stageErrors++;
+                          console.log(`     ❌ Erro atualização: ${opp.id} - Status: ${result.status}`);
+                        }
+                      } else {
+                        // Dados já estão atualizados
+                        totalSkipped++;
+                        stageSkipped++;
+                        console.log(`     ⚪ Já atualizado: ${opp.id} - ${opp.title} (${opp.status})`);
+                      }
+                    }
+                    
+                    // Rate limiting entre operações
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                  } catch (error) {
+                    totalErrors++;
+                    stageErrors++;
+                    console.error(`     ❌ Erro processando ${opp.id}:`, error);
+                  }
+                }
+                
+                // Mostrar resumo da página
+                console.log(`   📊 Página processada: ${stageInserted} inseridas | ${stageUpdated} atualizadas | ${stageSkipped} já atualizadas | ${stageErrors} erros`);
+              }
+              
+              // Adicionar ao array geral
+              stageOpportunities.push(...last7DaysOpps);
+              
+              // Se retornou menos que o limite, é a última página
+              if (opportunitiesArray.length < PAGE_LIMIT) {
+                console.log('🏁 Última página desta etapa detectada (< limite)');
+                hasMorePages = false;
+              } else {
+                currentPage++;
+              }
+            }
+            
+            // Rate limiting entre páginas
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+          } catch (error) {
+            console.error(`❌ Erro na página ${currentPage + 1} da etapa ${stage.name}:`, error);
+            hasMorePages = false;
+          }
+        }
+        
+        // Resumo da etapa
+        console.log(`\n📊 RESUMO ETAPA ${stage.name}:`);
+        console.log(`   📊 Total encontradas: ${stageOpportunities.length}`);
+        console.log(`   ✅ Inseridas: ${stageInserted}`);
+        console.log(`   🔄 Atualizadas: ${stageUpdated}`);
+        console.log(`   ⚪ Já atualizadas: ${stageSkipped}`);
+        console.log(`   ❌ Erros: ${stageErrors}`);
+        
+        // Adicionar ao array geral para estatísticas finais
+        allOpportunities.push(...stageOpportunities);
+        
+        // Rate limiting entre etapas
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      const endTime = performance.now();
+      const totalTime = (endTime - startTime) / 1000; // em segundos
+      
+      // 📊 RELATÓRIO FINAL
+      console.log('\n' + '='.repeat(80));
+      console.log('📊 RELATÓRIO FINAL — ATUALIZAÇÃO SEMANAL');
+      console.log('='.repeat(80));
+      console.log(`🕒 Tempo de execução: ${totalTime.toFixed(2)}s`);
+      console.log(`📅 Período: ${sevenDaysAgo.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`);
+      console.log(`📋 Etapas processadas: ${FUNIL_6_STAGES.length}`);
+      console.log(`🔄 Total de chamadas à API: ${totalApiCalls}`);
+      console.log(`📊 Total registros encontrados: ${allOpportunities.length}`);
+      console.log(`💾 ESTATÍSTICAS DE SINCRONIZAÇÃO:`);
+      console.log(`   ✅ Inseridos: ${totalInserted}`);
+      console.log(`   🔄 Atualizados: ${totalUpdated}`);
+      console.log(`   ⚪ Já atualizados: ${totalSkipped}`);
+      console.log(`   ❌ Erros: ${totalErrors}`);
+      
+      if (allOpportunities.length > 0) {
+        // IDs organizados
+        const allIds = allOpportunities.map(opp => opp.id).sort((a, b) => a - b);
+        const firstIds = allIds.slice(0, 5);
+        const lastIds = allIds.slice(-5);
+        
+        console.log(`🆔 Primeiros IDs: ${firstIds.join(', ')}`);
+        if (allOpportunities.length > 5) {
+          console.log(`🆔 Últimos IDs: ${lastIds.join(', ')}`);
+        }
+        
+        // Tabela resumo
+        console.log('\n📋 TABELA RESUMO:');
+        console.log('┌─────────────────────────────────┬──────────┐');
+        console.log('│ Métrica                         │ Valor    │');
+        console.log('├─────────────────────────────────┼──────────┤');
+        console.log(`│ Funil                           │ ${TARGET_FUNNEL}        │`);
+        console.log(`│ Etapas processadas              │ ${FUNIL_6_STAGES.length}        │`);
+        console.log(`│ Período (dias)                  │ 7        │`);
+        console.log(`│ Chamadas API                    │ ${totalApiCalls.toString().padEnd(8)} │`);
+        console.log(`│ Registros encontrados           │ ${allOpportunities.length.toString().padEnd(8)} │`);
+        console.log('├─────────────────────────────────┼──────────┤');
+        console.log(`│ ✅ Inseridos no Supabase        │ ${totalInserted.toString().padEnd(8)} │`);
+        console.log(`│ 🔄 Atualizados no Supabase      │ ${totalUpdated.toString().padEnd(8)} │`);
+        console.log(`│ ⚪ Já atualizados               │ ${totalSkipped.toString().padEnd(8)} │`);
+        console.log(`│ ❌ Erros                        │ ${totalErrors.toString().padEnd(8)} │`);
+        console.log('├─────────────────────────────────┼──────────┤');
+        console.log(`│ Tempo total (s)                 │ ${totalTime.toFixed(2).padEnd(8)} │`);
+        console.log(`│ Tempo médio por etapa (s)       │ ${FUNIL_6_STAGES.length > 0 ? (totalTime / FUNIL_6_STAGES.length).toFixed(2).padEnd(8) : '0'.padEnd(8)} │`);
+        console.log('└─────────────────────────────────┴──────────┘');
+        
+        // Amostra de dados
+        console.log('\n🔍 AMOSTRA DE DADOS (primeiras 3 oportunidades):');
+        allOpportunities.slice(0, 3).forEach((opp, index) => {
+          console.log(`\n${index + 1}. ID: ${opp.id}`);
+          console.log(`   📋 Título: ${opp.title}`);
+          console.log(`   💰 Valor: R$ ${parseFloat(opp.value || 0).toFixed(2)}`);
+          console.log(`   📅 Criação: ${opp.createDate ? new Date(opp.createDate).toLocaleDateString('pt-BR') : 'N/A'}`);
+          console.log(`   👤 Responsável: ${opp.user || 'N/A'}`);
+          console.log(`   🔗 Lead ID: ${opp.lead_id || 'N/A'}`);
+          console.log(`   📊 Status: ${opp.status || 'N/A'}`);
+        });
+        
+      } else {
+        console.log('❌ Nenhuma oportunidade encontrada nos últimos 7 dias');
+      }
+      
+      console.log('\n='.repeat(80));
+      console.log('✅ ATUALIZAÇÃO SEMANAL CONCLUÍDA COM SUCESSO!');
+      console.log(`🕒 Finalizada em: ${new Date().toLocaleTimeString('pt-BR')}`);
+      console.log('='.repeat(80));
+      
+      // Alert final
+      alert(
+        `📅 ATUALIZAÇÃO SEMANAL CONCLUÍDA\n\n` +
+        `✅ Sincronização concluída com sucesso!\n\n` +
+        `📅 Período: ${sevenDaysAgo.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}\n\n` +
+        `📊 RESULTADOS:\n` +
+        `• Etapas processadas: ${FUNIL_6_STAGES.length}\n` +
+        `• Registros encontrados: ${allOpportunities.length}\n` +
+        `• ✅ Inseridos: ${totalInserted}\n` +
+        `• 🔄 Atualizados: ${totalUpdated}\n` +
+        `• ⚪ Já atualizados: ${totalSkipped}\n` +
+        `• ❌ Erros: ${totalErrors}\n` +
+        `• ⏱️ Tempo total: ${totalTime.toFixed(2)}s\n\n` +
+        `🔍 Verifique o console para relatório completo!`
+      );
+      
+    } catch (error) {
+      console.error('❌ ERRO NA ATUALIZAÇÃO SEMANAL:', error);
+      console.error('Stack trace:', error.stack);
+      alert(`❌ Erro na atualização: ${error.message}\n\nVerifique o console para mais detalhes.`);
+    } finally {
+      setIsSyncingWeekly(false);
+    }
+  };
+
+  // Verificar status do serviço diário ao carregar
+  useEffect(() => {
+    try {
+      const status = dailySyncService.getDailySyncStatus();
+      setIsDailySyncRunning(status.isRunning);
+    } catch (error) {
+      console.warn('⚠️ Erro ao verificar status do serviço diário:', error);
+    }
+  }, []);
+
   // Carregar status do serviço de sincronização ao montar
   useEffect(() => {
     const status = autoSyncService.getStatus();
@@ -456,33 +1495,15 @@ const TopMenuBar = ({
           <span className="tmb-sync-time">{formatSyncTime(lastSyncTime)}</span>
         </div>
         
-        {/* Botões de sincronização - apenas para admin */}
+        {/* Botões do Serviço Diário - apenas para admin */}
         {isAdmin && (
           <>
             <button 
-              className={`tmb-sync-btn ${isSyncing ? 'syncing' : ''}`}
-              onClick={handleSync}
-              disabled={isSyncing || isSyncingToday || isCleaningDuplicates || isFullSyncing || isCheckingSync}
-              title="Sincronizar dados do SprintHub"
-            >
-              {isSyncing ? (
-                <>
-                  <span className="tmb-sync-spinner"></span>
-                  Sincronizando...
-                </>
-              ) : (
-                <>
-                  🔄 Sincronizar
-                </>
-              )}
-            </button>
-            
-            <button 
               className={`tmb-sync-btn ${isSyncingToday ? 'syncing' : ''}`}
               onClick={handleSyncToday}
-              disabled={isSyncing || isSyncingToday || isCleaningDuplicates || isFullSyncing || isCheckingSync}
-              title="Sincronizar oportunidades faltantes de hoje"
-              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
+              disabled={isSyncingToday || isTestingDailySync}
+              title="Sincronizar oportunidades criadas hoje (etapa CADASTRO)"
+              style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
             >
               {isSyncingToday ? (
                 <>
@@ -497,58 +1518,81 @@ const TopMenuBar = ({
             </button>
             
             <button 
-              className={`tmb-sync-btn ${isCleaningDuplicates ? 'syncing' : ''}`}
-              onClick={handleCleanDuplicates}
-              disabled={isSyncing || isSyncingToday || isCleaningDuplicates || isFullSyncing || isCheckingSync}
-              title="Limpar duplicatas no Supabase"
-              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}
-            >
-              {isCleaningDuplicates ? (
-                <>
-                  <span className="tmb-sync-spinner"></span>
-                  Limpando...
-                </>
-              ) : (
-                <>
-                  🧹 Limpar
-                </>
-              )}
-            </button>
-            
-            <button 
-              className={`tmb-sync-btn ${isFullSyncing ? 'syncing' : ''}`}
-              onClick={handleFullSync}
-              disabled={isSyncing || isSyncingToday || isCleaningDuplicates || isFullSyncing || isCheckingSync}
-              title="Sincronização completa (TODAS as oportunidades)"
-              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' }}
-            >
-              {isFullSyncing ? (
-                <>
-                  <span className="tmb-sync-spinner"></span>
-                  Completa...
-                </>
-              ) : (
-                <>
-                  🔄 Completa
-                </>
-              )}
-            </button>
-            
-            <button 
-              className={`tmb-sync-btn ${isCheckingSync ? 'syncing' : ''}`}
-              onClick={handleCheckSync}
-              disabled={isSyncing || isSyncingToday || isCleaningDuplicates || isFullSyncing || isCheckingSync}
-              title="Verificar status da sincronização"
+              className={`tmb-sync-btn ${isTestingDailySync ? 'syncing' : ''}`}
+              onClick={handleTestDailySync}
+              disabled={isTestingDailySync || isSyncingToday || isTestingAllOpen}
+              title="Testar sincronização diária (modo simulação)"
               style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' }}
             >
-              {isCheckingSync ? (
+              {isTestingDailySync ? (
                 <>
                   <span className="tmb-sync-spinner"></span>
-                  Verificando...
+                  Testando...
                 </>
               ) : (
                 <>
-                  🔍 Verificar
+                  🧪 Testar
+                </>
+              )}
+            </button>
+            
+            <button 
+              className={`tmb-sync-btn ${isTestingAllOpen ? 'syncing' : ''}`}
+              onClick={handleTestAllOpenOpportunities}
+              disabled={isTestingAllOpen || isTestingDailySync || isSyncingToday || isSyncingWeekly}
+              title="Sincronizar TODAS as etapas do funil 6 com status='open' - insere novos e atualiza existentes"
+              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' }}
+            >
+              {isTestingAllOpen ? (
+                <>
+                  <span className="tmb-sync-spinner"></span>
+                  Sincronizando...
+                </>
+              ) : (
+                <>
+                  🎯 Etapas Abertas — Todas
+                </>
+              )}
+            </button>
+            
+            <button 
+              className={`tmb-sync-btn ${isSyncingWeekly ? 'syncing' : ''}`}
+              onClick={handleSyncWeeklyOpportunities}
+              disabled={isSyncingWeekly || isTestingDailySync || isSyncingToday || isTestingAllOpen}
+              title="Atualização semanal - busca oportunidades criadas nos últimos 7 dias em todas as etapas (todos os status)"
+              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' }}
+            >
+              {isSyncingWeekly ? (
+                <>
+                  <span className="tmb-sync-spinner"></span>
+                  Atualizando...
+                </>
+              ) : (
+                <>
+                  📅 Atualização Semanal
+                </>
+              )}
+            </button>
+            
+            <button 
+              className={`tmb-sync-btn ${isDailySyncRunning ? 'active' : ''}`}
+              onClick={isDailySyncRunning ? handleStopDailySync : handleStartDailySync}
+              disabled={isTestingDailySync || isSyncingToday || isTestingAllOpen || isSyncingWeekly}
+              title={isDailySyncRunning ? "Parar sincronização diária automática" : "Iniciar sincronização diária automática"}
+              style={{ 
+                marginLeft: '8px', 
+                background: isDailySyncRunning 
+                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+              }}
+            >
+              {isDailySyncRunning ? (
+                <>
+                  🛑 Parar Auto
+                </>
+              ) : (
+                <>
+                  🕒 Iniciar Auto
                 </>
               )}
             </button>

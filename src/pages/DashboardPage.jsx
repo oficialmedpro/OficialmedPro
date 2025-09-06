@@ -9,6 +9,7 @@ import Sidebar from '../components/Sidebar';
 import FunnelChart from '../components/FunnelChart';
 import StatsSection from '../components/StatsSection';
 import TimelineChart from '../components/TimelineChart';
+import WonOpportunitiesList from '../components/WonOpportunitiesList';
 import SyncVerifier from '../components/SyncVerifier';
 import { translations } from '../data/translations';
 import { getStatsCards, getMenuItems } from '../data/statsData';
@@ -321,6 +322,9 @@ const DashboardPage = ({ onLogout }) => {
               selectedUnit={selectedUnit}
             />
           </section>
+
+        {/* Lista de Oportunidades Ganhas */}
+        <WonOpportunitiesList selectedDate={endDate} />
 
         {/* Timeline Chart - Performance dos Últimos 7 Dias */}
         <TimelineChart selectedDate={endDate} t={t} />
