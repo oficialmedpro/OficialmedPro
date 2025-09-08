@@ -37,6 +37,9 @@ const TopMenuBar = ({
   const [isTestingDailySync, setIsTestingDailySync] = useState(false);
   const [isTestingAllOpen, setIsTestingAllOpen] = useState(false);
   const [isSyncingWeekly, setIsSyncingWeekly] = useState(false);
+  const [isSyncingHourly, setIsSyncingHourly] = useState(false);
+  const [isHourlySyncRunning, setIsHourlySyncRunning] = useState(false);
+  const [hourlySyncInterval, setHourlySyncInterval] = useState(null);
   const languageDropdownRef = useRef(null);
   
   // Verificar se é admin (temporário - baseado nas credenciais fixas)
@@ -1409,6 +1412,561 @@ const TopMenuBar = ({
     }
   };
 
+  // 🕐 FUNÇÃO DE SINCRONIZAÇÃO HORÁRIA - FUNIS 6 E 14 (OPORTUNIDADES DE HOJE)
+  const handleHourlySync = async () => {
+    if (isSyncingHourly) return;
+    
+    // Calcular período de hoje
+    const now = new Date();
+    const today = new Date(now);
+    today.setHours(0, 0, 0, 0);
+    
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
+    
+    const confirmTest = confirm(
+      '🕐 SINCRONIZAÇÃO HORÁRIA — HOJE\n\n' +
+      '🔍 O que será executado:\n' +
+      '• Buscar funis 6 e 14, TODAS as etapas\n' +
+      '• Filtrar por data de CRIAÇÃO de hoje\n' +
+      '• TODOS os status (open, won, lost, etc.)\n' +
+      '• Paginação completa (todas as páginas)\n' +
+      '• INSERIR registros novos no Supabase\n' +
+      '• ATUALIZAR registros existentes\n' +
+      '• Log detalhado por etapa e operação\n\n' +
+      `📅 Período: ${today.toLocaleDateString('pt-BR')} (hoje)\n\n` +
+      '⚠️ ATENÇÃO: Irá INSERIR/ATUALIZAR dados no banco!\n\n' +
+      'Deseja continuar com a sincronização horária?'
+    );
+    
+    if (!confirmTest) return;
+    
+    setIsSyncingHourly(true);
+    
+    const startTime = performance.now();
+    
+    try {
+      console.log('🕐 INICIANDO SINCRONIZAÇÃO HORÁRIA — HOJE');
+      console.log('='.repeat(80));
+      console.log(`🕒 Início: ${new Date().toLocaleTimeString('pt-BR')}`);
+      console.log(`📅 Período: ${today.toLocaleDateString('pt-BR')} (hoje)`);
+      
+      // Configurações da API
+      const SPRINTHUB_CONFIG = {
+        baseUrl: 'sprinthub-api-master.sprinthub.app',
+        apiToken: '9ad36c85-5858-4960-9935-e73c3698dd0c',
+        instance: 'oficialmed'
+      };
+      
+      const SUPABASE_CONFIG = {
+        url: import.meta.env.VITE_SUPABASE_URL,
+        serviceRoleKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+      };
+      
+      const PAGE_LIMIT = 100;
+      
+      // 📋 CONFIGURAÇÃO DOS FUNIS E ETAPAS
+      const FUNIS_CONFIG = {
+        6: {
+          name: "[1] COMERCIAL APUCARANA",
+          stages: [
+            { id: 130, name: "[0] ENTRADA" },
+            { id: 231, name: "[1] ACOLHIMENTO/TRIAGEM" },
+            { id: 82, name: "[2] QUALIFICADO" },
+            { id: 207, name: "[3] ORÇAMENTO REALIZADO" },
+            { id: 83, name: "[4] NEGOCIAÇÃO" },
+            { id: 85, name: "[5] FOLLOW UP" },
+            { id: 232, name: "[6] CADASTRO" }
+          ]
+        },
+        14: {
+          name: "[2] RECOMPRA",
+          stages: [
+            { id: 227, name: "[X] PROMO" },
+            { id: 202, name: "[0] ENTRADA" },
+            { id: 228, name: "[1] ACOLHIMENTO/TRIAGEM" },
+            { id: 229, name: "[2] QUALIFICAÇÃO" },
+            { id: 206, name: "[3] ORÇAMENTOS" },
+            { id: 203, name: "[4] NEGOCIAÇÃO" },
+            { id: 204, name: "[5] FOLLOW UP" },
+            { id: 230, name: "[6] CADASTRO" },
+            { id: 205, name: "[X] PARCEIROS" },
+            { id: 241, name: "[0] MONITORAMENTO" },
+            { id: 146, name: "[1] DISPARO" },
+            { id: 147, name: "[2] DIA 1 - 1º TENTATIVA" },
+            { id: 167, name: "[3] DIA 1 - 2º TENTATIVA" },
+            { id: 148, name: "[4] DIA 2 - 1º TENTATIVA" },
+            { id: 168, name: "[5] DIA 2 - 2º TENTATIVA" },
+            { id: 149, name: "[6] DIA 3 - 1º TENTATIVA" },
+            { id: 169, name: "[7] DIA 3 - 2º TENTATIVA" },
+            { id: 150, name: "[8] FOLLOW UP INFINITO" }
+          ]
+        }
+      };
+      
+      console.log('🎯 CONFIGURAÇÃO DA SINCRONIZAÇÃO HORÁRIA:');
+      console.log(`   📊 Funis: 6 (APUCARANA) e 14 (RECOMPRA)`);
+      console.log(`   📋 Total etapas: ${FUNIS_CONFIG[6].stages.length + FUNIS_CONFIG[14].stages.length}`);
+      console.log(`   📅 Filtro: createDate de hoje (TODOS os status)`);
+      console.log(`   📄 Limit por página: ${PAGE_LIMIT}`);
+      console.log('='.repeat(80));
+      
+      // 💾 FUNÇÃO PARA VERIFICAR SE A DATA É DE HOJE
+      const isToday = (createDate) => {
+        if (!createDate) return false;
+        
+        try {
+          const oppDate = new Date(createDate);
+          return oppDate >= today && oppDate <= endOfToday;
+        } catch (error) {
+          return false;
+        }
+      };
+      
+      // 💾 FUNÇÃO PARA MAPEAR CAMPOS (baseada na função semanal)
+      const mapOpportunityFields = (opportunity, funnelId) => {
+        const fields = opportunity.fields || {};
+        const lead = opportunity.dataLead || {};
+        const utmTags = (lead.utmTags && lead.utmTags[0]) || {};
+
+        return {
+          id: opportunity.id,
+          title: opportunity.title,
+          value: parseFloat(opportunity.value) || 0.00,
+          crm_column: opportunity.crm_column,
+          lead_id: opportunity.lead_id,
+          status: opportunity.status,
+          loss_reason: opportunity.loss_reason || null,
+          gain_reason: opportunity.gain_reason || null,
+          user_id: opportunity.user || null,
+          
+          // Datas importantes
+          create_date: opportunity.createDate ? new Date(opportunity.createDate).toISOString() : null,
+          update_date: opportunity.updateDate ? new Date(opportunity.updateDate).toISOString() : null,
+          lost_date: opportunity.lost_date || null,
+          gain_date: opportunity.gain_date || null,
+          
+          // Campos específicos
+          origem_oportunidade: fields["ORIGEM OPORTUNIDADE"] || null,
+          qualificacao: fields["QUALIFICACAO"] || null,
+          status_orcamento: fields["Status Orcamento"] || null,
+          
+          // UTM
+          utm_source: utmTags.utmSource || null,
+          utm_campaign: utmTags.utmCampaign || null,
+          utm_medium: utmTags.utmMedium || null,
+          
+          // Lead
+          lead_firstname: lead.firstname || null,
+          lead_email: lead.email || null,
+          lead_whatsapp: lead.whatsapp || null,
+          
+          // Controle
+          archived: opportunity.archived || 0,
+          synced_at: new Date().toISOString(),
+          
+          // Funil
+          funil_id: funnelId,
+          unidade_id: funnelId === 6 ? '[1]' : '[2]' // Apucarana ou Recompra
+        };
+      };
+      
+      // 🔍 FUNÇÃO PARA VERIFICAR SE EXISTE NO SUPABASE
+      const checkInSupabase = async (opportunityId) => {
+        try {
+          const response = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/oportunidade_sprint?id=eq.${opportunityId}&select=id,update_date`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
+              'apikey': SUPABASE_CONFIG.serviceRoleKey,
+              'Accept-Profile': 'api'
+            }
+          });
+
+          if (!response.ok) return null;
+          
+          const data = await response.json();
+          return Array.isArray(data) && data.length > 0 ? data[0] : null;
+          
+        } catch (error) {
+          console.error(`❌ Erro ao verificar ID ${opportunityId}:`, error);
+          return null;
+        }
+      };
+      
+      // 💾 FUNÇÃO PARA INSERIR NO SUPABASE
+      const insertToSupabase = async (data) => {
+        try {
+          const response = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/oportunidade_sprint`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
+              'apikey': SUPABASE_CONFIG.serviceRoleKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api',
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(data)
+          });
+
+          return { success: response.ok, status: response.status };
+          
+        } catch (error) {
+          console.error('❌ Erro ao inserir:', error);
+          return { success: false, error: error.message };
+        }
+      };
+      
+      // 🔄 FUNÇÃO PARA ATUALIZAR NO SUPABASE
+      const updateInSupabase = async (opportunityId, data) => {
+        try {
+          const response = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/oportunidade_sprint?id=eq.${opportunityId}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
+              'apikey': SUPABASE_CONFIG.serviceRoleKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api',
+              'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(data)
+          });
+
+          return { success: response.ok, status: response.status };
+          
+        } catch (error) {
+          console.error('❌ Erro ao atualizar:', error);
+          return { success: false, error: error.message };
+        }
+      };
+      
+      let allOpportunities = [];
+      let totalApiCalls = 0;
+      
+      // Estatísticas globais
+      let totalInserted = 0;
+      let totalUpdated = 0;
+      let totalSkipped = 0;
+      let totalErrors = 0;
+      
+      // 🔄 PROCESSAR CADA FUNIL
+      for (const [funnelId, funnelConfig] of Object.entries(FUNIS_CONFIG)) {
+        console.log(`\n🎯 PROCESSANDO FUNIL ${funnelId}: ${funnelConfig.name}`);
+        console.log('='.repeat(60));
+        
+        let funnelInserted = 0;
+        let funnelUpdated = 0;
+        let funnelSkipped = 0;
+        let funnelErrors = 0;
+        
+        // 🔄 PROCESSAR CADA ETAPA DO FUNIL
+        for (const stage of funnelConfig.stages) {
+          console.log(`\n📋 PROCESSANDO ETAPA: ${stage.name} (ID: ${stage.id})`);
+          console.log('-'.repeat(60));
+          
+          let currentPage = 0;
+          let hasMorePages = true;
+          let stageOpportunities = [];
+          let stageInserted = 0;
+          let stageUpdated = 0;
+          let stageSkipped = 0;
+          let stageErrors = 0;
+          
+          // Paginação completa para esta etapa
+          while (hasMorePages) {
+            totalApiCalls++;
+            console.log(`\n📄 ${stage.name} - Página ${currentPage + 1}:`);
+            console.log(`🔍 Buscando funil ${funnelId}, etapa ${stage.id}, página ${currentPage}, limit ${PAGE_LIMIT}...`);
+          
+            try {
+              const postData = JSON.stringify({ 
+                page: currentPage, 
+                limit: PAGE_LIMIT, 
+                columnId: stage.id 
+              });
+              
+              const pageStartTime = performance.now();
+              
+              const response = await fetch(`https://${SPRINTHUB_CONFIG.baseUrl}/crm/opportunities/${funnelId}?apitoken=${SPRINTHUB_CONFIG.apiToken}&i=${SPRINTHUB_CONFIG.instance}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Accept': 'application/json'
+                },
+                body: postData
+              });
+              
+              const pageEndTime = performance.now();
+              const pageTime = (pageEndTime - pageStartTime).toFixed(0);
+              
+              if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`❌ Erro HTTP ${response.status} na página ${currentPage + 1}:`, errorText);
+                break;
+              }
+              
+              const pageOpportunities = await response.json();
+              const opportunitiesArray = Array.isArray(pageOpportunities) ? pageOpportunities : [];
+              
+              console.log(`📊 Página ${currentPage + 1}: ${opportunitiesArray.length} registros retornados (${pageTime}ms)`);
+              
+              // Verificar se há dados na página
+              if (opportunitiesArray.length === 0) {
+                console.log('🏁 Página vazia - fim da paginação desta etapa');
+                hasMorePages = false;
+              } else {
+                // Filtrar por data de criação de hoje (TODOS os status)
+                const todayOpps = opportunitiesArray.filter(opp => isToday(opp.createDate));
+                
+                console.log(`   📅 Criadas hoje: ${todayOpps.length}/${opportunitiesArray.length}`);
+                
+                // 💾 PROCESSAR E INSERIR/ATUALIZAR CADA OPORTUNIDADE
+                if (todayOpps.length > 0) {
+                  console.log(`   💾 Processando ${todayOpps.length} oportunidades...`);
+                  
+                  for (const opp of todayOpps) {
+                    try {
+                      // Verificar se já existe
+                      const existingRecord = await checkInSupabase(opp.id);
+                      const mappedData = mapOpportunityFields(opp, parseInt(funnelId));
+                      
+                      if (!existingRecord) {
+                        // INSERIR: Registro não existe
+                        const result = await insertToSupabase(mappedData);
+                        
+                        if (result.success) {
+                          totalInserted++;
+                          funnelInserted++;
+                          stageInserted++;
+                          console.log(`     ✅ INSERIDO: ${opp.id} - ${opp.title} (${opp.status})`);
+                        } else {
+                          totalErrors++;
+                          funnelErrors++;
+                          stageErrors++;
+                          console.log(`     ❌ Erro inserção: ${opp.id} - Status: ${result.status}`);
+                        }
+                      } else {
+                        // ATUALIZAR: Verificar se precisa atualizar
+                        const sprintHubDate = new Date(opp.updateDate);
+                        const supabaseDate = new Date(existingRecord.update_date);
+                        
+                        if (sprintHubDate > supabaseDate) {
+                          // Dados do SprintHub são mais recentes
+                          const result = await updateInSupabase(opp.id, mappedData);
+                          
+                          if (result.success) {
+                            totalUpdated++;
+                            funnelUpdated++;
+                            stageUpdated++;
+                            console.log(`     🔄 ATUALIZADO: ${opp.id} - ${opp.title} (${opp.status})`);
+                          } else {
+                            totalErrors++;
+                            funnelErrors++;
+                            stageErrors++;
+                            console.log(`     ❌ Erro atualização: ${opp.id} - Status: ${result.status}`);
+                          }
+                        } else {
+                          // Dados já estão atualizados
+                          totalSkipped++;
+                          funnelSkipped++;
+                          stageSkipped++;
+                          console.log(`     ⚪ Já atualizado: ${opp.id} - ${opp.title} (${opp.status})`);
+                        }
+                      }
+                      
+                      // Rate limiting entre operações
+                      await new Promise(resolve => setTimeout(resolve, 50));
+                      
+                    } catch (error) {
+                      totalErrors++;
+                      funnelErrors++;
+                      stageErrors++;
+                      console.error(`     ❌ Erro processando ${opp.id}:`, error);
+                    }
+                  }
+                  
+                  // Mostrar resumo da página
+                  console.log(`   📊 Página processada: ${stageInserted} inseridas | ${stageUpdated} atualizadas | ${stageSkipped} já atualizadas | ${stageErrors} erros`);
+                }
+                
+                // Adicionar ao array geral
+                stageOpportunities.push(...todayOpps);
+                
+                // Se retornou menos que o limite, é a última página
+                if (opportunitiesArray.length < PAGE_LIMIT) {
+                  console.log('🏁 Última página desta etapa detectada (< limite)');
+                  hasMorePages = false;
+                } else {
+                  currentPage++;
+                }
+              }
+              
+              // Rate limiting entre páginas
+              await new Promise(resolve => setTimeout(resolve, 200));
+              
+            } catch (error) {
+              console.error(`❌ Erro na página ${currentPage + 1} da etapa ${stage.name}:`, error);
+              hasMorePages = false;
+            }
+          }
+          
+          // Resumo da etapa
+          console.log(`\n📊 RESUMO ETAPA ${stage.name}:`);
+          console.log(`   📊 Total encontradas: ${stageOpportunities.length}`);
+          console.log(`   ✅ Inseridas: ${stageInserted}`);
+          console.log(`   🔄 Atualizadas: ${stageUpdated}`);
+          console.log(`   ⚪ Já atualizadas: ${stageSkipped}`);
+          console.log(`   ❌ Erros: ${stageErrors}`);
+          
+          // Adicionar ao array geral para estatísticas finais
+          allOpportunities.push(...stageOpportunities);
+          
+          // Rate limiting entre etapas
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+        
+        // Resumo do funil
+        console.log(`\n📊 RESUMO FUNIL ${funnelId} (${funnelConfig.name}):`);
+        console.log(`   ✅ Inseridas: ${funnelInserted}`);
+        console.log(`   🔄 Atualizadas: ${funnelUpdated}`);
+        console.log(`   ⚪ Já atualizadas: ${funnelSkipped}`);
+        console.log(`   ❌ Erros: ${funnelErrors}`);
+        
+        // Rate limiting entre funis
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      
+      const endTime = performance.now();
+      const totalTime = (endTime - startTime) / 1000; // em segundos
+      
+      // 📊 RELATÓRIO FINAL
+      console.log('\n' + '='.repeat(80));
+      console.log('📊 RELATÓRIO FINAL — SINCRONIZAÇÃO HORÁRIA');
+      console.log('='.repeat(80));
+      console.log(`🕒 Tempo de execução: ${totalTime.toFixed(2)}s`);
+      console.log(`📅 Período: ${today.toLocaleDateString('pt-BR')} (hoje)`);
+      console.log(`🎯 Funis processados: 6 (APUCARANA) e 14 (RECOMPRA)`);
+      console.log(`🔄 Total de chamadas à API: ${totalApiCalls}`);
+      console.log(`📊 Total registros encontrados: ${allOpportunities.length}`);
+      console.log(`💾 ESTATÍSTICAS DE SINCRONIZAÇÃO:`);
+      console.log(`   ✅ Inseridos: ${totalInserted}`);
+      console.log(`   🔄 Atualizados: ${totalUpdated}`);
+      console.log(`   ⚪ Já atualizados: ${totalSkipped}`);
+      console.log(`   ❌ Erros: ${totalErrors}`);
+      
+      if (allOpportunities.length > 0) {
+        // IDs organizados
+        const allIds = allOpportunities.map(opp => opp.id).sort((a, b) => a - b);
+        const firstIds = allIds.slice(0, 5);
+        const lastIds = allIds.slice(-5);
+        
+        console.log(`🆔 Primeiros IDs: ${firstIds.join(', ')}`);
+        if (allOpportunities.length > 5) {
+          console.log(`🆔 Últimos IDs: ${lastIds.join(', ')}`);
+        }
+        
+        // Tabela resumo
+        console.log('\n📋 TABELA RESUMO:');
+        console.log('┌─────────────────────────────────┬──────────┐');
+        console.log('│ Métrica                         │ Valor    │');
+        console.log('├─────────────────────────────────┼──────────┤');
+        console.log('│ Funis processados               │ 2        │');
+        console.log(`│ Chamadas API                    │ ${totalApiCalls.toString().padEnd(8)} │`);
+        console.log(`│ Registros encontrados           │ ${allOpportunities.length.toString().padEnd(8)} │`);
+        console.log('├─────────────────────────────────┼──────────┤');
+        console.log(`│ ✅ Inseridos no Supabase        │ ${totalInserted.toString().padEnd(8)} │`);
+        console.log(`│ 🔄 Atualizados no Supabase      │ ${totalUpdated.toString().padEnd(8)} │`);
+        console.log(`│ ⚪ Já atualizados               │ ${totalSkipped.toString().padEnd(8)} │`);
+        console.log(`│ ❌ Erros                        │ ${totalErrors.toString().padEnd(8)} │`);
+        console.log('├─────────────────────────────────┼──────────┤');
+        console.log(`│ Tempo total (s)                 │ ${totalTime.toFixed(2).padEnd(8)} │`);
+        console.log('└─────────────────────────────────┴──────────┘');
+        
+        // Amostra de dados
+        console.log('\n🔍 AMOSTRA DE DADOS (primeiras 3 oportunidades):');
+        allOpportunities.slice(0, 3).forEach((opp, index) => {
+          console.log(`\n${index + 1}. ID: ${opp.id}`);
+          console.log(`   📋 Título: ${opp.title}`);
+          console.log(`   💰 Valor: R$ ${parseFloat(opp.value || 0).toFixed(2)}`);
+          console.log(`   📅 Criação: ${opp.createDate ? new Date(opp.createDate).toLocaleDateString('pt-BR') : 'N/A'}`);
+          console.log(`   👤 Responsável: ${opp.user || 'N/A'}`);
+          console.log(`   🔗 Lead ID: ${opp.lead_id || 'N/A'}`);
+          console.log(`   📊 Status: ${opp.status || 'N/A'}`);
+        });
+        
+      } else {
+        console.log('❌ Nenhuma oportunidade encontrada hoje');
+      }
+      
+      console.log('\n='.repeat(80));
+      console.log('✅ SINCRONIZAÇÃO HORÁRIA CONCLUÍDA COM SUCESSO!');
+      console.log(`🕒 Finalizada em: ${new Date().toLocaleTimeString('pt-BR')}`);
+      console.log('='.repeat(80));
+      
+      // Alert final
+      alert(
+        `🕐 SINCRONIZAÇÃO HORÁRIA CONCLUÍDA\n\n` +
+        `📅 Período: ${today.toLocaleDateString('pt-BR')} (hoje)\n` +
+        `🎯 Funis: 6 (APUCARANA) e 14 (RECOMPRA)\n` +
+        `📊 Registros encontrados: ${allOpportunities.length}\n\n` +
+        `💾 ESTATÍSTICAS:\n` +
+        `• ✅ Inseridos: ${totalInserted}\n` +
+        `• 🔄 Atualizados: ${totalUpdated}\n` +
+        `• ⚪ Já atualizados: ${totalSkipped}\n` +
+        `• ❌ Erros: ${totalErrors}\n` +
+        `• ⏱️ Tempo total: ${totalTime.toFixed(2)}s\n\n` +
+        `🔍 Verifique o console para relatório completo!`
+      );
+      
+    } catch (error) {
+      console.error('❌ ERRO NA SINCRONIZAÇÃO HORÁRIA:', error);
+      console.error('Stack trace:', error.stack);
+      alert(`❌ Erro na sincronização: ${error.message}\n\nVerifique o console para mais detalhes.`);
+    } finally {
+      setIsSyncingHourly(false);
+    }
+  };
+
+  // 🕐 FUNÇÃO PARA INICIAR/PARAR SINCRONIZAÇÃO AUTOMÁTICA HORÁRIA
+  const handleToggleHourlySync = () => {
+    if (isHourlySyncRunning) {
+      // Parar sincronização automática
+      if (hourlySyncInterval) {
+        clearInterval(hourlySyncInterval);
+        setHourlySyncInterval(null);
+      }
+      setIsHourlySyncRunning(false);
+      console.log('🛑 Sincronização horária automática PARADA');
+    } else {
+      // Iniciar sincronização automática (a cada hora)
+      const interval = setInterval(() => {
+        console.log('🕐 Executando sincronização horária automática...');
+        handleHourlySync();
+      }, 60 * 60 * 1000); // 60 minutos = 1 hora
+      
+      setHourlySyncInterval(interval);
+      setIsHourlySyncRunning(true);
+      console.log('🕐 Sincronização horária automática INICIADA (executa a cada hora)');
+      
+      // Executar imediatamente na primeira vez
+      handleHourlySync();
+    }
+  };
+
+  // Limpar interval ao desmontar componente
+  useEffect(() => {
+    return () => {
+      if (hourlySyncInterval) {
+        clearInterval(hourlySyncInterval);
+      }
+    };
+  }, [hourlySyncInterval]);
+
   // Verificar status do serviço diário ao carregar
   useEffect(() => {
     try {
@@ -1499,49 +2057,11 @@ const TopMenuBar = ({
         {isAdmin && (
           <>
             <button 
-              className={`tmb-sync-btn ${isSyncingToday ? 'syncing' : ''}`}
-              onClick={handleSyncToday}
-              disabled={isSyncingToday || isTestingDailySync}
-              title="Sincronizar oportunidades criadas hoje (etapa CADASTRO)"
-              style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' }}
-            >
-              {isSyncingToday ? (
-                <>
-                  <span className="tmb-sync-spinner"></span>
-                  Hoje...
-                </>
-              ) : (
-                <>
-                  📅 Hoje
-                </>
-              )}
-            </button>
-            
-            <button 
-              className={`tmb-sync-btn ${isTestingDailySync ? 'syncing' : ''}`}
-              onClick={handleTestDailySync}
-              disabled={isTestingDailySync || isSyncingToday || isTestingAllOpen}
-              title="Testar sincronização diária (modo simulação)"
-              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)' }}
-            >
-              {isTestingDailySync ? (
-                <>
-                  <span className="tmb-sync-spinner"></span>
-                  Testando...
-                </>
-              ) : (
-                <>
-                  🧪 Testar
-                </>
-              )}
-            </button>
-            
-            <button 
               className={`tmb-sync-btn ${isTestingAllOpen ? 'syncing' : ''}`}
               onClick={handleTestAllOpenOpportunities}
-              disabled={isTestingAllOpen || isTestingDailySync || isSyncingToday || isSyncingWeekly}
+              disabled={isTestingAllOpen || isSyncingWeekly}
               title="Sincronizar TODAS as etapas do funil 6 com status='open' - insere novos e atualiza existentes"
-              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' }}
             >
               {isTestingAllOpen ? (
                 <>
@@ -1558,7 +2078,7 @@ const TopMenuBar = ({
             <button 
               className={`tmb-sync-btn ${isSyncingWeekly ? 'syncing' : ''}`}
               onClick={handleSyncWeeklyOpportunities}
-              disabled={isSyncingWeekly || isTestingDailySync || isSyncingToday || isTestingAllOpen}
+              disabled={isSyncingWeekly || isTestingAllOpen || isSyncingHourly}
               title="Atualização semanal - busca oportunidades criadas nos últimos 7 dias em todas as etapas (todos os status)"
               style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' }}
             >
@@ -1575,24 +2095,43 @@ const TopMenuBar = ({
             </button>
             
             <button 
-              className={`tmb-sync-btn ${isDailySyncRunning ? 'active' : ''}`}
-              onClick={isDailySyncRunning ? handleStopDailySync : handleStartDailySync}
-              disabled={isTestingDailySync || isSyncingToday || isTestingAllOpen || isSyncingWeekly}
-              title={isDailySyncRunning ? "Parar sincronização diária automática" : "Iniciar sincronização diária automática"}
+              className={`tmb-sync-btn ${isSyncingHourly ? 'syncing' : ''}`}
+              onClick={handleHourlySync}
+              disabled={isSyncingHourly || isTestingAllOpen || isSyncingWeekly}
+              title="Sincronização horária - busca oportunidades criadas hoje nos funis 6 (APUCARANA) e 14 (RECOMPRA)"
+              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+            >
+              {isSyncingHourly ? (
+                <>
+                  <span className="tmb-sync-spinner"></span>
+                  Sincronizando...
+                </>
+              ) : (
+                <>
+                  🕐 Hoje - Apucarana
+                </>
+              )}
+            </button>
+            
+            <button 
+              className={`tmb-sync-btn ${isHourlySyncRunning ? 'active' : ''}`}
+              onClick={handleToggleHourlySync}
+              disabled={isSyncingHourly || isTestingAllOpen || isSyncingWeekly}
+              title={isHourlySyncRunning ? "Parar sincronização horária automática" : "Iniciar sincronização horária automática (executa a cada hora)"}
               style={{ 
                 marginLeft: '8px', 
-                background: isDailySyncRunning 
+                background: isHourlySyncRunning 
                   ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
-                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+                  : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)'
               }}
             >
-              {isDailySyncRunning ? (
+              {isHourlySyncRunning ? (
                 <>
                   🛑 Parar Auto
                 </>
               ) : (
                 <>
-                  🕒 Iniciar Auto
+                  🕐 Iniciar Auto
                 </>
               )}
             </button>

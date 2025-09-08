@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import PerformanceThermometer from './PerformanceThermometer';
 import { useCountUp } from '../hooks/useCountUp';
 import { getThermometerMetrics } from '../service/thermometerService';
+import TotalOportunidadesCard from './TotalOportunidadesCard';
 
-const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selectedUnit, selectedSeller }) => {
+const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin }) => {
   const [realMetrics, setRealMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -96,11 +97,26 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
 
   return (
     <section className="stats-section">
+      {/* Card específico de Total de Oportunidades com duas métricas */}
+      <div className="total-oportunidades-container">
+        <TotalOportunidadesCard 
+          startDate={startDate}
+          endDate={endDate}
+          selectedFunnel={selectedFunnel}
+          selectedUnit={selectedUnit}
+          selectedSeller={selectedSeller}
+          selectedOrigin={selectedOrigin}
+        />
+      </div>
+      
+      {/* Grid com os outros 4 cards */}
       <div className="stats-grid">
-        {statsCards.map((card, index) => {
-          const cardData = getCardData(card, index);
+        {statsCards.slice(1).map((card, index) => {
+          // Ajustar o índice para começar do 1 (pular o primeiro card)
+          const adjustedIndex = index + 1;
+          const cardData = getCardData(card, adjustedIndex);
           return (
-            <div key={index} className={`stat-card ${cardData.color}`}>
+            <div key={adjustedIndex} className={`stat-card ${cardData.color}`}>
               {/* Header com título e métricas */}
               <div className="stat-header-new">
                 <div className="header-content">

@@ -1,0 +1,236 @@
+/**
+ * 🎯 TOTAL OPORTUNIDADES CARD CSS
+ * 
+ * Estilos específicos para o componente TotalOportunidadesCard
+ * Prefixo: toc- (Total Oportunidades Card)
+ */
+
+.toc-total-oportunidades-card {
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--accent-green);
+  color: var(--text-primary);
+  position: relative;
+  overflow: hidden;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+}
+
+.toc-total-oportunidades-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* Header */
+.toc-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.toc-card-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.toc-loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--text-muted);
+  border-top: 3px solid var(--accent-blue);
+  border-radius: 50%;
+  animation: toc-spin 1s linear infinite;
+}
+
+@keyframes toc-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Valores principais no canto superior direito */
+.toc-main-values {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  text-align: right;
+  z-index: 2;
+}
+
+.toc-primary-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.toc-secondary-value {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 6px;
+  min-width: 50px;
+  text-align: center;
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  display: inline-block;
+}
+
+/* Termômetro central */
+.toc-thermometer-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px 0;
+  flex: 1;
+  min-height: 120px;
+}
+
+/* Meta e porcentagem na parte inferior */
+.toc-meta-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.toc-meta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toc-meta-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+.toc-meta-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.toc-meta-percentage {
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 6px;
+  min-width: 50px;
+  text-align: center;
+  color: var(--accent-green);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Estado negativo - vermelho */
+.toc-meta-percentage-negative {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--accent-red);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+
+/* Estado de erro */
+.toc-error {
+  background-color: var(--accent-red);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  border-radius: 12px;
+  border: 1px solid var(--accent-red);
+}
+
+.toc-error-content {
+  text-align: center;
+  color: white;
+}
+
+.toc-error-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.toc-error-message h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+}
+
+.toc-error-message p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 0.9rem;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .toc-total-oportunidades-card {
+    padding: 20px;
+    min-height: 180px;
+  }
+  
+  .toc-main-values {
+    top: 20px;
+    right: 20px;
+  }
+  
+  .toc-primary-value {
+    font-size: 2rem;
+  }
+  
+  .toc-secondary-value {
+    font-size: 0.9rem;
+  }
+  
+  .toc-card-title {
+    font-size: 1.3rem;
+  }
+  
+  .toc-thermometer-container {
+    min-height: 100px;
+    margin: 16px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .toc-total-oportunidades-card {
+    padding: 16px;
+    min-height: 160px;
+  }
+  
+  .toc-main-values {
+    top: 16px;
+    right: 16px;
+  }
+  
+  .toc-primary-value {
+    font-size: 1.8rem;
+  }
+  
+  .toc-secondary-value {
+    font-size: 0.8rem;
+  }
+  
+  .toc-thermometer-container {
+    min-height: 80px;
+    margin: 12px 0;
+  }
+}

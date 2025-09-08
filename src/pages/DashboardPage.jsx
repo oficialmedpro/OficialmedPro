@@ -40,6 +40,7 @@ const DashboardPage = ({ onLogout }) => {
   const [selectedPeriod, setSelectedPeriod] = useState('today');
   const [selectedFunnel, setSelectedFunnel] = useState('all');
   const [selectedUnit, setSelectedUnit] = useState('all');
+  const [selectedOrigin, setSelectedOrigin] = useState('all');
   const [unitFilterValue, setUnitFilterValue] = useState(null); // Novo estado para o valor do filtro
   const [statusFilterValue, setStatusFilterValue] = useState(null); // Novo estado para o filtro de status
   const [marketData, setMarketData] = useState({
@@ -271,6 +272,8 @@ const DashboardPage = ({ onLogout }) => {
         setSelectedFunnel={setSelectedFunnel}
         selectedUnit={selectedUnit}
         setSelectedUnit={setSelectedUnit}
+        selectedOrigin={selectedOrigin}
+        setSelectedOrigin={setSelectedOrigin}
         startDate={startDate}
         setStartDate={setStartDate}
         endDate={endDate}
@@ -300,6 +303,7 @@ const DashboardPage = ({ onLogout }) => {
                 selectedFunnel={selectedFunnel}
                 selectedUnit={selectedUnit}
                 selectedSeller={selectedSeller}
+                selectedOrigin={selectedOrigin}
               />
             </>
           )}

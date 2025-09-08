@@ -1,24 +1,52 @@
 import React from 'react';
 import './PerformanceThermometer.css';
 
-const PerformanceThermometer = ({ currentValue, previousValue, change, isPositive, color }) => {
+const PerformanceThermometer = ({ currentValue, previousValue, change, isPositive, color, metaPercentage }) => {
   const current = parseInt(currentValue.toString().replace(/[^\d]/g, ''));
   const previous = parseInt(previousValue.toString().replace(/[^\d]/g, ''));
   
-  // Calcular performance relativa (0-100)
-  const performanceRatio = previous > 0 ? (current / previous) : 1;
-  const performanceScore = Math.min(Math.max(performanceRatio * 100, 0), 200); // 0 a 200%
+  // 🎯 NOVA LÓGICA: Usar metaPercentage se disponível, senão usar lógica anterior
+  let performanceScore;
+  let angle;
+  
+  if (metaPercentage !== undefined && metaPercentage !== null) {
+    // Usar percentual da meta: -100% a +100%
+    // -100% = início vermelho, 0% = meio amarelo, +100% = fim verde
+    performanceScore = Math.max(Math.min(metaPercentage, 100), -100); // Limitar entre -100% e +100%
+    
+    // Novo mapeamento: -25% deve estar no amarelo/verde (mais à direita)
+    // -100% = 0°, -25% = 135°, 0% = 160°, +100% = 180°
+    if (performanceScore <= -25) {
+      // -100% a -25% mapear para 0° a 135°
+      angle = ((performanceScore + 100) / 75) * 135;
+    } else {
+      // -25% a +100% mapear para 135° a 180°
+      angle = 135 + ((performanceScore + 25) / 125) * 45;
+    }
+  } else {
+    // Lógica anterior para compatibilidade
+    const performanceRatio = previous > 0 ? (current / previous) : 1;
+    performanceScore = Math.min(Math.max(performanceRatio * 100, 0), 200);
+    angle = Math.min((performanceScore / 200) * 180, 180);
+  }
   
   // Determinar cor baseada na performance
   const getThermometerColor = () => {
-    if (performanceScore >= 120) return '#10b981'; // Verde - Excelente
-    if (performanceScore >= 100) return '#fbbf24'; // Amarelo - Bom
-    if (performanceScore >= 80) return '#f59e0b'; // Laranja - Regular
-    return '#ef4444'; // Vermelho - Ruim
+    if (metaPercentage !== undefined && metaPercentage !== null) {
+      // Nova lógica baseada no percentual da meta
+      if (metaPercentage >= 0) return '#10b981'; // Verde - Meta atingida ou superada (0%+)
+      if (metaPercentage >= -25) return '#10b981'; // Verde - Próximo da meta (-25% a 0%)
+      if (metaPercentage >= -50) return '#fbbf24'; // Amarelo - Meio da meta (-50% a -25%)
+      if (metaPercentage >= -75) return '#f59e0b'; // Laranja - Longe da meta (-75% a -50%)
+      return '#ef4444'; // Vermelho - Muito longe da meta (-100% a -75%)
+    } else {
+      // Lógica anterior
+      if (performanceScore >= 120) return '#10b981';
+      if (performanceScore >= 100) return '#fbbf24';
+      if (performanceScore >= 80) return '#f59e0b';
+      return '#ef4444';
+    }
   };
-  
-  // Calcular ângulo do ponteiro (0° = vermelho/esquerda, 180° = verde/direita)
-  const angle = Math.min((performanceScore / 200) * 180, 180);
   
   return (
     <div className="performance-thermometer-container">
@@ -29,8 +57,9 @@ const PerformanceThermometer = ({ currentValue, previousValue, change, isPositiv
           <defs>
             <linearGradient id={`thermo-gradient-${color}`} x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#ef4444" />
-              <stop offset="40%" stopColor="#f59e0b" />
-              <stop offset="70%" stopColor="#fbbf24" />
+              <stop offset="20%" stopColor="#f59e0b" />
+              <stop offset="40%" stopColor="#fbbf24" />
+              <stop offset="60%" stopColor="#10b981" />
               <stop offset="100%" stopColor="#10b981" />
             </linearGradient>
           </defs>
