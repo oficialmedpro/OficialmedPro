@@ -37,7 +37,7 @@ const TotalOportunidadesCard = ({
         console.log('🔍 Parâmetros recebidos:');
         console.log('  - startDate:', startDate);
         console.log('  - endDate:', endDate);
-        console.log('  - selectedFunnel:', selectedFunnel);
+        console.log('  - selectedFunnel:', selectedFunnel, 'tipo:', typeof selectedFunnel);
         console.log('  - selectedUnit:', selectedUnit);
         console.log('  - selectedSeller:', selectedSeller);
         console.log('  - selectedOrigin:', selectedOrigin);

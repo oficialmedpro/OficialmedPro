@@ -195,8 +195,14 @@ const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSe
   };
 
   const handleFunnelChange = (funnelId) => {
+    console.log('🔍 FilterBar: handleFunnelChange chamado com funnelId:', funnelId);
+    console.log('🔍 FilterBar: funnelId tipo:', typeof funnelId);
+    console.log('🔍 FilterBar: funnelId valor:', funnelId);
+    
     setSelectedFunnel(funnelId);
     setOpenDropdown(null); // Fecha o dropdown
+    
+    console.log('🔍 FilterBar: selectedFunnel atualizado para:', funnelId);
   };
 
   const handleUnitChange = async (unitId) => {
@@ -283,16 +289,22 @@ const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSe
   };
 
   const handleOriginChange = (originId) => {
+    console.log('🔍 FilterBar: handleOriginChange chamado com originId:', originId);
+    console.log('🔍 FilterBar: origins disponíveis:', origins);
+    console.log('🔍 FilterBar: onOriginFilterChange existe?', !!onOriginFilterChange);
+    
     setSelectedOrigin(originId);
     setOpenDropdown(null); // Fecha o dropdown
     
     // 🎯 FILTRO DE ORIGEM: Aplicar filtro por origem_oportunidade na tabela oportunidade_sprint
     if (onOriginFilterChange) {
       const selectedOriginData = origins.find(o => o.id === originId);
+      console.log('🔍 FilterBar: selectedOriginData encontrado:', selectedOriginData);
+      
       if (selectedOriginData) {
         // Se for "Todas as origens", passa null para não filtrar
         const filterValue = originId === 'all' ? null : selectedOriginData.origem;
-        console.log(`🎯 Filtro de origem aplicado:`, {
+        console.log(`🎯 FilterBar: Filtro de origem aplicado:`, {
           originName: selectedOriginData.name,
           origem: selectedOriginData.origem,
           filterValue: filterValue,
@@ -301,10 +313,14 @@ const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSe
         
         // Chama o callback do componente pai para aplicar o filtro
         onOriginFilterChange(filterValue);
+      } else {
+        console.log('❌ FilterBar: selectedOriginData não encontrado para originId:', originId);
       }
+    } else {
+      console.log('❌ FilterBar: onOriginFilterChange não existe!');
     }
     
-    console.log(`🎯 Origem selecionada:`, {
+    console.log(`🎯 FilterBar: Origem selecionada:`, {
       originId,
       origemData: origins.find(o => o.id === originId)
     });

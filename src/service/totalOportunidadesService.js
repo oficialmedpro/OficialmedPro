@@ -59,6 +59,10 @@ export const getTotalOportunidadesMetrics = async (
     let funilFilter = '';
     if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
       funilFilter = `&funil_id=eq.${selectedFunnel}`;
+      console.log('🔍 TotalOportunidadesService: Filtro de funil aplicado:', funilFilter);
+      console.log('🔍 TotalOportunidadesService: selectedFunnel valor:', selectedFunnel, 'tipo:', typeof selectedFunnel);
+    } else {
+      console.log('🔍 TotalOportunidadesService: Sem filtro de funil (selectedFunnel:', selectedFunnel, ')');
     }
     
     let unidadeFilter = '';
@@ -80,7 +84,44 @@ export const getTotalOportunidadesMetrics = async (
 
     let originFilter = '';
     if (selectedOrigin && selectedOrigin !== 'all' && selectedOrigin !== '' && selectedOrigin !== 'undefined') {
-      originFilter = `&origem_oportunidade=eq.${encodeURIComponent(selectedOrigin)}`;
+      // 🔍 CORREÇÃO: selectedOrigin é o ID da origem, mas precisamos do nome
+      // Buscar o nome da origem na tabela origem_oportunidade
+      try {
+        const originResponse = await fetch(`${supabaseUrl}/rest/v1/origem_oportunidade?select=nome&id=eq.${selectedOrigin}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+            'Content-Profile': supabaseSchema
+          }
+        });
+
+        if (originResponse.ok) {
+          const originData = await originResponse.json();
+          if (originData && originData.length > 0) {
+            const originName = originData[0].nome;
+            
+            // 🌱 LÓGICA PARA ORIGEM "ORGÂNICO": incluir também registros com origem_oportunidade=null
+            if (originName.toLowerCase() === 'orgânico' || originName.toLowerCase() === 'organico') {
+              originFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent(originName)},origem_oportunidade.is.null)`;
+              console.log('🌱 Filtro de origem Orgânico (incluindo NULL):', { selectedOriginId: selectedOrigin, originName, originFilter });
+            } else {
+              originFilter = `&origem_oportunidade=eq.${encodeURIComponent(originName)}`;
+              console.log('🔍 Filtro de origem convertido:', { selectedOriginId: selectedOrigin, originName, originFilter });
+            }
+          } else {
+            console.log('⚠️ Origem não encontrada para ID:', selectedOrigin);
+          }
+        } else {
+          console.log('⚠️ Erro ao buscar origem, usando ID diretamente:', selectedOrigin);
+          originFilter = `&origem_oportunidade=eq.${encodeURIComponent(selectedOrigin)}`;
+        }
+      } catch (error) {
+        console.log('⚠️ Erro ao buscar origem, usando ID diretamente:', error);
+        originFilter = `&origem_oportunidade=eq.${encodeURIComponent(selectedOrigin)}`;
+      }
     }
 
     const filtrosCombinados = funilFilter + unidadeFilter + sellerFilter + originFilter;
@@ -95,14 +136,32 @@ export const getTotalOportunidadesMetrics = async (
     // 🎯 1. TOTAL DE OPORTUNIDADES ABERTAS - Apenas status="open", SEM filtro de data
     const totalOportunidadesAbertasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open${filtrosCombinados}`;
     console.log('🔍 URL Total Oportunidades Abertas (sem data):', totalOportunidadesAbertasUrl);
+    console.log('🔍 Filtros combinados para abertas:', filtrosCombinados);
 
     // 🎯 2. TOTAL DE OPORTUNIDADES NOVAS - Todos os status, COM filtro de data
     const totalOportunidadesNovasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${filtrosCombinados}`;
     console.log('🔍 URL Total Oportunidades Novas (período):', totalOportunidadesNovasUrl);
+    console.log('🔍 Filtros combinados para novas:', filtrosCombinados);
 
     // 🎯 3. BUSCAR META DE OPORTUNIDADES NOVAS - Tabela metas
-    const metaOportunidadesNovasUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent('[1]')}&dashboard=eq.novas_oportunidades`;
+    // Usar selectedUnit ou fallback para [1] se não especificado
+    const unidadeParaMeta = selectedUnit && selectedUnit !== 'all' ? selectedUnit : '[1]';
+    
+    let metaOportunidadesNovasUrl;
+    
+    // 🎯 LÓGICA DE META BASEADA NA SELEÇÃO
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      // Funil específico selecionado - buscar meta específica do funil
+      metaOportunidadesNovasUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.novas_oportunidades&funil=eq.${selectedFunnel}`;
+      console.log('🎯 Buscando meta específica do funil:', selectedFunnel);
+    } else {
+      // Apenas unidade selecionada - buscar AMBOS funis (6 e 14) e somar
+      metaOportunidadesNovasUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.novas_oportunidades&funil=in.(6,14)`;
+      console.log('🎯 Buscando metas de ambos funis (6 e 14) para somar');
+    }
+    
     console.log('🔍 URL Meta Oportunidades Novas:', metaOportunidadesNovasUrl);
+    console.log('🔍 Filtros da meta - Unidade:', unidadeParaMeta, 'Funil:', selectedFunnel || 'ambos (6+14)');
 
     // Executar todas as queries em paralelo
     const [abertasResponse, novasResponse, metaResponse] = await Promise.all([
@@ -175,8 +234,19 @@ export const getTotalOportunidadesMetrics = async (
     if (metaResponse.ok) {
       const metaData = await metaResponse.json();
       if (metaData && metaData.length > 0) {
-        metaOportunidadesNovas = parseFloat(metaData[0].valor_da_meta) || 0;
-        console.log(`✅ Meta Oportunidades Novas: ${metaOportunidadesNovas}`);
+        if (selectedFunnel && selectedFunnel !== 'all') {
+          // Funil específico - usar valor único
+          metaOportunidadesNovas = parseFloat(metaData[0].valor_da_meta) || 0;
+          console.log(`✅ Meta Oportunidades Novas (funil ${selectedFunnel}): ${metaOportunidadesNovas}`);
+        } else {
+          // Unidade selecionada (ambos funis) - somar as metas dos funis 6 e 14
+          metaOportunidadesNovas = metaData.reduce((total, meta) => {
+            const valor = parseFloat(meta.valor_da_meta) || 0;
+            return total + valor;
+          }, 0);
+          console.log(`✅ Meta Oportunidades Novas (soma funis 6+14): ${metaOportunidadesNovas}`);
+          console.log(`🔍 Detalhes das metas encontradas:`, metaData.map(m => ({ valor: m.valor_da_meta })));
+        }
       } else {
         console.log('⚠️ Nenhuma meta encontrada para oportunidades novas, usando valor padrão');
         metaOportunidadesNovas = 100; // Valor padrão
@@ -259,7 +329,39 @@ const getTotalOportunidadesAnteriores = async (startDate, endDate, selectedFunne
     const funilFilter = selectedFunnel && selectedFunnel !== 'all' ? `&funil_id=eq.${selectedFunnel}` : '';
     const unidadeFilter = selectedUnit && selectedUnit !== 'all' ? `&unidade_id=eq.${encodeURIComponent(selectedUnit.toString())}` : '';
     const sellerFilter = selectedSeller && selectedSeller !== 'all' ? `&user_id=eq.${selectedSeller}` : '';
-    const originFilter = selectedOrigin && selectedOrigin !== 'all' ? `&origem_oportunidade=eq.${encodeURIComponent(selectedOrigin)}` : '';
+    // 🔍 CORREÇÃO: Converter ID da origem para nome (mesma lógica da função principal)
+    let originFilter = '';
+    if (selectedOrigin && selectedOrigin !== 'all') {
+      try {
+        const originResponse = await fetch(`${supabaseUrl}/rest/v1/origem_oportunidade?select=nome&id=eq.${selectedOrigin}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+            'Content-Profile': supabaseSchema
+          }
+        });
+
+        if (originResponse.ok) {
+          const originData = await originResponse.json();
+          if (originData && originData.length > 0) {
+            const originName = originData[0].nome;
+            
+            // 🌱 LÓGICA PARA ORIGEM "ORGÂNICO": incluir também registros com origem_oportunidade=null
+            if (originName.toLowerCase() === 'orgânico' || originName.toLowerCase() === 'organico') {
+              originFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent(originName)},origem_oportunidade.is.null)`;
+              console.log('🌱 Filtro de origem Orgânico para período anterior (incluindo NULL):', originName);
+            } else {
+              originFilter = `&origem_oportunidade=eq.${encodeURIComponent(originName)}`;
+            }
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ Erro ao buscar origem para período anterior:', error);
+      }
+    }
     const filtrosCombinados = funilFilter + unidadeFilter + sellerFilter + originFilter;
 
     // 🎯 BUSCAR DADOS ESPECÍFICOS DO PERÍODO ANTERIOR
@@ -329,6 +431,179 @@ export const testTotalOportunidadesConnection = async () => {
     return { success: true, data: metrics };
   } catch (error) {
     console.error('❌ TotalOportunidadesService: Erro na conexão:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * 🎯 FUNÇÃO PARA TESTAR FUNIL ESPECÍFICO COM UNIDADE
+ */
+export const testFunilSpecificWithUnit = async (funilId, unidadeId) => {
+  try {
+    console.log(`🔍 Testando funil ${funilId} com unidade ${unidadeId}...`);
+    
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+    
+    // Testar sem filtros
+    const urlSemFiltros = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,funil_id,unidade_id,status&archived=eq.0&status=eq.open`;
+    console.log('🔍 URL sem filtros:', urlSemFiltros);
+    
+    const responseSemFiltros = await fetch(urlSemFiltros, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+        'Content-Profile': supabaseSchema
+      }
+    });
+    
+    if (responseSemFiltros.ok) {
+      const dataSemFiltros = await responseSemFiltros.json();
+      console.log(`✅ Total de oportunidades abertas (sem filtro): ${dataSemFiltros.length}`);
+      
+      // Filtrar por funil_id
+      const oportunidadesFunil = dataSemFiltros.filter(opp => opp.funil_id == funilId);
+      console.log(`✅ Oportunidades do funil ${funilId}: ${oportunidadesFunil.length}`);
+      
+      // Filtrar por funil_id E unidade_id
+      const oportunidadesFunilUnidade = dataSemFiltros.filter(opp => 
+        opp.funil_id == funilId && opp.unidade_id === unidadeId
+      );
+      console.log(`✅ Oportunidades do funil ${funilId} na unidade ${unidadeId}: ${oportunidadesFunilUnidade.length}`);
+      
+      // Mostrar algumas amostras
+      if (oportunidadesFunilUnidade.length > 0) {
+        console.log('📋 Amostras de oportunidades do funil na unidade:', oportunidadesFunilUnidade.slice(0, 3));
+      } else {
+        console.log('📋 Verificando distribuição por unidade:');
+        const distribuicaoUnidades = {};
+        oportunidadesFunil.forEach(opp => {
+          const unidade = opp.unidade_id || 'null';
+          distribuicaoUnidades[unidade] = (distribuicaoUnidades[unidade] || 0) + 1;
+        });
+        console.log('📊 Distribuição por unidade:', distribuicaoUnidades);
+      }
+      
+      // Testar com filtro direto
+      const unidadeEncoded = encodeURIComponent(unidadeId);
+      const urlComFiltro = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,funil_id,unidade_id,status&archived=eq.0&status=eq.open&funil_id=eq.${funilId}&unidade_id=eq.${unidadeEncoded}`;
+      console.log('🔍 URL com filtro direto:', urlComFiltro);
+      
+      const responseComFiltro = await fetch(urlComFiltro, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': supabaseSchema,
+          'Content-Profile': supabaseSchema
+        }
+      });
+      
+      if (responseComFiltro.ok) {
+        const dataComFiltro = await responseComFiltro.json();
+        console.log(`✅ Oportunidades com filtro direto: ${dataComFiltro.length}`);
+      } else {
+        console.error('❌ Erro na query com filtro direto:', responseComFiltro.status);
+      }
+      
+      return {
+        success: true,
+        totalSemFiltro: dataSemFiltros.length,
+        totalFunil: oportunidadesFunil.length,
+        totalFunilUnidade: oportunidadesFunilUnidade.length,
+        funilId: funilId,
+        unidadeId: unidadeId
+      };
+    } else {
+      console.error('❌ Erro na query sem filtros:', responseSemFiltros.status);
+      return { success: false, error: `HTTP ${responseSemFiltros.status}` };
+    }
+    
+  } catch (error) {
+    console.error('❌ Erro no teste do funil com unidade:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * 🎯 FUNÇÃO PARA TESTAR FUNIL ESPECÍFICO
+ */
+export const testFunilSpecific = async (funilId) => {
+  try {
+    console.log(`🔍 Testando funil específico: ${funilId}`);
+    
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+    
+    // Testar sem filtros
+    const urlSemFiltros = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,funil_id,status&archived=eq.0&status=eq.open`;
+    console.log('🔍 URL sem filtros:', urlSemFiltros);
+    
+    const responseSemFiltros = await fetch(urlSemFiltros, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+        'Content-Profile': supabaseSchema
+      }
+    });
+    
+    if (responseSemFiltros.ok) {
+      const dataSemFiltros = await responseSemFiltros.json();
+      console.log(`✅ Total de oportunidades abertas (sem filtro): ${dataSemFiltros.length}`);
+      
+      // Filtrar por funil_id
+      const oportunidadesFunil = dataSemFiltros.filter(opp => opp.funil_id == funilId);
+      console.log(`✅ Oportunidades do funil ${funilId}: ${oportunidadesFunil.length}`);
+      
+      // Mostrar algumas amostras
+      if (oportunidadesFunil.length > 0) {
+        console.log('📋 Amostras de oportunidades do funil:', oportunidadesFunil.slice(0, 3));
+      }
+      
+      // Testar com filtro direto
+      const urlComFiltro = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,funil_id,status&archived=eq.0&status=eq.open&funil_id=eq.${funilId}`;
+      console.log('🔍 URL com filtro direto:', urlComFiltro);
+      
+      const responseComFiltro = await fetch(urlComFiltro, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': supabaseSchema,
+          'Content-Profile': supabaseSchema
+        }
+      });
+      
+      if (responseComFiltro.ok) {
+        const dataComFiltro = await responseComFiltro.json();
+        console.log(`✅ Oportunidades com filtro direto: ${dataComFiltro.length}`);
+      } else {
+        console.error('❌ Erro na query com filtro direto:', responseComFiltro.status);
+      }
+      
+      return {
+        success: true,
+        totalSemFiltro: dataSemFiltros.length,
+        totalFunil: oportunidadesFunil.length,
+        funilId: funilId
+      };
+    } else {
+      console.error('❌ Erro na query sem filtros:', responseSemFiltros.status);
+      return { success: false, error: `HTTP ${responseSemFiltros.status}` };
+    }
+    
+  } catch (error) {
+    console.error('❌ Erro no teste do funil:', error);
     return { success: false, error: error.message };
   }
 };

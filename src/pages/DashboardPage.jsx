@@ -147,6 +147,36 @@ const DashboardPage = ({ onLogout }) => {
     // TODO: Implementar filtro nas oportunidades
     // Exemplo: filtrar oportunidades onde filterData.field = filterData.value
   };
+
+  // 🎯 Função para lidar com mudanças no filtro de vendedor
+  const handleSellerFilterChange = (filterValue) => {
+    console.log(`🎯 Dashboard: Filtro de vendedor alterado para:`, filterValue);
+    
+    // Aqui você pode implementar a lógica para filtrar as oportunidades
+    // baseado no vendedor selecionado
+    if (filterValue) {
+      console.log(`🔍 Filtrando oportunidades com user_id = "${filterValue}"`);
+    } else {
+      console.log(`🌐 Mostrando todos os vendedores (sem filtro de vendedor)`);
+    }
+  };
+
+  // 🎯 Função para lidar com mudanças no filtro de origem
+  const handleOriginFilterChange = (filterValue) => {
+    console.log(`🎯 Dashboard: Filtro de origem alterado para:`, filterValue);
+    
+    // Aqui você pode implementar a lógica para filtrar as oportunidades
+    // baseado na origem selecionada
+    if (filterValue) {
+      console.log(`🔍 Filtrando oportunidades com origem_oportunidade = "${filterValue}"`);
+    } else {
+      console.log(`🌐 Mostrando todas as origens (sem filtro de origem)`);
+    }
+    
+    // CORREÇÃO: O filtro estava sendo aplicado mas não passado para os componentes
+    // Isso acontece porque o selectedOrigin já é atualizado pelo FilterBar via setSelectedOrigin
+    // e os componentes já recebem selectedOrigin como prop
+  };
   const toggleSidebar = () => {
     // No mobile, alterna o menu mobile
     if (window.innerWidth <= 768) {
@@ -279,6 +309,8 @@ const DashboardPage = ({ onLogout }) => {
         endDate={endDate}
         setEndDate={setEndDate}
         onUnitFilterChange={handleUnitFilterChange}
+        onSellerFilterChange={handleSellerFilterChange}
+        onOriginFilterChange={handleOriginFilterChange}
         onStatusFilterChange={handleStatusFilterChange}
         marketData={marketData}
       />
@@ -294,7 +326,8 @@ const DashboardPage = ({ onLogout }) => {
                 endDate, 
                 selectedFunnel, 
                 selectedUnit, 
-                selectedSeller 
+                selectedSeller,
+                selectedOrigin
               })}
               <StatsSection 
                 statsCards={statsCards} 
