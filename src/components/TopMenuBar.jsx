@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { syncFollowUpStage, checkFollowUpSync } from '../service/sprintHubSyncService';
+import { testFunilSpecific, testFunilSpecificWithUnit } from '../service/totalOportunidadesService';
 import autoSyncService from '../service/autoSyncService';
 // Imports temporariamente removidos - arquivos não existem no repositório
 // import { generateDuplicateReport, performFullCleanup } from '../service/duplicateCleanupService';
@@ -366,6 +367,9 @@ const TopMenuBar = ({
         `• ❌ Erros: ${errors}`;
       
       alert(message);
+      
+      // 📅 ATUALIZAR ÚLTIMA SINCRONIZAÇÃO
+      setLastSyncTime(new Date());
       
     } catch (error) {
       console.error('❌ Erro:', error);
@@ -917,6 +921,9 @@ const TopMenuBar = ({
       console.log(`🕒 Finalizada em: ${new Date().toLocaleTimeString('pt-BR')}`);
       console.log('='.repeat(80));
       
+      // 📅 ATUALIZAR ÚLTIMA SINCRONIZAÇÃO
+      setLastSyncTime(new Date());
+      
       // Alert final
       alert(
         `🎯 SINCRONIZAÇÃO COMPLETA — TODAS ETAPAS\n\n` +
@@ -941,7 +948,7 @@ const TopMenuBar = ({
     }
   };
 
-  // 📅 SINCRONIZAR OPORTUNIDADES CRIADAS NOS ÚLTIMOS 7 DIAS (TODOS OS STATUS)
+  // 📅 SINCRONIZAR OPORTUNIDADES CRIADAS NOS ÚLTIMOS 7 DIAS (TODOS OS STATUS) - FUNIS 6 E 14
   const handleSyncWeeklyOpportunities = async () => {
     if (isSyncingWeekly) return;
     
@@ -957,13 +964,14 @@ const TopMenuBar = ({
     const confirmTest = confirm(
       '📅 ATUALIZAÇÃO SEMANAL — ÚLTIMOS 7 DIAS\n\n' +
       '🔍 O que será executado:\n' +
-      '• Buscar funil 6, TODAS as 7 etapas\n' +
+      '• Buscar funis 6 (COMPRA) e 14 (RECOMPRA)\n' +
       '• Filtrar por data de CRIAÇÃO dos últimos 7 dias\n' +
       '• TODOS os status (open, won, lost, etc.)\n' +
       '• Paginação completa (todas as páginas)\n' +
       '• INSERIR registros novos no Supabase\n' +
       '• ATUALIZAR registros existentes\n' +
-      '• Log detalhado por etapa e operação\n\n' +
+      '• Ambos funis da unidade Apucarana [1]\n' +
+      '• Log detalhado por funil, etapa e operação\n\n' +
       `📅 Período: ${sevenDaysAgo.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}\n\n` +
       '⚠️ ATENÇÃO: Irá INSERIR/ATUALIZAR dados no banco!\n\n' +
       'Deseja continuar com a atualização semanal?'
@@ -976,7 +984,7 @@ const TopMenuBar = ({
     const startTime = performance.now();
     
     try {
-      console.log('📅 INICIANDO ATUALIZAÇÃO SEMANAL — ÚLTIMOS 7 DIAS');
+      console.log('📅 INICIANDO ATUALIZAÇÃO SEMANAL — FUNIS 6 E 14 — ÚLTIMOS 7 DIAS');
       console.log('='.repeat(80));
       console.log(`🕒 Início: ${new Date().toLocaleTimeString('pt-BR')}`);
       console.log(`📅 Período: ${sevenDaysAgo.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`);
@@ -993,23 +1001,39 @@ const TopMenuBar = ({
         serviceRoleKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
       };
       
-      const TARGET_FUNNEL = 6;
       const PAGE_LIMIT = 100;
       
-      // 📋 TODAS AS ETAPAS DO FUNIL 6
-      const FUNIL_6_STAGES = [
-        { id: 130, name: "[0] ENTRADA" },
-        { id: 231, name: "[1] ACOLHIMENTO/TRIAGEM" },
-        { id: 82, name: "[2] QUALIFICADO" },
-        { id: 207, name: "[3] ORÇAMENTO REALIZADO" },
-        { id: 83, name: "[4] NEGOCIAÇÃO" },
-        { id: 85, name: "[5] FOLLOW UP" },
-        { id: 232, name: "[6] CADASTRO" }
+      // 🎯 FUNIS E SUAS ETAPAS
+      const FUNNELS_CONFIG = [
+        {
+          id: 6,
+          name: 'COMPRA - APUCARANA',
+          stages: [
+            { id: 130, name: "[0] ENTRADA" },
+            { id: 231, name: "[1] ACOLHIMENTO/TRIAGEM" },
+            { id: 82, name: "[2] QUALIFICADO" },
+            { id: 207, name: "[3] ORÇAMENTO REALIZADO" },
+            { id: 83, name: "[4] NEGOCIAÇÃO" },
+            { id: 85, name: "[5] FOLLOW UP" },
+            { id: 232, name: "[6] CADASTRO" }
+          ]
+        },
+        {
+          id: 14,
+          name: 'RECOMPRA - APUCARANA',
+          stages: [
+            { id: 371, name: "[0] ENTRADA" },
+            { id: 372, name: "[1] QUALIFICAÇÃO" },
+            { id: 373, name: "[2] ORÇAMENTO" },
+            { id: 374, name: "[3] NEGOCIAÇÃO" },
+            { id: 375, name: "[4] FECHADO" }
+          ]
+        }
       ];
       
       console.log('🎯 CONFIGURAÇÃO DA ATUALIZAÇÃO SEMANAL:');
-      console.log(`   📊 Funil: ${TARGET_FUNNEL} (COMERCIAL APUCARANA)`);
-      console.log(`   📋 Etapas: ${FUNIL_6_STAGES.length} etapas (TODAS)`);
+      console.log(`   📊 Funis: ${FUNNELS_CONFIG.map(f => f.id).join(', ')} (APUCARANA)`);
+      console.log(`   📋 Etapas: ${FUNNELS_CONFIG.reduce((acc, f) => acc + f.stages.length, 0)} etapas (TODAS)`);
       console.log(`   📅 Filtro: createDate dos últimos 7 dias (TODOS os status)`);
       console.log(`   📄 Limit por página: ${PAGE_LIMIT}`);
       console.log('='.repeat(80));
@@ -1026,8 +1050,8 @@ const TopMenuBar = ({
         }
       };
       
-      // 💾 FUNÇÃO PARA MAPEAR CAMPOS (baseada no sprintHubSyncService.js)
-      const mapOpportunityFields = (opportunity) => {
+      // 💾 FUNÇÃO PARA MAPEAR CAMPOS (baseada na função horária)
+      const mapOpportunityFields = (opportunity, funnelId) => {
         const fields = opportunity.fields || {};
         const lead = opportunity.dataLead || {};
         const utmTags = (lead.utmTags && lead.utmTags[0]) || {};
@@ -1387,6 +1411,9 @@ const TopMenuBar = ({
       console.log(`🕒 Finalizada em: ${new Date().toLocaleTimeString('pt-BR')}`);
       console.log('='.repeat(80));
       
+      // 📅 ATUALIZAR ÚLTIMA SINCRONIZAÇÃO
+      setLastSyncTime(new Date());
+      
       // Alert final
       alert(
         `📅 ATUALIZAÇÃO SEMANAL CONCLUÍDA\n\n` +
@@ -1567,7 +1594,8 @@ const TopMenuBar = ({
           
           // Funil
           funil_id: funnelId,
-          unidade_id: funnelId === 6 ? '[1]' : '[2]' // Apucarana ou Recompra
+          unidade_id: '[1]', // Ambos funis são da unidade Apucarana
+          funil_nome: funnelId === 6 ? '[1] Comercial Apucarana' : '[1] Recompra Apucarana'
         };
       };
       
@@ -1908,6 +1936,9 @@ const TopMenuBar = ({
       console.log(`🕒 Finalizada em: ${new Date().toLocaleTimeString('pt-BR')}`);
       console.log('='.repeat(80));
       
+      // 📅 ATUALIZAR ÚLTIMA SINCRONIZAÇÃO
+      setLastSyncTime(new Date());
+      
       // Alert final
       alert(
         `🕐 SINCRONIZAÇÃO HORÁRIA CONCLUÍDA\n\n` +
@@ -1955,6 +1986,31 @@ const TopMenuBar = ({
       
       // Executar imediatamente na primeira vez
       handleHourlySync();
+      
+      // 📅 ATUALIZAR ÚLTIMA SINCRONIZAÇÃO (será atualizada novamente pelo handleHourlySync)
+      setLastSyncTime(new Date());
+    }
+  };
+
+  // 🎯 FUNÇÃO PARA TESTAR FUNIL ESPECÍFICO
+  const handleTestFunil = async (funilId) => {
+    try {
+      console.log(`🔍 Testando funil ${funilId}...`);
+      const result = await testFunilSpecific(funilId);
+      console.log('✅ Resultado do teste:', result);
+    } catch (error) {
+      console.error('❌ Erro no teste do funil:', error);
+    }
+  };
+
+  // 🎯 FUNÇÃO PARA TESTAR FUNIL COM UNIDADE ESPECÍFICA
+  const handleTestFunilUnidade = async (funilId) => {
+    try {
+      console.log(`🔍 Testando funil ${funilId} com unidade [1]...`);
+      const result = await testFunilSpecificWithUnit(funilId, '[1]');
+      console.log('✅ Resultado do teste com unidade:', result);
+    } catch (error) {
+      console.error('❌ Erro no teste do funil com unidade:', error);
     }
   };
 
@@ -2079,7 +2135,7 @@ const TopMenuBar = ({
               className={`tmb-sync-btn ${isSyncingWeekly ? 'syncing' : ''}`}
               onClick={handleSyncWeeklyOpportunities}
               disabled={isSyncingWeekly || isTestingAllOpen || isSyncingHourly}
-              title="Atualização semanal - busca oportunidades criadas nos últimos 7 dias em todas as etapas (todos os status)"
+              title="Atualização semanal - busca oportunidades criadas nos últimos 7 dias nos funis 6 (COMPRA) e 14 (RECOMPRA) - unidade Apucarana [1]"
               style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' }}
             >
               {isSyncingWeekly ? (
@@ -2113,15 +2169,15 @@ const TopMenuBar = ({
               )}
             </button>
             
-            <button 
+            <button
               className={`tmb-sync-btn ${isHourlySyncRunning ? 'active' : ''}`}
               onClick={handleToggleHourlySync}
               disabled={isSyncingHourly || isTestingAllOpen || isSyncingWeekly}
               title={isHourlySyncRunning ? "Parar sincronização horária automática" : "Iniciar sincronização horária automática (executa a cada hora)"}
-              style={{ 
-                marginLeft: '8px', 
-                background: isHourlySyncRunning 
-                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+              style={{
+                marginLeft: '8px',
+                background: isHourlySyncRunning
+                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
                   : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)'
               }}
             >
@@ -2135,6 +2191,7 @@ const TopMenuBar = ({
                 </>
               )}
             </button>
+
           </>
         )}
       </div>

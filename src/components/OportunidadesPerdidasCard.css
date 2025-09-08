@@ -1,0 +1,240 @@
+/**
+ * 🔴 OPORTUNIDADES PERDIDAS CARD STYLES
+ * 
+ * Estilos para o componente OportunidadesPerdidasCard
+ * Baseado no TotalOportunidadesCard com tema vermelho
+ */
+
+.opc-oportunidades-perdidas-card {
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--accent-red);
+  color: var(--text-primary);
+  position: relative;
+  overflow: hidden;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.3s ease;
+}
+
+.opc-oportunidades-perdidas-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Header com título e loading */
+.opc-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.opc-card-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  color: white;
+  opacity: 0.95;
+}
+
+.opc-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: opc-spin 1s linear infinite;
+}
+
+@keyframes opc-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Valores principais no canto superior direito */
+.opc-main-values {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  text-align: right;
+}
+
+.opc-primary-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.opc-secondary-value {
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 6px;
+  color: var(--accent-red);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Container do termômetro */
+.opc-thermometer-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  margin: 20px 0;
+  min-height: 120px;
+}
+
+/* Meta na parte inferior */
+.opc-meta-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.opc-meta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.opc-meta-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+  text-transform: uppercase;
+}
+
+.opc-meta-value {
+  font-size: 20px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.opc-meta-percentage {
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 4px 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 6px;
+  min-width: 50px;
+  text-align: center;
+  color: var(--accent-red);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Percentual negativo (acima da meta é ruim para perdas) */
+.opc-meta-percentage-negative {
+  background: rgba(255, 87, 87, 0.2);
+  color: #ffaaaa;
+  border: 1px solid rgba(255, 87, 87, 0.3);
+}
+
+/* Estados de erro */
+.opc-error {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--accent-red);
+}
+
+.opc-error-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  text-align: center;
+  gap: 16px;
+}
+
+.opc-error-icon {
+  font-size: 48px;
+  opacity: 0.7;
+}
+
+.opc-error-message h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.opc-error-message p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.8;
+  line-height: 1.4;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .opc-oportunidades-perdidas-card {
+    min-height: 240px;
+    padding: 20px;
+  }
+
+  .opc-card-title {
+    font-size: 16px;
+  }
+
+  .opc-primary-value {
+    font-size: 24px;
+  }
+
+  .opc-secondary-value {
+    font-size: 14px;
+  }
+
+  .opc-meta-value {
+    font-size: 18px;
+  }
+
+  .opc-meta-percentage {
+    font-size: 20px;
+    padding: 6px 10px;
+  }
+
+  .opc-thermometer-container {
+    min-height: 100px;
+    margin: 16px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .opc-oportunidades-perdidas-card {
+    min-height: 220px;
+    padding: 16px;
+  }
+
+  .opc-main-values {
+    top: 16px;
+    right: 20px;
+  }
+
+  .opc-primary-value {
+    font-size: 20px;
+  }
+
+  .opc-secondary-value {
+    font-size: 12px;
+  }
+
+  .opc-meta-value {
+    font-size: 16px;
+  }
+
+  .opc-meta-percentage {
+    font-size: 18px;
+    padding: 6px 8px;
+  }
+}

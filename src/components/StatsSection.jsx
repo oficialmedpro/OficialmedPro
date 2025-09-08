@@ -3,6 +3,7 @@ import PerformanceThermometer from './PerformanceThermometer';
 import { useCountUp } from '../hooks/useCountUp';
 import { getThermometerMetrics } from '../service/thermometerService';
 import TotalOportunidadesCard from './TotalOportunidadesCard';
+import OportunidadesPerdidasCard from './OportunidadesPerdidasCard';
 
 const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin }) => {
   const [realMetrics, setRealMetrics] = useState(null);
@@ -11,7 +12,7 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
   // Buscar dados reais do Supabase
   useEffect(() => {
     console.log('⚡ StatsSection useEffect ACIONADO!');
-    console.log('Props atuais:', { startDate, endDate, selectedFunnel, selectedUnit, selectedSeller });
+    console.log('Props atuais:', { startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin });
     
     const fetchRealMetrics = async () => {
       try {
@@ -21,9 +22,10 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
         console.log('🔍 StatsSection: Parâmetros recebidos:');
         console.log('  - startDate:', startDate);
         console.log('  - endDate:', endDate);
-        console.log('  - selectedFunnel:', selectedFunnel);
+        console.log('  - selectedFunnel:', selectedFunnel, 'tipo:', typeof selectedFunnel);
         console.log('  - selectedUnit:', selectedUnit);
         console.log('  - selectedSeller:', selectedSeller);
+        console.log('  - selectedOrigin:', selectedOrigin);
         console.log('='.repeat(60));
         
         const metrics = await getThermometerMetrics(startDate, endDate, selectedFunnel, selectedUnit, selectedSeller);
@@ -97,9 +99,17 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
 
   return (
     <section className="stats-section">
-      {/* Card específico de Total de Oportunidades com duas métricas */}
-      <div className="total-oportunidades-container">
+      {/* Linha superior com duas colunas: Total Oportunidades + Oportunidades Perdidas */}
+      <div className="top-row-cards">
         <TotalOportunidadesCard 
+          startDate={startDate}
+          endDate={endDate}
+          selectedFunnel={selectedFunnel}
+          selectedUnit={selectedUnit}
+          selectedSeller={selectedSeller}
+          selectedOrigin={selectedOrigin}
+        />
+        <OportunidadesPerdidasCard 
           startDate={startDate}
           endDate={endDate}
           selectedFunnel={selectedFunnel}
@@ -109,11 +119,15 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
         />
       </div>
       
-      {/* Grid com os outros 4 cards */}
+      {/* Grid com os outros cards (excluindo o de Oportunidades Perdidas) */}
       <div className="stats-grid">
-        {statsCards.slice(1).map((card, index) => {
-          // Ajustar o índice para começar do 1 (pular o primeiro card)
+        {statsCards.slice(1).filter((card, index) => {
+          // Remover o card vermelho de Oportunidades Perdidas (index 1 seria o segundo card)
           const adjustedIndex = index + 1;
+          return adjustedIndex !== 1; // Remove o card de índice 1 (Oportunidades Perdidas)
+        }).map((card, index) => {
+          // Reajustar o índice considerando que removemos um card
+          const adjustedIndex = index === 0 ? 2 : (index === 1 ? 3 : 4); // Mapear para índices 2, 3, 4
           const cardData = getCardData(card, adjustedIndex);
           return (
             <div key={adjustedIndex} className={`stat-card ${cardData.color}`}>
