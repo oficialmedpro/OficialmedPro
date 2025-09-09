@@ -123,22 +123,30 @@
 }
 
 .opc-meta-percentage {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
-  padding: 4px 8px;
+  padding: 6px 12px;
   background: rgba(239, 68, 68, 0.1);
   border-radius: 6px;
-  min-width: 50px;
+  min-width: 80px;
   text-align: center;
   color: var(--accent-red);
   border: 1px solid rgba(239, 68, 68, 0.3);
+  white-space: nowrap;
 }
 
-/* Percentual negativo (acima da meta é ruim para perdas) */
-.opc-meta-percentage-negative {
-  background: rgba(255, 87, 87, 0.2);
-  color: #ffaaaa;
-  border: 1px solid rgba(255, 87, 87, 0.3);
+/* Percentual acima da meta (ruim para perdas) - VERMELHO */
+.opc-meta-percentage-acima {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ff6b6b;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+/* Percentual abaixo da meta (bom para perdas) - VERDE */
+.opc-meta-percentage-abaixo {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.4);
 }
 
 /* Estados de erro */
@@ -200,8 +208,9 @@
   }
 
   .opc-meta-percentage {
-    font-size: 20px;
+    font-size: 18px;
     padding: 6px 10px;
+    min-width: 100px;
   }
 
   .opc-thermometer-container {
@@ -234,7 +243,8 @@
   }
 
   .opc-meta-percentage {
-    font-size: 18px;
+    font-size: 16px;
     padding: 6px 8px;
+    min-width: 90px;
   }
 }

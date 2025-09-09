@@ -119,11 +119,12 @@ const OportunidadesPerdidasCard = ({
     
     const percentual = ((current - meta) / meta) * 100;
     const sinal = percentual >= 0 ? "+" : "";
-    return `${sinal}${Math.round(percentual)}%`;
+    const textoExplicativo = percentual < 0 ? " perdas a menos" : percentual > 0 ? " perdas a mais" : "";
+    return `${sinal}${Math.round(percentual)}%${textoExplicativo}`;
   };
 
-  // Verificar se o percentual é negativo (para perdas, negativo pode ser bom)
-  const isPercentualNegativo = () => {
+  // Verificar se está acima da meta (para perdas, acima da meta é ruim - vermelho)
+  const isAcimaDaMeta = () => {
     if (!metrics || !metrics.totalOportunidadesPerdidas) return false;
     
     const { current, meta } = metrics.totalOportunidadesPerdidas;
@@ -133,19 +134,16 @@ const OportunidadesPerdidasCard = ({
     return percentual > 0; // Para perdas, mais que a meta é ruim (vermelho)
   };
 
-  if (error) {
-    return (
-      <div className="opc-oportunidades-perdidas-card opc-error">
-        <div className="opc-error-content">
-          <div className="opc-error-icon">❌</div>
-          <div className="opc-error-message">
-            <h3>Erro ao carregar dados</h3>
-            <p>{error}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Verificar se está abaixo da meta (para perdas, abaixo da meta é bom - verde)
+  const isAbaixoDaMeta = () => {
+    if (!metrics || !metrics.totalOportunidadesPerdidas) return false;
+    
+    const { current, meta } = metrics.totalOportunidadesPerdidas;
+    if (meta <= 0) return false;
+    
+    const percentual = ((current - meta) / meta) * 100;
+    return percentual < 0; // Para perdas, menos que a meta é bom (verde)
+  };
 
   return (
     <div className="opc-oportunidades-perdidas-card">
@@ -154,6 +152,17 @@ const OportunidadesPerdidasCard = ({
         <h2 className="opc-card-title">Oportunidades Perdidas</h2>
         {loading && <div className="opc-loading-spinner"></div>}
       </div>
+
+      {/* Tratamento de erro */}
+      {error && (
+        <div className="opc-error-content">
+          <div className="opc-error-icon">❌</div>
+          <div className="opc-error-message">
+            <h3>Erro ao carregar dados</h3>
+            <p>{error}</p>
+          </div>
+        </div>
+      )}
 
       {/* Valores principais no canto superior direito */}
       <div className="opc-main-values">
@@ -177,7 +186,7 @@ const OportunidadesPerdidasCard = ({
           currentValue={perdidasTotalData.value}
           previousValue={perdidasTotalData.previousValue}
           change={perdidasTotalData.change}
-          isPositive={!perdidasTotalData.isPositive}
+          isPositive={isAbaixoDaMeta()} // Para perdas, abaixo da meta é positivo (verde)
           color="red"
           metaPercentage={metrics?.totalOportunidadesPerdidas?.metaPercentage ? -metrics.totalOportunidadesPerdidas.metaPercentage : null}
         />
@@ -189,7 +198,7 @@ const OportunidadesPerdidasCard = ({
           <span className="opc-meta-label">META</span>
           <span className="opc-meta-value">{perdidasTotalData.meta}</span>
         </div>
-        <div className={`opc-meta-percentage ${isPercentualNegativo() ? 'opc-meta-percentage-negative' : ''}`}>
+        <div className={`opc-meta-percentage ${isAcimaDaMeta() ? 'opc-meta-percentage-acima' : isAbaixoDaMeta() ? 'opc-meta-percentage-abaixo' : ''}`}>
           {calcularPercentualMeta()}
         </div>
       </div>

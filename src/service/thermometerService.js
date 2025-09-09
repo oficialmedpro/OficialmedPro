@@ -94,7 +94,6 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
             'Authorization': `Bearer ${supabaseServiceKey}`,
             'apikey': supabaseServiceKey,
             'Accept-Profile': supabaseSchema,
-            'Content-Profile': supabaseSchema
           }
         });
         
@@ -200,7 +199,6 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       }),
       fetch(oportunidadesPerdidasUrl, {
@@ -210,7 +208,6 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       }),
       fetch(ticketMedioUrl, {
@@ -220,7 +217,6 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       }),
       fetch(orcamentoNegociacaoUrl, {
@@ -230,7 +226,6 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       }),
       fetch(oportunidadesGanhasUrl, {
@@ -240,7 +235,6 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       })
     ]);
@@ -437,7 +431,6 @@ const getThermometerMetricsAnteriores = async (startDate, endDate, selectedFunne
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       }),
       fetch(ganhasAnteriorUrl, {
@@ -447,7 +440,6 @@ const getThermometerMetricsAnteriores = async (startDate, endDate, selectedFunne
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       })
     ]);
@@ -522,7 +514,6 @@ export const getThermometerMetricsBySource = async (startDate = null, endDate = 
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       }),
       fetch(metaUrl, {
@@ -531,7 +522,6 @@ export const getThermometerMetricsBySource = async (startDate = null, endDate = 
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       }),
       fetch(organicoUrl, {
@@ -540,7 +530,6 @@ export const getThermometerMetricsBySource = async (startDate = null, endDate = 
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       }),
       fetch(whatsappUrl, {
@@ -549,7 +538,6 @@ export const getThermometerMetricsBySource = async (startDate = null, endDate = 
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       })
     ]);

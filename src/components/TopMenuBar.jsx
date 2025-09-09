@@ -325,7 +325,6 @@ const TopMenuBar = ({
               'Authorization': `Bearer ${SUPABASE_KEY}`,
               'apikey': SUPABASE_KEY,
               'Accept-Profile': 'api',
-              'Content-Profile': 'api'
             },
             body: JSON.stringify(mappedData)
           });
@@ -645,7 +644,6 @@ const TopMenuBar = ({
               'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
               'apikey': SUPABASE_CONFIG.serviceRoleKey,
               'Accept-Profile': 'api',
-              'Content-Profile': 'api',
               'Prefer': 'return=representation'
             },
             body: JSON.stringify(data)
@@ -670,7 +668,6 @@ const TopMenuBar = ({
               'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
               'apikey': SUPABASE_CONFIG.serviceRoleKey,
               'Accept-Profile': 'api',
-              'Content-Profile': 'api',
               'Prefer': 'return=representation'
             },
             body: JSON.stringify(data)
@@ -1133,7 +1130,6 @@ const TopMenuBar = ({
               'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
               'apikey': SUPABASE_CONFIG.serviceRoleKey,
               'Accept-Profile': 'api',
-              'Content-Profile': 'api',
               'Prefer': 'return=representation'
             },
             body: JSON.stringify(data)
@@ -1158,7 +1154,6 @@ const TopMenuBar = ({
               'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
               'apikey': SUPABASE_CONFIG.serviceRoleKey,
               'Accept-Profile': 'api',
-              'Content-Profile': 'api',
               'Prefer': 'return=representation'
             },
             body: JSON.stringify(data)
@@ -1634,7 +1629,6 @@ const TopMenuBar = ({
               'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
               'apikey': SUPABASE_CONFIG.serviceRoleKey,
               'Accept-Profile': 'api',
-              'Content-Profile': 'api',
               'Prefer': 'return=representation'
             },
             body: JSON.stringify(data)
@@ -1659,7 +1653,6 @@ const TopMenuBar = ({
               'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
               'apikey': SUPABASE_CONFIG.serviceRoleKey,
               'Accept-Profile': 'api',
-              'Content-Profile': 'api',
               'Prefer': 'return=representation'
             },
             body: JSON.stringify(data)

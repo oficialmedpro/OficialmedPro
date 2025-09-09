@@ -94,7 +94,6 @@ export const getTotalOportunidadesMetrics = async (
             'Authorization': `Bearer ${supabaseServiceKey}`,
             'apikey': supabaseServiceKey,
             'Accept-Profile': supabaseSchema,
-            'Content-Profile': supabaseSchema
           }
         });
 
@@ -172,7 +171,6 @@ export const getTotalOportunidadesMetrics = async (
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       }),
       fetch(totalOportunidadesNovasUrl, {
@@ -182,7 +180,6 @@ export const getTotalOportunidadesMetrics = async (
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       }),
       fetch(metaOportunidadesNovasUrl, {
@@ -192,7 +189,6 @@ export const getTotalOportunidadesMetrics = async (
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       })
     ]);
@@ -340,7 +336,6 @@ const getTotalOportunidadesAnteriores = async (startDate, endDate, selectedFunne
             'Authorization': `Bearer ${supabaseServiceKey}`,
             'apikey': supabaseServiceKey,
             'Accept-Profile': supabaseSchema,
-            'Content-Profile': supabaseSchema
           }
         });
 
@@ -377,7 +372,6 @@ const getTotalOportunidadesAnteriores = async (startDate, endDate, selectedFunne
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       }),
       fetch(totalNovasAnteriorUrl, {
@@ -387,7 +381,6 @@ const getTotalOportunidadesAnteriores = async (startDate, endDate, selectedFunne
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       })
     ]);
@@ -500,7 +493,6 @@ export const testFunilSpecificWithUnit = async (funilId, unidadeId) => {
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       });
       
@@ -580,7 +572,6 @@ export const testFunilSpecific = async (funilId) => {
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       });
       

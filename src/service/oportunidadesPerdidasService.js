@@ -42,13 +42,15 @@ export const getOportunidadesPerdidasMetrics = async (
     console.log('  - selectedOrigin:', selectedOrigin, typeof selectedOrigin);
     console.log('='.repeat(80));
 
-    // Data de hoje para filtro de perdas totais
+    // Data de hoje para fallback
     const hoje = new Date().toISOString().split('T')[0];
-    console.log('📅 Data de hoje para total de perdas:', hoje);
 
     // Fallback para datas se não estiverem definidas
     let dataInicio = startDate;
     let dataFim = endDate;
+    
+    // Usar a data fornecida em vez de "hoje" fixo
+    console.log('📅 Usando data fornecida para total de perdas:', dataInicio);
     
     if (!dataInicio || !dataFim || dataInicio === '' || dataFim === '') {
       dataInicio = hoje;
@@ -93,7 +95,6 @@ export const getOportunidadesPerdidasMetrics = async (
             'Authorization': `Bearer ${supabaseServiceKey}`,
             'apikey': supabaseServiceKey,
             'Accept-Profile': supabaseSchema,
-            'Content-Profile': supabaseSchema
           }
         });
 
@@ -132,9 +133,9 @@ export const getOportunidadesPerdidasMetrics = async (
     console.log('  - originFilter:', originFilter);
     console.log('  - filtrosCombinados:', filtrosCombinados);
 
-    // 🔴 1. TOTAL DE OPORTUNIDADES PERDIDAS - lost_date=hoje + status="lost"
-    const totalOportunidadesPerdidasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.lost&lost_date=gte.${hoje}&lost_date=lte.${hoje}T23:59:59${filtrosCombinados}`;
-    console.log('🔍 URL Total Oportunidades Perdidas (hoje):', totalOportunidadesPerdidasUrl);
+    // 🔴 1. TOTAL DE OPORTUNIDADES PERDIDAS - lost_date=dataInicio + status="lost"
+    const totalOportunidadesPerdidasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.lost&lost_date=gte.${dataInicio}&lost_date=lte.${dataInicio}T23:59:59${filtrosCombinados}`;
+    console.log('🔍 URL Total Oportunidades Perdidas (data fornecida):', totalOportunidadesPerdidasUrl);
 
     // 🆕 2. PERDAS NOVAS - create_date no período + status="lost"
     const perdasNovasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.lost&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${filtrosCombinados}`;
@@ -166,7 +167,6 @@ export const getOportunidadesPerdidasMetrics = async (
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       }),
       fetch(perdasNovasUrl, {
@@ -176,7 +176,6 @@ export const getOportunidadesPerdidasMetrics = async (
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       }),
       fetch(metaOportunidadesPerdidasUrl, {
@@ -186,7 +185,6 @@ export const getOportunidadesPerdidasMetrics = async (
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       })
     ]);
@@ -341,7 +339,6 @@ const getOportunidadesPerdidasAnteriores = async (startDate, endDate, selectedFu
             'Authorization': `Bearer ${supabaseServiceKey}`,
             'apikey': supabaseServiceKey,
             'Accept-Profile': supabaseSchema,
-            'Content-Profile': supabaseSchema
           }
         });
 
@@ -377,7 +374,6 @@ const getOportunidadesPerdidasAnteriores = async (startDate, endDate, selectedFu
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       }),
       fetch(perdasNovasAnteriorUrl, {
@@ -387,7 +383,6 @@ const getOportunidadesPerdidasAnteriores = async (startDate, endDate, selectedFu
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
         }
       })
     ]);

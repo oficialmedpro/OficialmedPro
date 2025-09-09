@@ -22,8 +22,9 @@ const WonOpportunitiesList = ({ selectedDate }) => {
       const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
       const supabaseSchema = 'public';
       
-      const ontem = '2025-09-05';
-      const hoje = '2025-09-06';
+      // Usar a data fornecida como prop ou data atual
+      const hoje = selectedDate || new Date().toISOString().split('T')[0];
+      const ontem = new Date(new Date(hoje).getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       
       // URL EXATA do thermometerService mudando só gain_date para create_date
       const oportunidadesGanhasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=*&archived=eq.0&status=eq.gain&create_date=gte.${ontem}&create_date=lte.${hoje}T23:59:59`;

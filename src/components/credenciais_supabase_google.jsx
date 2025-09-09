@@ -28,7 +28,6 @@ const CredenciaisSupabaseGoogle = () => {
             'Authorization': `Bearer ${supabaseServiceKey}`,
             'apikey': supabaseServiceKey,
             'Accept-Profile': supabaseSchema,
-            'Content-Profile': supabaseSchema
           }
         })
 

@@ -122,16 +122,20 @@ export const handleDatePreset = (preset) => {
   // Função para obter data no fuso de São Paulo (GMT-3)
   const getSaoPauloDate = (offset = 0) => {
     const now = new Date();
-    const saoPauloOffset = -3 * 60; // GMT-3 em minutos
-    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const saoPauloTime = new Date(utc + (saoPauloOffset * 60000));
+    // Criar data no fuso de São Paulo
+    const spDate = new Date(now.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
     
     // Adicionar offset em dias se necessário
     if (offset !== 0) {
-      saoPauloTime.setDate(saoPauloTime.getDate() + offset);
+      spDate.setDate(spDate.getDate() + offset);
     }
     
-    return saoPauloTime.toISOString().split('T')[0];
+    // Retornar no formato YYYY-MM-DD
+    const year = spDate.getFullYear();
+    const month = String(spDate.getMonth() + 1).padStart(2, '0');
+    const day = String(spDate.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
   };
 
   const today = getSaoPauloDate(0);

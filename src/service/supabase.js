@@ -25,7 +25,6 @@ export const getSupabaseWithSchema = (schema) => {
     global: {
       headers: {
         'Accept-Profile': schema,
-        'Content-Profile': schema
       }
     }
   })
