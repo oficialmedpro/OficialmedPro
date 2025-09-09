@@ -325,6 +325,7 @@ const TopMenuBar = ({
               'Authorization': `Bearer ${SUPABASE_KEY}`,
               'apikey': SUPABASE_KEY,
               'Accept-Profile': 'api',
+              'Content-Profile': 'api'
             },
             body: JSON.stringify(mappedData)
           });
@@ -644,6 +645,7 @@ const TopMenuBar = ({
               'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
               'apikey': SUPABASE_CONFIG.serviceRoleKey,
               'Accept-Profile': 'api',
+              'Content-Profile': 'api',
               'Prefer': 'return=representation'
             },
             body: JSON.stringify(data)
@@ -668,6 +670,7 @@ const TopMenuBar = ({
               'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
               'apikey': SUPABASE_CONFIG.serviceRoleKey,
               'Accept-Profile': 'api',
+              'Content-Profile': 'api',
               'Prefer': 'return=representation'
             },
             body: JSON.stringify(data)
@@ -1027,6 +1030,11 @@ const TopMenuBar = ({
           ]
         }
       ];
+
+      // 🎯 CONFIGURAÇÃO PARA PROCESSAMENTO (compatibilidade com código existente)
+      const TARGET_FUNNEL = 6; // Funil principal para processamento
+      const FUNIL_6_STAGES = FUNNELS_CONFIG[0].stages; // Etapas do funil 6
+      const FUNIL_14_STAGES = FUNNELS_CONFIG[1].stages; // Etapas do funil 14
       
       console.log('🎯 CONFIGURAÇÃO DA ATUALIZAÇÃO SEMANAL:');
       console.log(`   📊 Funis: ${FUNNELS_CONFIG.map(f => f.id).join(', ')} (APUCARANA)`);
@@ -1130,6 +1138,7 @@ const TopMenuBar = ({
               'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
               'apikey': SUPABASE_CONFIG.serviceRoleKey,
               'Accept-Profile': 'api',
+              'Content-Profile': 'api',
               'Prefer': 'return=representation'
             },
             body: JSON.stringify(data)
@@ -1154,6 +1163,7 @@ const TopMenuBar = ({
               'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
               'apikey': SUPABASE_CONFIG.serviceRoleKey,
               'Accept-Profile': 'api',
+              'Content-Profile': 'api',
               'Prefer': 'return=representation'
             },
             body: JSON.stringify(data)
@@ -1629,6 +1639,7 @@ const TopMenuBar = ({
               'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
               'apikey': SUPABASE_CONFIG.serviceRoleKey,
               'Accept-Profile': 'api',
+              'Content-Profile': 'api',
               'Prefer': 'return=representation'
             },
             body: JSON.stringify(data)
@@ -1653,6 +1664,7 @@ const TopMenuBar = ({
               'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
               'apikey': SUPABASE_CONFIG.serviceRoleKey,
               'Accept-Profile': 'api',
+              'Content-Profile': 'api',
               'Prefer': 'return=representation'
             },
             body: JSON.stringify(data)

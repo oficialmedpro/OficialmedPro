@@ -37,8 +37,8 @@
 }
 
 .toc-card-title {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   margin: 0;
   color: var(--text-primary);
 }
@@ -67,8 +67,8 @@
 }
 
 .toc-primary-value {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.2rem;
+  font-weight: 500;
   color: var(--text-primary);
   line-height: 1;
   margin-bottom: 4px;
@@ -119,7 +119,7 @@
   opacity: 0.8;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: var(--text-muted);
+  color: #c4c6ca;
 }
 
 .toc-meta-value {
@@ -129,8 +129,8 @@
 }
 
 .toc-meta-percentage {
-  font-size: 1.1rem;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 500;
   padding: 4px 8px;
   background: rgba(16, 185, 129, 0.1);
   border-radius: 6px;

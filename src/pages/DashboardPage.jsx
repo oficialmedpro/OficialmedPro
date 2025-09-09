@@ -11,6 +11,7 @@ import StatsSection from '../components/StatsSection';
 import TimelineChart from '../components/TimelineChart';
 import WonOpportunitiesList from '../components/WonOpportunitiesList';
 import SyncVerifier from '../components/SyncVerifier';
+import OportunidadesGanhasCard from '../components/OportunidadesGanhasCard';
 import { translations } from '../data/translations';
 import { getStatsCards, getMenuItems } from '../data/statsData';
 import { 

@@ -1,17 +1,17 @@
 /**
- * 🔴 OPORTUNIDADES PERDIDAS CARD STYLES
+ * 🟢 OPORTUNIDADES GANHAS CARD STYLES
  * 
- * Estilos para o componente OportunidadesPerdidasCard
- * Baseado no TotalOportunidadesCard com tema vermelho
+ * Estilos para o componente OportunidadesGanhasCard
+ * Baseado no TotalOportunidadesCard com tema verde
  */
 
-.opc-oportunidades-perdidas-card {
+.ogc-oportunidades-ganhas-card {
   background-color: var(--bg-secondary);
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
   border: 1px solid var(--border-color);
-  border-left: 4px solid var(--accent-red);
+  border-left: 4px solid var(--accent-green);
   color: var(--text-primary);
   position: relative;
   overflow: hidden;
@@ -21,20 +21,20 @@
   transition: all 0.3s ease;
 }
 
-.opc-oportunidades-perdidas-card:hover {
+.ogc-oportunidades-ganhas-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
 }
 
 /* Header com título e loading */
-.opc-card-header {
+.ogc-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
 }
 
-.opc-card-title {
+.ogc-card-title {
   font-size: 14px;
   font-weight: 600;
   margin: 0;
@@ -42,29 +42,29 @@
   opacity: 0.95;
 }
 
-.opc-loading-spinner {
+.ogc-loading-spinner {
   width: 20px;
   height: 20px;
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-top: 2px solid white;
   border-radius: 50%;
-  animation: opc-spin 1s linear infinite;
+  animation: ogc-spin 1s linear infinite;
 }
 
-@keyframes opc-spin {
+@keyframes ogc-spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
 
 /* Valores principais no canto superior direito */
-.opc-main-values {
+.ogc-main-values {
   position: absolute;
   top: 20px;
   right: 24px;
   text-align: right;
 }
 
-.opc-primary-value {
+.ogc-primary-value {
   font-size: 1.2rem;
   font-weight: 500;
   color: var(--text-primary);
@@ -72,18 +72,18 @@
   margin-bottom: 4px;
 }
 
-.opc-secondary-value {
+.ogc-secondary-value {
   font-size: 1rem;
   font-weight: 700;
   padding: 4px 8px;
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(34, 197, 94, 0.1);
   border-radius: 6px;
-  color: var(--accent-red);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--accent-green);
+  border: 1px solid rgba(34, 197, 94, 0.3);
 }
 
 /* Container do termômetro */
-.opc-thermometer-container {
+.ogc-thermometer-container {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -93,7 +93,7 @@
 }
 
 /* Meta na parte inferior */
-.opc-meta-section {
+.ogc-meta-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -102,13 +102,13 @@
   border-top: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.opc-meta-info {
+.ogc-meta-info {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.opc-meta-label {
+.ogc-meta-label {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -116,47 +116,47 @@
   text-transform: uppercase;
 }
 
-.opc-meta-value {
+.ogc-meta-value {
   font-size: 20px;
   font-weight: 700;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.opc-meta-percentage {
+.ogc-meta-percentage {
   font-size: 12px;
   font-weight: 500;
   padding: 6px 12px;
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(34, 197, 94, 0.1);
   border-radius: 6px;
   min-width: 80px;
   text-align: center;
-  color: var(--accent-red);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: var(--accent-green);
+  border: 1px solid rgba(34, 197, 94, 0.3);
   white-space: nowrap;
 }
 
-/* Percentual acima da meta (ruim para perdas) - VERMELHO */
-.opc-meta-percentage-acima {
-  background: rgba(239, 68, 68, 0.2);
-  color: #ff6b6b;
-  border: 1px solid rgba(239, 68, 68, 0.4);
-}
-
-/* Percentual abaixo da meta (bom para perdas) - VERDE */
-.opc-meta-percentage-abaixo {
+/* Percentual acima da meta (bom para ganhas) - VERDE */
+.ogc-meta-percentage-acima {
   background: rgba(34, 197, 94, 0.2);
   color: #22c55e;
   border: 1px solid rgba(34, 197, 94, 0.4);
 }
 
-/* Estados de erro */
-.opc-error {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-left: 4px solid var(--accent-red);
+/* Percentual abaixo da meta (ruim para ganhas) - VERMELHO */
+.ogc-meta-percentage-abaixo {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ff6b6b;
+  border: 1px solid rgba(239, 68, 68, 0.4);
 }
 
-.opc-error-content {
+/* Estados de erro */
+.ogc-error {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--accent-green);
+}
+
+.ogc-error-content {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -166,18 +166,18 @@
   gap: 16px;
 }
 
-.opc-error-icon {
+.ogc-error-icon {
   font-size: 48px;
   opacity: 0.7;
 }
 
-.opc-error-message h3 {
+.ogc-error-message h3 {
   margin: 0 0 8px 0;
   font-size: 18px;
   font-weight: 600;
 }
 
-.opc-error-message p {
+.ogc-error-message p {
   margin: 0;
   font-size: 14px;
   opacity: 0.8;
@@ -186,63 +186,63 @@
 
 /* Responsividade */
 @media (max-width: 768px) {
-  .opc-oportunidades-perdidas-card {
+  .ogc-oportunidades-ganhas-card {
     min-height: 240px;
     padding: 20px;
   }
 
-  .opc-card-title {
+  .ogc-card-title {
     font-size: 16px;
   }
 
-  .opc-primary-value {
+  .ogc-primary-value {
     font-size: 24px;
   }
 
-  .opc-secondary-value {
+  .ogc-secondary-value {
     font-size: 14px;
   }
 
-  .opc-meta-value {
+  .ogc-meta-value {
     font-size: 18px;
   }
 
-  .opc-meta-percentage {
+  .ogc-meta-percentage {
     font-size: 18px;
     padding: 6px 10px;
     min-width: 100px;
   }
 
-  .opc-thermometer-container {
+  .ogc-thermometer-container {
     min-height: 100px;
     margin: 16px 0;
   }
 }
 
 @media (max-width: 480px) {
-  .opc-oportunidades-perdidas-card {
+  .ogc-oportunidades-ganhas-card {
     min-height: 220px;
     padding: 16px;
   }
 
-  .opc-main-values {
+  .ogc-main-values {
     top: 16px;
     right: 20px;
   }
 
-  .opc-primary-value {
+  .ogc-primary-value {
     font-size: 20px;
   }
 
-  .opc-secondary-value {
+  .ogc-secondary-value {
     font-size: 12px;
   }
 
-  .opc-meta-value {
+  .ogc-meta-value {
     font-size: 16px;
   }
 
-  .opc-meta-percentage {
+  .ogc-meta-percentage {
     font-size: 16px;
     padding: 6px 8px;
     min-width: 90px;

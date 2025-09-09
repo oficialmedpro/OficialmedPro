@@ -4,6 +4,7 @@ import { useCountUp } from '../hooks/useCountUp';
 import { getThermometerMetrics } from '../service/thermometerService';
 import TotalOportunidadesCard from './TotalOportunidadesCard';
 import OportunidadesPerdidasCard from './OportunidadesPerdidasCard';
+import OportunidadesGanhasCard from './OportunidadesGanhasCard';
 
 const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin }) => {
   const [realMetrics, setRealMetrics] = useState(null);
@@ -99,7 +100,7 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
 
   return (
     <section className="stats-section">
-      {/* Linha superior com duas colunas: Total Oportunidades + Oportunidades Perdidas */}
+      {/* Linha superior com três colunas: Total Oportunidades + Oportunidades Perdidas + Oportunidades Ganhas */}
       <div className="top-row-cards">
         <TotalOportunidadesCard 
           startDate={startDate}
@@ -110,6 +111,14 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
           selectedOrigin={selectedOrigin}
         />
         <OportunidadesPerdidasCard 
+          startDate={startDate}
+          endDate={endDate}
+          selectedFunnel={selectedFunnel}
+          selectedUnit={selectedUnit}
+          selectedSeller={selectedSeller}
+          selectedOrigin={selectedOrigin}
+        />
+        <OportunidadesGanhasCard 
           startDate={startDate}
           endDate={endDate}
           selectedFunnel={selectedFunnel}
