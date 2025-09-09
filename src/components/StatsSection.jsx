@@ -5,6 +5,7 @@ import { getThermometerMetrics } from '../service/thermometerService';
 import TotalOportunidadesCard from './TotalOportunidadesCard';
 import OportunidadesPerdidasCard from './OportunidadesPerdidasCard';
 import OportunidadesGanhasCard from './OportunidadesGanhasCard';
+import TicketMedioCard from './TicketMedioCard';
 
 const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin }) => {
   const [realMetrics, setRealMetrics] = useState(null);
@@ -100,7 +101,7 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
 
   return (
     <section className="stats-section">
-      {/* Linha superior com três colunas: Total Oportunidades + Oportunidades Perdidas + Oportunidades Ganhas */}
+      {/* Linha superior com quatro colunas: Total Oportunidades + Oportunidades Perdidas + Oportunidades Ganhas + Ticket Médio */}
       <div className="top-row-cards">
         <TotalOportunidadesCard 
           startDate={startDate}
@@ -126,17 +127,26 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
           selectedSeller={selectedSeller}
           selectedOrigin={selectedOrigin}
         />
+        <TicketMedioCard 
+          startDate={startDate}
+          endDate={endDate}
+          selectedFunnel={selectedFunnel}
+          selectedUnit={selectedUnit}
+          selectedSeller={selectedSeller}
+          selectedOrigin={selectedOrigin}
+        />
       </div>
       
-      {/* Grid com os outros cards (excluindo o de Oportunidades Perdidas) */}
+      {/* Grid com os outros cards */}
       <div className="stats-grid">
+        {/* Outros cards (excluindo Oportunidades Perdidas e Ticket Médio) */}
         {statsCards.slice(1).filter((card, index) => {
-          // Remover o card vermelho de Oportunidades Perdidas (index 1 seria o segundo card)
+          // Remover o card vermelho de Oportunidades Perdidas (index 1) e o card roxo de Ticket Médio (index 2)
           const adjustedIndex = index + 1;
-          return adjustedIndex !== 1; // Remove o card de índice 1 (Oportunidades Perdidas)
+          return adjustedIndex !== 1 && adjustedIndex !== 2; // Remove os cards de índice 1 e 2
         }).map((card, index) => {
-          // Reajustar o índice considerando que removemos um card
-          const adjustedIndex = index === 0 ? 2 : (index === 1 ? 3 : 4); // Mapear para índices 2, 3, 4
+          // Reajustar o índice considerando que removemos dois cards
+          const adjustedIndex = index === 0 ? 3 : 4; // Mapear para índices 3, 4
           const cardData = getCardData(card, adjustedIndex);
           return (
             <div key={adjustedIndex} className={`stat-card ${cardData.color}`}>

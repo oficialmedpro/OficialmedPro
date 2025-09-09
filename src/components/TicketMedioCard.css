@@ -1,0 +1,222 @@
+/* TicketMedioCard.css - Estilos para o card de Ticket Médio */
+
+.tmc-ticket-medio-card {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border-radius: 16px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+  border-left: 4px solid var(--accent-green);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tmc-ticket-medio-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Header com título */
+.tmc-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.tmc-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: white;
+  opacity: 0.95;
+}
+
+.tmc-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: tmc-spin 1s linear infinite;
+}
+
+@keyframes tmc-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Valores principais no canto superior direito */
+.tmc-main-values {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  text-align: right;
+}
+
+.tmc-primary-value {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.tmc-secondary-value {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 0px;
+  /* background: rgba(147, 51, 234, 0.1); */
+  border-radius: 6px;
+  color: #b3b5bb;
+  /* border: 1px solid rgba(147, 51, 234, 0.3); */
+}
+
+/* Container do termômetro */
+.tmc-thermometer-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  margin: 20px 0;
+  min-height: 120px;
+}
+
+/* Meta na parte inferior */
+.tmc-meta-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tmc-meta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tmc-meta-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #c4c6ca;
+}
+
+.tmc-meta-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tmc-meta-percentage {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 12px;
+  background: rgba(147, 51, 234, 0.1);
+  border-radius: 6px;
+  min-width: 80px;
+  text-align: center;
+  color: var(--accent-purple);
+  border: 1px solid rgba(147, 51, 234, 0.3);
+  white-space: nowrap;
+}
+
+.tmc-meta-percentage-acima {
+  background: rgba(34, 197, 94, 0.1);
+  color: var(--accent-green);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.tmc-meta-percentage-abaixo {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--accent-red);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Tratamento de erro */
+.tmc-error-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  color: var(--text-secondary);
+}
+
+.tmc-error-icon {
+  font-size: 2rem;
+  margin-bottom: 12px;
+}
+
+.tmc-error-message h3 {
+  margin: 0 0 8px 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.tmc-error-message p {
+  margin: 0;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .tmc-ticket-medio-card {
+    padding: 16px;
+    min-height: 240px;
+  }
+
+  .tmc-main-values {
+    top: 16px;
+    right: 16px;
+  }
+
+  .tmc-primary-value {
+    font-size: 1rem;
+  }
+
+  .tmc-secondary-value {
+    font-size: 11px;
+  }
+
+  .tmc-thermometer-container {
+    min-height: 100px;
+    margin: 16px 0;
+  }
+
+  .tmc-meta-value {
+    font-size: 16px;
+  }
+
+  .tmc-meta-percentage {
+    font-size: 16px;
+    padding: 6px 8px;
+    min-width: 90px;
+  }
+}
+
+/* Novos estilos para valores monetários */
+.tmc-primary-value-amount {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent-green);
+  margin-top: 2px;
+}
+
+.tmc-secondary-value-amount {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--accent-green);
+  opacity: 0.8;
+  margin-top: -4px;
+}
