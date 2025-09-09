@@ -51,19 +51,6 @@ export const getStatsCards = (t) => [
     meta: '95',
     metaPercentage: '77%'
   },
-  { 
-    title: t.wonOpportunities, 
-    value: '156', 
-    color: 'green', 
-    progress: 68, 
-    isOpportunity: true, 
-    opportunityValue: 'R$ 1.56M',
-    previousValue: '142',
-    change: '+9.9%',
-    isPositive: true,
-    meta: '200',
-    metaPercentage: '78%'
-  }
 ];
 
 export const getMenuItems = (t) => [

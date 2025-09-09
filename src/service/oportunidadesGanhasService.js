@@ -62,11 +62,12 @@ export const getOportunidadesGanhasMetrics = async (
 
     // Construir filtros baseados nos parâmetros
     let funilFilter = '';
-    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
       funilFilter = `&funil_id=eq.${selectedFunnel}`;
-      console.log('🔍 OportunidadesGanhasService: Filtro de funil aplicado:', funilFilter);
+      console.log('🔍 OportunidadesGanhasService: Filtro de funil específico aplicado:', funilFilter);
     } else {
-      console.log('🔍 OportunidadesGanhasService: Sem filtro de funil (selectedFunnel:', selectedFunnel, ')');
+      funilFilter = `&funil_id=in.(6,14)`;
+      console.log('🔍 OportunidadesGanhasService: Filtro de funil incluindo ambos (6 e 14):', funilFilter);
     }
     
     let unidadeFilter = '';
@@ -80,8 +81,11 @@ export const getOportunidadesGanhasMetrics = async (
     }
     
     let sellerFilter = '';
-    if (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined') {
+    if (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined' && selectedSeller !== 'TODOS') {
       sellerFilter = `&user_id=eq.${selectedSeller}`;
+      console.log('🔍 Filtro de vendedor aplicado:', { selectedSeller, sellerFilter });
+    } else {
+      console.log('🔍 Sem filtro de vendedor:', { selectedSeller, type: typeof selectedSeller });
     }
 
     let originFilter = '';
@@ -133,9 +137,9 @@ export const getOportunidadesGanhasMetrics = async (
     console.log('  - originFilter:', originFilter);
     console.log('  - filtrosCombinados:', filtrosCombinados);
 
-    // 🟢 1. TOTAL DE OPORTUNIDADES GANHAS - gain_date=dataInicio + status="gain"
-    const totalOportunidadesGanhasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicio}&gain_date=lte.${dataInicio}T23:59:59${filtrosCombinados}`;
-    console.log('🔍 URL Total Oportunidades Ganhas (data fornecida):', totalOportunidadesGanhasUrl);
+    // 🟢 1. TOTAL DE OPORTUNIDADES GANHAS - gain_date no período + status="gain"
+    const totalOportunidadesGanhasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicio}&gain_date=lte.${dataFim}T23:59:59${filtrosCombinados}`;
+    console.log('🔍 URL Total Oportunidades Ganhas (período):', totalOportunidadesGanhasUrl);
 
     // 🆕 2. GANHAS NOVAS - create_date no período + status="gain"
     const ganhasNovasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${filtrosCombinados}`;
@@ -146,13 +150,13 @@ export const getOportunidadesGanhasMetrics = async (
     
     let metaOportunidadesGanhasUrl;
     
-    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
       // Funil específico selecionado - buscar meta específica do funil
-      metaOportunidadesGanhasUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.ganhas_oportunidades&funil=eq.${selectedFunnel}`;
+      metaOportunidadesGanhasUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.ganhos_oportunidades&funil=eq.${selectedFunnel}`;
       console.log('🎯 Buscando meta específica do funil para ganhas:', selectedFunnel);
     } else {
       // Apenas unidade selecionada - buscar AMBOS funis (6 e 14) e somar
-      metaOportunidadesGanhasUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.ganhas_oportunidades&funil=in.(6,14)`;
+      metaOportunidadesGanhasUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.ganhos_oportunidades&funil=in.(6,14)`;
       console.log('🎯 Buscando metas de ambos funis (6 e 14) para somar - ganhas');
     }
     
@@ -226,7 +230,7 @@ export const getOportunidadesGanhasMetrics = async (
     if (metaResponse.ok) {
       const metaData = await metaResponse.json();
       if (metaData && metaData.length > 0) {
-        if (selectedFunnel && selectedFunnel !== 'all') {
+        if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS') {
           // Funil específico - usar valor único
           metaOportunidadesGanhas = parseFloat(metaData[0].valor_da_meta) || 0;
           console.log(`✅ Meta Oportunidades Ganhas (funil ${selectedFunnel}): ${metaOportunidadesGanhas}`);
@@ -241,24 +245,24 @@ export const getOportunidadesGanhasMetrics = async (
         }
       } else {
         console.log('⚠️ Nenhuma meta encontrada para oportunidades ganhas, usando valor padrão');
-        metaOportunidadesGanhas = 50; // Valor padrão
+        metaOportunidadesGanhas = 0; // Valor padrão
       }
     } else {
       console.error('❌ Erro ao buscar meta de oportunidades ganhas:', metaResponse.status);
-      metaOportunidadesGanhas = 50; // Valor padrão em caso de erro
+      metaOportunidadesGanhas = 0; // Valor padrão em caso de erro
     }
 
     // 🎯 DADOS ANTERIORES - Buscar dados do período anterior para comparação
     console.log('📊 Buscando dados do período anterior para comparação...');
     const dadosAnteriores = await getOportunidadesGanhasAnteriores(dataInicio, dataFim, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin);
 
-    // 🎯 CALCULAR PERCENTUAL DA META (total de ganhas vs meta)
+    // 🎯 CALCULAR PERCENTUAL DA META (valor total ganho vs meta em R$)
     const percentualMeta = metaOportunidadesGanhas > 0 ? 
-      ((totalOportunidadesGanhas - metaOportunidadesGanhas) / metaOportunidadesGanhas) * 100 : 0;
+      ((valorTotalOportunidadesGanhas - metaOportunidadesGanhas) / metaOportunidadesGanhas) * 100 : 0;
     
     console.log(`📊 Cálculo do percentual da meta:`);
-    console.log(`   - Total Oportunidades Ganhas: ${totalOportunidadesGanhas}`);
-    console.log(`   - Meta: ${metaOportunidadesGanhas}`);
+    console.log(`   - Valor Total Ganho: R$ ${valorTotalOportunidadesGanhas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+    console.log(`   - Meta: R$ ${metaOportunidadesGanhas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
     console.log(`   - Percentual: ${percentualMeta.toFixed(2)}%`);
 
     // 🎯 FORMATAR DADOS PARA O COMPONENTE
@@ -324,7 +328,7 @@ const getOportunidadesGanhasAnteriores = async (startDate, endDate, selectedFunn
     console.log('📅 Período anterior - ganhas:', { ontem: ontemStr, dataInicioAnterior, dataFimAnterior });
 
     // Construir filtros
-    const funilFilter = selectedFunnel && selectedFunnel !== 'all' ? `&funil_id=eq.${selectedFunnel}` : '';
+    const funilFilter = selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS' ? `&funil_id=eq.${selectedFunnel}` : `&funil_id=in.(6,14)`;
     const unidadeFilter = selectedUnit && selectedUnit !== 'all' ? `&unidade_id=eq.${encodeURIComponent(selectedUnit.toString())}` : '';
     const sellerFilter = selectedSeller && selectedSeller !== 'all' ? `&user_id=eq.${selectedSeller}` : '';
     

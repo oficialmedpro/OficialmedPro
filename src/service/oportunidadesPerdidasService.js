@@ -80,8 +80,11 @@ export const getOportunidadesPerdidasMetrics = async (
     }
     
     let sellerFilter = '';
-    if (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined') {
+    if (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined' && selectedSeller !== 'TODOS') {
       sellerFilter = `&user_id=eq.${selectedSeller}`;
+      console.log('🔍 Filtro de vendedor aplicado:', { selectedSeller, sellerFilter });
+    } else {
+      console.log('🔍 Sem filtro de vendedor:', { selectedSeller, type: typeof selectedSeller });
     }
 
     let originFilter = '';
@@ -133,9 +136,9 @@ export const getOportunidadesPerdidasMetrics = async (
     console.log('  - originFilter:', originFilter);
     console.log('  - filtrosCombinados:', filtrosCombinados);
 
-    // 🔴 1. TOTAL DE OPORTUNIDADES PERDIDAS - lost_date=dataInicio + status="lost"
-    const totalOportunidadesPerdidasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.lost&lost_date=gte.${dataInicio}&lost_date=lte.${dataInicio}T23:59:59${filtrosCombinados}`;
-    console.log('🔍 URL Total Oportunidades Perdidas (data fornecida):', totalOportunidadesPerdidasUrl);
+    // 🔴 1. TOTAL DE OPORTUNIDADES PERDIDAS - lost_date no período + status="lost"
+    const totalOportunidadesPerdidasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.lost&lost_date=gte.${dataInicio}&lost_date=lte.${dataFim}T23:59:59${filtrosCombinados}`;
+    console.log('🔍 URL Total Oportunidades Perdidas (período):', totalOportunidadesPerdidasUrl);
 
     // 🆕 2. PERDAS NOVAS - create_date no período + status="lost"
     const perdasNovasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.lost&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${filtrosCombinados}`;

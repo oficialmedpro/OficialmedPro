@@ -73,13 +73,13 @@
 }
 
 .ogc-secondary-value {
-  font-size: 1rem;
+  font-size: 12px;
   font-weight: 700;
-  padding: 4px 8px;
-  background: rgba(34, 197, 94, 0.1);
+  padding: 2px 2px;
+  /* background: rgba(34, 197, 94, 0.1); */
   border-radius: 6px;
-  color: var(--accent-green);
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #ffffffab;
+  /* border: 1px solid rgba(34, 197, 94, 0.3); */
 }
 
 /* Container do termômetro */
@@ -247,4 +247,20 @@
     padding: 6px 8px;
     min-width: 90px;
   }
+}
+
+/* Novos estilos para valores monetários */
+.ogc-primary-value-amount {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent-green);
+  margin-top: 2px;
+}
+
+.ogc-secondary-value-amount {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--accent-green);
+  opacity: 0.8;
+  margin-top: -4px;
 }

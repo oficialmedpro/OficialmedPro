@@ -75,7 +75,7 @@ const OportunidadesGanhasCard = ({
         previousValue: "0",
         change: 0,
         isPositive: true,
-        meta: "50",
+        meta: "0",
         metaPercentage: "0%",
         opportunityValue: "R$ 0,00"
       };
@@ -100,7 +100,7 @@ const OportunidadesGanhasCard = ({
       previousValue: "0", 
       change: 0,
       isPositive: true,
-      meta: "50",
+      meta: "0",
       metaPercentage: "0%",
       opportunityValue: "R$ 0,00"
     };
@@ -113,11 +113,11 @@ const OportunidadesGanhasCard = ({
   // Calcular percentual da meta para total de ganhas
   const calcularPercentualMeta = () => {
     if (!metrics || !metrics.totalOportunidadesGanhas) return "0%";
-    
-    const { current, meta } = metrics.totalOportunidadesGanhas;
+
+    const { value, meta } = metrics.totalOportunidadesGanhas;
     if (meta <= 0) return "0%";
-    
-    const percentual = ((current - meta) / meta) * 100;
+
+    const percentual = ((value - meta) / meta) * 100;
     const sinal = percentual >= 0 ? "+" : "";
     const textoExplicativo = percentual > 0 ? " ganhas a mais" : percentual < 0 ? " ganhas a menos" : "";
     return `${sinal}${Math.round(percentual)}%${textoExplicativo}`;
@@ -127,22 +127,20 @@ const OportunidadesGanhasCard = ({
   const isAcimaDaMeta = () => {
     if (!metrics || !metrics.totalOportunidadesGanhas) return false;
     
-    const { current, meta } = metrics.totalOportunidadesGanhas;
+    const { value, meta } = metrics.totalOportunidadesGanhas;
     if (meta <= 0) return false;
     
-    const percentual = ((current - meta) / meta) * 100;
-    return percentual > 0; // Para ganhas, mais que a meta é bom (verde)
+    return value > meta; // Para ganhas, mais que a meta é bom (verde)
   };
 
   // Verificar se está abaixo da meta (para ganhas, abaixo da meta é ruim - vermelho)
   const isAbaixoDaMeta = () => {
     if (!metrics || !metrics.totalOportunidadesGanhas) return false;
     
-    const { current, meta } = metrics.totalOportunidadesGanhas;
+    const { value, meta } = metrics.totalOportunidadesGanhas;
     if (meta <= 0) return false;
     
-    const percentual = ((current - meta) / meta) * 100;
-    return percentual < 0; // Para ganhas, menos que a meta é ruim (vermelho)
+    return value < meta; // Para ganhas, menos que a meta é ruim (vermelho)
   };
 
   return (
@@ -170,13 +168,19 @@ const OportunidadesGanhasCard = ({
           {(() => {
             const count = useCountUp(parseInt(ganhasTotalData.value.replace(/,/g, '')), 1500);
             return count.toLocaleString();
-          })()} Total
+          })()} total
+        </div>
+        <div className="ogc-primary-value-amount">
+          {ganhasTotalData.opportunityValue}
         </div>
         <div className="ogc-secondary-value">
           {(() => {
             const count = useCountUp(parseInt(ganhasNovasData.value.replace(/,/g, '')), 1500);
             return count.toLocaleString();
           })()} Novas
+        </div>
+        <div className="ogc-secondary-value-amount">
+          {ganhasNovasData.opportunityValue}
         </div>
       </div>
 
@@ -196,7 +200,9 @@ const OportunidadesGanhasCard = ({
       <div className="ogc-meta-section">
         <div className="ogc-meta-info">
           <span className="ogc-meta-label">META</span>
-          <span className="ogc-meta-value">{ganhasTotalData.meta}</span>
+          <span className="ogc-meta-value">
+            {ganhasTotalData.meta ? `R$ ${parseFloat(ganhasTotalData.meta).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : 'R$ 0,00'}
+          </span>
         </div>
         <div className={`ogc-meta-percentage ${isAcimaDaMeta() ? 'ogc-meta-percentage-acima' : isAbaixoDaMeta() ? 'ogc-meta-percentage-abaixo' : ''}`}>
           {calcularPercentualMeta()}

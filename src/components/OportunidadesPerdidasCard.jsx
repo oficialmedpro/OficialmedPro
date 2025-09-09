@@ -170,13 +170,19 @@ const OportunidadesPerdidasCard = ({
           {(() => {
             const count = useCountUp(parseInt(perdidasTotalData.value.replace(/,/g, '')), 1500);
             return count.toLocaleString();
-          })()} Total
+          })()} total
+        </div>
+        <div className="opc-primary-value-amount">
+          {perdidasTotalData.opportunityValue}
         </div>
         <div className="opc-secondary-value">
           {(() => {
             const count = useCountUp(parseInt(perdasNovasData.value.replace(/,/g, '')), 1500);
             return count.toLocaleString();
           })()} Novas
+        </div>
+        <div className="opc-secondary-value-amount">
+          {perdasNovasData.opportunityValue}
         </div>
       </div>
 
