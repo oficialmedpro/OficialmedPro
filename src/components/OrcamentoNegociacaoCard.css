@@ -4,7 +4,7 @@
   border-radius: 12px;
   padding: 20px;
   border-left: 4px solid var(--accent-orange);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
@@ -46,7 +46,7 @@
   font-size: 14px;
   font-weight: 600;
   margin: 0;
-  color: white;
+  color: var(--text-primary);
   opacity: 0.95;
   margin-bottom: 16px;
   line-height: 1.2;
@@ -115,7 +115,7 @@
   align-items: center;
   margin-top: auto;
   padding-top: 12px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--border-color);
 }
 
 .onc-meta-info {
@@ -125,26 +125,40 @@
 }
 
 .onc-meta-label {
-  font-size: 10px;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: #9ca3af;
+  color: #c4c6ca;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .onc-meta-value {
-  font-size: 14px;
+  font-size: 1rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .onc-meta-percentage {
-  font-size: 14px;
-  font-weight: 700;
-  color: #ffffff;
-  min-width: 50px;
-  text-align: right;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 8px;
+  background: rgba(249, 115, 22, 0.1);
+  border-radius: 6px;
+  min-width: 80px;
+  text-align: center;
+  color: var(--accent-orange);
+  border: 1px solid rgba(249, 115, 22, 0.3);
   white-space: nowrap;
+}
+
+/* Light theme fixes */
+.dashboard-container.light-theme .onc-orcamento-negociacao-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--accent-orange);
+}
+.dashboard-container.light-theme .onc-card-title {
+  color: var(--text-primary);
 }
 
 .onc-meta-percentage-acima {

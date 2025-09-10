@@ -31,6 +31,19 @@ export const getOportunidadesGanhasMetrics = async (
   selectedOrigin = null
 ) => {
   try {
+    // Normalizador robusto para valores monetários vindos do Supabase/CRM
+    const parseMoneyValue = (raw) => {
+      if (typeof raw === 'number') {
+        return Number.isFinite(raw) ? raw : 0;
+      }
+      if (typeof raw === 'string') {
+        // Trata formatos "1.234,56" e "1234.56"
+        const sanitized = raw.replace(/\./g, '').replace(',', '.');
+        const num = Number(sanitized);
+        return Number.isFinite(num) ? num : 0;
+      }
+      return 0;
+    };
     console.log('='.repeat(80));
     console.log('🟢 OportunidadesGanhasService: INICIANDO BUSCA DE MÉTRICAS');
     console.log('📅 Parâmetros recebidos:');
@@ -204,10 +217,14 @@ export const getOportunidadesGanhasMetrics = async (
     if (ganhasResponse.ok) {
       const ganhasData = await ganhasResponse.json();
       totalOportunidadesGanhas = ganhasData.length;
+      // Para compatibilizar com o CRM: somar valores por oportunidade já truncados (sem centavos)
+      // Ex.: 10,90 + 10,20 + 10,99 → 10 + 10 + 10 = 30 (CRM)
       valorTotalOportunidadesGanhas = ganhasData.reduce((total, opp) => {
-        const valor = parseFloat(opp.value) || 0;
+        const valor = Math.floor(parseMoneyValue(opp.value));
         return total + valor;
       }, 0);
+      // Arredondar para 2 casas para evitar ruídos de ponto flutuante
+      valorTotalOportunidadesGanhas = Math.round(valorTotalOportunidadesGanhas * 100) / 100;
       console.log(`✅ Total Oportunidades Ganhas (hoje): ${totalOportunidadesGanhas} (R$ ${valorTotalOportunidadesGanhas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
       console.error('❌ Erro ao buscar total de oportunidades ganhas:', ganhasResponse.status);
@@ -218,9 +235,10 @@ export const getOportunidadesGanhasMetrics = async (
       const novasData = await novasResponse.json();
       ganhasNovas = novasData.length;
       valorGanhasNovas = novasData.reduce((total, opp) => {
-        const valor = parseFloat(opp.value) || 0;
+        const valor = Math.floor(parseMoneyValue(opp.value));
         return total + valor;
       }, 0);
+      valorGanhasNovas = Math.round(valorGanhasNovas * 100) / 100;
       console.log(`✅ Ganhas Novas (período ${dataInicio} a ${dataFim}): ${ganhasNovas} (R$ ${valorGanhasNovas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
       console.error('❌ Erro ao buscar ganhas novas:', novasResponse.status);

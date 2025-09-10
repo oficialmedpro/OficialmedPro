@@ -154,7 +154,7 @@ const TicketMedioCard = ({
     <div className="tmc-ticket-medio-card">
       {/* Header com título */}
       <div className="tmc-card-header">
-        <h2 className="tmc-card-title">Ticket Médio</h2>
+        <h2 className="tmc-card-title">Ticket<br/>Médio</h2>
         {loading && <div className="tmc-loading-spinner"></div>}
       </div>
 

@@ -147,7 +147,7 @@ const OportunidadesGanhasCard = ({
     <div className="ogc-oportunidades-ganhas-card">
       {/* Header com título */}
       <div className="ogc-card-header">
-        <h2 className="ogc-card-title">Oportunidades Ganhas</h2>
+        <h2 className="ogc-card-title">Oportunidades<br/>Ganhas</h2>
         {loading && <div className="ogc-loading-spinner"></div>}
       </div>
 

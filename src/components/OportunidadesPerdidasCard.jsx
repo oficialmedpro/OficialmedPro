@@ -149,7 +149,7 @@ const OportunidadesPerdidasCard = ({
     <div className="opc-oportunidades-perdidas-card">
       {/* Header com título */}
       <div className="opc-card-header">
-        <h2 className="opc-card-title">Oportunidades Perdidas</h2>
+        <h2 className="opc-card-title">Oportunidades<br/>Perdidas</h2>
         {loading && <div className="opc-loading-spinner"></div>}
       </div>
 

@@ -151,7 +151,7 @@ const TotalOportunidadesCard = ({
     <div className="toc-total-oportunidades-card">
       {/* Header com título */}
       <div className="toc-card-header">
-        <h2 className="toc-card-title">Total de Oportunidades</h2>
+        <h2 className="toc-card-title">Total de<br/>oportunidades</h2>
         {loading && <div className="toc-loading-spinner"></div>}
       </div>
 
