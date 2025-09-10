@@ -2,13 +2,13 @@
 .onc-orcamento-negociacao-card {
   background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
   border-radius: 12px;
-  padding: 20px;
+  padding: 14px;
   border-left: 4px solid var(--accent-orange);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
-  min-height: 200px;
+  min-height: 350px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -56,8 +56,8 @@
 /* Main Values Container */
 .onc-main-values {
   position: absolute;
-  top: 20px;
-  right: 24px;
+  top: 12px;
+  right: 16px;
   text-align: right;
   display: flex;
   flex-direction: column;
@@ -70,15 +70,15 @@
   font-weight: 500;
   color: var(--text-primary);
   line-height: 1.2; /* Ajustar espaçamento */
-  margin-bottom: 2px; /* Ajustar espaçamento */
+  margin-bottom: -7px; /* Alinhar com padrão */
 }
 
 .onc-primary-value-amount {
-  font-size: 1rem;
+  font-size: 0.8rem;
   font-weight: 500;
   color: var(--accent-orange);
   opacity: 0.9;
-  margin-top: 0; /* Ajustar espaçamento */
+  margin-top: 2px;
 }
 
 /* Secondary Value */
@@ -102,10 +102,22 @@
 /* Thermometer Container */
 .onc-thermometer-container {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
-  margin: 16px 0;
-  flex-grow: 1;
+  margin: 0 0 -75px 5px;
+  flex: 1;
+  min-height: 200px;
+}
+
+/* Forçar alinhamento à esquerda dentro do componente do termômetro */
+.onc-thermometer-container .performance-thermometer-container {
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  width: auto !important;
+}
+
+.onc-thermometer-container .performance-thermometer-gauge {
+  justify-content: flex-start !important;
 }
 
 /* Meta Section */

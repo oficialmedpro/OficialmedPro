@@ -95,7 +95,8 @@ export const getOportunidadesGanhasMetrics = async (
     
     let sellerFilter = '';
     if (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined' && selectedSeller !== 'TODOS') {
-      sellerFilter = `&user_id=eq.${selectedSeller}`;
+      const sellerValue = encodeURIComponent(selectedSeller.toString());
+      sellerFilter = `&user_id=eq.${sellerValue}`;
       console.log('🔍 Filtro de vendedor aplicado:', { selectedSeller, sellerFilter });
     } else {
       console.log('🔍 Sem filtro de vendedor:', { selectedSeller, type: typeof selectedSeller });
@@ -124,6 +125,10 @@ export const getOportunidadesGanhasMetrics = async (
             if (originName.toLowerCase() === 'orgânico' || originName.toLowerCase() === 'organico') {
               originFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent(originName)},origem_oportunidade.is.null)`;
               console.log('🌱 Filtro de origem Orgânico (incluindo NULL):', { selectedOriginId: selectedOrigin, originName, originFilter });
+            // 🔎 LÓGICA PARA "GOOGLE ADS": incluir também utm_source=google ou GoogleAds
+            } else if (originName.toLowerCase() === 'google ads' || originName.toLowerCase() === 'googleads') {
+              originFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent(originName)},utm_source.eq.google,utm_source.eq.GoogleAds)`;
+              console.log('🔎 Filtro de origem Google Ads (inclui utm_source google/GoogleAds):', { selectedOriginId: selectedOrigin, originName, originFilter });
             } else {
               originFilter = `&origem_oportunidade=eq.${encodeURIComponent(originName)}`;
               console.log('🔍 Filtro de origem convertido:', { selectedOriginId: selectedOrigin, originName, originFilter });
@@ -142,6 +147,7 @@ export const getOportunidadesGanhasMetrics = async (
     }
 
     const filtrosCombinados = funilFilter + unidadeFilter + sellerFilter + originFilter;
+    const filtrosSemVendedor = funilFilter + unidadeFilter + /* no seller */ '' + originFilter;
 
     console.log('🔍 Filtros construídos:');
     console.log('  - funilFilter:', funilFilter);
@@ -150,13 +156,19 @@ export const getOportunidadesGanhasMetrics = async (
     console.log('  - originFilter:', originFilter);
     console.log('  - filtrosCombinados:', filtrosCombinados);
 
-    // 🟢 1. TOTAL DE OPORTUNIDADES GANHAS - gain_date no período + status="gain"
-    const totalOportunidadesGanhasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicio}&gain_date=lte.${dataFim}T23:59:59${filtrosCombinados}`;
-    console.log('🔍 URL Total Oportunidades Ganhas (período):', totalOportunidadesGanhasUrl);
+    // 🟢 URLs principais (sempre SEM vendedor) para manter os totais gerais inalterados ao selecionar vendedor
+    const totalOportunidadesGanhasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicio}&gain_date=lte.${dataFim}T23:59:59${filtrosSemVendedor}`;
+    const ganhasNovasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${filtrosSemVendedor}`;
+    console.log('🔍 URL Total Ganhas (GERAL):', totalOportunidadesGanhasUrl);
+    console.log('🔍 URL Ganhas Novas (GERAL):', ganhasNovasUrl);
 
-    // 🆕 2. GANHAS NOVAS - create_date no período + status="gain"
-    const ganhasNovasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${filtrosCombinados}`;
-    console.log('🔍 URL Ganhas Novas (período):', ganhasNovasUrl);
+    // Se houver vendedor selecionado, montar URLs específicas do vendedor também
+    const totalOportunidadesGanhasSellerUrl = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined' && selectedSeller !== 'TODOS')
+      ? `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicio}&gain_date=lte.${dataFim}T23:59:59${filtrosCombinados}`
+      : null;
+    const ganhasNovasSellerUrl = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined' && selectedSeller !== 'TODOS')
+      ? `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}&create_date=lte.${dataFim}T23:59:59${filtrosCombinados}`
+      : null;
 
     // 🎯 3. BUSCAR META DE GANHAS - Tabela metas
     const unidadeParaMeta = selectedUnit && selectedUnit !== 'all' ? selectedUnit : '[1]';
@@ -176,7 +188,7 @@ export const getOportunidadesGanhasMetrics = async (
     console.log('🔍 URL Meta Oportunidades Ganhas:', metaOportunidadesGanhasUrl);
 
     // Executar todas as queries em paralelo
-    const [ganhasResponse, novasResponse, metaResponse] = await Promise.all([
+    const [ganhasResponse, novasResponse, metaResponse, ganhasSellerResponse, novasSellerResponse] = await Promise.all([
       fetch(totalOportunidadesGanhasUrl, {
         method: 'GET',
         headers: {
@@ -203,7 +215,9 @@ export const getOportunidadesGanhasMetrics = async (
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
         }
-      })
+      }),
+      totalOportunidadesGanhasSellerUrl ? fetch(totalOportunidadesGanhasSellerUrl, { method: 'GET', headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}`, 'apikey': supabaseServiceKey, 'Accept-Profile': supabaseSchema } }) : Promise.resolve(null),
+      ganhasNovasSellerUrl ? fetch(ganhasNovasSellerUrl, { method: 'GET', headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}`, 'apikey': supabaseServiceKey, 'Accept-Profile': supabaseSchema } }) : Promise.resolve(null)
     ]);
 
     // Processar resultados
@@ -211,6 +225,11 @@ export const getOportunidadesGanhasMetrics = async (
     let valorTotalOportunidadesGanhas = 0;
     let ganhasNovas = 0;
     let valorGanhasNovas = 0;
+    // Totais do vendedor (quando houver)
+    let sellerTotalGanhas = 0;
+    let sellerValorGanhas = 0;
+    let sellerGanhasNovas = 0;
+    let sellerValorGanhasNovas = 0;
     let metaOportunidadesGanhas = 0;
 
     // 1. Total de Oportunidades Ganhas (gain_date=hoje)
@@ -242,6 +261,28 @@ export const getOportunidadesGanhasMetrics = async (
       console.log(`✅ Ganhas Novas (período ${dataInicio} a ${dataFim}): ${ganhasNovas} (R$ ${valorGanhasNovas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
       console.error('❌ Erro ao buscar ganhas novas:', novasResponse.status);
+    }
+
+    // 2b. Totais do vendedor (se houver)
+    if (ganhasSellerResponse) {
+      if (ganhasSellerResponse && ganhasSellerResponse.ok) {
+        const sellerData = await ganhasSellerResponse.json();
+        sellerTotalGanhas = sellerData.length;
+        sellerValorGanhas = sellerData.reduce((total, opp) => {
+          const valor = Math.floor(parseMoneyValue(opp.value));
+          return total + valor;
+        }, 0);
+      }
+    }
+    if (novasSellerResponse) {
+      if (novasSellerResponse && novasSellerResponse.ok) {
+        const sellerNovasData = await novasSellerResponse.json();
+        sellerGanhasNovas = sellerNovasData.length;
+        sellerValorGanhasNovas = sellerNovasData.reduce((total, opp) => {
+          const valor = Math.floor(parseMoneyValue(opp.value));
+          return total + valor;
+        }, 0);
+      }
     }
 
     // 3. Meta de Oportunidades Ganhas
@@ -293,7 +334,13 @@ export const getOportunidadesGanhasMetrics = async (
         metaPercentage: percentualMeta, // Percentual calculado: (ganhas - meta) / meta * 100
         change: dadosAnteriores.totalOportunidadesGanhas > 0 ? 
           ((totalOportunidadesGanhas - dadosAnteriores.totalOportunidadesGanhas) / dadosAnteriores.totalOportunidadesGanhas) * 100 : 0,
-        isPositive: totalOportunidadesGanhas >= dadosAnteriores.totalOportunidadesGanhas // Para ganhas, mais é melhor
+        isPositive: totalOportunidadesGanhas >= dadosAnteriores.totalOportunidadesGanhas, // Para ganhas, mais é melhor
+        sellerBreakdown: selectedSeller && selectedSeller !== 'all' ? {
+          count: sellerTotalGanhas,
+          value: sellerValorGanhas,
+          percentCount: totalOportunidadesGanhas > 0 ? (sellerTotalGanhas / totalOportunidadesGanhas) * 100 : 0,
+          percentValue: valorTotalOportunidadesGanhas > 0 ? (sellerValorGanhas / valorTotalOportunidadesGanhas) * 100 : 0
+        } : null
       },
       ganhasNovas: {
         current: ganhasNovas, // Número principal: oportunidades criadas no período que foram ganhas
@@ -303,7 +350,13 @@ export const getOportunidadesGanhasMetrics = async (
         metaPercentage: percentualMeta, // Percentual calculado: (ganhas - meta) / meta * 100
         change: dadosAnteriores.ganhasNovas > 0 ? 
           ((ganhasNovas - dadosAnteriores.ganhasNovas) / dadosAnteriores.ganhasNovas) * 100 : 0,
-        isPositive: ganhasNovas >= dadosAnteriores.ganhasNovas // Para ganhas, mais é melhor
+        isPositive: ganhasNovas >= dadosAnteriores.ganhasNovas,
+        sellerBreakdown: selectedSeller && selectedSeller !== 'all' ? {
+          count: sellerGanhasNovas,
+          value: sellerValorGanhasNovas,
+          percentCount: ganhasNovas > 0 ? (sellerGanhasNovas / ganhasNovas) * 100 : 0,
+          percentValue: valorGanhasNovas > 0 ? (sellerValorGanhasNovas / valorGanhasNovas) * 100 : 0
+        } : null
       }
     };
 
@@ -371,6 +424,8 @@ const getOportunidadesGanhasAnteriores = async (startDate, endDate, selectedFunn
             
             if (originName.toLowerCase() === 'orgânico' || originName.toLowerCase() === 'organico') {
               originFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent(originName)},origem_oportunidade.is.null)`;
+            } else if (originName.toLowerCase() === 'google ads' || originName.toLowerCase() === 'googleads') {
+              originFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent(originName)},utm_source.eq.google,utm_source.eq.GoogleAds)`;
             } else {
               originFilter = `&origem_oportunidade=eq.${encodeURIComponent(originName)}`;
             }

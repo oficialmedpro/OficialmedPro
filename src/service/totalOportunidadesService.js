@@ -102,10 +102,14 @@ export const getTotalOportunidadesMetrics = async (
           if (originData && originData.length > 0) {
             const originName = originData[0].nome;
             
-            // 🌱 LÓGICA PARA ORIGEM "ORGÂNICO": incluir também registros com origem_oportunidade=null
-            if (originName.toLowerCase() === 'orgânico' || originName.toLowerCase() === 'organico') {
+            // 🌱 ORIGÂNICO → incluir também NULL | 🔎 GOOGLE ADS → incluir utm_source
+            const lower = originName.toLowerCase();
+            if (lower === 'orgânico' || lower === 'organico') {
               originFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent(originName)},origem_oportunidade.is.null)`;
               console.log('🌱 Filtro de origem Orgânico (incluindo NULL):', { selectedOriginId: selectedOrigin, originName, originFilter });
+            } else if (lower === 'google ads' || lower === 'googleads') {
+              originFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent(originName)},utm_source.eq.google,utm_source.eq.GoogleAds)`;
+              console.log('🔎 Filtro de origem Google Ads (inclui utm_source google/GoogleAds):', { selectedOriginId: selectedOrigin, originName, originFilter });
             } else {
               originFilter = `&origem_oportunidade=eq.${encodeURIComponent(originName)}`;
               console.log('🔍 Filtro de origem convertido:', { selectedOriginId: selectedOrigin, originName, originFilter });
@@ -364,9 +368,12 @@ const getTotalOportunidadesAnteriores = async (startDate, endDate, selectedFunne
             const originName = originData[0].nome;
             
             // 🌱 LÓGICA PARA ORIGEM "ORGÂNICO": incluir também registros com origem_oportunidade=null
-            if (originName.toLowerCase() === 'orgânico' || originName.toLowerCase() === 'organico') {
+            const lower = originName.toLowerCase();
+            if (lower === 'orgânico' || lower === 'organico') {
               originFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent(originName)},origem_oportunidade.is.null)`;
               console.log('🌱 Filtro de origem Orgânico para período anterior (incluindo NULL):', originName);
+            } else if (lower === 'google ads' || lower === 'googleads') {
+              originFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent(originName)},utm_source.eq.google,utm_source.eq.GoogleAds)`;
             } else {
               originFilter = `&origem_oportunidade=eq.${encodeURIComponent(originName)}`;
             }

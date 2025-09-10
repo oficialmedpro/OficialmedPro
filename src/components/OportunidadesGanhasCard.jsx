@@ -119,7 +119,7 @@ const OportunidadesGanhasCard = ({
 
     const percentual = ((value - meta) / meta) * 100;
     const sinal = percentual >= 0 ? "+" : "";
-    const textoExplicativo = percentual > 0 ? " ganhas a mais" : percentual < 0 ? " ganhas a menos" : "";
+    const textoExplicativo = percentual > 0 ? " a mais" : percentual < 0 ? " a menos" : "";
     return `${sinal}${Math.round(percentual)}%${textoExplicativo}`;
   };
 
@@ -162,25 +162,54 @@ const OportunidadesGanhasCard = ({
         </div>
       )}
 
-      {/* Valores principais no canto superior direito */}
+      {/* Valores principais no canto superior direito (layout limpo em linhas) */}
       <div className="ogc-main-values">
-        <div className="ogc-primary-value">
-          {(() => {
-            const count = useCountUp(parseInt(ganhasTotalData.value.replace(/,/g, '')), 1500);
-            return count.toLocaleString();
-          })()} total
+        {/* Total */}
+        <div className="ogc-metric">
+          <div className="ogc-metric-row">
+            <span className="ogc-metric-label">total</span>
+            <span className="ogc-metric-value">
+              {(() => {
+                const count = useCountUp(parseInt(ganhasTotalData.value.replace(/,/g, '')), 1500);
+                return count.toLocaleString();
+              })()}
+              {metrics?.totalOportunidadesGanhas?.sellerBreakdown && (
+                <span className="ogc-seller-count-badge" style={{ marginLeft: 6 }}>
+                  ({Math.round(metrics.totalOportunidadesGanhas.sellerBreakdown.percentCount)}%) {metrics.totalOportunidadesGanhas.sellerBreakdown.count}
+                </span>
+              )}
+            </span>
+          </div>
+          <div className="ogc-primary-value-amount">{ganhasTotalData.opportunityValue}</div>
+          {metrics?.totalOportunidadesGanhas?.sellerBreakdown && (
+            <div className="ogc-primary-value-seller">
+              ({Math.round(metrics.totalOportunidadesGanhas.sellerBreakdown.percentValue)}%) R$ {Number(metrics.totalOportunidadesGanhas.sellerBreakdown.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
+          )}
         </div>
-        <div className="ogc-primary-value-amount">
-          {ganhasTotalData.opportunityValue}
-        </div>
-        <div className="ogc-secondary-value">
-          {(() => {
-            const count = useCountUp(parseInt(ganhasNovasData.value.replace(/,/g, '')), 1500);
-            return count.toLocaleString();
-          })()} Novas
-        </div>
-        <div className="ogc-secondary-value-amount">
-          {ganhasNovasData.opportunityValue}
+
+        {/* Novas */}
+        <div className="ogc-metric">
+          <div className="ogc-metric-row">
+            <span className="ogc-metric-label">Novas</span>
+            <span className="ogc-metric-value">
+              {(() => {
+                const count = useCountUp(parseInt(ganhasNovasData.value.replace(/,/g, '')), 1500);
+                return count.toLocaleString();
+              })()}
+              {metrics?.ganhasNovas?.sellerBreakdown && (
+                <span className="ogc-seller-count-badge" style={{ marginLeft: 6 }}>
+                  ({Math.round(metrics.ganhasNovas.sellerBreakdown.percentCount)}%) {metrics.ganhasNovas.sellerBreakdown.count}
+                </span>
+              )}
+            </span>
+          </div>
+          <div className="ogc-secondary-value-amount">{ganhasNovasData.opportunityValue}</div>
+          {metrics?.ganhasNovas?.sellerBreakdown && (
+            <div className="ogc-secondary-value-seller">
+              ({Math.round(metrics.ganhasNovas.sellerBreakdown.percentValue)}%) R$ {Number(metrics.ganhasNovas.sellerBreakdown.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
+          )}
         </div>
       </div>
 

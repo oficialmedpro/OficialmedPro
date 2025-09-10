@@ -8,14 +8,14 @@
 .toc-total-oportunidades-card {
   background-color: var(--bg-secondary);
   border-radius: 12px;
-  padding: 24px;
+  padding: 14px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
   border: 1px solid var(--border-color);
   border-left: 4px solid var(--accent-green);
   color: var(--text-primary);
   position: relative;
   overflow: hidden;
-  min-height: 200px;
+  min-height: 350px;
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
@@ -60,8 +60,8 @@
 /* Valores principais no canto superior direito */
 .toc-main-values {
   position: absolute;
-  top: 24px;
-  right: 24px;
+  top: 12px;
+  right: 16px;
   text-align: right;
   z-index: 2;
 }
@@ -71,30 +71,41 @@
   font-weight: 500;
   color: var(--text-primary);
   line-height: 1;
-  margin-bottom: 4px;
+  margin-bottom: -7px;
 }
 
 .toc-secondary-value {
-  font-size: 1rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  padding: 4px 8px;
-  background: rgba(16, 185, 129, 0.1);
+  padding: 5px 4px;
+  /* background: rgba(16, 185, 129, 0.1); */
   border-radius: 6px;
   min-width: 50px;
   text-align: center;
   color: var(--accent-green);
-  border: 1px solid rgba(16, 185, 129, 0.3);
+  /* border: 1px solid rgba(16, 185, 129, 0.3); */
   display: inline-block;
 }
 
 /* Termômetro central */
 .toc-thermometer-container {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
-  margin: 20px 0;
+  margin: 0 0 -75px 5px;
   flex: 1;
-  min-height: 120px;
+  min-height: 200px;
+}
+
+/* Forçar alinhamento à esquerda dentro do componente do termômetro */
+.toc-thermometer-container .performance-thermometer-container {
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  width: auto !important;
+}
+
+.toc-thermometer-container .performance-thermometer-gauge {
+  justify-content: flex-start !important;
 }
 
 /* Meta e porcentagem na parte inferior */

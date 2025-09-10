@@ -1,3 +1,8 @@
+.ogc-seller-count-badge {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fbbf24; /* amarelo */
+}
 /**
  * 🟢 OPORTUNIDADES GANHAS CARD STYLES
  * 
@@ -8,14 +13,14 @@
 .ogc-oportunidades-ganhas-card {
   background-color: var(--bg-secondary);
   border-radius: 12px;
-  padding: 24px;
+  padding: 14px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
   border: 1px solid var(--border-color);
   border-left: 4px solid var(--accent-green);
   color: var(--text-primary);
   position: relative;
   overflow: hidden;
-  min-height: 200px;
+  min-height: 350px;
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
@@ -59,9 +64,34 @@
 /* Valores principais no canto superior direito */
 .ogc-main-values {
   position: absolute;
-  top: 20px;
-  right: 24px;
+  top: 12px;
+  right: 16px;
   text-align: right;
+}
+
+/* Novo layout em linhas para valores */
+.ogc-metric {
+  margin-bottom: 6px;
+}
+
+.ogc-metric-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.ogc-metric-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  opacity: 0.9;
+}
+
+.ogc-metric-value {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text-primary);
 }
 
 .ogc-primary-value {
@@ -69,27 +99,38 @@
   font-weight: 500;
   color: var(--text-primary);
   line-height: 1;
-  margin-bottom: 4px;
+  margin-bottom: -7px;
 }
 
 .ogc-secondary-value {
   font-size: 12px;
   font-weight: 700;
-  padding: 2px 2px;
+  padding: 0 0;
   /* background: rgba(34, 197, 94, 0.1); */
   border-radius: 6px;
-  color: #ffffffab;
+  color: #979797;
   /* border: 1px solid rgba(34, 197, 94, 0.3); */
 }
 
 /* Container do termômetro */
 .ogc-thermometer-container {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   flex: 1;
-  margin: 20px 0;
-  min-height: 120px;
+  margin: 0 0 -75px 5px;
+  min-height: 200px;
+}
+
+/* Forçar alinhamento à esquerda dentro do componente do termômetro */
+.ogc-thermometer-container .performance-thermometer-container {
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  width: auto !important;
+}
+
+.ogc-thermometer-container .performance-thermometer-gauge {
+  justify-content: flex-start !important;
 }
 
 /* Meta na parte inferior */
@@ -252,16 +293,31 @@
 
 /* Novos estilos para valores monetários */
 .ogc-primary-value-amount {
-  font-size: 1.1rem;
+  font-size: 1.0rem;
   font-weight: 600;
   color: var(--accent-green);
-  margin-top: 2px;
+  margin-top: -4px;
+}
+
+/* Nova linha para valor do vendedor abaixo do total */
+.ogc-primary-value-seller {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #fbbf24;
+  margin-top: -8px;
 }
 
 .ogc-secondary-value-amount {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--accent-green);
-  opacity: 0.8;
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: #10b981;
+  opacity: 1.0;
   margin-top: -4px;
+}
+
+.ogc-secondary-value-seller {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #fbbf24;
+  margin-top: -5px;
 }

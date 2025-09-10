@@ -8,14 +8,14 @@
 .opc-oportunidades-perdidas-card {
   background-color: var(--bg-secondary);
   border-radius: 12px;
-  padding: 24px;
+  padding: 14px;
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
   border: 1px solid var(--border-color);
   border-left: 4px solid var(--accent-red);
   color: var(--text-primary);
   position: relative;
   overflow: hidden;
-  min-height: 200px;
+  min-height: 350px;
   display: flex;
   flex-direction: column;
   transition: all 0.3s ease;
@@ -59,8 +59,8 @@
 /* Valores principais no canto superior direito */
 .opc-main-values {
   position: absolute;
-  top: 20px;
-  right: 24px;
+  top: 12px;
+  right: 16px;
   text-align: right;
 }
 
@@ -69,7 +69,7 @@
   font-weight: 500;
   color: var(--text-primary);
   line-height: 1;
-  margin-bottom: 4px;
+  margin-bottom: -7px;
 }
 
 .opc-secondary-value {
@@ -85,11 +85,22 @@
 /* Container do termômetro */
 .opc-thermometer-container {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
   flex: 1;
-  margin: 20px 0;
-  min-height: 120px;
+  margin: 0 0 -75px 5px;
+  min-height: 200px;
+}
+
+/* Forçar alinhamento à esquerda dentro do componente do termômetro */
+.opc-thermometer-container .performance-thermometer-container {
+  align-items: flex-start !important;
+  justify-content: flex-start !important;
+  width: auto !important;
+}
+
+.opc-thermometer-container .performance-thermometer-gauge {
+  justify-content: flex-start !important;
 }
 
 /* Meta na parte inferior */
@@ -252,10 +263,10 @@
 
 /* Novos estilos para valores monetários */
 .opc-primary-value-amount {
-  font-size: 1.1rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--accent-red);
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .opc-secondary-value-amount {
