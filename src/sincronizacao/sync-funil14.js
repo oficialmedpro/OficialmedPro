@@ -127,6 +127,34 @@ async function getRequest(url, headers = {}) {
   return makeRequest(url, options);
 }
 
+// Inserir registro na tabela api.sincronizacao (via perfil "api")
+async function insertSyncRecord(description) {
+  try {
+    const url = `${CONFIG.SUPABASE.url}/rest/v1/sincronizacao`;
+    const payload = {
+      created_at: new Date().toISOString(),
+      data: new Date().toISOString(),
+      descricao: description
+    };
+    const response = await postRequest(url, payload, {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${CONFIG.SUPABASE.key}`,
+      'apikey': CONFIG.SUPABASE.key,
+      'Accept-Profile': 'api',
+      'Content-Profile': 'api',
+      'Prefer': 'return=minimal'
+    });
+    if (response.ok) {
+      console.log(`${colors.green}📝 Registro de sincronização salvo em api.sincronizacao${colors.reset}`);
+    } else {
+      console.log(`${colors.yellow}⚠️ Falha ao salvar registro de sincronização (HTTP ${response.status})${colors.reset}`);
+    }
+  } catch (error) {
+    console.log(`${colors.yellow}⚠️ Erro ao registrar sincronização: ${error.message}${colors.reset}`);
+  }
+}
+
 // Função para fazer PATCH
 async function patchRequest(url, data, headers = {}) {
   const body = JSON.stringify(data);
@@ -515,6 +543,10 @@ async function main() {
   console.log(`${colors.cyan}${'='.repeat(60)}${colors.reset}`);
   console.log(`${colors.green}✅ SINCRONIZAÇÃO COMPLETA FUNIL 14 CONCLUÍDA!${colors.reset}`);
   console.log(`${colors.cyan}${'='.repeat(60)}${colors.reset}`);
+
+  // Registrar na tabela sincronizacao
+  const description = `Sync completa F14: processadas ${stats.totalProcessed} | inseridas ${stats.totalInserted} | atualizadas ${stats.totalUpdated} | ignoradas ${stats.totalSkipped} | erros ${stats.totalErrors}`;
+  await insertSyncRecord(description);
 
   // Limpar checkpoint
   if (fs.existsSync(CONFIG.CHECKPOINT_FILE)) {

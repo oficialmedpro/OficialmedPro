@@ -61,6 +61,7 @@ const TopMenuBar = ({
   const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
   const [isFullSyncing, setIsFullSyncing] = useState(false);
   const [isCheckingSync, setIsCheckingSync] = useState(false);
+  const [isSyncingNow, setIsSyncingNow] = useState(false);
   const [isDailySyncRunning, setIsDailySyncRunning] = useState(false);
   const [isTestingDailySync, setIsTestingDailySync] = useState(false);
   const [isTestingAllOpen, setIsTestingAllOpen] = useState(false);
@@ -84,6 +85,69 @@ const TopMenuBar = ({
   // Limpar progress ao final das operações
   const clearSyncProgress = () => {
     setTimeout(() => setSyncProgress(null), 3000); // Remove após 3 segundos
+  };
+
+  // 📝 Registrar sincronização via REST (schema api)
+  const insertSyncRecordBrowser = async (description) => {
+    try {
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+      const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      if (!SUPABASE_URL || !SUPABASE_KEY) return;
+      const resp = await fetch(`${SUPABASE_URL}/rest/v1/sincronizacao`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'apikey': SUPABASE_KEY,
+          'Accept-Profile': 'api',
+          'Content-Profile': 'api',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          created_at: new Date().toISOString(),
+          data: new Date().toISOString(),
+          descricao: description
+        })
+      });
+      if (!resp.ok) {
+        const body = await resp.text();
+        logger?.warn?.(`⚠️ Falha ao registrar sincronização (HTTP ${resp.status})`, body);
+        console.warn('Falha ao registrar sincronização', resp.status, body);
+      } else {
+        logger?.info?.('📝 Registro de sincronização salvo (UI)');
+      }
+    } catch (err) {
+      logger?.warn?.('⚠️ Erro ao registrar sincronização (UI):', err);
+      console.warn('Erro ao registrar sincronização (UI):', err);
+    }
+  };
+
+  // 🔎 Buscar última sincronização na tabela api.sincronizacao
+  const fetchLastSyncFromDB = async () => {
+    try {
+      const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+      const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      if (!SUPABASE_URL || !SUPABASE_KEY) return;
+      const resp = await fetch(
+        `${SUPABASE_URL}/rest/v1/sincronizacao?select=created_at,data,descricao&order=created_at.desc&limit=1`,
+        {
+          headers: {
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'apikey': SUPABASE_KEY,
+            'Accept-Profile': 'api'
+          }
+        }
+      );
+      if (!resp.ok) return;
+      const arr = await resp.json();
+      if (Array.isArray(arr) && arr.length > 0) {
+        const item = arr[0];
+        const ts = item.created_at || item.data;
+        if (ts) setLastSyncTime(new Date(ts));
+      }
+    } catch (_) {
+      // silencioso para não poluir UI
+    }
   };
 
   // 🔄 SINCRONIZAÇÃO COMPLETA FUNIL 14 (RECOMPRA) - TODAS AS OPORTUNIDADES
@@ -2552,6 +2616,328 @@ const TopMenuBar = ({
     }
   };
 
+  // ⚡ SINCRONIZAÇÃO IMEDIATA - ÚLTIMAS 48 HORAS
+  const handleSyncNow = async () => {
+    if (isSyncingNow) return;
+    
+    const confirmSync = confirm(
+      '⚡ SYNC AGORA - Últimas 48 Horas\n\n' +
+      '🎯 O que será executado:\n' +
+      '• Buscar oportunidades das últimas 48 horas\n' +
+      '• Ambos os funis: 6 (COMERCIAL) e 14 (RECOMPRA)\n' +
+      '• Unidade: [1] Apucarana\n' +
+      '• Processamento otimizado e rápido\n\n' +
+      '⏱️ Tempo estimado: 2-5 minutos\n' +
+      '🔄 Atualiza dados em tempo real\n\n' +
+      'Deseja continuar?'
+    );
+    
+    if (!confirmSync) return;
+    
+    setIsSyncingNow(true);
+    updateSyncProgress('Sync Agora - 48h', 0, 100, 'Iniciando...');
+    
+    try {
+      logger.info('⚡ INICIANDO SYNC AGORA - ÚLTIMAS 48 HORAS');
+      logger.info('='.repeat(80));
+      logger.info(`🕒 Início: ${new Date().toLocaleTimeString('pt-BR')}`);
+      
+      // Simular chamada do script sync-hourly via API ou executar lógica similar
+      // Por simplicidade, vou reutilizar a lógica de sincronização horária, mas com 48h
+      
+      const now = new Date();
+      const hoursAgo48 = new Date(now);
+      hoursAgo48.setHours(hoursAgo48.getHours() - 48);
+      
+      logger.info(`📅 Período: ${hoursAgo48.toLocaleString('pt-BR')} a ${now.toLocaleString('pt-BR')}`);
+      logger.info(`🎯 Funis: 6 (COMERCIAL) e 14 (RECOMPRA)`);
+      logger.info(`📍 Unidade: [1] Apucarana`);
+      
+      // Executar a lógica similar ao handleHourlySync, mas com período de 48h
+      // Para não duplicar código, vou usar o mesmo código base
+      
+      const SUPABASE_CONFIG = {
+        url: import.meta.env.VITE_SUPABASE_URL,
+        key: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+      };
+
+      const SPRINTHUB_CONFIG = {
+        baseUrl: 'sprinthub-api-master.sprinthub.app',
+        apiToken: '9ad36c85-5858-4960-9935-e73c3698dd0c',
+        instance: 'oficialmed'
+      };
+      
+      // Configuração dos funis (mesmo do hourly)
+      const FUNIS_CONFIG = {
+        6: {
+          name: '[1] COMERCIAL APUCARANA',
+          stages: [
+            { id: 130, name: '[0] ENTRADA' },
+            { id: 231, name: '[1] ACOLHIMENTO/TRIAGEM' },
+            { id: 82, name: '[2] QUALIFICADO' },
+            { id: 207, name: '[3] ORÇAMENTO REALIZADO' },
+            { id: 83, name: '[4] NEGOCIAÇÃO' },
+            { id: 85, name: '[5] FOLLOW UP' },
+            { id: 232, name: '[6] CADASTRO' }
+          ]
+        },
+        14: {
+          name: '[1] RECOMPRA APUCARANA',
+          stages: [
+            { id: 202, name: '[0] ENTRADA' },
+            { id: 228, name: '[1] ACOLHIMENTO/TRIAGEM' },
+            { id: 229, name: '[2] QUALIFICAÇÃO' },
+            { id: 206, name: '[3] ORÇAMENTOS' },
+            { id: 203, name: '[4] NEGOCIAÇÃO' },
+            { id: 204, name: '[5] FOLLOW UP' },
+            { id: 230, name: '[6] CADASTRO' },
+            { id: 205, name: '[X] PARCEIROS' },
+            { id: 241, name: '[0] MONITORAMENTO' },
+            { id: 146, name: '[0] REATIVAÇÃO' },
+            { id: 167, name: '[0] D-0' },
+            { id: 148, name: '[3] D-3' },
+            { id: 168, name: '[3] D-7' },
+            { id: 149, name: '[3] D-15' },
+            { id: 169, name: '[3] D-22' },
+            { id: 150, name: '[3] D-30' }
+          ]
+        }
+      };
+
+      const PAGE_LIMIT = 30; // Menor para ser mais rápido
+      let totalApiCalls = 0;
+      let totalProcessed = 0;
+      let totalInserted = 0;
+      let totalUpdated = 0;
+      let totalSkipped = 0;
+      let totalErrors = 0;
+      const allOpportunities = [];
+      
+      // Função para mapear oportunidade
+      const mapOpportunityFields = (opportunity, funnelId) => {
+        const fields = opportunity.fields || {};
+        const lead = opportunity.dataLead || {};
+        const utmTags = (lead.utmTags && lead.utmTags[0]) || {};
+
+        return {
+          id: opportunity.id,
+          title: opportunity.title,
+          value: parseFloat(opportunity.value) || 0.00,
+          crm_column: opportunity.crm_column,
+          lead_id: opportunity.lead_id,
+          status: opportunity.status,
+          loss_reason: opportunity.loss_reason || null,
+          gain_reason: opportunity.gain_reason || null,
+          user_id: opportunity.user || null,
+          
+          create_date: opportunity.createDate ? new Date(opportunity.createDate).toISOString() : null,
+          update_date: opportunity.updateDate ? new Date(opportunity.updateDate).toISOString() : null,
+          lost_date: opportunity.lost_date || null,
+          gain_date: opportunity.gain_date || null,
+          
+          origem_oportunidade: fields["ORIGEM OPORTUNIDADE"] || null,
+          qualificacao: fields["QUALIFICACAO"] || null,
+          status_orcamento: fields["Status Orcamento"] || null,
+          
+          utm_source: utmTags.utmSource || null,
+          utm_campaign: utmTags.utmCampaign || null,
+          utm_medium: utmTags.utmMedium || null,
+          
+          lead_firstname: lead.firstname || null,
+          lead_email: lead.email || null,
+          lead_whatsapp: lead.whatsapp || null,
+          
+          archived: opportunity.archived || 0,
+          synced_at: new Date().toISOString(),
+          
+          funil_id: funnelId,
+          unidade_id: '[1]'
+        };
+      };
+
+      // Processar cada funil
+      let funnelProgress = 0;
+      for (const [funnelId, funnelConfig] of Object.entries(FUNIS_CONFIG)) {
+        funnelProgress++;
+        updateSyncProgress('Sync Agora - 48h', (funnelProgress / 2) * 50, 100, `Funil ${funnelConfig.name}`);
+        
+        logger.info(`\n🎯 PROCESSANDO FUNIL ${funnelId}: ${funnelConfig.name}`);
+        
+        // Processar cada etapa
+        for (const stage of funnelConfig.stages) {
+          logger.debug(`📋 Etapa: ${stage.name} (ID: ${stage.id})`);
+          
+          let currentPage = 0;
+          let hasMorePages = true;
+          
+          while (hasMorePages) {
+            totalApiCalls++;
+            
+            try {
+              const postData = JSON.stringify({
+                page: currentPage,
+                limit: PAGE_LIMIT,
+                columnId: stage.id
+              });
+              
+              const response = await fetch(`https://${SPRINTHUB_CONFIG.baseUrl}/crm/opportunities/${funnelId}?apitoken=${SPRINTHUB_CONFIG.apiToken}&i=${SPRINTHUB_CONFIG.instance}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: postData
+              });
+              
+              const data = await response.json();
+              const opportunitiesArray = Array.isArray(data) ? data : [];
+              
+              if (opportunitiesArray.length === 0) {
+                hasMorePages = false;
+                continue;
+              }
+              
+              // Filtrar apenas das últimas 48h
+              const recentOpportunities = opportunitiesArray.filter(opp => {
+                if (!opp.updateDate) return false;
+                const updateDate = new Date(opp.updateDate);
+                return updateDate >= hoursAgo48;
+              });
+              
+              logger.debug(`📊 Página ${currentPage + 1}: ${recentOpportunities.length}/${opportunitiesArray.length} das últimas 48h`);
+              
+              // Processar oportunidades recentes
+              for (const opp of recentOpportunities) {
+                totalProcessed++;
+                allOpportunities.push(opp);
+                
+                const mappedData = mapOpportunityFields(opp, parseInt(funnelId));
+                
+                // Verificar se existe no Supabase
+                try {
+                  const checkResponse = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/oportunidade_sprint?id=eq.${opp.id}&select=id,synced_at`, {
+                    headers: {
+                      'Authorization': `Bearer ${SUPABASE_CONFIG.key}`,
+                      'apikey': SUPABASE_CONFIG.key,
+                      'Accept-Profile': 'api'
+                    }
+                  });
+                  
+                  const existingData = await checkResponse.json();
+                  const exists = Array.isArray(existingData) && existingData.length > 0;
+                  
+                  if (!exists) {
+                    // INSERT
+                    const insertResponse = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/oportunidade_sprint`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_CONFIG.key}`,
+                        'apikey': SUPABASE_CONFIG.key,
+                        'Accept-Profile': 'api',
+                        'Content-Profile': 'api',
+                        'Prefer': 'return=representation'
+                      },
+                      body: JSON.stringify(mappedData)
+                    });
+                    
+                    if (insertResponse.ok) {
+                      totalInserted++;
+                      logger.debug(`✅ INSERIDO: ${opp.id} - ${opp.title}`);
+                    } else {
+                      totalErrors++;
+                      logger.debug(`❌ ERRO INSERT: ${opp.id}`);
+                    }
+                  } else {
+                    // UPDATE
+                    const updateResponse = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/oportunidade_sprint?id=eq.${opp.id}`, {
+                      method: 'PATCH',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${SUPABASE_CONFIG.key}`,
+                        'apikey': SUPABASE_CONFIG.key,
+                        'Accept-Profile': 'api',
+                        'Content-Profile': 'api'
+                      },
+                      body: JSON.stringify(mappedData)
+                    });
+                    
+                    if (updateResponse.ok) {
+                      totalUpdated++;
+                      logger.debug(`🔄 ATUALIZADO: ${opp.id} - ${opp.title}`);
+                    } else {
+                      totalErrors++;
+                      logger.debug(`❌ ERRO UPDATE: ${opp.id}`);
+                    }
+                  }
+                } catch (error) {
+                  totalErrors++;
+                  logger.error(`❌ Erro processando ID ${opp.id}:`, error);
+                }
+                
+                // Atualizar progresso
+                const progress = 50 + ((totalProcessed / Math.max(totalProcessed + 1, 100)) * 50);
+                updateSyncProgress('Sync Agora - 48h', progress, 100, `${totalProcessed} processadas`);
+              }
+              
+              currentPage++;
+              
+              if (opportunitiesArray.length < PAGE_LIMIT) {
+                hasMorePages = false;
+              }
+              
+            } catch (error) {
+              logger.error(`❌ Erro na página ${currentPage + 1} da etapa ${stage.id}:`, error);
+              hasMorePages = false;
+            }
+          }
+        }
+      }
+      
+      // Relatório final
+      updateSyncProgress('Sync Agora - 48h', 100, 100, 'Concluído!');
+      
+      const endTime = Date.now();
+      const totalTime = (endTime - performance.now()) / 1000;
+      
+      logger.info('\n' + '='.repeat(80));
+      logger.info('📊 RELATÓRIO FINAL - SYNC AGORA (48H)');
+      logger.info('='.repeat(80));
+      logger.info(`🕒 Tempo de execução: ${Math.abs(totalTime).toFixed(2)}s`);
+      logger.info(`🔄 Total de chamadas à API: ${totalApiCalls}`);
+      logger.info(`📊 Total registros processados: ${totalProcessed}`);
+      logger.info(`💾 ESTATÍSTICAS:`);
+      logger.info(`   ✅ Inseridos: ${totalInserted}`);
+      logger.info(`   🔄 Atualizados: ${totalUpdated}`);
+      logger.info(`   ❌ Erros: ${totalErrors}`);
+      
+      setLastSyncTime(new Date());
+      
+      alert(
+        `⚡ SYNC AGORA CONCLUÍDO!\n\n` +
+        `📊 RESULTADOS (últimas 48h):\n` +
+        `• Processadas: ${totalProcessed} oportunidades\n` +
+        `• ✅ Inseridas: ${totalInserted}\n` +
+        `• 🔄 Atualizadas: ${totalUpdated}\n` +
+        `• ❌ Erros: ${totalErrors}\n` +
+        `• ⏱️ Tempo: ${Math.abs(totalTime).toFixed(2)}s\n\n` +
+        `✅ Dados atualizados em tempo real!`
+      );
+      
+      // Registrar na tabela api.sincronizacao (UI)
+      await insertSyncRecordBrowser(
+        `Sync agora (UI) concluído: processadas ${totalProcessed} | inseridas ${totalInserted} | atualizadas ${totalUpdated} | erros ${totalErrors}`
+      );
+      // Atualiza label buscando do banco
+      await fetchLastSyncFromDB();
+    } catch (error) {
+      logger.error('❌ ERRO NO SYNC AGORA:', error);
+      await insertSyncRecordBrowser(`Sync agora (UI) falhou: ${error.message}`);
+      await fetchLastSyncFromDB();
+      alert(`❌ Erro na sincronização: ${error.message}\n\nVerifique o console para mais detalhes.`);
+    } finally {
+      setIsSyncingNow(false);
+      clearSyncProgress();
+    }
+  };
+
   // 🕐 FUNÇÃO PARA INICIAR/PARAR SINCRONIZAÇÃO AUTOMÁTICA HORÁRIA
   const handleToggleHourlySync = () => {
     if (isHourlySyncRunning) {
@@ -2625,7 +3011,11 @@ const TopMenuBar = ({
   // Carregar status do serviço de sincronização ao montar
   useEffect(() => {
     const status = autoSyncService.getStatus();
-    setLastSyncTime(status.lastSyncTime);
+    if (status?.lastSyncTime) {
+      setLastSyncTime(status.lastSyncTime);
+    }
+    // Buscar do banco a última sincronização (fonte de verdade)
+    fetchLastSyncFromDB();
     
     // Escutar atualizações do serviço
     const handleSyncUpdate = (event) => {
@@ -2741,102 +3131,22 @@ const TopMenuBar = ({
         {/* Botões do Serviço Diário - apenas para admin */}
         {isAdmin && (
           <>
+            
             <button 
-              className={`tmb-sync-btn ${isTestingAllOpen ? 'syncing' : ''}`}
-              onClick={handleTestAllOpenOpportunities}
-              disabled={isTestingAllOpen || isSyncingWeekly}
-              title="Sincronizar TODAS as etapas do funil 6 com status='open' - insere novos e atualiza existentes"
-              style={{ background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' }}
+              className={`tmb-sync-btn ${isSyncingNow ? 'syncing' : ''}`}
+              onClick={handleSyncNow}
+              disabled={isSyncingNow}
+              title="⚡ SYNC AGORA - Sincroniza imediatamente as últimas 48 horas de ambos os funis (6 e 14)"
+              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)' }}
             >
-              {isTestingAllOpen ? (
+              {isSyncingNow ? (
                 <>
                   <span className="tmb-sync-spinner"></span>
                   Sincronizando...
                 </>
               ) : (
                 <>
-                  🎯 Etapas Abertas — Todas
-                </>
-              )}
-            </button>
-            
-            <button 
-              className="tmb-sync-btn"
-              onClick={auditOpportunidadesGanhas}
-              disabled={isSyncingWeekly || isTestingAllOpen || isSyncingHourly || syncProgress}
-              title="Auditoria de Oportunidades Ganhas - compara CRM vs Supabase (02/09 a 09/09/2025)"
-              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)' }}
-            >
-              🔍 Auditoria Ganhas
-            </button>
-            
-            <button 
-              className="tmb-sync-btn"
-              onClick={sincronizacaoCompletaFunil14}
-              disabled={isSyncingWeekly || isTestingAllOpen || isSyncingHourly || syncProgress}
-              title="Sincronização Completa Funil 14 (RECOMPRA) - TODAS as 3.137 oportunidades com TODOS os status"
-              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' }}
-            >
-              🔄 Sync Completo F14
-            </button>
-            
-            <button 
-              className={`tmb-sync-btn ${isSyncingWeekly ? 'syncing' : ''}`}
-              onClick={handleSyncWeeklyOpportunities}
-              disabled={isSyncingWeekly || isTestingAllOpen || isSyncingHourly}
-              title="Atualização semanal - busca oportunidades criadas nos últimos 7 dias nos funis 6 (COMPRA) e 14 (RECOMPRA) - unidade Apucarana [1]"
-              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)' }}
-            >
-              {isSyncingWeekly ? (
-                <>
-                  <span className="tmb-sync-spinner"></span>
-                  Atualizando...
-                </>
-              ) : (
-                <>
-                  📅 Atualização Semanal
-                </>
-              )}
-            </button>
-            
-            <button 
-              className={`tmb-sync-btn ${isSyncingHourly ? 'syncing' : ''}`}
-              onClick={handleHourlySync}
-              disabled={isSyncingHourly || isTestingAllOpen || isSyncingWeekly}
-              title="Sincronização horária - busca oportunidades criadas hoje nos funis 6 (APUCARANA) e 14 (RECOMPRA)"
-              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
-            >
-              {isSyncingHourly ? (
-                <>
-                  <span className="tmb-sync-spinner"></span>
-                  Sincronizando...
-                </>
-              ) : (
-                <>
-                  🕐 Hoje - Apucarana
-                </>
-              )}
-            </button>
-            
-            <button
-              className={`tmb-sync-btn ${isHourlySyncRunning ? 'active' : ''}`}
-              onClick={handleToggleHourlySync}
-              disabled={isSyncingHourly || isTestingAllOpen || isSyncingWeekly}
-              title={isHourlySyncRunning ? "Parar sincronização horária automática" : "Iniciar sincronização horária automática (executa a cada hora)"}
-              style={{
-                marginLeft: '8px',
-                background: isHourlySyncRunning
-                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'
-                  : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)'
-              }}
-            >
-              {isHourlySyncRunning ? (
-                <>
-                  🛑 Parar Auto
-                </>
-              ) : (
-                <>
-                  🕐 Iniciar Auto
+                  ⚡ SYNC AGORA
                 </>
               )}
             </button>
