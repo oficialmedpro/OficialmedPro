@@ -1,0 +1,15 @@
+{
+  "name": "sync-funil14",
+  "version": "1.0.0",
+  "description": "Script de sincronização do Funil 14 (RECOMPRA)",
+  "main": "sync-funil14.js",
+  "scripts": {
+    "sync": "node sync-funil14.js",
+    "install-deps": "npm install dotenv"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0"
+  },
+  "author": "Claude Code",
+  "license": "MIT"
+}

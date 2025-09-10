@@ -9,8 +9,6 @@ import Sidebar from '../components/Sidebar';
 import FunnelChart from '../components/FunnelChart';
 import StatsSection from '../components/StatsSection';
 import TimelineChart from '../components/TimelineChart';
-import WonOpportunitiesList from '../components/WonOpportunitiesList';
-import SyncVerifier from '../components/SyncVerifier';
 import OportunidadesGanhasCard from '../components/OportunidadesGanhasCard';
 import { translations } from '../data/translations';
 import { getStatsCards, getMenuItems } from '../data/statsData';
@@ -342,36 +340,38 @@ const DashboardPage = ({ onLogout }) => {
             </>
           )}
 
-          {/* Chart Section */}
-          <section className="chart-section">
-            <FunnelChart 
-              t={t} 
-              selectedFunnel={selectedFunnel}
-              startDate={startDate}
-              endDate={endDate}
-              selectedPeriod={selectedPeriod}
-            />
-            <MetricsSidebar 
-              formatCurrency={formatCurrencyLocal} 
-              t={t}
-              selectedPeriod={selectedPeriod}
-              startDate={startDate}
-              endDate={endDate}
-              selectedUnit={selectedUnit}
-            />
-          </section>
+          {/* Chart Section - mostrar apenas quando um funil específico estiver selecionado */}
+          {selectedFunnel && selectedFunnel !== 'all' && (
+            <section className="chart-section">
+              <FunnelChart 
+                t={t} 
+                selectedFunnel={selectedFunnel}
+                startDate={startDate}
+                endDate={endDate}
+                selectedPeriod={selectedPeriod}
+              />
+              <MetricsSidebar 
+                formatCurrency={formatCurrencyLocal} 
+                t={t}
+                selectedPeriod={selectedPeriod}
+                startDate={startDate}
+                endDate={endDate}
+                selectedUnit={selectedUnit}
+              />
+            </section>
+          )}
 
-        {/* Lista de Oportunidades Ganhas */}
-        <WonOpportunitiesList selectedDate={endDate} />
+        {/* Lista de Oportunidades Ganhas removida */}
 
-        {/* Timeline Chart - Performance dos Últimos 7 Dias */}
-        <TimelineChart selectedDate={endDate} t={t} />
+        {/* Timeline Chart - mostrar apenas quando um funil específico estiver selecionado */}
+        {selectedFunnel && selectedFunnel !== 'all' && (
+          <TimelineChart selectedDate={endDate} t={t} />
+        )}
 
-        {/* Verificador de Sincronização */}
-        <SyncVerifier />
-
-        {/* Metrics Cards Section */}
-        <MetricsCards formatCurrency={formatCurrencyLocal} t={t} />
+        {/* Metrics Cards Section - mostrar apenas quando um funil específico estiver selecionado */}
+        {selectedFunnel && selectedFunnel !== 'all' && (
+          <MetricsCards formatCurrency={formatCurrencyLocal} t={t} />
+        )}
       </main>
 
       {/* Mobile Bottom Navigation */}

@@ -1,0 +1,199 @@
+/* OrcamentoNegociacaoCard Styles */
+.onc-orcamento-negociacao-card {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border-radius: 12px;
+  padding: 20px;
+  border-left: 4px solid var(--accent-orange);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.onc-orcamento-negociacao-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Header com título */
+.onc-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.onc-loading-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid var(--accent-orange);
+  border-radius: 50%;
+  animation: onc-spin 1s linear infinite;
+}
+
+@keyframes onc-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Card Title */
+.onc-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  color: white;
+  opacity: 0.95;
+  margin-bottom: 16px;
+  line-height: 1.2;
+  white-space: pre-line;
+}
+
+/* Main Values Container */
+.onc-main-values {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 0; /* Reduzir o espaçamento */
+}
+
+/* Primary Value */
+.onc-primary-value {
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.2; /* Ajustar espaçamento */
+  margin-bottom: 2px; /* Ajustar espaçamento */
+}
+
+.onc-primary-value-amount {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--accent-orange);
+  opacity: 0.9;
+  margin-top: 0; /* Ajustar espaçamento */
+}
+
+/* Secondary Value */
+.onc-secondary-value {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 0; /* Remover padding */
+  border-radius: 6px;
+  color: #b3b5bb;
+  margin-top: 8px; /* Adicionar espaço acima */
+}
+
+.onc-secondary-value-amount {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--accent-orange);
+  opacity: 0.8;
+  margin-top: 0; /* Ajustar espaçamento */
+}
+
+/* Thermometer Container */
+.onc-thermometer-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 16px 0;
+  flex-grow: 1;
+}
+
+/* Meta Section */
+.onc-meta-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.onc-meta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.onc-meta-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.onc-meta-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.onc-meta-percentage {
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffffff;
+  min-width: 50px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.onc-meta-percentage-acima {
+  color: #ef4444; /* Vermelho quando acima da meta */
+}
+
+.onc-meta-percentage-abaixo {
+  color: #22c55e; /* Verde quando abaixo da meta */
+}
+
+/* Error State */
+.onc-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ef4444;
+  font-size: 14px;
+  flex-grow: 1;
+  text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .onc-orcamento-negociacao-card {
+    padding: 16px;
+    min-height: 180px;
+  }
+  
+  .onc-card-title {
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+  
+  .onc-primary-value {
+    font-size: 20px;
+  }
+  
+  .onc-meta-section {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .onc-meta-percentage {
+    text-align: left;
+  }
+}
+
+/* CSS Variables for Orange Accent */
+:root {
+  --accent-orange: #f97316;
+}

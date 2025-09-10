@@ -132,6 +132,25 @@ export const getTotalOportunidadesMetrics = async (
     console.log('  - originFilter:', originFilter);
     console.log('  - filtrosCombinados:', filtrosCombinados);
 
+    // 🔬 DEBUG: Quando unidade está selecionada e funil = all, comparar contagens por funil 6 e 14
+    if ((!selectedFunnel || selectedFunnel === 'all' || selectedFunnel === '' || selectedFunnel === 'undefined') && (selectedUnit && selectedUnit !== 'all' && selectedUnit !== '' && selectedUnit !== 'undefined')) {
+      try {
+        const debugUrl6 = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.open&funil_id=eq.6${unidadeFilter}${sellerFilter}${originFilter}`;
+        const debugUrl14 = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.open&funil_id=eq.14${unidadeFilter}${sellerFilter}${originFilter}`;
+        console.log('🔬 DEBUG URL abertas funil 6:', debugUrl6);
+        console.log('🔬 DEBUG URL abertas funil 14:', debugUrl14);
+        const [resp6, resp14] = await Promise.all([
+          fetch(debugUrl6, { method: 'GET', headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}`, 'apikey': supabaseServiceKey, 'Accept-Profile': supabaseSchema } }),
+          fetch(debugUrl14, { method: 'GET', headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}`, 'apikey': supabaseServiceKey, 'Accept-Profile': supabaseSchema } })
+        ]);
+        const data6 = resp6.ok ? await resp6.json() : [];
+        const data14 = resp14.ok ? await resp14.json() : [];
+        console.log(`🔬 DEBUG abertas por funil | 6: ${data6.length} | 14: ${data14.length} | soma: ${data6.length + data14.length}`);
+      } catch (e) {
+        console.log('⚠️ DEBUG erro ao buscar contagens por funil:', e);
+      }
+    }
+
     // 🎯 1. TOTAL DE OPORTUNIDADES ABERTAS - Apenas status="open", SEM filtro de data
     const totalOportunidadesAbertasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open${filtrosCombinados}`;
     console.log('🔍 URL Total Oportunidades Abertas (sem data):', totalOportunidadesAbertasUrl);

@@ -568,10 +568,10 @@
   margin-top: 0px;
 }
 
-/* Linha superior com quatro cards lado a lado */
+/* Linha superior com cinco cards lado a lado */
 .top-row-cards {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
   gap: 20px;
   margin-bottom: 20px;
 }
@@ -1691,16 +1691,15 @@
   
   /* Responsividade para top-row-cards */
   .top-row-cards {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 16px;
   }
 }
 
-/* Media query para tablets - 2 cards na primeira linha, 2 na segunda */
+/* Media query para tablets - 3 cards na primeira linha, 2 na segunda */
 @media (max-width: 1024px) and (min-width: 769px) {
   .top-row-cards {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 16px;
   }
 }

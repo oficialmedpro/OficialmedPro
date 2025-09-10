@@ -6,6 +6,7 @@ import TotalOportunidadesCard from './TotalOportunidadesCard';
 import OportunidadesPerdidasCard from './OportunidadesPerdidasCard';
 import OportunidadesGanhasCard from './OportunidadesGanhasCard';
 import TicketMedioCard from './TicketMedioCard';
+import OrcamentoNegociacaoCard from './OrcamentoNegociacaoCard';
 
 const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin }) => {
   const [realMetrics, setRealMetrics] = useState(null);
@@ -101,7 +102,7 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
 
   return (
     <section className="stats-section">
-      {/* Linha superior com quatro colunas: Total Oportunidades + Oportunidades Perdidas + Oportunidades Ganhas + Ticket Médio */}
+      {/* Linha superior com cinco colunas: Total Oportunidades + Oportunidades Perdidas + Ticket Médio + Orçamento em Negociação + Oportunidades Ganhas */}
       <div className="top-row-cards">
         <TotalOportunidadesCard 
           startDate={startDate}
@@ -119,7 +120,7 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
           selectedSeller={selectedSeller}
           selectedOrigin={selectedOrigin}
         />
-        <OportunidadesGanhasCard 
+        <TicketMedioCard 
           startDate={startDate}
           endDate={endDate}
           selectedFunnel={selectedFunnel}
@@ -127,7 +128,15 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
           selectedSeller={selectedSeller}
           selectedOrigin={selectedOrigin}
         />
-        <TicketMedioCard 
+        <OrcamentoNegociacaoCard 
+          startDate={startDate}
+          endDate={endDate}
+          selectedFunnel={selectedFunnel}
+          selectedUnit={selectedUnit}
+          selectedSeller={selectedSeller}
+          selectedOrigin={selectedOrigin}
+        />
+        <OportunidadesGanhasCard 
           startDate={startDate}
           endDate={endDate}
           selectedFunnel={selectedFunnel}
@@ -139,14 +148,14 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
       
       {/* Grid com os outros cards */}
       <div className="stats-grid">
-        {/* Outros cards (excluindo Oportunidades Perdidas e Ticket Médio) */}
+        {/* Outros cards (excluindo Oportunidades Perdidas, Ticket Médio e Orçamento em Negociação) */}
         {statsCards.slice(1).filter((card, index) => {
-          // Remover o card vermelho de Oportunidades Perdidas (index 1) e o card roxo de Ticket Médio (index 2)
+          // Remover o card vermelho de Oportunidades Perdidas (index 1), o card roxo de Ticket Médio (index 2) e o card laranja de Orçamento em Negociação (index 3)
           const adjustedIndex = index + 1;
-          return adjustedIndex !== 1 && adjustedIndex !== 2; // Remove os cards de índice 1 e 2
+          return adjustedIndex !== 1 && adjustedIndex !== 2 && adjustedIndex !== 3; // Remove os cards de índice 1, 2 e 3
         }).map((card, index) => {
-          // Reajustar o índice considerando que removemos dois cards
-          const adjustedIndex = index === 0 ? 3 : 4; // Mapear para índices 3, 4
+          // Reajustar o índice considerando que removemos três cards
+          const adjustedIndex = index === 0 ? 4 : 5; // Mapear para índices 4, 5
           const cardData = getCardData(card, adjustedIndex);
           return (
             <div key={adjustedIndex} className={`stat-card ${cardData.color}`}>
