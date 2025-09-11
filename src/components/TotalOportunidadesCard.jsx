@@ -159,13 +159,13 @@ const TotalOportunidadesCard = ({
       <div className="toc-main-values">
         <div className="toc-primary-value">
           {(() => {
-            const count = useCountUp(parseInt(abertasData.value.replace(/,/g, '')), 1500);
+            const count = useCountUp(parseInt(abertasData.value), 1500);
             return count.toLocaleString();
           })()} Abertas
         </div>
         <div className="toc-secondary-value">
           + {(() => {
-            const count = useCountUp(parseInt(novasData.value.replace(/,/g, '')), 1500);
+            const count = useCountUp(parseInt(novasData.value), 1500);
             return count.toLocaleString();
           })()} Novas
         </div>

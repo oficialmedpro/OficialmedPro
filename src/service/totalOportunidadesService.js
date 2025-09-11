@@ -156,6 +156,7 @@ export const getTotalOportunidadesMetrics = async (
     }
 
     // 🎯 1. TOTAL DE OPORTUNIDADES ABERTAS - Apenas status="open", SEM filtro de data
+    // 🚨 ADICIONANDO LIMIT PARA TESTAR SE É LIMITAÇÃO DO SUPABASE (padrão é 1000)
     const totalOportunidadesAbertasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open${filtrosCombinados}`;
     console.log('🔍 URL Total Oportunidades Abertas (sem data):', totalOportunidadesAbertasUrl);
     console.log('🔍 Filtros combinados para abertas:', filtrosCombinados);
@@ -194,6 +195,8 @@ export const getTotalOportunidadesMetrics = async (
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
+          'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
+          'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
         }
       }),
       fetch(totalOportunidadesNovasUrl, {
@@ -203,6 +206,8 @@ export const getTotalOportunidadesMetrics = async (
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
+          'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
+          'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
         }
       }),
       fetch(metaOportunidadesNovasUrl, {
@@ -231,9 +236,23 @@ export const getTotalOportunidadesMetrics = async (
         const valor = parseFloat(opp.value) || 0;
         return total + valor;
       }, 0);
+      
+      // 🔍 DEBUG: Log detalhado das oportunidades abertas
+      console.log('🔍 DEBUG ABERTAS - URL:', totalOportunidadesAbertasUrl);
+      console.log('🔍 DEBUG ABERTAS - Response length:', abertasData.length);
+      console.log('🔍 DEBUG ABERTAS - Response headers:', Object.fromEntries(abertasResponse.headers.entries()));
+      console.log('🔍 DEBUG ABERTAS - Primeiros 5 registros:', abertasData.slice(0, 5));
+      
+      // 🚨 TESTE: Se retornou exatamente 1000, é limitação
+      if (abertasData.length === 1000) {
+        console.warn('🚨 ATENÇÃO: Retornou exatamente 1000 registros - pode ser limitação do Supabase!');
+        console.log('🔍 Últimos 5 registros:', abertasData.slice(-5));
+      }
       console.log(`✅ Total Oportunidades Abertas (sem data): ${totalOportunidadesAbertas} (R$ ${valorTotalOportunidadesAbertas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
       console.error('❌ Erro ao buscar total de oportunidades abertas:', abertasResponse.status);
+      const responseText = await abertasResponse.text();
+      console.error('❌ Response text:', responseText);
     }
 
     // 2. Total de Oportunidades Novas (com filtro de data)
@@ -244,9 +263,23 @@ export const getTotalOportunidadesMetrics = async (
         const valor = parseFloat(opp.value) || 0;
         return total + valor;
       }, 0);
+      
+      // 🔍 DEBUG: Log detalhado das oportunidades novas
+      console.log('🔍 DEBUG NOVAS - URL:', totalOportunidadesNovasUrl);
+      console.log('🔍 DEBUG NOVAS - Response length:', novasData.length);
+      console.log('🔍 DEBUG NOVAS - Response headers:', Object.fromEntries(novasResponse.headers.entries()));
+      console.log('🔍 DEBUG NOVAS - Primeiros 5 registros:', novasData.slice(0, 5));
+      
+      // 🚨 TESTE: Se retornou exatamente 1000, é limitação
+      if (novasData.length === 1000) {
+        console.warn('🚨 ATENÇÃO: Retornou exatamente 1000 registros - pode ser limitação do Supabase!');
+        console.log('🔍 Últimos 5 registros:', novasData.slice(-5));
+      }
       console.log(`✅ Total Oportunidades Novas (período ${dataInicio} a ${dataFim}): ${totalOportunidadesNovas} (R$ ${valorTotalOportunidadesNovas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
       console.error('❌ Erro ao buscar total de oportunidades novas:', novasResponse.status);
+      const responseText = await novasResponse.text();
+      console.error('❌ Response text:', responseText);
     }
 
     // 3. Meta de Oportunidades Novas
@@ -398,6 +431,8 @@ const getTotalOportunidadesAnteriores = async (startDate, endDate, selectedFunne
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
+          'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
+          'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
         }
       }),
       fetch(totalNovasAnteriorUrl, {
@@ -407,6 +442,8 @@ const getTotalOportunidadesAnteriores = async (startDate, endDate, selectedFunne
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
+          'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
+          'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
         }
       })
     ]);
@@ -476,7 +513,9 @@ export const testFunilSpecificWithUnit = async (funilId, unidadeId) => {
         'Authorization': `Bearer ${supabaseServiceKey}`,
         'apikey': supabaseServiceKey,
         'Accept-Profile': supabaseSchema,
-        'Content-Profile': supabaseSchema
+        'Content-Profile': supabaseSchema,
+        'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
+        'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
       }
     });
     
@@ -519,6 +558,8 @@ export const testFunilSpecificWithUnit = async (funilId, unidadeId) => {
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
+          'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
+          'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
         }
       });
       
@@ -570,7 +611,9 @@ export const testFunilSpecific = async (funilId) => {
         'Authorization': `Bearer ${supabaseServiceKey}`,
         'apikey': supabaseServiceKey,
         'Accept-Profile': supabaseSchema,
-        'Content-Profile': supabaseSchema
+        'Content-Profile': supabaseSchema,
+        'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
+        'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
       }
     });
     
@@ -598,6 +641,8 @@ export const testFunilSpecific = async (funilId) => {
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
           'Accept-Profile': supabaseSchema,
+          'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
+          'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
         }
       });
       

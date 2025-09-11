@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './MetricsSidebar.css';
+import GoogleInvestimentoCard from './GoogleInvestimentoCard';
 import { metaAdsService } from '../service/metaAdsService';
 import { unitMetaService } from '../service/unitMetaService';
 
@@ -525,76 +526,13 @@ const MetricsSidebar = ({ formatCurrency, t, selectedPeriod, startDate, endDate,
       </div>
       
       <div className="ms-financial-metrics-new">
-        {/* Google Metrics Card */}
-        <div className="ms-metric-card ms-google-card">
-          <div className="ms-metric-card-header">
-            <div className="ms-platform-icon ms-google-icon">G</div>
-            <span className="ms-platform-name">Google</span>
-            <div className="ms-roas-badge ms-roas-excellent">ROAS 3.47x</div>
-          </div>
-          
-          <div className="ms-metrics-grid">
-            <div className="ms-metric-item-visual">
-              <div className="ms-metric-info">
-                <span className="ms-metric-label">Investido</span>
-                <span className="ms-metric-value">{formatCurrency(45000, 'BRL')}</span>
-                <div className="ms-metric-bar">
-                  <div className="ms-metric-fill" style={{width: '85%', background: 'linear-gradient(90deg, #ef4444, #dc2626)'}}></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="ms-metric-item-visual">
-              <div className="ms-metric-info">
-                <span className="ms-metric-label">Taxa Conversão</span>
-                <span className="ms-metric-value">78 → 5 (6.4%)</span>
-                <div className="ms-metric-bar">
-                  <div className="ms-metric-fill" style={{width: '64%', background: 'linear-gradient(90deg, #3b82f6, #1d4ed8)'}}></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="ms-metric-item-visual">
-              <div className="ms-metric-info">
-                <span className="ms-metric-label">Valor Ganho</span>
-                <span className="ms-metric-value">{formatCurrency(156000, 'BRL')}</span>
-                <div className="ms-metric-bar">
-                  <div className="ms-metric-fill" style={{width: '92%', background: 'linear-gradient(90deg, #10b981, #059669)'}}></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="ms-metric-item-visual">
-              <div className="ms-metric-info">
-                <span className="ms-metric-label">Oportunidades Perdidas</span>
-                <span className="ms-metric-value">73</span>
-                <div className="ms-metric-bar">
-                  <div className="ms-metric-fill" style={{width: '73%', background: 'linear-gradient(90deg, #f59e0b, #d97706)'}}></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="ms-metric-item-visual">
-              <div className="ms-metric-info">
-                <span className="ms-metric-label">Oportunidades Abertas</span>
-                <span className="ms-metric-value">12</span>
-                <div className="ms-metric-bar">
-                  <div className="ms-metric-fill" style={{width: '30%', background: 'linear-gradient(90deg, #8b5cf6, #7c3aed)'}}></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="ms-metric-item-visual">
-              <div className="ms-metric-info">
-                <span className="ms-metric-label">Valor Perda</span>
-                <span className="ms-metric-value">{formatCurrency(89000, 'BRL')}</span>
-                <div className="ms-metric-bar">
-                  <div className="ms-metric-fill" style={{width: '57%', background: 'linear-gradient(90deg, #ef4444, #dc2626)'}}></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Google Metrics Card (dados reais Supabase) */}
+        <GoogleInvestimentoCard 
+          t={t}
+          formatCurrency={formatCurrency}
+          startDate={startDate}
+          endDate={endDate}
+        />
         
         {/* Meta Metrics Card - DADOS REAIS DA UNIDADE SELECIONADA */}
         <div className="ms-metric-card ms-meta-card">

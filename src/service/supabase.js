@@ -22,9 +22,15 @@ export const getSupabaseWithSchema = (schema) => {
       autoRefreshToken: false,
       persistSession: false
     },
+    // Define o schema do PostgREST corretamente
+    db: {
+      schema: schema || 'api'
+    },
+    // Garante os headers também (algumas versões do SDK dependem desses)
     global: {
       headers: {
-        'Accept-Profile': schema,
+        'Accept-Profile': schema || 'api',
+        'Content-Profile': schema || 'api'
       }
     }
   })
