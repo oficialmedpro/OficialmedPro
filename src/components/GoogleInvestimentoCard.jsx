@@ -3,7 +3,6 @@ import { googleInvestimentoService } from '../service/googleInvestimentoService'
 import './GoogleInvestimentoCard.css'
 import { googleOportunidadesService } from '../service/googleOportunidadesService'
 import { googleConversaoService } from '../service/googleConversaoService'
-import { debugComparisonService } from '../service/debugComparisonService'
 
 /**
  * Card isolado para exibir investimento do Google
@@ -27,6 +26,10 @@ const GoogleInvestimentoCard = ({
     totalPerdidas: 0,
     valorPerda: 0,
     totalAbertas: 0,
+    totalNegociacao: 0,
+    totalFollowUp: 0,
+    valorNegociacao: 0,
+    valorFollowUp: 0,
     taxaConversao: 0,
     totalCriadas: 0
   })
@@ -53,9 +56,13 @@ const GoogleInvestimentoCard = ({
           if (isMounted) setMetrics({
             totalGanhas: conv.totalGanhas,
             valorGanho: conv.valorGanho,
-            totalPerdidas: 0,
-            valorPerda: 0,
-            totalAbertas: 0,
+            totalPerdidas: conv.totalPerdidas,
+            valorPerda: conv.valorPerda,
+            totalAbertas: conv.totalAbertas,
+            totalNegociacao: conv.totalNegociacao,
+            totalFollowUp: conv.totalFollowUp,
+            valorNegociacao: conv.valorNegociacao,
+            valorFollowUp: conv.valorFollowUp,
             taxaConversao: conv.taxaConversao,
             totalCriadas: conv.totalCriadas,
           })
@@ -81,13 +88,6 @@ const GoogleInvestimentoCard = ({
     return `${roas.toFixed(2)}x`;
   };
 
-  // Função temporária para debug
-  const handleDebugComparison = async () => {
-    console.log('🔍 Iniciando debug de comparação...');
-    // Pega o selectedOrigin do localStorage ou contexto se disponível
-    const selectedOrigin = localStorage.getItem('selectedOrigin') || 'all';
-    await debugComparisonService.compareServices(startDate, endDate, selectedOrigin);
-  };
 
   return (
     <div className="gic-card">
@@ -95,24 +95,6 @@ const GoogleInvestimentoCard = ({
         <div className="gic-platform-icon">G</div>
         <span className="gic-platform-name">Google</span>
         <div className="gic-roas-badge">{t?.roas || 'ROAS'} {calcularROAS()}</div>
-        {/* Botão temporário para debug */}
-        <button 
-          onClick={handleDebugComparison}
-          style={{ 
-            position: 'absolute', 
-            top: '5px', 
-            right: '5px', 
-            fontSize: '10px', 
-            padding: '2px 4px',
-            background: '#ff6b6b',
-            color: 'white',
-            border: 'none',
-            borderRadius: '2px',
-            cursor: 'pointer'
-          }}
-        >
-          DEBUG
-        </button>
       </div>
 
       <div className="gic-content">
@@ -173,6 +155,13 @@ const GoogleInvestimentoCard = ({
           <div className="gic-bar"><div className="gic-fill gic-amber" style={{ width: `${Math.min(metrics.totalPerdidas, 100)}%` }}></div></div>
         </div>
 
+        {/* Valor Perda (logo após Oportunidades Perdidas) */}
+        <div className="gic-item">
+          <span className="gic-label">{t?.lostValue || 'Valor Perda'}</span>
+          <span className="gic-value">{loading ? '—' : (formatCurrency ? formatCurrency(metrics.valorPerda, 'BRL') : `R$ ${metrics.valorPerda.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)}</span>
+          <div className="gic-bar"><div className="gic-fill gic-amber" style={{ width: `${metrics.valorPerda > 0 ? 57 : 0}%` }}></div></div>
+        </div>
+
         {/* Oportunidades Abertas */}
         <div className="gic-item">
           <span className="gic-label">{t?.openOpps || 'Oportunidades Abertas'}</span>
@@ -180,11 +169,18 @@ const GoogleInvestimentoCard = ({
           <div className="gic-bar"><div className="gic-fill gic-violet" style={{ width: `${Math.min(metrics.totalAbertas * 5, 100)}%` }}></div></div>
         </div>
 
-        {/* Valor Perda */}
+        {/* Oportunidades em Negociação */}
         <div className="gic-item">
-          <span className="gic-label">{t?.lostValue || 'Valor Perda'}</span>
-          <span className="gic-value">{loading ? '—' : (formatCurrency ? formatCurrency(metrics.valorPerda, 'BRL') : `R$ ${metrics.valorPerda.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)}</span>
-          <div className="gic-bar"><div className="gic-fill" style={{ width: `${metrics.valorPerda > 0 ? 57 : 0}%` }}></div></div>
+          <span className="gic-label">Oportunidades em Negociação</span>
+          <span className="gic-value">{loading ? '—' : `${metrics.totalNegociacao} - ${formatCurrency ? formatCurrency(metrics.valorNegociacao, 'BRL') : `R$ ${metrics.valorNegociacao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}`}</span>
+          <div className="gic-bar"><div className="gic-fill gic-cyan" style={{ width: `${Math.min(metrics.totalNegociacao * 8, 100)}%` }}></div></div>
+        </div>
+
+        {/* Oportunidades em Follow-Up */}
+        <div className="gic-item">
+          <span className="gic-label">Oportunidades em Follow-Up</span>
+          <span className="gic-value">{loading ? '—' : `${metrics.totalFollowUp} - ${formatCurrency ? formatCurrency(metrics.valorFollowUp, 'BRL') : `R$ ${metrics.valorFollowUp.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}`}</span>
+          <div className="gic-bar"><div className="gic-fill gic-green" style={{ width: `${Math.min(metrics.totalFollowUp * 6, 100)}%` }}></div></div>
         </div>
       </div>
 

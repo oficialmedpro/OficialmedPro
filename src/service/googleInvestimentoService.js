@@ -33,10 +33,10 @@ export const googleInvestimentoService = {
       console.log('✅ GoogleInvestimentoService: Usando datas fornecidas:', { dataInicio, dataFim });
     }
     
-    // CORREÇÃO: Como investimento_patrocinados já tem timezone GMT-3, usar a data diretamente
-    // sem conversão adicional para evitar deslocamento de dias
+    // CORREÇÃO CRÍTICA: Usar dataFim para o end, não dataInicio
+    // Como investimento_patrocinados já tem timezone GMT-3, usar as datas diretamente
     const start = `${dataInicio} 00:00:00-03`;
-    const end = `${dataInicio} 23:59:59-03`;
+    const end = `${dataFim} 23:59:59-03`;
 
     // Monta URL com filtros (PostgREST) - Agora com timezone
     const url = `${supabaseUrl}/rest/v1/investimento_patrocinados?select=data,valor,plataforma&plataforma=eq.google&data=gte.${encodeURIComponent(start)}&data=lte.${encodeURIComponent(end)}`
@@ -45,17 +45,22 @@ export const googleInvestimentoService = {
     console.log('  - startDate recebido:', startDate);
     console.log('  - endDate recebido:', endDate);
     console.log('  - dataInicio usada:', dataInicio);
+    console.log('  - dataFim usada:', dataFim);
     console.log('  - start processado:', start);
     console.log('  - end processado:', end);
-    console.log('  - Diferença entre start e end (horas):', (new Date(end) - new Date(start)) / (1000 * 60 * 60));
+    console.log('  - Período em dias:', Math.ceil((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24)));
     console.log('  - URL final:', url);
     
-    // TESTE: Verificar se a URL está correta para o dia 10/09
-    if (dataInicio === '2025-09-10') {
-      console.log('🧪 TESTE ESPECÍFICO PARA 10/09:');
-      console.log('  - Deveria buscar apenas registros de 2025-09-10');
-      console.log('  - Start: 2025-09-10 00:00:00-03');
-      console.log('  - End: 2025-09-10 23:59:59-03');
+    // TESTE: Verificar se a URL está correta para o período
+    if (dataInicio !== dataFim) {
+      console.log('🧪 TESTE PARA PERÍODO MÚLTIPLO:');
+      console.log(`  - Deveria buscar registros de ${dataInicio} até ${dataFim}`);
+      console.log(`  - Start: ${start}`);
+      console.log(`  - End: ${end}`);
+      console.log(`  - Dias incluídos: ${Math.ceil((new Date(end) - new Date(start)) / (1000 * 60 * 60 * 24))}`);
+    } else {
+      console.log('🧪 TESTE PARA DIA ÚNICO:');
+      console.log(`  - Deveria buscar apenas registros de ${dataInicio}`);
     }
     
     // Teste: verificar se o período está correto

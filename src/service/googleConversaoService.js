@@ -101,6 +101,18 @@ export const googleConversaoService = {
     // 2) Ganhas no período - APENAS GOOGLE
     const ganhasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicio}T00:00:00-03:00&gain_date=lte.${dataFim}T23:59:59-03:00${googleOriginFilter}${optional}`;
     console.log('🔍 GoogleConversaoService - URL Ganhas (GOOGLE):', ganhasUrl);
+
+    // 3) Perdidas no período (lost_date) - APENAS GOOGLE
+    const perdidasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.lost&lost_date=gte.${dataInicio}T00:00:00-03:00&lost_date=lte.${dataFim}T23:59:59-03:00${googleOriginFilter}${optional}`;
+    console.log('🔍 GoogleConversaoService - URL Perdidas (GOOGLE):', perdidasUrl);
+
+    // 4) Abertas (sem filtro de data, só status=open) - APENAS GOOGLE
+    const abertasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open${googleOriginFilter}${optional}`;
+    console.log('🔍 GoogleConversaoService - URL Abertas (GOOGLE):', abertasUrl);
+
+    // 5) BUSCAR IDs DAS ETAPAS ESPECIAIS (orcamento e follow)
+    const etapasEspeciaisUrl = `${supabaseUrl}/rest/v1/funil_etapas?select=id_etapa_sprint,orcamento,follow&or=(orcamento.eq.true,follow.eq.true)`;
+    console.log('🔍 GoogleConversaoService - URL Etapas Especiais:', etapasEspeciaisUrl);
     
     // DEBUG: Comparar com OportunidadesGanhasService
     console.log('🔍 COMPARAÇÃO COM OportunidadesGanhasService:');
@@ -111,23 +123,87 @@ export const googleConversaoService = {
     console.log('  - URL COMPLETA Criadas:', criadasUrl);
     console.log('  - URL COMPLETA Ganhas:', ganhasUrl);
 
-    const [criadasRes, ganhasRes] = await Promise.all([
+    // PRIMEIRO: Buscar etapas especiais para obter os IDs
+    const etapasRes = await fetch(etapasEspeciaisUrl, { method: 'GET', headers: baseHeaders });
+    const etapasEspeciais = await (etapasRes.ok ? etapasRes.json() : []);
+    
+    console.log('🔍 Etapas especiais encontradas:', etapasEspeciais);
+    
+    // Separar IDs das etapas
+    const orcamentoEtapa = etapasEspeciais.find(e => e.orcamento === true);
+    const followEtapa = etapasEspeciais.find(e => e.follow === true);
+    
+    console.log('🎯 Etapa Orçamento (Negociação):', orcamentoEtapa);
+    console.log('🎯 Etapa Follow-Up:', followEtapa);
+
+    // Construir URLs para oportunidades nas etapas especiais
+    let negociacaoUrl = null;
+    let followUpUrl = null;
+    
+    if (orcamentoEtapa) {
+      negociacaoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open&crm_column=eq.${orcamentoEtapa.id_etapa_sprint}${googleOriginFilter}${optional}`;
+      console.log('🔍 GoogleConversaoService - URL Negociação (OPEN):', negociacaoUrl);
+    }
+    
+    if (followEtapa) {
+      followUpUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open&crm_column=eq.${followEtapa.id_etapa_sprint}${googleOriginFilter}${optional}`;
+      console.log('🔍 GoogleConversaoService - URL Follow-Up (OPEN):', followUpUrl);
+    }
+
+    // EXECUTAR todas as consultas em paralelo
+    const promises = [
       fetch(criadasUrl, { method: 'GET', headers: baseHeaders }),
       fetch(ganhasUrl, { method: 'GET', headers: baseHeaders }),
-    ]);
+      fetch(perdidasUrl, { method: 'GET', headers: baseHeaders }),
+      fetch(abertasUrl, { method: 'GET', headers: baseHeaders }),
+    ];
+    
+    if (negociacaoUrl) promises.push(fetch(negociacaoUrl, { method: 'GET', headers: baseHeaders }));
+    if (followUpUrl) promises.push(fetch(followUpUrl, { method: 'GET', headers: baseHeaders }));
+    
+    const responses = await Promise.all(promises);
 
     const safeJson = async (res) => (res.ok ? res.json() : []);
-    const [criadas, ganhas] = await Promise.all([
-      safeJson(criadasRes),
-      safeJson(ganhasRes),
-    ]);
+    
+    // Processar as respostas básicas
+    const criadas = await safeJson(responses[0]);
+    const ganhas = await safeJson(responses[1]);
+    const perdidas = await safeJson(responses[2]);
+    const abertas = await safeJson(responses[3]);
+    
+    // Processar etapas especiais (se existirem)
+    let negociacao = [];
+    let followUp = [];
+    
+    if (negociacaoUrl && responses[4]) {
+      negociacao = await safeJson(responses[4]);
+    }
+    
+    if (followUpUrl) {
+      const followUpIndex = negociacaoUrl ? 5 : 4;
+      if (responses[followUpIndex]) {
+        followUp = await safeJson(responses[followUpIndex]);
+      }
+    }
 
     const totalCriadas = criadas.length;
     const totalGanhas = ganhas.length;
+    const totalPerdidas = perdidas.length;
+    const totalAbertas = abertas.length;
+    const totalNegociacao = negociacao.length;
+    const totalFollowUp = followUp.length;
     
     // DEBUG: Mostrar cada oportunidade ganha individualmente
     console.log('🔍 GoogleConversaoService - Oportunidades ganhas detalhadas:');
     ganhas.forEach((opp, index) => {
+      const valorOriginal = opp.value;
+      const valorTruncado = Math.floor(parseMoneyValue(opp.value));
+      console.log(`  ${index + 1}. ID: ${opp.id}, Valor original: ${valorOriginal}, Valor truncado: ${valorTruncado}`);
+    });
+    
+    // DEBUG: Mostrar oportunidades perdidas
+    console.log('🔍 GoogleConversaoService - Oportunidades perdidas detalhadas:');
+    perdidas.forEach((opp, index) => {
       const valorOriginal = opp.value;
       const valorTruncado = Math.floor(parseMoneyValue(opp.value));
       console.log(`  ${index + 1}. ID: ${opp.id}, Valor original: ${valorOriginal}, Valor truncado: ${valorTruncado}`);
@@ -139,18 +215,54 @@ export const googleConversaoService = {
       return acc + valor;
     }, 0);
     valorGanho = Math.round(valorGanho * 100) / 100;
+    
+    // Calcular valor das perdas
+    let valorPerda = perdidas.reduce((acc, r) => {
+      const valor = Math.floor(parseMoneyValue(r.value));
+      return acc + valor;
+    }, 0);
+    valorPerda = Math.round(valorPerda * 100) / 100;
+    
+    // Calcular valor das oportunidades em negociação
+    let valorNegociacao = negociacao.reduce((acc, r) => {
+      const valor = Math.floor(parseMoneyValue(r.value));
+      return acc + valor;
+    }, 0);
+    valorNegociacao = Math.round(valorNegociacao * 100) / 100;
+    
+    // Calcular valor das oportunidades em follow-up
+    let valorFollowUp = followUp.reduce((acc, r) => {
+      const valor = Math.floor(parseMoneyValue(r.value));
+      return acc + valor;
+    }, 0);
+    valorFollowUp = Math.round(valorFollowUp * 100) / 100;
+    
     const taxaConversao = totalCriadas > 0 ? (totalGanhas / totalCriadas) * 100 : 0;
 
     console.log('🔍 GoogleConversaoService - Resultados:');
     console.log('  - Total Criadas (Google):', totalCriadas);
     console.log('  - Total Ganhas (Google):', totalGanhas);
+    console.log('  - Total Perdidas (Google):', totalPerdidas);
+    console.log('  - Total Abertas (Google):', totalAbertas);
+    console.log('  - Total em Negociação (Google):', totalNegociacao);
+    console.log('  - Total em Follow-Up (Google):', totalFollowUp);
     console.log('  - Valor Ganho (Google):', valorGanho);
+    console.log('  - Valor Perda (Google):', valorPerda);
+    console.log('  - Valor em Negociação (Google):', valorNegociacao);
+    console.log('  - Valor em Follow-Up (Google):', valorFollowUp);
     console.log('  - Taxa Conversão (Google):', taxaConversao.toFixed(1) + '%');
 
     return {
       totalCriadas,
       totalGanhas,
+      totalPerdidas,
+      totalAbertas,
+      totalNegociacao,
+      totalFollowUp,
       valorGanho,
+      valorPerda,
+      valorNegociacao,
+      valorFollowUp,
       taxaConversao,
     };
   },
