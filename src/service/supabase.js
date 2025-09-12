@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { getTodayDateSP, getStartOfDaySP, getEndOfDaySP } from '../utils/utils.js'
+import { getGoogleAdsOriginFilter } from './googleOriginFilter';
 
 // Configurações do Supabase
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL

@@ -40,6 +40,7 @@
 .gic-fill.gic-green { background: linear-gradient(90deg, #10b981, #059669); }
 .gic-fill.gic-amber { background: linear-gradient(90deg, #f59e0b, #d97706); }
 .gic-fill.gic-violet { background: linear-gradient(90deg, #8b5cf6, #7c3aed); }
+.gic-fill.gic-cyan { background: linear-gradient(90deg, #06b6d4, #0891b2); }
 
 .gic-error { margin-top: 8px; color: #f87171; font-size: 12px; }
 

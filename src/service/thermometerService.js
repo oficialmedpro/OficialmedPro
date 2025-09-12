@@ -1,4 +1,5 @@
 import { getSupabaseWithSchema, getFunilEtapas } from './supabase.js';
+import { getGoogleAdsOriginFilter } from './googleOriginFilter';
 
 // Configurações do Supabase
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -134,6 +135,17 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
     if (selectedSeller && selectedSeller !== 'all') {
       oportunidadesPerdidasUrl += `&user_id=eq.${selectedSeller}`;
       console.log('🔍 Adicionando filtro vendedor:', selectedSeller);
+    }
+    let originFilter = '';
+    if (
+      selectedOrigin && (
+        String(selectedOrigin).toLowerCase() === 'google ads' ||
+        String(selectedOrigin).toLowerCase() === 'googleads' ||
+        String(selectedOrigin) === 'google_ads_id' // Substitua pelo ID real se necessário
+      )
+    ) {
+      originFilter = getGoogleAdsOriginFilter();
+      console.log('🔍 Filtro Google Ads padronizado aplicado:', originFilter);
     }
     
     console.log('🔍 URL Final Oportunidades Perdidas:', oportunidadesPerdidasUrl);
