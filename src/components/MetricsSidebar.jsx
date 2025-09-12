@@ -4,7 +4,7 @@ import GoogleInvestimentoCard from './GoogleInvestimentoCard';
 import { metaAdsService } from '../service/metaAdsService';
 import { unitMetaService } from '../service/unitMetaService';
 
-const MetricsSidebar = ({ formatCurrency, t, selectedPeriod, startDate, endDate, selectedUnit }) => {
+const MetricsSidebar = ({ formatCurrency, t, selectedPeriod, startDate, endDate, selectedUnit, selectedFunnel, selectedSeller }) => {
   // Estados para os filtros do Meta
   const [metaFilters, setMetaFilters] = useState({
     campaign: 'all',
@@ -532,6 +532,9 @@ const MetricsSidebar = ({ formatCurrency, t, selectedPeriod, startDate, endDate,
           formatCurrency={formatCurrency}
           startDate={startDate}
           endDate={endDate}
+          selectedFunnel={selectedFunnel}
+          selectedUnit={selectedUnit}
+          selectedSeller={selectedSeller}
         />
         
         {/* Meta Metrics Card - DADOS REAIS DA UNIDADE SELECIONADA */}

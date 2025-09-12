@@ -357,6 +357,8 @@ const DashboardPage = ({ onLogout }) => {
                 startDate={startDate}
                 endDate={endDate}
                 selectedUnit={selectedUnit}
+                selectedFunnel={selectedFunnel}
+                selectedSeller={selectedSeller}
               />
             </section>
           )}
