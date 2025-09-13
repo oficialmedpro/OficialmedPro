@@ -19,6 +19,74 @@ const baseHeaders = {
   'Authorization': `Bearer ${supabaseServiceKey}`,
   'apikey': supabaseServiceKey,
   'Accept-Profile': supabaseSchema,
+  'Prefer': 'count=exact'
+};
+
+/**
+ * 🔍 FUNÇÃO PARA BUSCAR TODOS OS REGISTROS COM PAGINAÇÃO RECURSIVA
+ * 
+ * @param {string} url - URL base da query
+ * @param {Object} headers - Headers da requisição
+ * @returns {Array} Todos os registros encontrados
+ */
+const fetchAllRecords = async (url, headers) => {
+  const pageSize = 1000; // Tamanho padrão da página do Supabase
+  let allRecords = [];
+  let offset = 0;
+  let hasMore = true;
+
+  console.log('📄 Iniciando paginação para URL:', url);
+
+  while (hasMore) {
+    const paginatedUrl = `${url}`;
+    const paginationHeaders = {
+      ...headers,
+      'Range': `${offset}-${offset + pageSize - 1}`
+    };
+
+    try {
+      const response = await fetch(paginatedUrl, {
+        method: 'GET',
+        headers: paginationHeaders
+      });
+
+      if (!response.ok) {
+        console.error(`❌ Erro na página ${Math.floor(offset / pageSize) + 1}:`, response.status);
+        break;
+      }
+
+      const pageData = await response.json();
+      allRecords = allRecords.concat(pageData);
+
+      console.log(`📄 Página ${Math.floor(offset / pageSize) + 1}: ${pageData.length} registros | Total: ${allRecords.length}`);
+
+      // Se retornou menos que o tamanho da página, não há mais dados
+      if (pageData.length < pageSize) {
+        hasMore = false;
+      } else {
+        offset += pageSize;
+      }
+
+      // Verificar Content-Range header para confirmar se há mais dados
+      const contentRange = response.headers.get('Content-Range');
+      if (contentRange) {
+        const match = contentRange.match(/(\d+)-(\d+)\/(\d+|\*)/);
+        if (match) {
+          const [, , end, total] = match;
+          if (total !== '*' && parseInt(end) >= parseInt(total) - 1) {
+            hasMore = false;
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error(`❌ Erro ao buscar página ${Math.floor(offset / pageSize) + 1}:`, error);
+      break;
+    }
+  }
+
+  console.log(`✅ Paginação concluída: ${allRecords.length} registros totais`);
+  return allRecords;
 };
 
 // Filtro padrão para oportunidades de origem Google Ads - EXATAMENTE como OportunidadesGanhasService
@@ -150,39 +218,37 @@ export const googleConversaoService = {
       console.log('🔍 GoogleConversaoService - URL Follow-Up (OPEN):', followUpUrl);
     }
 
-    // EXECUTAR todas as consultas em paralelo
+    // 🔍 EXECUTAR TODAS AS CONSULTAS COM PAGINAÇÃO EM PARALELO
     const promises = [
-      fetch(criadasUrl, { method: 'GET', headers: baseHeaders }),
-      fetch(ganhasUrl, { method: 'GET', headers: baseHeaders }),
-      fetch(perdidasUrl, { method: 'GET', headers: baseHeaders }),
-      fetch(abertasUrl, { method: 'GET', headers: baseHeaders }),
+      fetchAllRecords(criadasUrl, baseHeaders),
+      fetchAllRecords(ganhasUrl, baseHeaders),
+      fetchAllRecords(perdidasUrl, baseHeaders),
+      fetchAllRecords(abertasUrl, baseHeaders),
     ];
     
-    if (negociacaoUrl) promises.push(fetch(negociacaoUrl, { method: 'GET', headers: baseHeaders }));
-    if (followUpUrl) promises.push(fetch(followUpUrl, { method: 'GET', headers: baseHeaders }));
+    if (negociacaoUrl) promises.push(fetchAllRecords(negociacaoUrl, baseHeaders));
+    if (followUpUrl) promises.push(fetchAllRecords(followUpUrl, baseHeaders));
     
-    const responses = await Promise.all(promises);
-
-    const safeJson = async (res) => (res.ok ? res.json() : []);
+    const results = await Promise.all(promises);
     
-    // Processar as respostas básicas
-    const criadas = await safeJson(responses[0]);
-    const ganhas = await safeJson(responses[1]);
-    const perdidas = await safeJson(responses[2]);
-    const abertas = await safeJson(responses[3]);
+    // Processar as respostas básicas com paginação
+    const criadas = results[0] || [];
+    const ganhas = results[1] || [];
+    const perdidas = results[2] || [];
+    const abertas = results[3] || [];
     
-    // Processar etapas especiais (se existirem)
+    // Processar etapas especiais (se existirem) com paginação
     let negociacao = [];
     let followUp = [];
     
-    if (negociacaoUrl && responses[4]) {
-      negociacao = await safeJson(responses[4]);
+    if (negociacaoUrl && results[4]) {
+      negociacao = results[4] || [];
     }
     
     if (followUpUrl) {
       const followUpIndex = negociacaoUrl ? 5 : 4;
-      if (responses[followUpIndex]) {
-        followUp = await safeJson(responses[followUpIndex]);
+      if (results[followUpIndex]) {
+        followUp = results[followUpIndex] || [];
       }
     }
 

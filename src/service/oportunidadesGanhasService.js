@@ -12,6 +12,73 @@ const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
 /**
+ * 🟢 FUNÇÃO PARA BUSCAR TODOS OS REGISTROS COM PAGINAÇÃO RECURSIVA
+ * 
+ * @param {string} url - URL base da query
+ * @param {Object} headers - Headers da requisição
+ * @returns {Array} Todos os registros encontrados
+ */
+const fetchAllRecords = async (url, headers) => {
+  const pageSize = 1000; // Tamanho padrão da página do Supabase
+  let allRecords = [];
+  let offset = 0;
+  let hasMore = true;
+
+  console.log('📄 Iniciando paginação para URL:', url);
+
+  while (hasMore) {
+    const paginatedUrl = `${url}`;
+    const paginationHeaders = {
+      ...headers,
+      'Range': `${offset}-${offset + pageSize - 1}`
+    };
+
+    try {
+      const response = await fetch(paginatedUrl, {
+        method: 'GET',
+        headers: paginationHeaders
+      });
+
+      if (!response.ok) {
+        console.error(`❌ Erro na página ${Math.floor(offset / pageSize) + 1}:`, response.status);
+        break;
+      }
+
+      const pageData = await response.json();
+      allRecords = allRecords.concat(pageData);
+
+      console.log(`📄 Página ${Math.floor(offset / pageSize) + 1}: ${pageData.length} registros | Total: ${allRecords.length}`);
+
+      // Se retornou menos que o tamanho da página, não há mais dados
+      if (pageData.length < pageSize) {
+        hasMore = false;
+      } else {
+        offset += pageSize;
+      }
+
+      // Verificar Content-Range header para confirmar se há mais dados
+      const contentRange = response.headers.get('Content-Range');
+      if (contentRange) {
+        const match = contentRange.match(/(\d+)-(\d+)\/(\d+|\*)/);
+        if (match) {
+          const [, , end, total] = match;
+          if (total !== '*' && parseInt(end) >= parseInt(total) - 1) {
+            hasMore = false;
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error(`❌ Erro ao buscar página ${Math.floor(offset / pageSize) + 1}:`, error);
+      break;
+    }
+  }
+
+  console.log(`✅ Paginação concluída: ${allRecords.length} registros totais`);
+  return allRecords;
+};
+
+/**
  * 🟢 BUSCAR MÉTRICAS DE OPORTUNIDADES GANHAS
  * 
  * @param {string} startDate - Data inicial (formato YYYY-MM-DD)
@@ -189,37 +256,25 @@ export const getOportunidadesGanhasMetrics = async (
     
     console.log('🔍 URL Meta Oportunidades Ganhas:', metaOportunidadesGanhasUrl);
 
-    // Executar todas as queries em paralelo
-    const [ganhasResponse, novasResponse, metaResponse, ganhasSellerResponse, novasSellerResponse] = await Promise.all([
-      fetch(totalOportunidadesGanhasUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
-      }),
-      fetch(ganhasNovasUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
-      }),
+    // 🟢 EXECUTAR QUERIES COM PAGINAÇÃO
+    const baseHeaders = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+      'Accept-Profile': supabaseSchema,
+      'Prefer': 'count=exact'
+    };
+
+    // Executar todas as queries com paginação em paralelo
+    const [ganhasData, novasData, metaResponse, ganhasSellerData, novasSellerData] = await Promise.all([
+      fetchAllRecords(totalOportunidadesGanhasUrl, baseHeaders),
+      fetchAllRecords(ganhasNovasUrl, baseHeaders),
       fetch(metaOportunidadesGanhasUrl, {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
+        headers: baseHeaders
       }),
-      totalOportunidadesGanhasSellerUrl ? fetch(totalOportunidadesGanhasSellerUrl, { method: 'GET', headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}`, 'apikey': supabaseServiceKey, 'Accept-Profile': supabaseSchema } }) : Promise.resolve(null),
-      ganhasNovasSellerUrl ? fetch(ganhasNovasSellerUrl, { method: 'GET', headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}`, 'apikey': supabaseServiceKey, 'Accept-Profile': supabaseSchema } }) : Promise.resolve(null)
+      totalOportunidadesGanhasSellerUrl ? fetchAllRecords(totalOportunidadesGanhasSellerUrl, baseHeaders) : Promise.resolve([]),
+      ganhasNovasSellerUrl ? fetchAllRecords(ganhasNovasSellerUrl, baseHeaders) : Promise.resolve([])
     ]);
 
     // Processar resultados
@@ -234,9 +289,8 @@ export const getOportunidadesGanhasMetrics = async (
     let sellerValorGanhasNovas = 0;
     let metaOportunidadesGanhas = 0;
 
-    // 1. Total de Oportunidades Ganhas (gain_date=hoje)
-    if (ganhasResponse.ok) {
-      const ganhasData = await ganhasResponse.json();
+    // 1. Total de Oportunidades Ganhas (gain_date=período) - usando paginação
+    if (ganhasData && Array.isArray(ganhasData)) {
       totalOportunidadesGanhas = ganhasData.length;
       // Para compatibilizar com o CRM: somar valores por oportunidade já truncados (sem centavos)
       // Ex.: 10,90 + 10,20 + 10,99 → 10 + 10 + 10 = 30 (CRM)
@@ -246,14 +300,13 @@ export const getOportunidadesGanhasMetrics = async (
       }, 0);
       // Arredondar para 2 casas para evitar ruídos de ponto flutuante
       valorTotalOportunidadesGanhas = Math.round(valorTotalOportunidadesGanhas * 100) / 100;
-      console.log(`✅ Total Oportunidades Ganhas (hoje): ${totalOportunidadesGanhas} (R$ ${valorTotalOportunidadesGanhas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
+      console.log(`✅ Total Oportunidades Ganhas (período): ${totalOportunidadesGanhas} (R$ ${valorTotalOportunidadesGanhas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
-      console.error('❌ Erro ao buscar total de oportunidades ganhas:', ganhasResponse.status);
+      console.error('❌ Erro ao buscar total de oportunidades ganhas com paginação');
     }
 
-    // 2. Ganhas Novas (create_date no período)
-    if (novasResponse.ok) {
-      const novasData = await novasResponse.json();
+    // 2. Ganhas Novas (create_date no período) - usando paginação
+    if (novasData && Array.isArray(novasData)) {
       ganhasNovas = novasData.length;
       valorGanhasNovas = novasData.reduce((total, opp) => {
         const valor = Math.floor(parseMoneyValue(opp.value));
@@ -262,29 +315,23 @@ export const getOportunidadesGanhasMetrics = async (
       valorGanhasNovas = Math.round(valorGanhasNovas * 100) / 100;
       console.log(`✅ Ganhas Novas (período ${dataInicio} a ${dataFim}): ${ganhasNovas} (R$ ${valorGanhasNovas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
-      console.error('❌ Erro ao buscar ganhas novas:', novasResponse.status);
+      console.error('❌ Erro ao buscar ganhas novas com paginação');
     }
 
-    // 2b. Totais do vendedor (se houver)
-    if (ganhasSellerResponse) {
-      if (ganhasSellerResponse && ganhasSellerResponse.ok) {
-        const sellerData = await ganhasSellerResponse.json();
-        sellerTotalGanhas = sellerData.length;
-        sellerValorGanhas = sellerData.reduce((total, opp) => {
-          const valor = Math.floor(parseMoneyValue(opp.value));
-          return total + valor;
-        }, 0);
-      }
+    // 2b. Totais do vendedor (se houver) - usando paginação
+    if (ganhasSellerData && Array.isArray(ganhasSellerData)) {
+      sellerTotalGanhas = ganhasSellerData.length;
+      sellerValorGanhas = ganhasSellerData.reduce((total, opp) => {
+        const valor = Math.floor(parseMoneyValue(opp.value));
+        return total + valor;
+      }, 0);
     }
-    if (novasSellerResponse) {
-      if (novasSellerResponse && novasSellerResponse.ok) {
-        const sellerNovasData = await novasSellerResponse.json();
-        sellerGanhasNovas = sellerNovasData.length;
-        sellerValorGanhasNovas = sellerNovasData.reduce((total, opp) => {
-          const valor = Math.floor(parseMoneyValue(opp.value));
-          return total + valor;
-        }, 0);
-      }
+    if (novasSellerData && Array.isArray(novasSellerData)) {
+      sellerGanhasNovas = novasSellerData.length;
+      sellerValorGanhasNovas = novasSellerData.reduce((total, opp) => {
+        const valor = Math.floor(parseMoneyValue(opp.value));
+        return total + valor;
+      }, 0);
     }
 
     // 3. Meta de Oportunidades Ganhas
@@ -446,32 +493,22 @@ const getOportunidadesGanhasAnteriores = async (startDate, endDate, selectedFunn
     const totalGanhasAnteriorUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&gain_date=gte.${ontemStr}T00:00:00-03:00&gain_date=lte.${ontemStr}T23:59:59-03:00${filtrosCombinados}`;
     const ganhasNovasAnteriorUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicioAnterior}T00:00:00-03:00&create_date=lte.${dataFimAnterior}T23:59:59-03:00${filtrosCombinados}`;
     
-    // Executar queries em paralelo
-    const [totalGanhasResponse, ganhasNovasResponse] = await Promise.all([
-      fetch(totalGanhasAnteriorUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
-      }),
-      fetch(ganhasNovasAnteriorUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
-      })
+    // 🟢 EXECUTAR QUERIES COM PAGINAÇÃO PARA DADOS ANTERIORES
+    const baseHeaders = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+      'Accept-Profile': supabaseSchema,
+      'Prefer': 'count=exact'
+    };
+
+    // Executar queries em paralelo com paginação
+    const [totalGanhasData, ganhasNovasData] = await Promise.all([
+      fetchAllRecords(totalGanhasAnteriorUrl, baseHeaders),
+      fetchAllRecords(ganhasNovasAnteriorUrl, baseHeaders)
     ]);
 
-    if (totalGanhasResponse.ok && ganhasNovasResponse.ok) {
-      const totalGanhasData = await totalGanhasResponse.json();
-      const ganhasNovasData = await ganhasNovasResponse.json();
-      
+    if (totalGanhasData && ganhasNovasData) {
       return {
         totalOportunidadesGanhas: totalGanhasData.length,
         ganhasNovas: ganhasNovasData.length

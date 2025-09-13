@@ -12,6 +12,73 @@ const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
 /**
+ * 🎯 FUNÇÃO PARA BUSCAR TODOS OS REGISTROS COM PAGINAÇÃO RECURSIVA
+ * 
+ * @param {string} url - URL base da query
+ * @param {Object} headers - Headers da requisição
+ * @returns {Array} Todos os registros encontrados
+ */
+const fetchAllRecords = async (url, headers) => {
+  const pageSize = 1000; // Tamanho padrão da página do Supabase
+  let allRecords = [];
+  let offset = 0;
+  let hasMore = true;
+
+  console.log('📄 Iniciando paginação para URL:', url);
+
+  while (hasMore) {
+    const paginatedUrl = `${url}`;
+    const paginationHeaders = {
+      ...headers,
+      'Range': `${offset}-${offset + pageSize - 1}`
+    };
+
+    try {
+      const response = await fetch(paginatedUrl, {
+        method: 'GET',
+        headers: paginationHeaders
+      });
+
+      if (!response.ok) {
+        console.error(`❌ Erro na página ${Math.floor(offset / pageSize) + 1}:`, response.status);
+        break;
+      }
+
+      const pageData = await response.json();
+      allRecords = allRecords.concat(pageData);
+
+      console.log(`📄 Página ${Math.floor(offset / pageSize) + 1}: ${pageData.length} registros | Total: ${allRecords.length}`);
+
+      // Se retornou menos que o tamanho da página, não há mais dados
+      if (pageData.length < pageSize) {
+        hasMore = false;
+      } else {
+        offset += pageSize;
+      }
+
+      // Verificar Content-Range header para confirmar se há mais dados
+      const contentRange = response.headers.get('Content-Range');
+      if (contentRange) {
+        const match = contentRange.match(/(\d+)-(\d+)\/(\d+|\*)/);
+        if (match) {
+          const [, , end, total] = match;
+          if (total !== '*' && parseInt(end) >= parseInt(total) - 1) {
+            hasMore = false;
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error(`❌ Erro ao buscar página ${Math.floor(offset / pageSize) + 1}:`, error);
+      break;
+    }
+  }
+
+  console.log(`✅ Paginação concluída: ${allRecords.length} registros totais`);
+  return allRecords;
+};
+
+/**
  * 🎯 BUSCAR MÉTRICAS DE TOTAL DE OPORTUNIDADES
  * 
  * @param {string} startDate - Data inicial (formato YYYY-MM-DD)
@@ -186,38 +253,22 @@ export const getTotalOportunidadesMetrics = async (
     console.log('🔍 URL Meta Oportunidades Novas:', metaOportunidadesNovasUrl);
     console.log('🔍 Filtros da meta - Unidade:', unidadeParaMeta, 'Funil:', selectedFunnel || 'ambos (6+14)');
 
-    // Executar todas as queries em paralelo
-    const [abertasResponse, novasResponse, metaResponse] = await Promise.all([
-      fetch(totalOportunidadesAbertasUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-          'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
-          'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
-        }
-      }),
-      fetch(totalOportunidadesNovasUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-          'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
-          'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
-        }
-      }),
+    // 🎯 EXECUTAR QUERIES COM PAGINAÇÃO
+    const baseHeaders = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+      'Accept-Profile': supabaseSchema,
+      'Prefer': 'count=exact'
+    };
+
+    // Executar as queries de oportunidades com paginação em paralelo
+    const [abertasData, novasData, metaResponse] = await Promise.all([
+      fetchAllRecords(totalOportunidadesAbertasUrl, baseHeaders),
+      fetchAllRecords(totalOportunidadesNovasUrl, baseHeaders),
       fetch(metaOportunidadesNovasUrl, {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
+        headers: baseHeaders
       })
     ]);
 
@@ -228,9 +279,8 @@ export const getTotalOportunidadesMetrics = async (
     let valorTotalOportunidadesNovas = 0;
     let metaOportunidadesNovas = 0;
 
-    // 1. Total de Oportunidades Abertas (sem filtro de data)
-    if (abertasResponse.ok) {
-      const abertasData = await abertasResponse.json();
+    // 1. Total de Oportunidades Abertas (sem filtro de data) - usando paginação
+    if (abertasData && Array.isArray(abertasData)) {
       totalOportunidadesAbertas = abertasData.length;
       valorTotalOportunidadesAbertas = abertasData.reduce((total, opp) => {
         const valor = parseFloat(opp.value) || 0;
@@ -239,25 +289,16 @@ export const getTotalOportunidadesMetrics = async (
       
       // 🔍 DEBUG: Log detalhado das oportunidades abertas
       console.log('🔍 DEBUG ABERTAS - URL:', totalOportunidadesAbertasUrl);
-      console.log('🔍 DEBUG ABERTAS - Response length:', abertasData.length);
-      console.log('🔍 DEBUG ABERTAS - Response headers:', Object.fromEntries(abertasResponse.headers.entries()));
+      console.log('🔍 DEBUG ABERTAS - Total com paginação:', abertasData.length);
       console.log('🔍 DEBUG ABERTAS - Primeiros 5 registros:', abertasData.slice(0, 5));
       
-      // 🚨 TESTE: Se retornou exatamente 1000, é limitação
-      if (abertasData.length === 1000) {
-        console.warn('🚨 ATENÇÃO: Retornou exatamente 1000 registros - pode ser limitação do Supabase!');
-        console.log('🔍 Últimos 5 registros:', abertasData.slice(-5));
-      }
       console.log(`✅ Total Oportunidades Abertas (sem data): ${totalOportunidadesAbertas} (R$ ${valorTotalOportunidadesAbertas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
-      console.error('❌ Erro ao buscar total de oportunidades abertas:', abertasResponse.status);
-      const responseText = await abertasResponse.text();
-      console.error('❌ Response text:', responseText);
+      console.error('❌ Erro ao buscar total de oportunidades abertas com paginação');
     }
 
-    // 2. Total de Oportunidades Novas (com filtro de data)
-    if (novasResponse.ok) {
-      const novasData = await novasResponse.json();
+    // 2. Total de Oportunidades Novas (com filtro de data) - usando paginação  
+    if (novasData && Array.isArray(novasData)) {
       totalOportunidadesNovas = novasData.length;
       valorTotalOportunidadesNovas = novasData.reduce((total, opp) => {
         const valor = parseFloat(opp.value) || 0;
@@ -266,20 +307,12 @@ export const getTotalOportunidadesMetrics = async (
       
       // 🔍 DEBUG: Log detalhado das oportunidades novas
       console.log('🔍 DEBUG NOVAS - URL:', totalOportunidadesNovasUrl);
-      console.log('🔍 DEBUG NOVAS - Response length:', novasData.length);
-      console.log('🔍 DEBUG NOVAS - Response headers:', Object.fromEntries(novasResponse.headers.entries()));
+      console.log('🔍 DEBUG NOVAS - Total com paginação:', novasData.length);
       console.log('🔍 DEBUG NOVAS - Primeiros 5 registros:', novasData.slice(0, 5));
       
-      // 🚨 TESTE: Se retornou exatamente 1000, é limitação
-      if (novasData.length === 1000) {
-        console.warn('🚨 ATENÇÃO: Retornou exatamente 1000 registros - pode ser limitação do Supabase!');
-        console.log('🔍 Últimos 5 registros:', novasData.slice(-5));
-      }
       console.log(`✅ Total Oportunidades Novas (período ${dataInicio} a ${dataFim}): ${totalOportunidadesNovas} (R$ ${valorTotalOportunidadesNovas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
-      console.error('❌ Erro ao buscar total de oportunidades novas:', novasResponse.status);
-      const responseText = await novasResponse.text();
-      console.error('❌ Response text:', responseText);
+      console.error('❌ Erro ao buscar total de oportunidades novas com paginação');
     }
 
     // 3. Meta de Oportunidades Novas
@@ -422,36 +455,22 @@ const getTotalOportunidadesAnteriores = async (startDate, endDate, selectedFunne
     const totalAbertasAnteriorUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open${filtrosCombinados}`;
     const totalNovasAnteriorUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&create_date=gte.${dataInicioAnterior}&create_date=lte.${dataFimAnterior}T23:59:59${filtrosCombinados}`;
     
-    // Executar queries em paralelo
-    const [totalAbertasResponse, totalNovasResponse] = await Promise.all([
-      fetch(totalAbertasAnteriorUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-          'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
-          'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
-        }
-      }),
-      fetch(totalNovasAnteriorUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-          'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
-          'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
-        }
-      })
+    // 🎯 EXECUTAR QUERIES COM PAGINAÇÃO PARA DADOS ANTERIORES
+    const baseHeaders = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+      'Accept-Profile': supabaseSchema,
+      'Prefer': 'count=exact'
+    };
+
+    // Executar queries em paralelo com paginação
+    const [totalAbertasData, totalNovasData] = await Promise.all([
+      fetchAllRecords(totalAbertasAnteriorUrl, baseHeaders),
+      fetchAllRecords(totalNovasAnteriorUrl, baseHeaders)
     ]);
 
-    if (totalAbertasResponse.ok && totalNovasResponse.ok) {
-      const totalAbertasData = await totalAbertasResponse.json();
-      const totalNovasData = await totalNovasResponse.json();
-      
+    if (totalAbertasData && totalNovasData) {
       return {
         totalOportunidadesAbertas: totalAbertasData.length, // 🎯 DADO REAL com status=open (sem data)
         totalOportunidadesNovas: totalNovasData.length // 🎯 DADO REAL com create_date do período anterior
@@ -506,21 +525,18 @@ export const testFunilSpecificWithUnit = async (funilId, unidadeId) => {
     const urlSemFiltros = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,funil_id,unidade_id,status&archived=eq.0&status=eq.open`;
     console.log('🔍 URL sem filtros:', urlSemFiltros);
     
-    const responseSemFiltros = await fetch(urlSemFiltros, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
-        'Accept-Profile': supabaseSchema,
-        'Content-Profile': supabaseSchema,
-        'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
-        'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
-      }
-    });
+    const testHeaders = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+      'Accept-Profile': supabaseSchema,
+      'Content-Profile': supabaseSchema,
+      'Prefer': 'count=exact'
+    };
+
+    const dataSemFiltros = await fetchAllRecords(urlSemFiltros, testHeaders);
     
-    if (responseSemFiltros.ok) {
-      const dataSemFiltros = await responseSemFiltros.json();
+    if (dataSemFiltros && Array.isArray(dataSemFiltros)) {
       console.log(`✅ Total de oportunidades abertas (sem filtro): ${dataSemFiltros.length}`);
       
       // Filtrar por funil_id
@@ -551,23 +567,12 @@ export const testFunilSpecificWithUnit = async (funilId, unidadeId) => {
       const urlComFiltro = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,funil_id,unidade_id,status&archived=eq.0&status=eq.open&funil_id=eq.${funilId}&unidade_id=eq.${unidadeEncoded}`;
       console.log('🔍 URL com filtro direto:', urlComFiltro);
       
-      const responseComFiltro = await fetch(urlComFiltro, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-          'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
-          'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
-        }
-      });
+      const dataComFiltro = await fetchAllRecords(urlComFiltro, testHeaders);
       
-      if (responseComFiltro.ok) {
-        const dataComFiltro = await responseComFiltro.json();
+      if (dataComFiltro && Array.isArray(dataComFiltro)) {
         console.log(`✅ Oportunidades com filtro direto: ${dataComFiltro.length}`);
       } else {
-        console.error('❌ Erro na query com filtro direto:', responseComFiltro.status);
+        console.error('❌ Erro na query com filtro direto');
       }
       
       return {
@@ -579,8 +584,8 @@ export const testFunilSpecificWithUnit = async (funilId, unidadeId) => {
         unidadeId: unidadeId
       };
     } else {
-      console.error('❌ Erro na query sem filtros:', responseSemFiltros.status);
-      return { success: false, error: `HTTP ${responseSemFiltros.status}` };
+      console.error('❌ Erro na query sem filtros');
+      return { success: false, error: 'Erro na query sem filtros' };
     }
     
   } catch (error) {
@@ -604,21 +609,18 @@ export const testFunilSpecific = async (funilId) => {
     const urlSemFiltros = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,funil_id,status&archived=eq.0&status=eq.open`;
     console.log('🔍 URL sem filtros:', urlSemFiltros);
     
-    const responseSemFiltros = await fetch(urlSemFiltros, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
-        'Accept-Profile': supabaseSchema,
-        'Content-Profile': supabaseSchema,
-        'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
-        'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
-      }
-    });
+    const testHeaders = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+      'Accept-Profile': supabaseSchema,
+      'Content-Profile': supabaseSchema,
+      'Prefer': 'count=exact'
+    };
+
+    const dataSemFiltros = await fetchAllRecords(urlSemFiltros, testHeaders);
     
-    if (responseSemFiltros.ok) {
-      const dataSemFiltros = await responseSemFiltros.json();
+    if (dataSemFiltros && Array.isArray(dataSemFiltros)) {
       console.log(`✅ Total de oportunidades abertas (sem filtro): ${dataSemFiltros.length}`);
       
       // Filtrar por funil_id
@@ -634,23 +636,12 @@ export const testFunilSpecific = async (funilId) => {
       const urlComFiltro = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,funil_id,status&archived=eq.0&status=eq.open&funil_id=eq.${funilId}`;
       console.log('🔍 URL com filtro direto:', urlComFiltro);
       
-      const responseComFiltro = await fetch(urlComFiltro, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-          'Prefer': 'count=exact',  // 🚨 FORÇAR RETORNAR TODOS OS REGISTROS
-          'Range': '0-9999999'      // 🚨 DEFINIR RANGE GRANDE PARA NÃO LIMITAR
-        }
-      });
+      const dataComFiltro = await fetchAllRecords(urlComFiltro, testHeaders);
       
-      if (responseComFiltro.ok) {
-        const dataComFiltro = await responseComFiltro.json();
+      if (dataComFiltro && Array.isArray(dataComFiltro)) {
         console.log(`✅ Oportunidades com filtro direto: ${dataComFiltro.length}`);
       } else {
-        console.error('❌ Erro na query com filtro direto:', responseComFiltro.status);
+        console.error('❌ Erro na query com filtro direto');
       }
       
       return {
@@ -660,8 +651,8 @@ export const testFunilSpecific = async (funilId) => {
         funilId: funilId
       };
     } else {
-      console.error('❌ Erro na query sem filtros:', responseSemFiltros.status);
-      return { success: false, error: `HTTP ${responseSemFiltros.status}` };
+      console.error('❌ Erro na query sem filtros');
+      return { success: false, error: 'Erro na query sem filtros' };
     }
     
   } catch (error) {

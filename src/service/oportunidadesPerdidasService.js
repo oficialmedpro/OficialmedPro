@@ -12,6 +12,73 @@ const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
 /**
+ * 🔴 FUNÇÃO PARA BUSCAR TODOS OS REGISTROS COM PAGINAÇÃO RECURSIVA
+ * 
+ * @param {string} url - URL base da query
+ * @param {Object} headers - Headers da requisição
+ * @returns {Array} Todos os registros encontrados
+ */
+const fetchAllRecords = async (url, headers) => {
+  const pageSize = 1000; // Tamanho padrão da página do Supabase
+  let allRecords = [];
+  let offset = 0;
+  let hasMore = true;
+
+  console.log('📄 Iniciando paginação para URL:', url);
+
+  while (hasMore) {
+    const paginatedUrl = `${url}`;
+    const paginationHeaders = {
+      ...headers,
+      'Range': `${offset}-${offset + pageSize - 1}`
+    };
+
+    try {
+      const response = await fetch(paginatedUrl, {
+        method: 'GET',
+        headers: paginationHeaders
+      });
+
+      if (!response.ok) {
+        console.error(`❌ Erro na página ${Math.floor(offset / pageSize) + 1}:`, response.status);
+        break;
+      }
+
+      const pageData = await response.json();
+      allRecords = allRecords.concat(pageData);
+
+      console.log(`📄 Página ${Math.floor(offset / pageSize) + 1}: ${pageData.length} registros | Total: ${allRecords.length}`);
+
+      // Se retornou menos que o tamanho da página, não há mais dados
+      if (pageData.length < pageSize) {
+        hasMore = false;
+      } else {
+        offset += pageSize;
+      }
+
+      // Verificar Content-Range header para confirmar se há mais dados
+      const contentRange = response.headers.get('Content-Range');
+      if (contentRange) {
+        const match = contentRange.match(/(\d+)-(\d+)\/(\d+|\*)/);
+        if (match) {
+          const [, , end, total] = match;
+          if (total !== '*' && parseInt(end) >= parseInt(total) - 1) {
+            hasMore = false;
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error(`❌ Erro ao buscar página ${Math.floor(offset / pageSize) + 1}:`, error);
+      break;
+    }
+  }
+
+  console.log(`✅ Paginação concluída: ${allRecords.length} registros totais`);
+  return allRecords;
+};
+
+/**
  * 🔴 BUSCAR MÉTRICAS DE OPORTUNIDADES PERDIDAS
  * 
  * @param {string} startDate - Data inicial (formato YYYY-MM-DD)
@@ -165,34 +232,22 @@ export const getOportunidadesPerdidasMetrics = async (
     
     console.log('🔍 URL Meta Oportunidades Perdidas:', metaOportunidadesPerdidasUrl);
 
-    // Executar todas as queries em paralelo
-    const [perdidasResponse, novasResponse, metaResponse] = await Promise.all([
-      fetch(totalOportunidadesPerdidasUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
-      }),
-      fetch(perdasNovasUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
-      }),
+    // 🔴 EXECUTAR QUERIES COM PAGINAÇÃO
+    const baseHeaders = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+      'Accept-Profile': supabaseSchema,
+      'Prefer': 'count=exact'
+    };
+
+    // Executar as queries de oportunidades com paginação em paralelo
+    const [perdidasData, novasData, metaResponse] = await Promise.all([
+      fetchAllRecords(totalOportunidadesPerdidasUrl, baseHeaders),
+      fetchAllRecords(perdasNovasUrl, baseHeaders),
       fetch(metaOportunidadesPerdidasUrl, {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
+        headers: baseHeaders
       })
     ]);
 
@@ -203,22 +258,20 @@ export const getOportunidadesPerdidasMetrics = async (
     let valorPerdasNovas = 0;
     let metaOportunidadesPerdidas = 0;
 
-    // 1. Total de Oportunidades Perdidas (lost_date=hoje)
-    if (perdidasResponse.ok) {
-      const perdidasData = await perdidasResponse.json();
+    // 1. Total de Oportunidades Perdidas (lost_date=hoje) - usando paginação
+    if (perdidasData && Array.isArray(perdidasData)) {
       totalOportunidadesPerdidas = perdidasData.length;
       valorTotalOportunidadesPerdidas = perdidasData.reduce((total, opp) => {
         const valor = parseFloat(opp.value) || 0;
         return total + valor;
       }, 0);
-      console.log(`✅ Total Oportunidades Perdidas (hoje): ${totalOportunidadesPerdidas} (R$ ${valorTotalOportunidadesPerdidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
+      console.log(`✅ Total Oportunidades Perdidas (período): ${totalOportunidadesPerdidas} (R$ ${valorTotalOportunidadesPerdidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
-      console.error('❌ Erro ao buscar total de oportunidades perdidas:', perdidasResponse.status);
+      console.error('❌ Erro ao buscar total de oportunidades perdidas com paginação');
     }
 
-    // 2. Perdas Novas (create_date no período)
-    if (novasResponse.ok) {
-      const novasData = await novasResponse.json();
+    // 2. Perdas Novas (create_date no período) - usando paginação
+    if (novasData && Array.isArray(novasData)) {
       perdasNovas = novasData.length;
       valorPerdasNovas = novasData.reduce((total, opp) => {
         const valor = parseFloat(opp.value) || 0;
@@ -226,7 +279,7 @@ export const getOportunidadesPerdidasMetrics = async (
       }, 0);
       console.log(`✅ Perdas Novas (período ${dataInicio} a ${dataFim}): ${perdasNovas} (R$ ${valorPerdasNovas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
-      console.error('❌ Erro ao buscar perdas novas:', novasResponse.status);
+      console.error('❌ Erro ao buscar perdas novas com paginação');
     }
 
     // 3. Meta de Oportunidades Perdidas
@@ -375,32 +428,22 @@ const getOportunidadesPerdidasAnteriores = async (startDate, endDate, selectedFu
     const totalPerdidasAnteriorUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.lost&lost_date=gte.${ontemStr}&lost_date=lte.${ontemStr}T23:59:59${filtrosCombinados}`;
     const perdasNovasAnteriorUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.lost&create_date=gte.${dataInicioAnterior}&create_date=lte.${dataFimAnterior}T23:59:59${filtrosCombinados}`;
     
-    // Executar queries em paralelo
-    const [totalPerdidasResponse, perdasNovasResponse] = await Promise.all([
-      fetch(totalPerdidasAnteriorUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
-      }),
-      fetch(perdasNovasAnteriorUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
-      })
+    // 🔴 EXECUTAR QUERIES COM PAGINAÇÃO PARA DADOS ANTERIORES
+    const baseHeaders = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+      'Accept-Profile': supabaseSchema,
+      'Prefer': 'count=exact'
+    };
+
+    // Executar queries em paralelo com paginação
+    const [totalPerdidasData, perdasNovasData] = await Promise.all([
+      fetchAllRecords(totalPerdidasAnteriorUrl, baseHeaders),
+      fetchAllRecords(perdasNovasAnteriorUrl, baseHeaders)
     ]);
 
-    if (totalPerdidasResponse.ok && perdasNovasResponse.ok) {
-      const totalPerdidasData = await totalPerdidasResponse.json();
-      const perdasNovasData = await perdasNovasResponse.json();
-      
+    if (totalPerdidasData && perdasNovasData) {
       return {
         totalOportunidadesPerdidas: totalPerdidasData.length,
         perdasNovas: perdasNovasData.length

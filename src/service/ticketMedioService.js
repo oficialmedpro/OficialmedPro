@@ -12,6 +12,73 @@ const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
 /**
+ * 🟣 FUNÇÃO PARA BUSCAR TODOS OS REGISTROS COM PAGINAÇÃO RECURSIVA
+ * 
+ * @param {string} url - URL base da query
+ * @param {Object} headers - Headers da requisição
+ * @returns {Array} Todos os registros encontrados
+ */
+const fetchAllRecords = async (url, headers) => {
+  const pageSize = 1000; // Tamanho padrão da página do Supabase
+  let allRecords = [];
+  let offset = 0;
+  let hasMore = true;
+
+  console.log('📄 Iniciando paginação para URL:', url);
+
+  while (hasMore) {
+    const paginatedUrl = `${url}`;
+    const paginationHeaders = {
+      ...headers,
+      'Range': `${offset}-${offset + pageSize - 1}`
+    };
+
+    try {
+      const response = await fetch(paginatedUrl, {
+        method: 'GET',
+        headers: paginationHeaders
+      });
+
+      if (!response.ok) {
+        console.error(`❌ Erro na página ${Math.floor(offset / pageSize) + 1}:`, response.status);
+        break;
+      }
+
+      const pageData = await response.json();
+      allRecords = allRecords.concat(pageData);
+
+      console.log(`📄 Página ${Math.floor(offset / pageSize) + 1}: ${pageData.length} registros | Total: ${allRecords.length}`);
+
+      // Se retornou menos que o tamanho da página, não há mais dados
+      if (pageData.length < pageSize) {
+        hasMore = false;
+      } else {
+        offset += pageSize;
+      }
+
+      // Verificar Content-Range header para confirmar se há mais dados
+      const contentRange = response.headers.get('Content-Range');
+      if (contentRange) {
+        const match = contentRange.match(/(\d+)-(\d+)\/(\d+|\*)/);
+        if (match) {
+          const [, , end, total] = match;
+          if (total !== '*' && parseInt(end) >= parseInt(total) - 1) {
+            hasMore = false;
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error(`❌ Erro ao buscar página ${Math.floor(offset / pageSize) + 1}:`, error);
+      break;
+    }
+  }
+
+  console.log(`✅ Paginação concluída: ${allRecords.length} registros totais`);
+  return allRecords;
+};
+
+/**
  * 🟣 BUSCAR MÉTRICAS DE TICKET MÉDIO
  * 
  * @param {string} startDate - Data inicial (formato YYYY-MM-DD)
@@ -163,34 +230,22 @@ export const getTicketMedioMetrics = async (
     
     console.log('🔍 URL Meta Ticket Médio:', metaTicketMedioUrl);
 
-    // Executar todas as queries em paralelo
-    const [periodoResponse, geralResponse, metaResponse] = await Promise.all([
-      fetch(ticketMedioPeriodoUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
-      }),
-      fetch(ticketMedioGeralUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
-      }),
+    // 🟣 EXECUTAR QUERIES COM PAGINAÇÃO
+    const baseHeaders = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+      'Accept-Profile': supabaseSchema,
+      'Prefer': 'count=exact'
+    };
+
+    // Executar queries com paginação em paralelo
+    const [periodoData, geralData, metaResponse] = await Promise.all([
+      fetchAllRecords(ticketMedioPeriodoUrl, baseHeaders),
+      fetchAllRecords(ticketMedioGeralUrl, baseHeaders),
       fetch(metaTicketMedioUrl, {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
+        headers: baseHeaders
       })
     ]);
 
@@ -203,9 +258,8 @@ export const getTicketMedioMetrics = async (
     let valorTotalGeral = 0;
     let quantidadeGeral = 0;
 
-    // 1. Ticket Médio do Período
-    if (periodoResponse.ok) {
-      const periodoData = await periodoResponse.json();
+    // 1. Ticket Médio do Período - usando paginação
+    if (periodoData && Array.isArray(periodoData)) {
       quantidadePeriodo = periodoData.length;
       valorTotalPeriodo = periodoData.reduce((total, opp) => {
         const valor = parseFloat(opp.value) || 0;
@@ -215,12 +269,11 @@ export const getTicketMedioMetrics = async (
       ticketMedioPeriodo = quantidadePeriodo > 0 ? valorTotalPeriodo / quantidadePeriodo : 0;
       console.log(`✅ Ticket Médio do Período: R$ ${ticketMedioPeriodo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${quantidadePeriodo} oportunidades, R$ ${valorTotalPeriodo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
-      console.error('❌ Erro ao buscar ticket médio do período:', periodoResponse.status);
+      console.error('❌ Erro ao buscar ticket médio do período com paginação');
     }
 
-    // 2. Ticket Médio Geral
-    if (geralResponse.ok) {
-      const geralData = await geralResponse.json();
+    // 2. Ticket Médio Geral - usando paginação
+    if (geralData && Array.isArray(geralData)) {
       quantidadeGeral = geralData.length;
       valorTotalGeral = geralData.reduce((total, opp) => {
         const valor = parseFloat(opp.value) || 0;
@@ -230,7 +283,7 @@ export const getTicketMedioMetrics = async (
       ticketMedioGeral = quantidadeGeral > 0 ? valorTotalGeral / quantidadeGeral : 0;
       console.log(`✅ Ticket Médio Geral: R$ ${ticketMedioGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${quantidadeGeral} oportunidades, R$ ${valorTotalGeral.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
-      console.error('❌ Erro ao buscar ticket médio geral:', geralResponse.status);
+      console.error('❌ Erro ao buscar ticket médio geral com paginação');
     }
 
     // 3. Meta de Ticket Médio
@@ -377,34 +430,26 @@ const getTicketMedioAnteriores = async (dataInicio, dataFim, selectedFunnel, sel
     const ticketMedioPeriodoAnteriorUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicioAnterior}&gain_date=lte.${dataFimAnterior}T23:59:59${filtrosCombinados}`;
     const ticketMedioGeralAnteriorUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain${filtrosCombinados}`;
 
-    // Executar queries
-    const [periodoAnteriorResponse, geralAnteriorResponse] = await Promise.all([
-      fetch(ticketMedioPeriodoAnteriorUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
-      }),
-      fetch(ticketMedioGeralAnteriorUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-        }
-      })
+    // 🟣 EXECUTAR QUERIES COM PAGINAÇÃO PARA DADOS ANTERIORES
+    const baseHeaders = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+      'Accept-Profile': supabaseSchema,
+      'Prefer': 'count=exact'
+    };
+
+    // Executar queries com paginação em paralelo
+    const [periodoAnteriorData, geralAnteriorData] = await Promise.all([
+      fetchAllRecords(ticketMedioPeriodoAnteriorUrl, baseHeaders),
+      fetchAllRecords(ticketMedioGeralAnteriorUrl, baseHeaders)
     ]);
 
     let ticketMedioPeriodoAnterior = 0;
     let ticketMedioGeralAnterior = 0;
 
-    // Processar ticket médio do período anterior
-    if (periodoAnteriorResponse.ok) {
-      const periodoAnteriorData = await periodoAnteriorResponse.json();
+    // Processar ticket médio do período anterior - usando paginação
+    if (periodoAnteriorData && Array.isArray(periodoAnteriorData)) {
       const quantidadeAnterior = periodoAnteriorData.length;
       const valorTotalAnterior = periodoAnteriorData.reduce((total, opp) => {
         const valor = parseFloat(opp.value) || 0;
@@ -414,9 +459,8 @@ const getTicketMedioAnteriores = async (dataInicio, dataFim, selectedFunnel, sel
       ticketMedioPeriodoAnterior = quantidadeAnterior > 0 ? valorTotalAnterior / quantidadeAnterior : 0;
     }
 
-    // Processar ticket médio geral anterior
-    if (geralAnteriorResponse.ok) {
-      const geralAnteriorData = await geralAnteriorResponse.json();
+    // Processar ticket médio geral anterior - usando paginação
+    if (geralAnteriorData && Array.isArray(geralAnteriorData)) {
       const quantidadeGeralAnterior = geralAnteriorData.length;
       const valorTotalGeralAnterior = geralAnteriorData.reduce((total, opp) => {
         const valor = parseFloat(opp.value) || 0;

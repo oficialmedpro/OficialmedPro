@@ -3,6 +3,73 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
+/**
+ * 🔄 FUNÇÃO PARA BUSCAR TODOS OS REGISTROS COM PAGINAÇÃO RECURSIVA
+ * 
+ * @param {string} url - URL base da query
+ * @param {Object} headers - Headers da requisição
+ * @returns {Array} Todos os registros encontrados
+ */
+const fetchAllRecords = async (url, headers) => {
+  const pageSize = 1000; // Tamanho padrão da página do Supabase
+  let allRecords = [];
+  let offset = 0;
+  let hasMore = true;
+
+  console.log('📄 Iniciando paginação para URL:', url);
+
+  while (hasMore) {
+    const paginatedUrl = `${url}`;
+    const paginationHeaders = {
+      ...headers,
+      'Range': `${offset}-${offset + pageSize - 1}`
+    };
+
+    try {
+      const response = await fetch(paginatedUrl, {
+        method: 'GET',
+        headers: paginationHeaders
+      });
+
+      if (!response.ok) {
+        console.error(`❌ Erro na página ${Math.floor(offset / pageSize) + 1}:`, response.status);
+        break;
+      }
+
+      const pageData = await response.json();
+      allRecords = allRecords.concat(pageData);
+
+      console.log(`📄 Página ${Math.floor(offset / pageSize) + 1}: ${pageData.length} registros | Total: ${allRecords.length}`);
+
+      // Se retornou menos que o tamanho da página, não há mais dados
+      if (pageData.length < pageSize) {
+        hasMore = false;
+      } else {
+        offset += pageSize;
+      }
+
+      // Verificar Content-Range header para confirmar se há mais dados
+      const contentRange = response.headers.get('Content-Range');
+      if (contentRange) {
+        const match = contentRange.match(/(\d+)-(\d+)\/(\d+|\*)/);
+        if (match) {
+          const [, , end, total] = match;
+          if (total !== '*' && parseInt(end) >= parseInt(total) - 1) {
+            hasMore = false;
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error(`❌ Erro ao buscar página ${Math.floor(offset / pageSize) + 1}:`, error);
+      break;
+    }
+  }
+
+  console.log(`✅ Paginação concluída: ${allRecords.length} registros totais`);
+  return allRecords;
+};
+
 export const getOrcamentoNegociacaoMetrics = async (
   startDate, 
   endDate, 
@@ -128,44 +195,31 @@ export const getOrcamentoNegociacaoMetrics = async (
 
     console.log('🔍 URL Meta Orçamento Negociação:', metaOrcamentoNegociacaoUrl);
 
-    // Executar queries
-    let orcamentoData = [];
-    const [orcamentoResponse, metaResponse] = await Promise.all([
-      fetch(orcamentoNegociacaoUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema
-        }
-      }),
+    // 🔄 EXECUTAR QUERIES COM PAGINAÇÃO
+    const baseHeaders = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+      'Accept-Profile': supabaseSchema,
+      'Prefer': 'count=exact'
+    };
+
+    // Executar queries com paginação em paralelo
+    const [orcamentoData, metaResponse] = await Promise.all([
+      fetchAllRecords(orcamentoNegociacaoUrl, baseHeaders),
       fetch(metaOrcamentoNegociacaoUrl, {
         method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema
-        }
+        headers: baseHeaders
       })
     ]);
 
-    if (orcamentoResponse.ok) {
-      orcamentoData = await orcamentoResponse.json();
-    } else {
-      console.error('❌ Erro ao buscar orçamento em negociação:', orcamentoResponse.status);
-    }
-
-    var metaResp = metaResponse;
-
-    // Processar resposta do orçamento em negociação
+    // Processar resposta do orçamento em negociação - usando paginação
     let orcamentoNegociacao = 0;
     let valorTotalOrcamento = 0;
     let quantidadeOrcamento = 0;
 
-    if (Array.isArray(orcamentoData)) {
-      console.log('🔍 Dados brutos de Orçamento em Negociação recebidos:', orcamentoData);
+    if (orcamentoData && Array.isArray(orcamentoData)) {
+      console.log('🔍 Dados brutos de Orçamento em Negociação recebidos (paginação):', orcamentoData.length, 'registros');
 
       quantidadeOrcamento = orcamentoData.length;
       valorTotalOrcamento = orcamentoData.reduce((total, item) => {
@@ -175,13 +229,13 @@ export const getOrcamentoNegociacaoMetrics = async (
       orcamentoNegociacao = quantidadeOrcamento; // Quantidade de oportunidades
       console.log(`✅ Orçamento Negociação: ${quantidadeOrcamento} oportunidades, R$ ${valorTotalOrcamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
     } else {
-      console.error('❌ Erro: dados de orçamento não são uma lista');
+      console.error('❌ Erro ao buscar orçamento em negociação com paginação');
     }
 
     // Processar meta (mesma regra do serviço que funciona: somar quando sem funil)
     let metaOrcamentoNegociacao = 0;
-    if (metaResp && metaResp.ok) {
-      const metaData = await metaResp.json();
+    if (metaResponse && metaResponse.ok) {
+      const metaData = await metaResponse.json();
       if (metaData && metaData.length > 0) {
         if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS') {
           // Funil específico - usar valor único
@@ -327,18 +381,18 @@ const getOrcamentoNegociacaoAnteriores = async (dataInicio, dataFim, selectedFun
 
     console.log('🔍 URL Orçamento Negociação Anterior:', orcamentoAnteriorUrl);
 
-    const orcamentoAnteriorResponse = await fetch(orcamentoAnteriorUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
-        'Accept-Profile': supabaseSchema
-      }
-    });
+    // 🔄 EXECUTAR QUERY COM PAGINAÇÃO PARA DADOS ANTERIORES
+    const baseHeaders = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+      'Accept-Profile': supabaseSchema,
+      'Prefer': 'count=exact'
+    };
 
-    if (orcamentoAnteriorResponse.ok) {
-      const orcamentoAnteriorData = await orcamentoAnteriorResponse.json();
+    const orcamentoAnteriorData = await fetchAllRecords(orcamentoAnteriorUrl, baseHeaders);
+
+    if (orcamentoAnteriorData && Array.isArray(orcamentoAnteriorData)) {
       const quantidadeAnterior = orcamentoAnteriorData.length;
       const valorTotalAnterior = orcamentoAnteriorData.reduce((total, item) => {
         const valor = parseFloat(item.value) || 0;
@@ -352,7 +406,7 @@ const getOrcamentoNegociacaoAnteriores = async (dataInicio, dataFim, selectedFun
         valorTotal: valorTotalAnterior
       };
     } else {
-      console.error('❌ Erro ao buscar orçamento em negociação anterior:', orcamentoAnteriorResponse.status);
+      console.error('❌ Erro ao buscar orçamento em negociação anterior com paginação');
       return { quantidade: 0, valorTotal: 0 };
     }
 
