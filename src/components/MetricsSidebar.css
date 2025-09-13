@@ -71,6 +71,21 @@
   background: linear-gradient(135deg, #1877f2, #42a5f5);
 }
 
+.ms-google-card {
+  /* Garantir que o card do Google use as mesmas cores do card da Meta no modo light */
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.ms-google-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
 .ms-platform-name {
   font-size: 12px;
   font-weight: 600;

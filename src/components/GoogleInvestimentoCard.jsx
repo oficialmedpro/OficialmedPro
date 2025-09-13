@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { googleInvestimentoService } from '../service/googleInvestimentoService'
-import './GoogleInvestimentoCard.css'
 import { googleOportunidadesService } from '../service/googleOportunidadesService'
 import { googleConversaoService } from '../service/googleConversaoService'
 
@@ -90,22 +89,22 @@ const GoogleInvestimentoCard = ({
 
 
   return (
-    <div className="gic-card">
-      <div className="gic-header">
-        <div className="gic-platform-icon">G</div>
-        <span className="gic-platform-name">Google</span>
-        <div className="gic-roas-badge">{t?.roas || 'ROAS'} {calcularROAS()}</div>
+    <div className="ms-metric-card ms-google-card">
+      <div className="ms-metric-card-header">
+        <div className="ms-platform-icon ms-google-icon">G</div>
+        <span className="ms-platform-name">Google</span>
+        <div className="ms-roas-badge">{t?.roas || 'ROAS'} {calcularROAS()}</div>
       </div>
 
-      <div className="gic-content">
+      <div className="ms-metrics-grid">
         {/* Investido */}
-        <div className="gic-item">
-          <span className="gic-label">{t?.invested || 'Investido'}</span>
-          <span className="gic-value">
-            {loading ? 'Carregando...' : error ? 'Erro' : formatCurrency ? formatCurrency(total, 'BRL') : `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
-          </span>
-          {/* Período filtrado para debug */}
-          <div className="gic-period-info">
+        <div className="ms-metric-item-visual">
+          <div className="ms-metric-info">
+            <span className="ms-metric-label">{t?.invested || 'Investido'}</span>
+            <span className="ms-metric-value">
+              {loading ? 'Carregando...' : error ? 'Erro' : formatCurrency ? formatCurrency(total, 'BRL') : `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
+            </span>
+            {/* Período filtrado para debug */}
             <small style={{ color: '#64748b', fontSize: '10px' }}>
               📅 {(() => {
                 const formatDate = (dateStr) => {
@@ -117,74 +116,108 @@ const GoogleInvestimentoCard = ({
               })()}
             </small>
           </div>
-          <div className="gic-bar"><div className="gic-fill" style={{ width: '85%' }}></div></div>
+          <div className="ms-metric-bar">
+            <div className="ms-metric-fill" style={{ width: '85%', background: 'linear-gradient(90deg, #ef4444, #dc2626)' }}></div>
+          </div>
         </div>
 
         {/* Taxa Conversão */}
-        <div className="gic-item">
-          <span className="gic-label">{t?.conversionRate || 'Taxa Conversão'}</span>
-          <span className="gic-value">
-            {loading ? '—' : `${metrics.totalCriadas} → ${metrics.totalGanhas} (${metrics.taxaConversao.toFixed(1)}%)`}
-          </span>
-          <div className="gic-bar"><div className="gic-fill gic-blue" style={{ width: `${Math.min(metrics.taxaConversao, 100)}%` }}></div></div>
+        <div className="ms-metric-item-visual">
+          <div className="ms-metric-info">
+            <span className="ms-metric-label">{t?.conversionRate || 'Taxa Conversão'}</span>
+            <span className="ms-metric-value">
+              {loading ? '—' : `${metrics.totalCriadas} → ${metrics.totalGanhas} (${metrics.taxaConversao.toFixed(1)}%)`}
+            </span>
+          </div>
+          <div className="ms-metric-bar">
+            <div className="ms-metric-fill" style={{ width: `${Math.min(metrics.taxaConversao, 100)}%`, background: 'linear-gradient(90deg, #3b82f6, #1d4ed8)' }}></div>
+          </div>
         </div>
 
         {/* Valor Ganho */}
-        <div className="gic-item">
-          <span className="gic-label">{t?.revenue || 'Valor Ganho'}</span>
-          <span className="gic-value">{loading ? '—' : (formatCurrency ? formatCurrency(metrics.valorGanho, 'BRL') : `R$ ${metrics.valorGanho.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)}</span>
-          <div className="gic-bar"><div className="gic-fill gic-green" style={{ width: `${metrics.valorGanho > 0 ? 92 : 0}%` }}></div></div>
+        <div className="ms-metric-item-visual">
+          <div className="ms-metric-info">
+            <span className="ms-metric-label">{t?.revenue || 'Valor Ganho'}</span>
+            <span className="ms-metric-value">{loading ? '—' : (formatCurrency ? formatCurrency(metrics.valorGanho, 'BRL') : `R$ ${metrics.valorGanho.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)}</span>
+          </div>
+          <div className="ms-metric-bar">
+            <div className="ms-metric-fill" style={{ width: `${metrics.valorGanho > 0 ? 92 : 0}%`, background: 'linear-gradient(90deg, #10b981, #059669)' }}></div>
+          </div>
         </div>
 
         {/* Custo por Lead */}
-        <div className="gic-item">
-          <span className="gic-label">{t?.costPerLead || 'Custo por Lead'}</span>
-          <span className="gic-value">
-            {loading ? '—' : (() => {
-              const custoPorLead = metrics.totalCriadas > 0 ? total / metrics.totalCriadas : 0;
-              return formatCurrency ? formatCurrency(custoPorLead, 'BRL') : `R$ ${custoPorLead.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
-            })()}
-          </span>
-          <div className="gic-bar"><div className="gic-fill gic-cyan" style={{ width: `${metrics.totalCriadas > 0 ? Math.min((total / metrics.totalCriadas) / 50 * 100, 100) : 0}%` }}></div></div>
+        <div className="ms-metric-item-visual">
+          <div className="ms-metric-info">
+            <span className="ms-metric-label">{t?.costPerLead || 'Custo por Lead'}</span>
+            <span className="ms-metric-value">
+              {loading ? '—' : (() => {
+                const custoPorLead = metrics.totalCriadas > 0 ? total / metrics.totalCriadas : 0;
+                return formatCurrency ? formatCurrency(custoPorLead, 'BRL') : `R$ ${custoPorLead.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+              })()}
+            </span>
+          </div>
+          <div className="ms-metric-bar">
+            <div className="ms-metric-fill" style={{ width: `${metrics.totalCriadas > 0 ? Math.min((total / metrics.totalCriadas) / 50 * 100, 100) : 0}%`, background: 'linear-gradient(90deg, #06b6d4, #0891b2)' }}></div>
+          </div>
         </div>
 
         {/* Oportunidades Perdidas */}
-        <div className="gic-item">
-          <span className="gic-label">{t?.lostOpps || 'Oportunidades Perdidas'}</span>
-          <span className="gic-value">{loading ? '—' : metrics.totalPerdidas}</span>
-          <div className="gic-bar"><div className="gic-fill gic-amber" style={{ width: `${Math.min(metrics.totalPerdidas, 100)}%` }}></div></div>
+        <div className="ms-metric-item-visual">
+          <div className="ms-metric-info">
+            <span className="ms-metric-label">{t?.lostOpps || 'Oportunidades Perdidas'}</span>
+            <span className="ms-metric-value">{loading ? '—' : metrics.totalPerdidas}</span>
+          </div>
+          <div className="ms-metric-bar">
+            <div className="ms-metric-fill" style={{ width: `${Math.min(metrics.totalPerdidas, 100)}%`, background: 'linear-gradient(90deg, #f59e0b, #d97706)' }}></div>
+          </div>
         </div>
 
         {/* Valor Perda (logo após Oportunidades Perdidas) */}
-        <div className="gic-item">
-          <span className="gic-label">{t?.lostValue || 'Valor Perda'}</span>
-          <span className="gic-value">{loading ? '—' : (formatCurrency ? formatCurrency(metrics.valorPerda, 'BRL') : `R$ ${metrics.valorPerda.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)}</span>
-          <div className="gic-bar"><div className="gic-fill gic-amber" style={{ width: `${metrics.valorPerda > 0 ? 57 : 0}%` }}></div></div>
+        <div className="ms-metric-item-visual">
+          <div className="ms-metric-info">
+            <span className="ms-metric-label">{t?.lostValue || 'Valor Perda'}</span>
+            <span className="ms-metric-value">{loading ? '—' : (formatCurrency ? formatCurrency(metrics.valorPerda, 'BRL') : `R$ ${metrics.valorPerda.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`)}</span>
+          </div>
+          <div className="ms-metric-bar">
+            <div className="ms-metric-fill" style={{ width: `${metrics.valorPerda > 0 ? 57 : 0}%`, background: 'linear-gradient(90deg, #f59e0b, #d97706)' }}></div>
+          </div>
         </div>
 
         {/* Oportunidades Abertas */}
-        <div className="gic-item">
-          <span className="gic-label">{t?.openOpps || 'Oportunidades Abertas'}</span>
-          <span className="gic-value">{loading ? '—' : metrics.totalAbertas}</span>
-          <div className="gic-bar"><div className="gic-fill gic-violet" style={{ width: `${Math.min(metrics.totalAbertas * 5, 100)}%` }}></div></div>
+        <div className="ms-metric-item-visual">
+          <div className="ms-metric-info">
+            <span className="ms-metric-label">{t?.openOpps || 'Oportunidades Abertas'}</span>
+            <span className="ms-metric-value">{loading ? '—' : metrics.totalAbertas}</span>
+          </div>
+          <div className="ms-metric-bar">
+            <div className="ms-metric-fill" style={{ width: `${Math.min(metrics.totalAbertas * 5, 100)}%`, background: 'linear-gradient(90deg, #8b5cf6, #7c3aed)' }}></div>
+          </div>
         </div>
 
         {/* Oportunidades em Negociação */}
-        <div className="gic-item">
-          <span className="gic-label">Oportunidades em Negociação</span>
-          <span className="gic-value">{loading ? '—' : `${metrics.totalNegociacao} - ${formatCurrency ? formatCurrency(metrics.valorNegociacao, 'BRL') : `R$ ${metrics.valorNegociacao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}`}</span>
-          <div className="gic-bar"><div className="gic-fill gic-cyan" style={{ width: `${Math.min(metrics.totalNegociacao * 8, 100)}%` }}></div></div>
+        <div className="ms-metric-item-visual">
+          <div className="ms-metric-info">
+            <span className="ms-metric-label">Oportunidades em Negociação</span>
+            <span className="ms-metric-value">{loading ? '—' : `${metrics.totalNegociacao} - ${formatCurrency ? formatCurrency(metrics.valorNegociacao, 'BRL') : `R$ ${metrics.valorNegociacao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}`}</span>
+          </div>
+          <div className="ms-metric-bar">
+            <div className="ms-metric-fill" style={{ width: `${Math.min(metrics.totalNegociacao * 8, 100)}%`, background: 'linear-gradient(90deg, #06b6d4, #0891b2)' }}></div>
+          </div>
         </div>
 
         {/* Oportunidades em Follow-Up */}
-        <div className="gic-item">
-          <span className="gic-label">Oportunidades em Follow-Up</span>
-          <span className="gic-value">{loading ? '—' : `${metrics.totalFollowUp} - ${formatCurrency ? formatCurrency(metrics.valorFollowUp, 'BRL') : `R$ ${metrics.valorFollowUp.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}`}</span>
-          <div className="gic-bar"><div className="gic-fill gic-green" style={{ width: `${Math.min(metrics.totalFollowUp * 6, 100)}%` }}></div></div>
+        <div className="ms-metric-item-visual">
+          <div className="ms-metric-info">
+            <span className="ms-metric-label">Oportunidades em Follow-Up</span>
+            <span className="ms-metric-value">{loading ? '—' : `${metrics.totalFollowUp} - ${formatCurrency ? formatCurrency(metrics.valorFollowUp, 'BRL') : `R$ ${metrics.valorFollowUp.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}`}</span>
+          </div>
+          <div className="ms-metric-bar">
+            <div className="ms-metric-fill" style={{ width: `${Math.min(metrics.totalFollowUp * 6, 100)}%`, background: 'linear-gradient(90deg, #10b981, #059669)' }}></div>
+          </div>
         </div>
       </div>
 
-      {error && <div className="gic-error">⚠️ {error}</div>}
+      {error && <div className="ms-error-message">⚠️ {error}</div>}
     </div>
   )
 }
