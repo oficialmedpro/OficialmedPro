@@ -28,6 +28,12 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
     return `Valor: R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
   };
 
+  // Função para formatar valor em R$ para exibição simples
+  const formatValueSimple = (valor) => {
+    if (!valor || valor === 0) return 'R$ 0,00';
+    return `R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  };
+
   // Função para determinar singular/plural
   const getLabel = (num, singular, plural) => {
     return num === 1 ? singular : plural;
@@ -403,6 +409,26 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                     +{formatNumber(sourcesData.total)} {getLabel(sourcesData.total, 'Nova', 'Novas')}
                   </span>
                 </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count fc-source-gained">
+                    ✓{formatNumber(sourcesData.totalGanhas || 0)} {getLabel(sourcesData.totalGanhas || 0, 'Ganha', 'Ganhas')}
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count" style={{fontSize: '9px', opacity: 0.8}}>
+                    {formatValueSimple(sourcesData.totalValorGanhas || 0)}
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count fc-source-lost">
+                    -{formatNumber(sourcesData.totalPerdidas || 0)} {getLabel(sourcesData.totalPerdidas || 0, 'Perdida', 'Perdidas')}
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count" style={{fontSize: '9px', opacity: 0.8, color: '#ffffff'}}>
+                    {formatValueSimple(sourcesData.totalValorPerdidas || 0)}
+                  </span>
+                </div>
               </div>
             </div>
             
@@ -421,6 +447,32 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                   <span className="fc-source-count">+{formatNumber(sourcesData.google.criadas)} {getLabel(sourcesData.google.criadas, 'Nova', 'Novas')}</span>
                   <span className="fc-source-percentage">
                     ({sourcesData.total > 0 ? Math.round((sourcesData.google.criadas / sourcesData.total) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count fc-source-gained">
+                    ✓{formatNumber(sourcesData.google.ganhas)} {getLabel(sourcesData.google.ganhas, 'Ganha', 'Ganhas')}
+                  </span>
+                  <span className="fc-source-percentage">
+                    ({sourcesData.google.criadas > 0 ? Math.round((sourcesData.google.ganhas / sourcesData.google.criadas) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count" style={{fontSize: '9px', opacity: 0.8}}>
+                    {formatValueSimple(sourcesData.google.valorGanhas || 0)}
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count fc-source-lost">
+                    -{formatNumber(sourcesData.google.perdidas)} {getLabel(sourcesData.google.perdidas, 'Perdida', 'Perdidas')}
+                  </span>
+                  <span className="fc-source-percentage">
+                    ({sourcesData.google.criadas > 0 ? Math.round((sourcesData.google.perdidas / sourcesData.google.criadas) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count" style={{fontSize: '9px', opacity: 0.8, color: '#ffffff'}}>
+                    {formatValueSimple(sourcesData.google.valorPerdidas || 0)}
                   </span>
                 </div>
               </div>
@@ -442,6 +494,32 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                     ({sourcesData.total > 0 ? Math.round((sourcesData.meta.criadas / sourcesData.total) * 100) : 0}%)
                   </span>
                 </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count fc-source-gained">
+                    ✓{formatNumber(sourcesData.meta.ganhas)} {getLabel(sourcesData.meta.ganhas, 'Ganha', 'Ganhas')}
+                  </span>
+                  <span className="fc-source-percentage">
+                    ({sourcesData.meta.criadas > 0 ? Math.round((sourcesData.meta.ganhas / sourcesData.meta.criadas) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count" style={{fontSize: '9px', opacity: 0.8}}>
+                    {formatValueSimple(sourcesData.meta.valorGanhas || 0)}
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count fc-source-lost">
+                    -{formatNumber(sourcesData.meta.perdidas)} {getLabel(sourcesData.meta.perdidas, 'Perdida', 'Perdidas')}
+                  </span>
+                  <span className="fc-source-percentage">
+                    ({sourcesData.meta.criadas > 0 ? Math.round((sourcesData.meta.perdidas / sourcesData.meta.criadas) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count" style={{fontSize: '9px', opacity: 0.8, color: '#ffffff'}}>
+                    {formatValueSimple(sourcesData.meta.valorPerdidas || 0)}
+                  </span>
+                </div>
               </div>
             </div>
             
@@ -459,6 +537,32 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                   <span className="fc-source-count">+{formatNumber(sourcesData.organico.criadas)} {getLabel(sourcesData.organico.criadas, 'Nova', 'Novas')}</span>
                   <span className="fc-source-percentage">
                     ({sourcesData.total > 0 ? Math.round((sourcesData.organico.criadas / sourcesData.total) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count fc-source-gained">
+                    ✓{formatNumber(sourcesData.organico.ganhas)} {getLabel(sourcesData.organico.ganhas, 'Ganha', 'Ganhas')}
+                  </span>
+                  <span className="fc-source-percentage">
+                    ({sourcesData.organico.criadas > 0 ? Math.round((sourcesData.organico.ganhas / sourcesData.organico.criadas) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count" style={{fontSize: '9px', opacity: 0.8}}>
+                    {formatValueSimple(sourcesData.organico.valorGanhas || 0)}
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count fc-source-lost">
+                    -{formatNumber(sourcesData.organico.perdidas)} {getLabel(sourcesData.organico.perdidas, 'Perdida', 'Perdidas')}
+                  </span>
+                  <span className="fc-source-percentage">
+                    ({sourcesData.organico.criadas > 0 ? Math.round((sourcesData.organico.perdidas / sourcesData.organico.criadas) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count" style={{fontSize: '9px', opacity: 0.8, color: '#ffffff'}}>
+                    {formatValueSimple(sourcesData.organico.valorPerdidas || 0)}
                   </span>
                 </div>
               </div>
@@ -480,6 +584,32 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                     ({sourcesData.total > 0 ? Math.round((sourcesData.whatsapp.criadas / sourcesData.total) * 100) : 0}%)
                   </span>
                 </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count fc-source-gained">
+                    ✓{formatNumber(sourcesData.whatsapp.ganhas)} {getLabel(sourcesData.whatsapp.ganhas, 'Ganha', 'Ganhas')}
+                  </span>
+                  <span className="fc-source-percentage">
+                    ({sourcesData.whatsapp.criadas > 0 ? Math.round((sourcesData.whatsapp.ganhas / sourcesData.whatsapp.criadas) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count" style={{fontSize: '9px', opacity: 0.8}}>
+                    {formatValueSimple(sourcesData.whatsapp.valorGanhas || 0)}
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count fc-source-lost">
+                    -{formatNumber(sourcesData.whatsapp.perdidas)} {getLabel(sourcesData.whatsapp.perdidas, 'Perdida', 'Perdidas')}
+                  </span>
+                  <span className="fc-source-percentage">
+                    ({sourcesData.whatsapp.criadas > 0 ? Math.round((sourcesData.whatsapp.perdidas / sourcesData.whatsapp.criadas) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count" style={{fontSize: '9px', opacity: 0.8, color: '#ffffff'}}>
+                    {formatValueSimple(sourcesData.whatsapp.valorPerdidas || 0)}
+                  </span>
+                </div>
               </div>
             </div>
             
@@ -499,6 +629,32 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                     ({sourcesData.total > 0 ? Math.round((sourcesData.prescritor.criadas / sourcesData.total) * 100) : 0}%)
                   </span>
                 </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count fc-source-gained">
+                    ✓{formatNumber(sourcesData.prescritor.ganhas)} {getLabel(sourcesData.prescritor.ganhas, 'Ganha', 'Ganhas')}
+                  </span>
+                  <span className="fc-source-percentage">
+                    ({sourcesData.prescritor.criadas > 0 ? Math.round((sourcesData.prescritor.ganhas / sourcesData.prescritor.criadas) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count" style={{fontSize: '9px', opacity: 0.8}}>
+                    {formatValueSimple(sourcesData.prescritor.valorGanhas || 0)}
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count fc-source-lost">
+                    -{formatNumber(sourcesData.prescritor.perdidas)} {getLabel(sourcesData.prescritor.perdidas, 'Perdida', 'Perdidas')}
+                  </span>
+                  <span className="fc-source-percentage">
+                    ({sourcesData.prescritor.criadas > 0 ? Math.round((sourcesData.prescritor.perdidas / sourcesData.prescritor.criadas) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count" style={{fontSize: '9px', opacity: 0.8, color: '#ffffff'}}>
+                    {formatValueSimple(sourcesData.prescritor.valorPerdidas || 0)}
+                  </span>
+                </div>
               </div>
             </div>
             
@@ -516,6 +672,32 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                   <span className="fc-source-count">+{formatNumber(sourcesData.franquia.criadas)} {getLabel(sourcesData.franquia.criadas, 'Nova', 'Novas')}</span>
                   <span className="fc-source-percentage">
                     ({sourcesData.total > 0 ? Math.round((sourcesData.franquia.criadas / sourcesData.total) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count fc-source-gained">
+                    ✓{formatNumber(sourcesData.franquia.ganhas)} {getLabel(sourcesData.franquia.ganhas, 'Ganha', 'Ganhas')}
+                  </span>
+                  <span className="fc-source-percentage">
+                    ({sourcesData.franquia.criadas > 0 ? Math.round((sourcesData.franquia.ganhas / sourcesData.franquia.criadas) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count" style={{fontSize: '9px', opacity: 0.8}}>
+                    {formatValueSimple(sourcesData.franquia.valorGanhas || 0)}
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count fc-source-lost">
+                    -{formatNumber(sourcesData.franquia.perdidas)} {getLabel(sourcesData.franquia.perdidas, 'Perdida', 'Perdidas')}
+                  </span>
+                  <span className="fc-source-percentage">
+                    ({sourcesData.franquia.criadas > 0 ? Math.round((sourcesData.franquia.perdidas / sourcesData.franquia.criadas) * 100) : 0}%)
+                  </span>
+                </div>
+                <div className="fc-source-line">
+                  <span className="fc-source-count" style={{fontSize: '9px', opacity: 0.8, color: '#ffffff'}}>
+                    {formatValueSimple(sourcesData.franquia.valorPerdidas || 0)}
                   </span>
                 </div>
               </div>

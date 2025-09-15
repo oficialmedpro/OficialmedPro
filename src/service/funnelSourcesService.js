@@ -270,8 +270,14 @@ export const getFunnelSourcesMetrics = async (startDate, endDate, selectedFunnel
       const criadasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${selectedSourceFilter}${filters}`;
       promises.push({ type: 'criadas', source: 'selected', promise: fetchAllRecords(criadasUrl, baseHeaders) });
       
+      const ganhasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${selectedSourceFilter}${filters}`;
+      promises.push({ type: 'ganhas', source: 'selected', promise: fetchAllRecords(ganhasUrl, baseHeaders) });
+      
+      const perdidasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.lost&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${selectedSourceFilter}${filters}`;
+      promises.push({ type: 'perdidas', source: 'selected', promise: fetchAllRecords(perdidasUrl, baseHeaders) });
+      
     } else {
-      // Para cada origem, buscar abertas e criadas (comportamento padrão)
+      // Para cada origem, buscar abertas, criadas e ganhas (comportamento padrão)
       sources.forEach(source => {
         // Abertas (status=open) - INCLUIR FILTRO DE ETAPAS PARA CONSISTÊNCIA
         const abertasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.open${source.filter}${filters}${etapaFilter}`;
@@ -280,12 +286,41 @@ export const getFunnelSourcesMetrics = async (startDate, endDate, selectedFunnel
         // Criadas no período
         const criadasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${source.filter}${filters}`;
         promises.push({ type: 'criadas', source: source.name, promise: fetchAllRecords(criadasUrl, baseHeaders) });
+
+        // Ganhas no período (status=gain) - FILTRAR POR CREATE_DATE - COM VALOR
+        const ganhasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${source.filter}${filters}`;
+        console.log(`🔍 FunnelSources: URL ganhas para ${source.name} (criadas no período):`, ganhasUrl);
+        promises.push({ type: 'ganhas', source: source.name, promise: fetchAllRecords(ganhasUrl, baseHeaders) });
+
+        // Perdidas no período (status=lost) - FILTRAR POR CREATE_DATE - COM VALOR
+        const perdidasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.lost&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${source.filter}${filters}`;
+        console.log(`🔍 FunnelSources: URL perdidas para ${source.name} (criadas no período):`, perdidasUrl);
+        console.log(`🔍 FunnelSources: Comparando URLs - Ganhas vs Perdidas (ambas por create_date):`);
+        console.log(`   Ganhas: ${ganhasUrl}`);
+        console.log(`   Perdidas: ${perdidasUrl}`);
+        promises.push({ type: 'perdidas', source: source.name, promise: fetchAllRecords(perdidasUrl, baseHeaders) });
       });
     }
 
     // Total geral de criadas (sem filtro de origem)
     const totalCriadasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${filters}`;
     promises.push({ type: 'total', source: 'total', promise: fetchAllRecords(totalCriadasUrl, baseHeaders) });
+
+    // Total geral de ganhas (sem filtro de origem) - FILTRAR POR CREATE_DATE - COM VALOR
+    const totalGanhasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${filters}`;
+    console.log('🔍 FunnelSources: URL total ganhas (criadas no período):', totalGanhasUrl);
+    promises.push({ type: 'totalGanhas', source: 'totalGanhas', promise: fetchAllRecords(totalGanhasUrl, baseHeaders) });
+
+    // Total geral de perdidas (sem filtro de origem) - FILTRAR POR CREATE_DATE - COM VALOR
+    const totalPerdidasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.lost&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${filters}`;
+    console.log('🔍 FunnelSources: URL total perdidas (criadas no período):', totalPerdidasUrl);
+    
+    // 🧪 TESTE: Query simples para verificar se há perdidas no banco (sem filtros de data)
+    const testePerdidasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,status,lost_date&archived=eq.0&status=eq.lost&limit=5`;
+    console.log('🧪 FunnelSources: TESTE - Query perdidas sem filtro de data:', testePerdidasUrl);
+    promises.push({ type: 'testePerdidas', source: 'teste', promise: fetchAllRecords(testePerdidasUrl, baseHeaders) });
+    
+    promises.push({ type: 'totalPerdidas', source: 'totalPerdidas', promise: fetchAllRecords(totalPerdidasUrl, baseHeaders) });
 
     // 🚨 ADICIONAR QUERY PARA TOTAL DE ABERTAS PARA COMPARAÇÃO COM TotalOportunidadesCard
     const totalAbertasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.open${filters}${etapaFilter}`;
@@ -298,14 +333,18 @@ export const getFunnelSourcesMetrics = async (startDate, endDate, selectedFunnel
 
     // Inicializar contadores
     const sourcesData = {
-      google: { abertas: 0, criadas: 0 },
-      meta: { abertas: 0, criadas: 0 },
-      organico: { abertas: 0, criadas: 0 },
-      whatsapp: { abertas: 0, criadas: 0 },
-      prescritor: { abertas: 0, criadas: 0 },
-      franquia: { abertas: 0, criadas: 0 },
+      google: { abertas: 0, criadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
+      meta: { abertas: 0, criadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
+      organico: { abertas: 0, criadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
+      whatsapp: { abertas: 0, criadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
+      prescritor: { abertas: 0, criadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
+      franquia: { abertas: 0, criadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
       total: 0,
-      totalAbertas: 0 // ADICIONAR TOTAL REAL DE ABERTAS
+      totalAbertas: 0, // ADICIONAR TOTAL REAL DE ABERTAS
+      totalGanhas: 0, // ADICIONAR TOTAL DE GANHAS
+      totalValorGanhas: 0, // ADICIONAR TOTAL VALOR GANHAS
+      totalPerdidas: 0, // ADICIONAR TOTAL PERDIDAS
+      totalValorPerdidas: 0 // ADICIONAR TOTAL VALOR PERDIDAS
     };
 
     // Processar resultados
@@ -313,8 +352,32 @@ export const getFunnelSourcesMetrics = async (startDate, endDate, selectedFunnel
       const data = results[index];
       const count = data ? data.length : 0;
 
+      // Calcular valor total se houver campo 'value'
+      let valorTotal = 0;
+      if (data && data.length > 0) {
+        console.log(`🔍 FunnelSources: Primeiro item de dados para ${promiseData.type} (${promiseData.source}):`, data[0]);
+        if (data[0].value !== undefined) {
+          valorTotal = data.reduce((sum, item) => sum + (parseFloat(item.value) || 0), 0);
+          console.log(`💰 FunnelSources: Valor total calculado para ${promiseData.type} (${promiseData.source}):`, valorTotal);
+        } else {
+          console.log(`⚠️ FunnelSources: Campo 'value' não encontrado para ${promiseData.type} (${promiseData.source})`);
+        }
+      }
+
       if (promiseData.type === 'total') {
         sourcesData.total = count;
+      } else if (promiseData.type === 'totalGanhas') {
+        sourcesData.totalGanhas = count;
+        sourcesData.totalValorGanhas = valorTotal;
+        console.log('🎯 FunnelSources: Total ganhas encontrado:', count, 'Valor:', valorTotal);
+      } else if (promiseData.type === 'totalPerdidas') {
+        sourcesData.totalPerdidas = count;
+        sourcesData.totalValorPerdidas = valorTotal;
+        console.log('🎯 FunnelSources: Total perdidas encontrado:', count, 'Valor:', valorTotal);
+        console.log('📊 FunnelSources: Dados completos de total perdidas:', data);
+      } else if (promiseData.type === 'testePerdidas') {
+        console.log('🧪 FunnelSources: TESTE - Perdidas encontradas no banco (sem filtro de data):', count);
+        console.log('🧪 FunnelSources: TESTE - Dados de teste perdidas:', data);
       } else if (promiseData.type === 'totalAbertas') {
         sourcesData.totalAbertas = count; // SALVAR O TOTAL REAL
         console.log('🚨 COMPARAÇÃO TOTAL ABERTAS FunnelSources:', count);
@@ -323,10 +386,32 @@ export const getFunnelSourcesMetrics = async (startDate, endDate, selectedFunnel
         // e zerar as outras
         const selectedSourceName = getSelectedSourceName(selectedOrigin);
         if (selectedSourceName) {
-          sourcesData[selectedSourceName][promiseData.type] = count;
+          if (promiseData.type === 'ganhas') {
+            sourcesData[selectedSourceName].ganhas = count;
+            sourcesData[selectedSourceName].valorGanhas = valorTotal;
+            console.log(`🎯 FunnelSources: Ganhas para origem selecionada (${selectedSourceName}):`, count, 'Valor:', valorTotal);
+          } else if (promiseData.type === 'perdidas') {
+            sourcesData[selectedSourceName].perdidas = count;
+            sourcesData[selectedSourceName].valorPerdidas = valorTotal;
+            console.log(`🎯 FunnelSources: Perdidas para origem selecionada (${selectedSourceName}):`, count, 'Valor:', valorTotal);
+          } else {
+            sourcesData[selectedSourceName][promiseData.type] = count;
+          }
         }
       } else {
-        sourcesData[promiseData.source][promiseData.type] = count;
+        if (promiseData.type === 'ganhas') {
+          sourcesData[promiseData.source].ganhas = count;
+          sourcesData[promiseData.source].valorGanhas = valorTotal;
+          console.log(`🎯 FunnelSources: Ganhas para ${promiseData.source}:`, count, 'Valor:', valorTotal);
+          console.log(`📊 FunnelSources: Dados completos de ganhas para ${promiseData.source}:`, data);
+        } else if (promiseData.type === 'perdidas') {
+          sourcesData[promiseData.source].perdidas = count;
+          sourcesData[promiseData.source].valorPerdidas = valorTotal;
+          console.log(`🎯 FunnelSources: Perdidas para ${promiseData.source}:`, count, 'Valor:', valorTotal);
+          console.log(`📊 FunnelSources: Dados completos de perdidas para ${promiseData.source}:`, data);
+        } else {
+          sourcesData[promiseData.source][promiseData.type] = count;
+        }
       }
     });
 
@@ -334,8 +419,8 @@ export const getFunnelSourcesMetrics = async (startDate, endDate, selectedFunnel
     if (selectedOrigin && selectedOrigin !== 'all' && typeof selectedOrigin === 'string') {
       const selectedSourceName = getSelectedSourceName(selectedOrigin);
       Object.keys(sourcesData).forEach(key => {
-        if (key !== 'total' && key !== selectedSourceName) {
-          sourcesData[key] = { abertas: 0, criadas: 0 };
+        if (key !== 'total' && key !== 'totalAbertas' && key !== 'totalGanhas' && key !== 'totalValorGanhas' && key !== 'totalPerdidas' && key !== 'totalValorPerdidas' && key !== selectedSourceName) {
+          sourcesData[key] = { abertas: 0, criadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 };
         }
       });
     }
