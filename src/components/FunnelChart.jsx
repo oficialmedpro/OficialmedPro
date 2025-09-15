@@ -5,12 +5,15 @@ import { getFunnelStagesData } from '../service/funnelStagesService.js';
 import { getFunnelSourcesMetrics } from '../service/funnelSourcesService.js';
 import { getTodayDateSP } from '../utils/utils.js';
 
-const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, startDate, endDate, selectedPeriod }) => {
+const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin, startDate, endDate, selectedPeriod }) => {
   const [etapas, setEtapas] = useState([]);
   const [conversaoGeral, setConversaoGeral] = useState(null);
   const [sourcesData, setSourcesData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [funnelName, setFunnelName] = useState('');
+  const [unitName, setUnitName] = useState('');
+  const [sellerName, setSellerName] = useState('');
+  const [originName, setOriginName] = useState('');
 
   // Função para formatar números grandes
   const formatNumber = (num) => {
@@ -110,10 +113,147 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
     }
   };
 
+  // Função para buscar nome da unidade
+  const fetchUnitName = async (unitId) => {
+    if (!unitId || unitId === 'all') {
+      setUnitName('');
+      return;
+    }
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+
+      const response = await fetch(`${supabaseUrl}/rest/v1/unidades?select=unidade&codigo_sprint=eq.${encodeURIComponent(unitId)}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': supabaseSchema,
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          setUnitName(data[0].unidade);
+        } else {
+          setUnitName('');
+        }
+      } else {
+        setUnitName('');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar nome da unidade:', error);
+      setUnitName('');
+    }
+  };
+
+  // Função para buscar nome do vendedor
+  const fetchSellerName = async (sellerId) => {
+    if (!sellerId || sellerId === 'all') {
+      setSellerName('');
+      return;
+    }
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+
+      // Converter sellerId para int4
+      const response = await fetch(`${supabaseUrl}/rest/v1/vendedores?select=nome&id_sprint=eq.${parseInt(sellerId)}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': supabaseSchema,
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          setSellerName(data[0].nome);
+          console.log('✅ Nome do vendedor encontrado:', data[0].nome);
+        } else {
+          console.log('⚠️ Vendedor não encontrado para ID:', sellerId);
+          setSellerName('');
+        }
+      } else {
+        console.error('❌ Erro ao buscar nome do vendedor:', response.status);
+        setSellerName('');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar nome do vendedor:', error);
+      setSellerName('');
+    }
+  };
+
+  // Função para buscar nome da origem
+  const fetchOriginName = async (originId) => {
+    if (!originId || originId === 'all') {
+      setOriginName('');
+      return;
+    }
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+
+      // Usar campo id
+      const response = await fetch(`${supabaseUrl}/rest/v1/origem_oportunidade?select=nome&id=eq.${originId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': supabaseSchema,
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          setOriginName(data[0].nome);
+          console.log('✅ Nome da origem encontrado:', data[0].nome);
+        } else {
+          console.log('⚠️ Origem não encontrada para ID:', originId);
+          setOriginName('');
+        }
+      } else {
+        console.error('❌ Erro ao buscar nome da origem:', response.status);
+        setOriginName('');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar nome da origem:', error);
+      setOriginName('');
+    }
+  };
+
   // useEffect para buscar nome do funil quando selectedFunnel mudar
   useEffect(() => {
     fetchFunnelName(selectedFunnel);
   }, [selectedFunnel]);
+
+  // useEffect para buscar nome da unidade quando selectedUnit mudar
+  useEffect(() => {
+    fetchUnitName(selectedUnit);
+  }, [selectedUnit]);
+
+  // useEffect para buscar nome do vendedor quando selectedSeller mudar
+  useEffect(() => {
+    fetchSellerName(selectedSeller);
+  }, [selectedSeller]);
+
+  // useEffect para buscar nome da origem quando selectedOrigin mudar
+  useEffect(() => {
+    fetchOriginName(selectedOrigin);
+  }, [selectedOrigin]);
 
   // Buscar sources data será feito junto com as etapas para garantir consistência
 
@@ -399,6 +539,51 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
             <div className="fc-legend-item">
               <div className="fc-legend-color fc-legend-conversion"></div>
               <span className="fc-legend-text">Taxa de Passagem</span>
+            </div>
+          </div>
+        )}
+
+        {/* SEÇÃO DE FILTROS APLICADOS */}
+        {etapas.length > 0 && (
+          <div className="fc-applied-filters">
+            <div className="fc-applied-filters-content">
+              {/* Funil */}
+              <div className="fc-filter-item">
+                <span className="fc-filter-label">Funil:</span>
+                <span className="fc-filter-value">
+                  {funnelName || (selectedFunnel === 'all' ? 'Todos os Funis' : `Funil ${selectedFunnel}`)}
+                </span>
+              </div>
+
+              {/* Unidade */}
+              <div className="fc-filter-item">
+                <span className="fc-filter-label">Unidade:</span>
+                <span className="fc-filter-value">
+                  {selectedUnit === 'all' ? 'Todas as Unidades' : (unitName || selectedUnit)}
+                </span>
+              </div>
+
+              {/* Vendedor */}
+              <div className="fc-filter-item">
+                <span className="fc-filter-label">Vendedor:</span>
+                <span className="fc-filter-value">
+                  {selectedSeller === 'all' ? 'Todos os Vendedores' : (sellerName || selectedSeller)}
+                </span>
+              </div>
+
+              {/* Origem */}
+              <div className="fc-filter-item">
+                <span className="fc-filter-label">Origem:</span>
+                <span className="fc-filter-value">
+                  {!selectedOrigin || selectedOrigin === 'all' ? 'Todas as Origens' : (originName || selectedOrigin)}
+                </span>
+              </div>
+
+              {/* Período */}
+              <div className="fc-filter-item">
+                <span className="fc-filter-label">Período:</span>
+                <span className="fc-filter-value">{getDynamicPeriod()}</span>
+              </div>
             </div>
           </div>
         )}
