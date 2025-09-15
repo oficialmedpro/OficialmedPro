@@ -173,49 +173,113 @@ export const getFunnelStagesData = async (etapas, startDate = null, endDate = nu
       filters += `&unidade_id=eq.${unidadeEncoded}`;
     }
 
-    // FILTRO DE ORIGEM (mesmo padrão do googleConversaoService)
+    // FILTRO DE ORIGEM (usando a mesma lógica do funnelSourcesService que está funcionando)
     let originFilter = '';
     console.log('🔍 FunnelStages: Verificando selectedOrigin:', { 
       valor: selectedOrigin, 
       tipo: typeof selectedOrigin,
-      isString: typeof selectedOrigin === 'string'
+      isString: typeof selectedOrigin === 'string',
+      isAll: selectedOrigin === 'all',
+      isUndefined: selectedOrigin === 'undefined',
+      isEmpty: selectedOrigin === '',
+      valorCompleto: JSON.stringify(selectedOrigin)
     });
     
-    if (selectedOrigin && selectedOrigin !== 'all' && selectedOrigin !== 'undefined' && selectedOrigin !== '' && typeof selectedOrigin === 'string') {
+    // DEFINIR FILTROS SQL POR ORIGEM (mesma lógica do funnelSourcesService)
+    const googleOriginFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent('Google Ads')},utm_source.eq.google,utm_source.eq.GoogleAds)`;
+    const metaOriginFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent('Meta Ads')},origem_oportunidade.eq.${encodeURIComponent('Facebook')},origem_oportunidade.eq.${encodeURIComponent('Instagram')})`;
+    const organicoOriginFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent('Orgânico')},origem_oportunidade.is.null)`;
+    const whatsappOriginFilter = `&origem_oportunidade=eq.${encodeURIComponent('WhatsApp')}`;
+    const prescritorOriginFilter = `&origem_oportunidade=eq.${encodeURIComponent('Prescritor')}`;
+    const franquiaOriginFilter = `&origem_oportunidade=eq.${encodeURIComponent('Franquia')}`;
+    
+    if (selectedOrigin && selectedOrigin !== 'all' && selectedOrigin !== 'undefined' && selectedOrigin !== '') {
       console.log('🔍 FunnelStages: Aplicando filtro de origem:', selectedOrigin);
-      switch (selectedOrigin.toLowerCase()) {
-        case 'google ads':
-        case 'google':
-          originFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent('Google Ads')},utm_source.eq.google,utm_source.eq.GoogleAds)`;
-          break;
-        case 'meta ads':
-        case 'meta':
-        case 'facebook':
-        case 'instagram':
-          originFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent('Meta Ads')},origem_oportunidade.eq.${encodeURIComponent('Facebook')},origem_oportunidade.eq.${encodeURIComponent('Instagram')})`;
-          break;
-        case 'orgânico':
-        case 'organico':
-        case 'organic':
-          originFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent('Orgânico')},origem_oportunidade.is.null)`;
-          break;
-        case 'whatsapp':
-          originFilter = `&origem_oportunidade=eq.${encodeURIComponent('WhatsApp')}`;
-          break;
-        case 'prescritor':
-          originFilter = `&origem_oportunidade=eq.${encodeURIComponent('Prescritor')}`;
-          break;
-        case 'franquia':
-          originFilter = `&origem_oportunidade=eq.${encodeURIComponent('Franquia')}`;
-          break;
-        default:
+      
+      // 🎯 CORREÇÃO: Converter ID da origem para nome (mesma lógica do oportunidadesGanhasService)
+      try {
+        const originResponse = await fetch(`${supabaseUrl}/rest/v1/origem_oportunidade?select=nome&id=eq.${selectedOrigin}`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': supabaseSchema,
+          }
+        });
+
+        if (originResponse.ok) {
+          const originData = await originResponse.json();
+          if (originData && originData.length > 0) {
+            const originName = originData[0].nome;
+            console.log('✅ FunnelStages: Nome da origem encontrado:', originName);
+            
+            // Aplicar filtro baseado no nome da origem
+            switch (originName.toLowerCase()) {
+              case 'google ads':
+              case 'googleads':
+                originFilter = googleOriginFilter;
+                console.log('✅ FunnelStages: Aplicando filtro Google Ads:', originFilter);
+                break;
+              case 'meta ads':
+              case 'facebook':
+              case 'instagram':
+                originFilter = metaOriginFilter;
+                console.log('✅ FunnelStages: Aplicando filtro Meta Ads:', originFilter);
+                break;
+              case 'orgânico':
+              case 'organico':
+                originFilter = organicoOriginFilter;
+                console.log('✅ FunnelStages: Aplicando filtro Orgânico:', originFilter);
+                break;
+              case 'whatsapp':
+                originFilter = whatsappOriginFilter;
+                console.log('✅ FunnelStages: Aplicando filtro WhatsApp:', originFilter);
+                break;
+              case 'prescritor':
+                originFilter = prescritorOriginFilter;
+                console.log('✅ FunnelStages: Aplicando filtro Prescritor:', originFilter);
+                break;
+              case 'franquia':
+                originFilter = franquiaOriginFilter;
+                console.log('✅ FunnelStages: Aplicando filtro Franquia:', originFilter);
+                break;
+              default:
+                originFilter = `&origem_oportunidade=eq.${encodeURIComponent(originName)}`;
+                console.log('⚠️ FunnelStages: Aplicando filtro padrão (origem não reconhecida):', originFilter);
+                break;
+            }
+          } else {
+            console.log('⚠️ FunnelStages: Origem não encontrada para ID:', selectedOrigin);
+          }
+        } else {
+          console.log('⚠️ FunnelStages: Erro ao buscar origem, usando ID diretamente:', selectedOrigin);
           originFilter = `&origem_oportunidade=eq.${encodeURIComponent(selectedOrigin)}`;
-          break;
+        }
+      } catch (error) {
+        console.log('⚠️ FunnelStages: Erro ao buscar origem, usando ID diretamente:', error);
+        originFilter = `&origem_oportunidade=eq.${encodeURIComponent(selectedOrigin)}`;
       }
+    } else {
+      console.log('🔍 FunnelStages: NÃO aplicando filtro de origem - condições não atendidas:', {
+        selectedOrigin,
+        hasValue: !!selectedOrigin,
+        notAll: selectedOrigin !== 'all',
+        notUndefined: selectedOrigin !== 'undefined',
+        notEmpty: selectedOrigin !== ''
+      });
     }
 
     console.log('🔍 FunnelStages: Filtros construídos:', filters);
     console.log('🔍 FunnelStages: Filtro de origem:', originFilter);
+    console.log('🔍 FunnelStages: Condição para aplicar filtro de origem:', {
+      selectedOrigin,
+      hasValue: !!selectedOrigin,
+      notAll: selectedOrigin !== 'all',
+      notUndefined: selectedOrigin !== 'undefined',
+      notEmpty: selectedOrigin !== '',
+      isString: typeof selectedOrigin === 'string'
+    });
 
     // 1. BUSCAR OPORTUNIDADES ABERTAS POR ETAPA (SEM FILTRO DE DATA - SÃO AS ABERTAS AGORA)
     const etapaIds = etapas.map(e => e.id_etapa_sprint);

@@ -322,7 +322,7 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
           console.log('⚠️ FunnelChart: Usando datas fallback (hoje SP):', { dataInicio, dataFim });
         }
         
-        const dadosCompletos = await getFunnelStagesData(etapasEstrutura, dataInicio, dataFim, selectedFunnel, selectedSeller);
+        const dadosCompletos = await getFunnelStagesData(etapasEstrutura, dataInicio, dataFim, selectedFunnel, selectedSeller, selectedOrigin, selectedUnit);
         
         console.log('✅ FunnelChart: Dados das etapas carregados:', dadosCompletos);
         console.log('🔍 FunnelChart: Detalhes das etapas com abertos:');
@@ -362,7 +362,7 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
     };
 
     fetchEtapasComDados();
-  }, [selectedFunnel, selectedSeller, startDate, endDate]);
+  }, [selectedFunnel, selectedSeller, selectedOrigin, selectedUnit, startDate, endDate]);
 
   if (loading) {
     return (
