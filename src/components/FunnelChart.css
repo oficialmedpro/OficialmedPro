@@ -169,6 +169,13 @@
   display: inline-block;
   letter-spacing: 0.5px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.fc-funnel-active:hover {
+  background-color: #2a4a73;
+  transform: scale(1.02);
 }
 
 /* 🎯 CONTAINER PARA BADGES LADO A LADO NO CANTO DIREITO */
@@ -203,6 +210,13 @@
   text-shadow: none !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
   display: inline-block !important;
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.fc-funnel-passed-through:hover {
+  background-color: #2563eb;
+  transform: scale(1.05);
 }
 
 /* BADGE VERDE - CRIADAS NO PERÍODO */
@@ -216,6 +230,13 @@
   text-shadow: none !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
   display: inline-block !important;
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.fc-funnel-created-today:hover {
+  background-color: #059669;
+  transform: scale(1.05);
 }
 
 /* BADGE VERDE ESCURO - CRIADAS ESPECÍFICAS DA ETAPA */
@@ -242,6 +263,13 @@
   text-shadow: none !important;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
   display: inline-block !important;
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.fc-funnel-lost-today:hover {
+  background-color: #dc2626;
+  transform: scale(1.05);
 }
 
 /* =================== TEXTO DINÂMICO DOS FILTROS =================== */
@@ -364,6 +392,13 @@
   right: 40px;
   bottom: -43px;
   z-index: 3;
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.funildash_conversion-rate-box:hover {
+  background: #f59e0b;
+  transform: scale(1.05);
 }
 
 /* Ajustes específicos para criar o efeito de funil */

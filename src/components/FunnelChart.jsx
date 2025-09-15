@@ -22,6 +22,12 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
     return num.toLocaleString('pt-BR');
   };
 
+  // Função para formatar valor em R$ com lógica para não mostrar quando for 0
+  const formatValue = (valor) => {
+    if (!valor || valor === 0) return '';
+    return `Valor: R$ ${valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+  };
+
   // Função para determinar singular/plural
   const getLabel = (num, singular, plural) => {
     return num === 1 ? singular : plural;
@@ -613,7 +619,10 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                   <span className="fc-funnel-label">{etapa.nome_etapa}</span>
                   <div className="fc-funnel-values">
                     {/* 🎯 DESTAQUE: Oportunidades abertas (número laranja do CRM) */}
-                    <span className="fc-funnel-value fc-funnel-active" title={`Debug: ${etapa.nome_etapa} = ${etapa.abertos} abertos`}>
+                    <span 
+                      className="fc-funnel-value fc-funnel-active" 
+                      title={`Total Oportunidades Abertas ${formatValue(etapa.valorEmAberto || 0)}`.trim()}
+                    >
                       {formatNumber(etapa.abertos || 0)}
                     </span>
                   </div>
@@ -622,12 +631,15 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                     {/* Linha superior com badges principais */}
                     <div className="fc-funnel-badges-row">
                       {/* BADGE AZUL - PASSARAM POR ESTA ETAPA - SEMPRE MOSTRAR PARA DEBUG */}
-                      <div className="fc-funnel-passed-through" title={`Debug: ${etapa.nome_etapa} = ${etapa.passaramPorEtapa} passaram`}>
+                      <div className="fc-funnel-passed-through" title="Total Oportunidades que passaram">
                         {formatNumber(etapa.passaramPorEtapa || 0)}
                       </div>
                       {/* BADGE VERDE - CRIADAS */}
                       {etapa.criadasPeriodo > 0 && (
-                        <div className="fc-funnel-created-today">
+                        <div 
+                          className="fc-funnel-created-today"
+                          title={`Total Oportunidades Novas ${formatValue(etapa.valorCriadasPeriodo || 0)}`.trim()}
+                        >
                           +{formatNumber(etapa.criadasPeriodo)}
                         </div>
                       )}
@@ -639,14 +651,20 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                       )}
                       {/* BADGE VERMELHO - PERDIDAS - SEMPRE MOSTRAR SE HOUVER DADOS */}
                       {etapa.perdidasPeriodo > 0 && (
-                        <div className="fc-funnel-lost-today">
+                        <div 
+                          className="fc-funnel-lost-today"
+                          title={`Total Oportunidades Perdidas ${formatValue(etapa.valorPerdidasPeriodo || 0)}`.trim()}
+                        >
                           -{formatNumber(etapa.perdidasPeriodo)}
                         </div>
                       )}
                     </div>
                     {/* TAXA DE CONVERSÃO - EMBAIXO DOS BADGES */}
                     {index < etapas.length - 1 && (
-                      <div className="funildash_conversion-rate-box">
+                      <div 
+                        className="funildash_conversion-rate-box"
+                        title="Taxa de passagem"
+                      >
                         {etapas[index + 1]?.taxaPassagem !== null ? `${etapas[index + 1].taxaPassagem}%` : '0%'}
                       </div>
                     )}

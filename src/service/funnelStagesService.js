@@ -308,37 +308,53 @@ export const getFunnelStagesData = async (etapas, startDate = null, endDate = nu
 
       // LÓGICA PARA CRIADAS NO PERÍODO POR ETAPA
       let criadasPeriodoEtapa = 0;
+      let valorCriadasPeriodoEtapa = 0; // Declarar no escopo correto
 
       if (etapa.ordem_etapa === 0 || etapa.nome_etapa?.toLowerCase().includes('entrada')) {
         // PRIMEIRA ETAPA: Total geral de criadas no período (para badge verde claro)
         criadasPeriodoEtapa = oportunidadesCriadas.length;
+        // valorCriadasPeriodoEtapa já está declarado no escopo do loop
         console.log(`📊 FunnelStages: Primeira etapa "${etapa.nome_etapa}": ${criadasPeriodoEtapa} criadas no período (total geral)`);
 
         // TAMBÉM buscar criadas específicas da primeira etapa (para badge verde escuro)
         try {
-          const criadasNaPrimeiraEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}&crm_column=eq.${etapa.id_etapa_sprint}${filters}${originFilter}`;
+          const criadasNaPrimeiraEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}&crm_column=eq.${etapa.id_etapa_sprint}${filters}${originFilter}`;
 
           console.log(`🔍 FunnelStages: Buscando criadas específicas da primeira etapa:`, criadasNaPrimeiraEtapaUrl);
 
           const criadasEspecificasData = await fetchAllRecords(criadasNaPrimeiraEtapaUrl, baseHeaders);
           const criadasEspecificasPrimeiraEtapa = criadasEspecificasData ? criadasEspecificasData.length : 0;
+          
+          // Calcular valor total das criadas específicas
+          const valorCriadasEspecificasPrimeiraEtapa = criadasEspecificasData ? criadasEspecificasData.reduce((acc, opp) => {
+            const valor = parseFloat(opp.value) || 0;
+            return acc + valor;
+          }, 0) : 0;
 
-          console.log(`✅ FunnelStages: Primeira etapa específicas: ${criadasEspecificasPrimeiraEtapa} criadas que ficaram na entrada`);
+          console.log(`✅ FunnelStages: Primeira etapa específicas: ${criadasEspecificasPrimeiraEtapa} criadas que ficaram na entrada, valor: R$ ${valorCriadasEspecificasPrimeiraEtapa.toFixed(2)}`);
 
           // BUSCAR PERDIDAS NA PRIMEIRA ETAPA
           let perdidasPrimeiraEtapa = 0;
+          let valorPerdidasPrimeiraEtapa = 0;
           try {
-            const perdidasNaPrimeiraEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.lost&lost_date=gte.${dataInicio}&lost_date=lte.${dataFim}&crm_column=eq.${etapa.id_etapa_sprint}${filters}${originFilter}`;
+            const perdidasNaPrimeiraEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.lost&lost_date=gte.${dataInicio}&lost_date=lte.${dataFim}&crm_column=eq.${etapa.id_etapa_sprint}${filters}${originFilter}`;
 
             console.log(`🔍 FunnelStages: Buscando perdidas na primeira etapa:`, perdidasNaPrimeiraEtapaUrl);
 
             const perdidasPrimeiraEtapaData = await fetchAllRecords(perdidasNaPrimeiraEtapaUrl, baseHeaders);
             perdidasPrimeiraEtapa = perdidasPrimeiraEtapaData ? perdidasPrimeiraEtapaData.length : 0;
+            
+            // Calcular valor total das perdidas
+            valorPerdidasPrimeiraEtapa = perdidasPrimeiraEtapaData ? perdidasPrimeiraEtapaData.reduce((acc, opp) => {
+              const valor = parseFloat(opp.value) || 0;
+              return acc + valor;
+            }, 0) : 0;
 
-            console.log(`✅ FunnelStages: Primeira etapa perdidas: ${perdidasPrimeiraEtapa} perdidas no período`);
+            console.log(`✅ FunnelStages: Primeira etapa perdidas: ${perdidasPrimeiraEtapa} perdidas no período, valor: R$ ${valorPerdidasPrimeiraEtapa.toFixed(2)}`);
           } catch (error) {
             console.error(`❌ FunnelStages: Erro ao buscar perdidas na primeira etapa:`, error);
             perdidasPrimeiraEtapa = 0;
+            valorPerdidasPrimeiraEtapa = 0;
           }
 
           // Salvar as duas informações
@@ -347,8 +363,11 @@ export const getFunnelStagesData = async (etapas, startDate = null, endDate = nu
             abertos: abertosEtapa.length,
             valorEmAberto: valorEmAberto,
             criadasPeriodo: criadasPeriodoEtapa, // Total geral (99)
+            valorCriadasPeriodo: 0, // Será calculado separadamente para o total geral
             criadasEspecificasEtapa: criadasEspecificasPrimeiraEtapa, // Específicas da entrada
+            valorCriadasEspecificasEtapa: valorCriadasEspecificasPrimeiraEtapa, // VALOR DAS CRIADAS ESPECÍFICAS
             perdidasPeriodo: perdidasPrimeiraEtapa, // PERDIDAS NA PRIMEIRA ETAPA
+            valorPerdidasPeriodo: valorPerdidasPrimeiraEtapa, // VALOR DAS PERDIDAS NA PRIMEIRA ETAPA
             passaramPorEtapa: 0,
             taxaPassagem: null
           });
@@ -359,35 +378,51 @@ export const getFunnelStagesData = async (etapas, startDate = null, endDate = nu
         }
       } else {
         // OUTRAS ETAPAS: Apenas criadas no período QUE ESTÃO nesta etapa específica
+        // valorCriadasPeriodoEtapa já está declarado no escopo do loop
         try {
-          const criadasNaEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}&crm_column=eq.${etapa.id_etapa_sprint}${filters}${originFilter}`;
+          const criadasNaEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}&crm_column=eq.${etapa.id_etapa_sprint}${filters}${originFilter}`;
 
           console.log(`🔍 FunnelStages: Buscando criadas na etapa "${etapa.nome_etapa}":`, criadasNaEtapaUrl);
 
           const criadasNaEtapaData = await fetchAllRecords(criadasNaEtapaUrl, baseHeaders);
           criadasPeriodoEtapa = criadasNaEtapaData ? criadasNaEtapaData.length : 0;
+          
+          // Calcular valor total das criadas
+          valorCriadasPeriodoEtapa = criadasNaEtapaData ? criadasNaEtapaData.reduce((acc, opp) => {
+            const valor = parseFloat(opp.value) || 0;
+            return acc + valor;
+          }, 0) : 0;
 
-          console.log(`✅ FunnelStages: Etapa "${etapa.nome_etapa}": ${criadasPeriodoEtapa} criadas no período e nesta etapa`);
+          console.log(`✅ FunnelStages: Etapa "${etapa.nome_etapa}": ${criadasPeriodoEtapa} criadas no período e nesta etapa, valor: R$ ${valorCriadasPeriodoEtapa.toFixed(2)}`);
         } catch (error) {
           console.error(`❌ FunnelStages: Erro ao buscar criadas na etapa "${etapa.nome_etapa}":`, error);
           criadasPeriodoEtapa = 0;
+          valorCriadasPeriodoEtapa = 0;
         }
       }
 
       // BUSCAR OPORTUNIDADES PERDIDAS NO PERÍODO PARA ESTA ETAPA
       let perdidasPeriodoEtapa = 0;
+      let valorPerdidasPeriodoEtapa = 0;
       try {
-        const perdidasNaEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.lost&lost_date=gte.${dataInicio}&lost_date=lte.${dataFim}&crm_column=eq.${etapa.id_etapa_sprint}${filters}${originFilter}`;
+        const perdidasNaEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.lost&lost_date=gte.${dataInicio}&lost_date=lte.${dataFim}&crm_column=eq.${etapa.id_etapa_sprint}${filters}${originFilter}`;
 
         console.log(`🔍 FunnelStages: Buscando perdidas na etapa "${etapa.nome_etapa}":`, perdidasNaEtapaUrl);
 
         const perdidasNaEtapaData = await fetchAllRecords(perdidasNaEtapaUrl, baseHeaders);
         perdidasPeriodoEtapa = perdidasNaEtapaData ? perdidasNaEtapaData.length : 0;
+        
+        // Calcular valor total das perdidas
+        valorPerdidasPeriodoEtapa = perdidasNaEtapaData ? perdidasNaEtapaData.reduce((acc, opp) => {
+          const valor = parseFloat(opp.value) || 0;
+          return acc + valor;
+        }, 0) : 0;
 
-        console.log(`✅ FunnelStages: Etapa "${etapa.nome_etapa}": ${perdidasPeriodoEtapa} perdidas no período nesta etapa`);
+        console.log(`✅ FunnelStages: Etapa "${etapa.nome_etapa}": ${perdidasPeriodoEtapa} perdidas no período nesta etapa, valor: R$ ${valorPerdidasPeriodoEtapa.toFixed(2)}`);
       } catch (error) {
         console.error(`❌ FunnelStages: Erro ao buscar perdidas na etapa "${etapa.nome_etapa}":`, error);
         perdidasPeriodoEtapa = 0;
+        valorPerdidasPeriodoEtapa = 0;
       }
 
       resultado.push({
@@ -395,8 +430,11 @@ export const getFunnelStagesData = async (etapas, startDate = null, endDate = nu
         abertos: abertosEtapa.length,
         valorEmAberto: valorEmAberto,
         criadasPeriodo: criadasPeriodoEtapa,
+        valorCriadasPeriodo: valorCriadasPeriodoEtapa, // VALOR DAS CRIADAS NO PERÍODO
         criadasEspecificasEtapa: criadasPeriodoEtapa, // Para outras etapas, é igual ao criadasPeriodo
+        valorCriadasEspecificasEtapa: valorCriadasPeriodoEtapa, // Para outras etapas, é igual ao valorCriadasPeriodo
         perdidasPeriodo: perdidasPeriodoEtapa, // ADICIONAR PERDIDAS NO PERÍODO
+        valorPerdidasPeriodo: valorPerdidasPeriodoEtapa, // ADICIONAR VALOR DAS PERDIDAS NO PERÍODO
         passaramPorEtapa: 0,
         taxaPassagem: null
       });
