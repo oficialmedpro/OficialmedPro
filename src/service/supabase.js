@@ -150,6 +150,71 @@ export const getEstatisticasOportunidades = async () => {
   }
 }
 
+/**
+ * 📄 FUNÇÃO PARA BUSCAR TODOS OS REGISTROS COM PAGINAÇÃO RECURSIVA
+ * 
+ * @param {string} url - URL base da query
+ * @param {Object} headers - Headers da requisição
+ * @returns {Array} Todos os registros encontrados
+ */
+const fetchAllRecords = async (url, headers) => {
+  const pageSize = 1000;
+  let allRecords = [];
+  let offset = 0;
+  let hasMore = true;
+
+  console.log('📄 Supabase: Iniciando paginação para URL:', url);
+
+  while (hasMore) {
+    const paginatedUrl = `${url}`;
+    const paginationHeaders = {
+      ...headers,
+      'Range': `${offset}-${offset + pageSize - 1}`
+    };
+
+    try {
+      const response = await fetch(paginatedUrl, {
+        method: 'GET',
+        headers: paginationHeaders
+      });
+
+      if (!response.ok) {
+        console.error(`❌ Supabase: Erro na página ${Math.floor(offset / pageSize) + 1}:`, response.status);
+        break;
+      }
+
+      const pageData = await response.json();
+      allRecords = allRecords.concat(pageData);
+
+      console.log(`📄 Supabase: Página ${Math.floor(offset / pageSize) + 1}: ${pageData.length} registros | Total: ${allRecords.length}`);
+
+      if (pageData.length < pageSize) {
+        hasMore = false;
+      } else {
+        offset += pageSize;
+      }
+
+      const contentRange = response.headers.get('Content-Range');
+      if (contentRange) {
+        const match = contentRange.match(/(\d+)-(\d+)\/(\d+|\*)/);
+        if (match) {
+          const [, , end, total] = match;
+          if (total !== '*' && parseInt(end) >= parseInt(total) - 1) {
+            hasMore = false;
+          }
+        }
+      }
+
+    } catch (error) {
+      console.error(`❌ Supabase: Erro ao buscar página ${Math.floor(offset / pageSize) + 1}:`, error);
+      break;
+    }
+  }
+
+  console.log(`✅ Supabase: Paginação concluída: ${allRecords.length} registros totais`);
+  return allRecords;
+};
+
 // 🎯 FUNÇÃO PARA BUSCAR ETAPAS DINÂMICAS DO FUNIL
 export const getFunilEtapas = async (idFunilSprint) => {
   try {
@@ -194,38 +259,7 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
       return { etapas: [], conversaoGeral: { totalCriadas: 0, totalFechadas: 0, taxaConversao: 0, valorTotal: 0, ticketMedio: 0 } };
     }
     
-    // Construir lista de etapas para o filtro - SINTAXE CORRETA SUPABASE
-    const etapaIds = etapas.map(e => e.id_etapa_sprint);
-    const etapaFilter = etapaIds.map(id => `crm_column.eq.${id}`).join(',');
-    
-    // Construir filtro de vendedor se fornecido
-    const sellerFilter = selectedSeller && selectedSeller !== 'all' ? `&user_id=eq.${selectedSeller}` : '';
-    
-    // BUSCAR APENAS OPORTUNIDADES ABERTAS (STATUS=OPEN) - FOCO INICIAL  
-    const openUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,crm_column,value,user_id&archived=eq.0&status=eq.open&or=(${etapaFilter})${sellerFilter}`;
-    console.log('🔍 URL oportunidades abertas:', openUrl);
-
-    const response = await fetch(openUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
-        'Accept-Profile': supabaseSchema,
-        'Content-Profile': supabaseSchema
-      }
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Erro HTTP:', response.status, errorText);
-      throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
-    }
-
-    const oportunidadesAbertas = await response.json();
-    console.log(`✅ Oportunidades abertas encontradas: ${oportunidadesAbertas.length}`);
-
-    // 🎯 BUSCAR OPORTUNIDADES CRIADAS NO PERÍODO SELECIONADO
+    // 🎯 BUSCAR OPORTUNIDADES CRIADAS NO PERÍODO SELECIONADO PRIMEIRO PARA TER AS DATAS
     let dataInicio, dataFim;
     if (startDate && endDate) {
       dataInicio = getStartOfDaySP(startDate);
@@ -236,55 +270,49 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
       dataFim = getEndOfDaySP(hoje);
     }
     
-    // Construir filtro de funil se fornecido
+    // Construir filtro de funil se fornecido (APLICAR EM TODAS AS QUERIES)
     const funilFilter = selectedFunnel ? `&funil_id=eq.${selectedFunnel}` : '';
     
-    // 1. TOTAL GERAL (para primeira etapa - ENTRADA)
+    // Construir lista de etapas para o filtro - SINTAXE CORRETA SUPABASE
+    const etapaIds = etapas.map(e => e.id_etapa_sprint);
+    const etapaFilter = etapaIds.map(id => `crm_column.eq.${id}`).join(',');
+    
+    // Construir filtro de vendedor se fornecido
+    const sellerFilter = selectedSeller && selectedSeller !== 'all' ? `&user_id=eq.${selectedSeller}` : '';
+    
+    // BUSCAR APENAS OPORTUNIDADES ABERTAS (STATUS=OPEN) - COM PAGINAÇÃO E FILTROS CORRETOS
+    const openUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,crm_column,value,user_id&archived=eq.0&status=eq.open&or=(${etapaFilter})${funilFilter}${sellerFilter}`;
+    console.log('🔍 URL oportunidades abertas:', openUrl);
+
+    const baseHeaders = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+      'Accept-Profile': supabaseSchema,
+      'Content-Profile': supabaseSchema,
+      'Prefer': 'count=exact'
+    };
+
+    const oportunidadesAbertas = await fetchAllRecords(openUrl, baseHeaders);
+    console.log(`✅ Oportunidades abertas encontradas (paginação): ${oportunidadesAbertas.length}`);
+
+    // 1. TOTAL GERAL (para primeira etapa - ENTRADA) - COM PAGINAÇÃO
     const criadasPeriodoTotalUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${funilFilter}${sellerFilter}`;
     
-    const criadasPeriodoTotalResponse = await fetch(criadasPeriodoTotalUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
-        'Accept-Profile': supabaseSchema,
-        'Content-Profile': supabaseSchema
-      }
-    });
+    const totalData = await fetchAllRecords(criadasPeriodoTotalUrl, baseHeaders);
+    const criadasPeriodoTotal = totalData.length;
+    console.log(`✅ TOTAL oportunidades criadas no período (paginação): ${criadasPeriodoTotal}`);
 
-    let criadasPeriodoTotal = 0;
-    if (criadasPeriodoTotalResponse.ok) {
-      const totalData = await criadasPeriodoTotalResponse.json();
-      criadasPeriodoTotal = totalData.length;
-      console.log(`✅ TOTAL oportunidades criadas no período: ${criadasPeriodoTotal}`);
-    }
-
-    // 2. BUSCAR OPORTUNIDADES FECHADAS (WON) NO PERÍODO
+    // 2. BUSCAR OPORTUNIDADES FECHADAS (WON) NO PERÍODO - COM PAGINAÇÃO
     const fechadasHojeUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.won&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${funilFilter}${sellerFilter}`;
     
-    const fechadasHojeResponse = await fetch(fechadasHojeUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
-        'Accept-Profile': supabaseSchema,
-        'Content-Profile': supabaseSchema
-      }
-    });
-
-    let fechadasHoje = null;
-    let valorTotalFechadas = 0;
-    if (fechadasHojeResponse.ok) {
-      fechadasHoje = await fechadasHojeResponse.json();
-      console.log(`✅ Oportunidades fechadas: ${fechadasHoje.length}`);
-      
-      valorTotalFechadas = fechadasHoje.reduce((acc, opp) => {
-        const valor = parseFloat(opp.value) || 0;
-        return acc + valor;
-      }, 0);
-    }
+    const fechadasHoje = await fetchAllRecords(fechadasHojeUrl, baseHeaders);
+    console.log(`✅ Oportunidades fechadas (paginação): ${fechadasHoje.length}`);
+    
+    const valorTotalFechadas = fechadasHoje.reduce((acc, opp) => {
+      const valor = parseFloat(opp.value) || 0;
+      return acc + valor;
+    }, 0);
 
     // 3. PROCESSAR DADOS POR ETAPA
     const resultado = [];
@@ -346,19 +374,11 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
     // 6. BUSCAR DADOS DE SOURCES (ORIGENS DAS OPORTUNIDADES)
     console.log('🔍 Buscando dados de sources...');
     
-    // Buscar oportunidades abertas com origem para calcular sources
+    // Buscar oportunidades abertas com origem para calcular sources - COM PAGINAÇÃO
     const sourcesUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=origem_oportunidade,utm_source&archived=eq.0&status=eq.open${funilFilter}${sellerFilter}`;
     
-    const sourcesResponse = await fetch(sourcesUrl, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
-        'Accept-Profile': supabaseSchema,
-        'Content-Profile': supabaseSchema
-      }
-    });
+    const sourcesOpps = await fetchAllRecords(sourcesUrl, baseHeaders);
+    console.log(`✅ Oportunidades para sources (paginação): ${sourcesOpps.length}`);
 
     let sourcesData = {
       google: { abertas: 0, criadas: 0 },
@@ -370,86 +390,66 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
       total: criadasPeriodoTotal
     };
 
-    if (sourcesResponse.ok) {
-      const sourcesOpps = await sourcesResponse.json();
-      console.log(`✅ Oportunidades para sources: ${sourcesOpps.length}`);
+    // Contar por origem
+    sourcesOpps.forEach(opp => {
+      const origem = opp.origem_oportunidade || opp.utm_source || 'whatsapp';
+      const origemLower = origem.toLowerCase();
       
-      // Contar por origem
-      sourcesOpps.forEach(opp => {
-        const origem = opp.origem_oportunidade || opp.utm_source || 'whatsapp';
-        const origemLower = origem.toLowerCase();
-        
-        if (origemLower.includes('google') || origemLower.includes('ads')) {
-          sourcesData.google.abertas++;
-        } else if (origemLower.includes('meta') || origemLower.includes('facebook') || origemLower.includes('instagram')) {
-          sourcesData.meta.abertas++;
-        } else if (origemLower.includes('organico') || origemLower.includes('orgânico') || origemLower.includes('organic')) {
-          sourcesData.organico.abertas++;
-        } else if (origemLower.includes('whatsapp') || origemLower.includes('zap')) {
-          sourcesData.whatsapp.abertas++;
-        } else if (origemLower.includes('prescritor') || origemLower.includes('prescrição')) {
-          sourcesData.prescritor.abertas++;
-        } else if (origemLower.includes('franquia') || origemLower.includes('franchise')) {
-          sourcesData.franquia.abertas++;
-        } else {
-          // Default para WhatsApp se não identificar
-          sourcesData.whatsapp.abertas++;
-        }
-      });
-      
-      // Buscar oportunidades criadas no período por origem
-      const sourcesCriadasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=origem_oportunidade,utm_source&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${funilFilter}${sellerFilter}`;
-      
-      const sourcesCriadasResponse = await fetch(sourcesCriadasUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
-          'Accept-Profile': supabaseSchema,
-          'Content-Profile': supabaseSchema
-        }
-      });
-
-      if (sourcesCriadasResponse.ok) {
-        const sourcesCriadasOpps = await sourcesCriadasResponse.json();
-        console.log(`✅ Oportunidades criadas para sources: ${sourcesCriadasOpps.length}`);
-        
-        sourcesCriadasOpps.forEach(opp => {
-          const origem = opp.origem_oportunidade || opp.utm_source || 'whatsapp';
-          const origemLower = origem.toLowerCase();
-          
-          if (origemLower.includes('google') || origemLower.includes('ads')) {
-            sourcesData.google.criadas++;
-          } else if (origemLower.includes('meta') || origemLower.includes('facebook') || origemLower.includes('instagram')) {
-            sourcesData.meta.criadas++;
-          } else if (origemLower.includes('organico') || origemLower.includes('orgânico') || origemLower.includes('organic')) {
-            sourcesData.organico.criadas++;
-          } else if (origemLower.includes('whatsapp') || origemLower.includes('zap')) {
-            sourcesData.whatsapp.criadas++;
-          } else if (origemLower.includes('prescritor') || origemLower.includes('prescrição')) {
-            sourcesData.prescritor.criadas++;
-          } else if (origemLower.includes('franquia') || origemLower.includes('franchise')) {
-            sourcesData.franquia.criadas++;
-          } else {
-            sourcesData.whatsapp.criadas++;
-          }
-        });
+      if (origemLower.includes('google') || origemLower.includes('ads')) {
+        sourcesData.google.abertas++;
+      } else if (origemLower.includes('meta') || origemLower.includes('facebook') || origemLower.includes('instagram')) {
+        sourcesData.meta.abertas++;
+      } else if (origemLower.includes('organico') || origemLower.includes('orgânico') || origemLower.includes('organic')) {
+        sourcesData.organico.abertas++;
+      } else if (origemLower.includes('whatsapp') || origemLower.includes('zap')) {
+        sourcesData.whatsapp.abertas++;
+      } else if (origemLower.includes('prescritor') || origemLower.includes('prescrição')) {
+        sourcesData.prescritor.abertas++;
+      } else if (origemLower.includes('franquia') || origemLower.includes('franchise')) {
+        sourcesData.franquia.abertas++;
+      } else {
+        // Default para WhatsApp se não identificar
+        sourcesData.whatsapp.abertas++;
       }
+    });
+    
+    // Buscar oportunidades criadas no período por origem - COM PAGINAÇÃO
+    const sourcesCriadasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=origem_oportunidade,utm_source&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${funilFilter}${sellerFilter}`;
+    
+    const sourcesCriadasOpps = await fetchAllRecords(sourcesCriadasUrl, baseHeaders);
+    console.log(`✅ Oportunidades criadas para sources (paginação): ${sourcesCriadasOpps.length}`);
+    
+    sourcesCriadasOpps.forEach(opp => {
+      const origem = opp.origem_oportunidade || opp.utm_source || 'whatsapp';
+      const origemLower = origem.toLowerCase();
       
-      console.log('📊 Sources data calculado:', sourcesData);
-    } else {
-      console.log('⚠️ Erro ao buscar dados de sources, usando valores padrão');
-    }
+      if (origemLower.includes('google') || origemLower.includes('ads')) {
+        sourcesData.google.criadas++;
+      } else if (origemLower.includes('meta') || origemLower.includes('facebook') || origemLower.includes('instagram')) {
+        sourcesData.meta.criadas++;
+      } else if (origemLower.includes('organico') || origemLower.includes('orgânico') || origemLower.includes('organic')) {
+        sourcesData.organico.criadas++;
+      } else if (origemLower.includes('whatsapp') || origemLower.includes('zap')) {
+        sourcesData.whatsapp.criadas++;
+      } else if (origemLower.includes('prescritor') || origemLower.includes('prescrição')) {
+        sourcesData.prescritor.criadas++;
+      } else if (origemLower.includes('franquia') || origemLower.includes('franchise')) {
+        sourcesData.franquia.criadas++;
+      } else {
+        sourcesData.whatsapp.criadas++;
+      }
+    });
+    
+    console.log('📊 Sources data calculado (paginação):', sourcesData);
 
     const resultadoCompleto = {
       etapas: resultado,
       conversaoGeral: {
         totalCriadas: criadasPeriodoTotal,
-        totalFechadas: fechadasHoje ? fechadasHoje.length : 0,
-        taxaConversao: criadasPeriodoTotal > 0 ? ((fechadasHoje ? fechadasHoje.length : 0) / criadasPeriodoTotal) * 100 : 0,
-        valorTotal: valorTotalFechadas || 0,
-        ticketMedio: (fechadasHoje && fechadasHoje.length > 0) ? (valorTotalFechadas || 0) / fechadasHoje.length : 0
+        totalFechadas: fechadasHoje.length,
+        taxaConversao: criadasPeriodoTotal > 0 ? (fechadasHoje.length / criadasPeriodoTotal) * 100 : 0,
+        valorTotal: valorTotalFechadas,
+        ticketMedio: fechadasHoje.length > 0 ? valorTotalFechadas / fechadasHoje.length : 0
       },
       sourcesData: sourcesData
     };

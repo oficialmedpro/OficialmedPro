@@ -87,6 +87,23 @@ const GoogleInvestimentoCard = ({
     return `${roas.toFixed(2)}x`;
   };
 
+  // Debug: Log das métricas para verificar se os dados estão chegando
+  console.log('🔍 GoogleInvestimentoCard Debug:', {
+    loading,
+    error,
+    total,
+    metrics,
+    totalNegociacao: metrics.totalNegociacao,
+    totalFollowUp: metrics.totalFollowUp,
+    valorNegociacao: metrics.valorNegociacao,
+    valorFollowUp: metrics.valorFollowUp,
+    startDate,
+    endDate,
+    selectedFunnel,
+    selectedUnit,
+    selectedSeller
+  });
+
 
   return (
     <div className="ms-metric-card ms-google-card">

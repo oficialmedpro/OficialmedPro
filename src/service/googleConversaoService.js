@@ -178,9 +178,40 @@ export const googleConversaoService = {
     const abertasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open${googleOriginFilter}${optional}`;
     console.log('🔍 GoogleConversaoService - URL Abertas (GOOGLE):', abertasUrl);
 
-    // 5) BUSCAR IDs DAS ETAPAS ESPECIAIS (orcamento e follow)
-    const etapasEspeciaisUrl = `${supabaseUrl}/rest/v1/funil_etapas?select=id_etapa_sprint,orcamento,follow&or=(orcamento.eq.true,follow.eq.true)`;
-    console.log('🔍 GoogleConversaoService - URL Etapas Especiais:', etapasEspeciaisUrl);
+    // 5) BUSCAR O FUNIL GOOGLE ADS DA UNIDADE SELECIONADA
+    const funilGoogleAdsUrl = `${supabaseUrl}/rest/v1/funis?select=id_funil_sprint&unidade=eq.${encodeURIComponent(options.selectedUnit || 'all')}&googleads=eq.true`;
+    console.log('🔍 GoogleConversaoService - URL Funil Google Ads:', funilGoogleAdsUrl);
+    
+    const funilRes = await fetch(funilGoogleAdsUrl, { method: 'GET', headers: baseHeaders });
+    const funilGoogleAds = await (funilRes.ok ? funilRes.json() : []);
+    
+    console.log('🔍 Funil Google Ads encontrado:', funilGoogleAds);
+    
+    let orcamentoEtapa = null;
+    let followEtapa = null;
+    
+    if (funilGoogleAds.length > 0) {
+      const funilId = funilGoogleAds[0].id_funil_sprint;
+      console.log('🎯 Funil Google Ads ID:', funilId);
+      
+      // 6) BUSCAR ETAPAS ESPECIAIS DO FUNIL GOOGLE ADS
+      const etapasEspeciaisUrl = `${supabaseUrl}/rest/v1/funil_etapas?select=id_etapa_sprint,orcamento,follow&id_funil_sprint=eq.${funilId}&or=(orcamento.eq.true,follow.eq.true)`;
+      console.log('🔍 GoogleConversaoService - URL Etapas Especiais do Funil:', etapasEspeciaisUrl);
+      
+      const etapasRes = await fetch(etapasEspeciaisUrl, { method: 'GET', headers: baseHeaders });
+      const etapasEspeciais = await (etapasRes.ok ? etapasRes.json() : []);
+      
+      console.log('🔍 Etapas especiais encontradas:', etapasEspeciais);
+      
+      // Separar IDs das etapas
+      orcamentoEtapa = etapasEspeciais.find(e => e.orcamento === true);
+      followEtapa = etapasEspeciais.find(e => e.follow === true);
+      
+      console.log('🎯 Etapa Orçamento (Negociação):', orcamentoEtapa);
+      console.log('🎯 Etapa Follow-Up:', followEtapa);
+    } else {
+      console.log('⚠️ Nenhum funil Google Ads encontrado para a unidade:', options.selectedUnit);
+    }
     
     // DEBUG: Comparar com OportunidadesGanhasService
     console.log('🔍 COMPARAÇÃO COM OportunidadesGanhasService:');
@@ -191,30 +222,17 @@ export const googleConversaoService = {
     console.log('  - URL COMPLETA Criadas:', criadasUrl);
     console.log('  - URL COMPLETA Ganhas:', ganhasUrl);
 
-    // PRIMEIRO: Buscar etapas especiais para obter os IDs
-    const etapasRes = await fetch(etapasEspeciaisUrl, { method: 'GET', headers: baseHeaders });
-    const etapasEspeciais = await (etapasRes.ok ? etapasRes.json() : []);
-    
-    console.log('🔍 Etapas especiais encontradas:', etapasEspeciais);
-    
-    // Separar IDs das etapas
-    const orcamentoEtapa = etapasEspeciais.find(e => e.orcamento === true);
-    const followEtapa = etapasEspeciais.find(e => e.follow === true);
-    
-    console.log('🎯 Etapa Orçamento (Negociação):', orcamentoEtapa);
-    console.log('🎯 Etapa Follow-Up:', followEtapa);
-
-    // Construir URLs para oportunidades nas etapas especiais
+    // Construir URLs para oportunidades nas etapas especiais (sempre do funil Google Ads)
     let negociacaoUrl = null;
     let followUpUrl = null;
     
     if (orcamentoEtapa) {
-      negociacaoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open&crm_column=eq.${orcamentoEtapa.id_etapa_sprint}${googleOriginFilter}${optional}`;
+      negociacaoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open&crm_column=eq.${orcamentoEtapa.id_etapa_sprint}${googleOriginFilter}`;
       console.log('🔍 GoogleConversaoService - URL Negociação (OPEN):', negociacaoUrl);
     }
     
     if (followEtapa) {
-      followUpUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open&crm_column=eq.${followEtapa.id_etapa_sprint}${googleOriginFilter}${optional}`;
+      followUpUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open&crm_column=eq.${followEtapa.id_etapa_sprint}${googleOriginFilter}`;
       console.log('🔍 GoogleConversaoService - URL Follow-Up (OPEN):', followUpUrl);
     }
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './FunnelChart.css';
-import { getFunilEtapas, getOportunidadesPorEtapaFunil } from '../service/supabase.js';
+import { getFunilEtapas } from '../service/supabase.js';
+import { getFunnelStagesData } from '../service/funnelStagesService.js';
+import { getFunnelSourcesMetrics } from '../service/funnelSourcesService.js';
 import { getTodayDateSP } from '../utils/utils.js';
 
 const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, startDate, endDate, selectedPeriod }) => {
@@ -8,13 +10,13 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
   const [conversaoGeral, setConversaoGeral] = useState(null);
   const [sourcesData, setSourcesData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [funnelName, setFunnelName] = useState('');
 
   // Função para formatar números grandes
   const formatNumber = (num) => {
     if (!num || isNaN(num)) return '0';
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'k';
-    return num.toString();
+    // Retornar número completo formatado com pontos
+    return num.toLocaleString('pt-BR');
   };
 
   // Função para determinar singular/plural
@@ -24,19 +26,10 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
 
   // Função para formatar o título dinâmico
   const getDynamicTitle = () => {
-    let title = 'Funil Comercial';
-    
-    // Adicionar nome do funil se específico
-    if (selectedFunnel && selectedFunnel !== 'all') {
-      title += ` - ${selectedFunnel}`;
+    if (funnelName) {
+      return `Funil - ${funnelName}`;
     }
-    
-    // Adicionar unidade se específica
-    if (selectedUnit && selectedUnit !== 'all') {
-      title += ` - Unidade ${selectedUnit}`;
-    }
-    
-    return title;
+    return 'Funil';
   };
 
   // Função para formatar o período dinâmico
@@ -75,6 +68,54 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
         return 'Período personalizado';
     }
   };
+
+  // Função para buscar nome do funil
+  const fetchFunnelName = async (funnelId) => {
+    if (!funnelId || funnelId === 'all') {
+      setFunnelName('');
+      return;
+    }
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+
+      const response = await fetch(`${supabaseUrl}/rest/v1/funis?select=nome_funil&id_funil_sprint=eq.${funnelId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': supabaseSchema,
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          setFunnelName(data[0].nome_funil);
+          console.log('✅ Nome do funil encontrado:', data[0].nome_funil);
+        } else {
+          console.log('⚠️ Funil não encontrado para ID:', funnelId);
+          setFunnelName('');
+        }
+      } else {
+        console.error('❌ Erro ao buscar nome do funil:', response.status);
+        setFunnelName('');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar nome do funil:', error);
+      setFunnelName('');
+    }
+  };
+
+  // useEffect para buscar nome do funil quando selectedFunnel mudar
+  useEffect(() => {
+    fetchFunnelName(selectedFunnel);
+  }, [selectedFunnel]);
+
+  // Buscar sources data será feito junto com as etapas para garantir consistência
 
   // Buscar etapas dinâmicas e dados das oportunidades baseado no funil selecionado
   useEffect(() => {
@@ -135,12 +176,36 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
           console.log('⚠️ FunnelChart: Usando datas fallback (hoje SP):', { dataInicio, dataFim });
         }
         
-        const dadosCompletos = await getOportunidadesPorEtapaFunil(etapasEstrutura, dataInicio, dataFim, selectedFunnel, selectedSeller);
+        const dadosCompletos = await getFunnelStagesData(etapasEstrutura, dataInicio, dataFim, selectedFunnel, selectedSeller);
         
-        console.log('✅ FunnelChart: Dados completos carregados:', dadosCompletos);
+        console.log('✅ FunnelChart: Dados das etapas carregados:', dadosCompletos);
+        console.log('🔍 FunnelChart: Detalhes das etapas com abertos:');
+        dadosCompletos.etapas?.forEach((etapa, index) => {
+          console.log(`   ${index + 1}. "${etapa.nome_etapa}": ${etapa.abertos} abertos, valor: R$ ${etapa.valorEmAberto}`);
+        });
+        
         setEtapas(dadosCompletos.etapas);
         setConversaoGeral(dadosCompletos.conversaoGeral);
-        setSourcesData(dadosCompletos.sourcesData);
+
+        // 🔄 BUSCAR SOURCES DATA COM ETAPAS PARA GARANTIR CONSISTÊNCIA
+        console.log('📊 FunnelChart: Buscando sources data com etapas carregadas...');
+        try {
+          const sourcesResult = await getFunnelSourcesMetrics(
+            dataInicio,
+            dataFim,
+            selectedFunnel,
+            selectedSeller,
+            selectedUnit,
+            null, // selectedOrigin
+            dadosCompletos.etapas // usar as etapas recém carregadas
+          );
+
+          console.log('✅ FunnelChart: Sources data recebido:', sourcesResult);
+          setSourcesData(sourcesResult);
+        } catch (error) {
+          console.error('❌ FunnelChart: Erro ao buscar sources data:', error);
+          setSourcesData(null);
+        }
         
       } catch (error) {
         console.error('❌ Erro ao carregar dados do funil:', error);
@@ -184,28 +249,12 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
               <div className="fc-source-value">
                 <div className="fc-source-line">
                   <span className="fc-source-count">
-                    {formatNumber(
-                      sourcesData.google.abertas + 
-                      sourcesData.meta.abertas + 
-                      sourcesData.organico.abertas + 
-                      sourcesData.whatsapp.abertas + 
-                      sourcesData.prescritor.abertas + 
-                      sourcesData.franquia.abertas
-                    )} {getLabel(
-                      sourcesData.google.abertas + 
-                      sourcesData.meta.abertas + 
-                      sourcesData.organico.abertas + 
-                      sourcesData.whatsapp.abertas + 
-                      sourcesData.prescritor.abertas + 
-                      sourcesData.franquia.abertas,
-                      'Aberta',
-                      'Abertas'
-                    )}
+                    {formatNumber(sourcesData.totalAbertas || 0)} {getLabel(sourcesData.totalAbertas || 0, 'Aberta', 'Abertas')}
                   </span>
                 </div>
                 <div className="fc-source-line">
                   <span className="fc-source-count">
-                    {formatNumber(sourcesData.total)} {getLabel(sourcesData.total, 'Nova', 'Novas')}
+                    +{formatNumber(sourcesData.total)} {getLabel(sourcesData.total, 'Nova', 'Novas')}
                   </span>
                 </div>
               </div>
@@ -218,12 +267,12 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                 <div className="fc-source-line">
                   <span className="fc-source-count">{formatNumber(sourcesData.google.abertas)} {getLabel(sourcesData.google.abertas, 'Aberta', 'Abertas')}</span>
                   <span className="fc-source-percentage">
-                    ({sourcesData.google.abertas > 0 ? 
-                      Math.round((sourcesData.google.abertas / (sourcesData.google.abertas + sourcesData.meta.abertas + sourcesData.organico.abertas + sourcesData.whatsapp.abertas + sourcesData.prescritor.abertas + sourcesData.franquia.abertas)) * 100) : 0}%)
+                    ({sourcesData.totalAbertas > 0 ?
+                      Math.round((sourcesData.google.abertas / sourcesData.totalAbertas) * 100) : 0}%)
                   </span>
                 </div>
                 <div className="fc-source-line">
-                  <span className="fc-source-count">{formatNumber(sourcesData.google.criadas)} {getLabel(sourcesData.google.criadas, 'Nova', 'Novas')}</span>
+                  <span className="fc-source-count">+{formatNumber(sourcesData.google.criadas)} {getLabel(sourcesData.google.criadas, 'Nova', 'Novas')}</span>
                   <span className="fc-source-percentage">
                     ({sourcesData.total > 0 ? Math.round((sourcesData.google.criadas / sourcesData.total) * 100) : 0}%)
                   </span>
@@ -237,12 +286,12 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                 <div className="fc-source-line">
                   <span className="fc-source-count">{formatNumber(sourcesData.meta.abertas)} {getLabel(sourcesData.meta.abertas, 'Aberta', 'Abertas')}</span>
                   <span className="fc-source-percentage">
-                    ({sourcesData.meta.abertas > 0 ? 
-                      Math.round((sourcesData.meta.abertas / (sourcesData.google.abertas + sourcesData.meta.abertas + sourcesData.organico.abertas + sourcesData.whatsapp.abertas + sourcesData.prescritor.abertas + sourcesData.franquia.abertas)) * 100) : 0}%)
+                    ({sourcesData.totalAbertas > 0 ?
+                      Math.round((sourcesData.meta.abertas / sourcesData.totalAbertas) * 100) : 0}%)
                   </span>
                 </div>
                 <div className="fc-source-line">
-                  <span className="fc-source-count">{formatNumber(sourcesData.meta.criadas)} {getLabel(sourcesData.meta.criadas, 'Nova', 'Novas')}</span>
+                  <span className="fc-source-count">+{formatNumber(sourcesData.meta.criadas)} {getLabel(sourcesData.meta.criadas, 'Nova', 'Novas')}</span>
                   <span className="fc-source-percentage">
                     ({sourcesData.total > 0 ? Math.round((sourcesData.meta.criadas / sourcesData.total) * 100) : 0}%)
                   </span>
@@ -256,12 +305,12 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                 <div className="fc-source-line">
                   <span className="fc-source-count">{formatNumber(sourcesData.organico.abertas)} {getLabel(sourcesData.organico.abertas, 'Aberta', 'Abertas')}</span>
                   <span className="fc-source-percentage">
-                    ({sourcesData.organico.abertas > 0 ? 
-                      Math.round((sourcesData.organico.abertas / (sourcesData.google.abertas + sourcesData.meta.abertas + sourcesData.organico.abertas + sourcesData.whatsapp.abertas + sourcesData.prescritor.abertas + sourcesData.franquia.abertas)) * 100) : 0}%)
+                    ({sourcesData.totalAbertas > 0 ?
+                      Math.round((sourcesData.organico.abertas / sourcesData.totalAbertas) * 100) : 0}%)
                   </span>
                 </div>
                 <div className="fc-source-line">
-                  <span className="fc-source-count">{formatNumber(sourcesData.organico.criadas)} {getLabel(sourcesData.organico.criadas, 'Nova', 'Novas')}</span>
+                  <span className="fc-source-count">+{formatNumber(sourcesData.organico.criadas)} {getLabel(sourcesData.organico.criadas, 'Nova', 'Novas')}</span>
                   <span className="fc-source-percentage">
                     ({sourcesData.total > 0 ? Math.round((sourcesData.organico.criadas / sourcesData.total) * 100) : 0}%)
                   </span>
@@ -275,12 +324,12 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                 <div className="fc-source-line">
                   <span className="fc-source-count">{formatNumber(sourcesData.whatsapp.abertas)} {getLabel(sourcesData.whatsapp.abertas, 'Aberta', 'Abertas')}</span>
                   <span className="fc-source-percentage">
-                    ({sourcesData.whatsapp.abertas > 0 ? 
-                      Math.round((sourcesData.whatsapp.abertas / (sourcesData.google.abertas + sourcesData.meta.abertas + sourcesData.organico.abertas + sourcesData.whatsapp.abertas + sourcesData.prescritor.abertas + sourcesData.franquia.abertas)) * 100) : 0}%)
+                    ({sourcesData.totalAbertas > 0 ?
+                      Math.round((sourcesData.whatsapp.abertas / sourcesData.totalAbertas) * 100) : 0}%)
                   </span>
                 </div>
                 <div className="fc-source-line">
-                  <span className="fc-source-count">{formatNumber(sourcesData.whatsapp.criadas)} {getLabel(sourcesData.whatsapp.criadas, 'Nova', 'Novas')}</span>
+                  <span className="fc-source-count">+{formatNumber(sourcesData.whatsapp.criadas)} {getLabel(sourcesData.whatsapp.criadas, 'Nova', 'Novas')}</span>
                   <span className="fc-source-percentage">
                     ({sourcesData.total > 0 ? Math.round((sourcesData.whatsapp.criadas / sourcesData.total) * 100) : 0}%)
                   </span>
@@ -294,12 +343,12 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                 <div className="fc-source-line">
                   <span className="fc-source-count">{formatNumber(sourcesData.prescritor.abertas)} {getLabel(sourcesData.prescritor.abertas, 'Aberta', 'Abertas')}</span>
                   <span className="fc-source-percentage">
-                    ({sourcesData.prescritor.abertas > 0 ? 
-                      Math.round((sourcesData.prescritor.abertas / (sourcesData.google.abertas + sourcesData.meta.abertas + sourcesData.organico.abertas + sourcesData.whatsapp.abertas + sourcesData.prescritor.abertas + sourcesData.franquia.abertas)) * 100) : 0}%)
+                    ({sourcesData.totalAbertas > 0 ?
+                      Math.round((sourcesData.prescritor.abertas / sourcesData.totalAbertas) * 100) : 0}%)
                   </span>
                 </div>
                 <div className="fc-source-line">
-                  <span className="fc-source-count">{formatNumber(sourcesData.prescritor.criadas)} {getLabel(sourcesData.prescritor.criadas, 'Nova', 'Novas')}</span>
+                  <span className="fc-source-count">+{formatNumber(sourcesData.prescritor.criadas)} {getLabel(sourcesData.prescritor.criadas, 'Nova', 'Novas')}</span>
                   <span className="fc-source-percentage">
                     ({sourcesData.total > 0 ? Math.round((sourcesData.prescritor.criadas / sourcesData.total) * 100) : 0}%)
                   </span>
@@ -313,12 +362,12 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                 <div className="fc-source-line">
                   <span className="fc-source-count">{formatNumber(sourcesData.franquia.abertas)} {getLabel(sourcesData.franquia.abertas, 'Aberta', 'Abertas')}</span>
                   <span className="fc-source-percentage">
-                    ({sourcesData.franquia.abertas > 0 ? 
-                      Math.round((sourcesData.franquia.abertas / (sourcesData.google.abertas + sourcesData.meta.abertas + sourcesData.organico.abertas + sourcesData.whatsapp.abertas + sourcesData.prescritor.abertas + sourcesData.franquia.abertas)) * 100) : 0}%)
+                    ({sourcesData.totalAbertas > 0 ?
+                      Math.round((sourcesData.franquia.abertas / sourcesData.totalAbertas) * 100) : 0}%)
                   </span>
                 </div>
                 <div className="fc-source-line">
-                  <span className="fc-source-count">{formatNumber(sourcesData.franquia.criadas)} {getLabel(sourcesData.franquia.criadas, 'Nova', 'Novas')}</span>
+                  <span className="fc-source-count">+{formatNumber(sourcesData.franquia.criadas)} {getLabel(sourcesData.franquia.criadas, 'Nova', 'Novas')}</span>
                   <span className="fc-source-percentage">
                     ({sourcesData.total > 0 ? Math.round((sourcesData.franquia.criadas / sourcesData.total) * 100) : 0}%)
                   </span>
@@ -378,21 +427,29 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                 <div className="fc-funnel-content">
                   <span className="fc-funnel-label">{etapa.nome_etapa}</span>
                   <div className="fc-funnel-values">
-                    {/* 🎯 DESTAQUE: Oportunidades ativas (número laranja do CRM) */}
-                    <span className="fc-funnel-value fc-funnel-active">{formatNumber(etapa.ativas || 0)}</span>
+                    {/* 🎯 DESTAQUE: Oportunidades abertas (número laranja do CRM) */}
+                    <span className="fc-funnel-value fc-funnel-active" title={`Debug: ${etapa.nome_etapa} = ${etapa.abertos} abertos`}>
+                      {formatNumber(etapa.abertos || 0)}
+                    </span>
                   </div>
                   {/* 🎯 CONTAINER DOS BADGES - LADO A LADO NO CANTO DIREITO */}
                   <div className="fc-funnel-badges-container">
                     {/* Linha superior com badges principais */}
                     <div className="fc-funnel-badges-row">
-                      {/* BADGE AZUL - PASSARAM POR ESTA ETAPA */}
-                      <div className="fc-funnel-passed-through">
+                      {/* BADGE AZUL - PASSARAM POR ESTA ETAPA - SEMPRE MOSTRAR PARA DEBUG */}
+                      <div className="fc-funnel-passed-through" title={`Debug: ${etapa.nome_etapa} = ${etapa.passaramPorEtapa} passaram`}>
                         {formatNumber(etapa.passaramPorEtapa || 0)}
                       </div>
                       {/* BADGE VERDE - CRIADAS */}
                       {etapa.criadasPeriodo > 0 && (
                         <div className="fc-funnel-created-today">
                           +{formatNumber(etapa.criadasPeriodo)}
+                        </div>
+                      )}
+                      {/* BADGE VERDE ESCURO - CRIADAS ESPECÍFICAS DA ETAPA (apenas para primeira etapa) */}
+                      {index === 0 && etapa.criadasEspecificasEtapa > 0 && etapa.criadasEspecificasEtapa !== etapa.criadasPeriodo && (
+                        <div className="fc-funnel-created-specific" title={`${etapa.criadasEspecificasEtapa} criadas que ficaram na entrada`}>
+                          +{formatNumber(etapa.criadasEspecificasEtapa)}
                         </div>
                       )}
                       {/* BADGE VERMELHO - PERDIDAS - SEMPRE MOSTRAR SE HOUVER DADOS */}

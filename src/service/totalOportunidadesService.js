@@ -122,14 +122,16 @@ export const getTotalOportunidadesMetrics = async (
       console.log('✅ TotalOportunidadesService: Usando datas fornecidas:', { dataInicio, dataFim });
     }
 
-    // Construir filtros baseados nos parâmetros
+    // Construir filtros baseados nos parâmetros (MESMA LÓGICA DO FUNNELSOURCESSERVICE)
     let funilFilter = '';
-    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
       funilFilter = `&funil_id=eq.${selectedFunnel}`;
-      console.log('🔍 TotalOportunidadesService: Filtro de funil aplicado:', funilFilter);
+      console.log('🔍 TotalOportunidadesService: Filtro de funil específico aplicado:', funilFilter);
       console.log('🔍 TotalOportunidadesService: selectedFunnel valor:', selectedFunnel, 'tipo:', typeof selectedFunnel);
     } else {
-      console.log('🔍 TotalOportunidadesService: Sem filtro de funil (selectedFunnel:', selectedFunnel, ')');
+      // APLICAR FILTRO PADRÃO PARA FUNIS 6 E 14 (mesma lógica do FunnelSourcesService)
+      funilFilter = `&funil_id=in.(6,14)`;
+      console.log('🔍 TotalOportunidadesService: Filtro de funil padrão aplicado (6,14):', funilFilter);
     }
     
     let unidadeFilter = '';
@@ -226,6 +228,7 @@ export const getTotalOportunidadesMetrics = async (
     // 🚨 ADICIONANDO LIMIT PARA TESTAR SE É LIMITAÇÃO DO SUPABASE (padrão é 1000)
     const totalOportunidadesAbertasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open${filtrosCombinados}`;
     console.log('🔍 URL Total Oportunidades Abertas (sem data):', totalOportunidadesAbertasUrl);
+    console.log('🚨 COMPARAÇÃO URL ABERTAS TotalOportunidades:', totalOportunidadesAbertasUrl);
     console.log('🔍 Filtros combinados para abertas:', filtrosCombinados);
 
     // 🎯 2. TOTAL DE OPORTUNIDADES NOVAS - Todos os status, COM filtro de data
@@ -290,8 +293,9 @@ export const getTotalOportunidadesMetrics = async (
       // 🔍 DEBUG: Log detalhado das oportunidades abertas
       console.log('🔍 DEBUG ABERTAS - URL:', totalOportunidadesAbertasUrl);
       console.log('🔍 DEBUG ABERTAS - Total com paginação:', abertasData.length);
+      console.log('🚨 COMPARAÇÃO TOTAL ABERTAS TotalOportunidades:', totalOportunidadesAbertas);
       console.log('🔍 DEBUG ABERTAS - Primeiros 5 registros:', abertasData.slice(0, 5));
-      
+
       console.log(`✅ Total Oportunidades Abertas (sem data): ${totalOportunidadesAbertas} (R$ ${valorTotalOportunidadesAbertas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`);
     } else {
       console.error('❌ Erro ao buscar total de oportunidades abertas com paginação');
@@ -410,8 +414,13 @@ const getTotalOportunidadesAnteriores = async (startDate, endDate, selectedFunne
     
     console.log('📅 Período anterior:', { dataInicioAnterior, dataFimAnterior });
 
-    // Construir filtros
-    const funilFilter = selectedFunnel && selectedFunnel !== 'all' ? `&funil_id=eq.${selectedFunnel}` : '';
+    // Construir filtros (MESMA LÓGICA DA FUNÇÃO PRINCIPAL)
+    let funilFilter = '';
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      funilFilter = `&funil_id=eq.${selectedFunnel}`;
+    } else {
+      funilFilter = `&funil_id=in.(6,14)`;
+    }
     const unidadeFilter = selectedUnit && selectedUnit !== 'all' ? `&unidade_id=eq.${encodeURIComponent(selectedUnit.toString())}` : '';
     const sellerFilter = selectedSeller && selectedSeller !== 'all' ? `&user_id=eq.${selectedSeller}` : '';
     // 🔍 CORREÇÃO: Converter ID da origem para nome (mesma lógica da função principal)

@@ -187,45 +187,89 @@
 .fc-funnel-badges-row {
   display: flex;
   flex-direction: row;
+  gap: 2px; /* Espaço entre badges */
+}
+
+/* 🎯 BADGES DOS FUNIS - ESTILOS ESPECÍFICOS */
+
+/* BADGE AZUL - PASSARAM POR ESTA ETAPA */
+.fc-funnel-passed-through {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  background-color: #3b82f6 !important;
+  padding: 2px 4px !important;
+  border-radius: 3px !important;
+  text-shadow: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  display: inline-block !important;
+}
+
+/* BADGE VERDE - CRIADAS NO PERÍODO */
+.fc-funnel-created-today {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  background-color: #10b981 !important;
+  padding: 2px 4px !important;
+  border-radius: 2px !important;
+  text-shadow: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  display: inline-block !important;
+}
+
+/* BADGE VERDE ESCURO - CRIADAS ESPECÍFICAS DA ETAPA */
+.fc-funnel-created-specific {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  background-color: #059669 !important;
+  padding: 2px 4px !important;
+  border-radius: 2px !important;
+  text-shadow: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  display: inline-block !important;
+}
+
+/* BADGE VERMELHO - PERDIDAS */
+.fc-funnel-lost-today {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  background-color: #ef4444 !important;
+  padding: 2px 4px !important;
+  border-radius: 2px !important;
+  text-shadow: none !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+  display: inline-block !important;
+}
+
+/* =================== TEXTO DINÂMICO DOS FILTROS =================== */
+.fc-filter-description {
+  text-align: center;
+  margin: 16px 0;
+  padding: 12px 20px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.fc-filter-description h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
   gap: 8px;
   align-items: center;
 }
 
-/* 🎯 BADGE AZUL - OPORTUNIDADES QUE PASSARAM POR ESTA ETAPA */
-.fc-funnel-passed-through {
-  font-size: 12px;
-  font-weight: 700;
-  color: #ffffff;
-  background: #3b82f6;
-  padding: 2px 4px;
-  border-radius: 3px;
-  text-shadow: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* 🎯 BADGE VERDE - OPORTUNIDADES CRIADAS */
-.fc-funnel-created-today {
-  font-size: 12px;
-  font-weight: 700;
-  color: #ffffff;
-  background: #10b981;
-  padding: 2px 4px;
-  border-radius: 2px;
-  text-shadow: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* 🎯 BADGE VERMELHO - OPORTUNIDADES PERDIDAS */
-.fc-funnel-lost-today {
-  font-size: 12px;
-  font-weight: 700;
-  color: #ffffff;
-  background: #ef4444;
-  padding: 2px 4px;
-  border-radius: 2px;
-  text-shadow: none;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+/* Estilos duplicados removidos - agora estão organizados na seção de badges acima */
 
 .fc-funnel-loss {
   font-size: 14px;

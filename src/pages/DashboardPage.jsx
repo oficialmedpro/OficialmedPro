@@ -343,9 +343,19 @@ const DashboardPage = ({ onLogout }) => {
           {/* Chart Section - mostrar apenas quando um funil específico estiver selecionado */}
           {selectedFunnel && selectedFunnel !== 'all' && (
             <section className="chart-section">
+              {console.log('🔍 DashboardPage: Props sendo passadas para FunnelChart:', {
+                selectedFunnel,
+                selectedUnit,
+                selectedSeller,
+                selectedOrigin,
+                selectedOriginType: typeof selectedOrigin
+              })}
               <FunnelChart 
                 t={t} 
                 selectedFunnel={selectedFunnel}
+                selectedUnit={selectedUnit}
+                selectedSeller={selectedSeller}
+                selectedOrigin={selectedOrigin}
                 startDate={startDate}
                 endDate={endDate}
                 selectedPeriod={selectedPeriod}
