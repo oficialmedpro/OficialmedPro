@@ -357,6 +357,30 @@ export const getFunnelStagesData = async (etapas, startDate = null, endDate = nu
             valorPerdidasPrimeiraEtapa = 0;
           }
 
+          // BUSCAR GANHAS NA PRIMEIRA ETAPA
+          let ganhasPrimeiraEtapa = 0;
+          let valorGanhasPrimeiraEtapa = 0;
+          try {
+            const ganhasNaPrimeiraEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicio}&gain_date=lte.${dataFim}&crm_column=eq.${etapa.id_etapa_sprint}${filters}${originFilter}`;
+
+            console.log(`🔍 FunnelStages: Buscando ganhas na primeira etapa:`, ganhasNaPrimeiraEtapaUrl);
+
+            const ganhasPrimeiraEtapaData = await fetchAllRecords(ganhasNaPrimeiraEtapaUrl, baseHeaders);
+            ganhasPrimeiraEtapa = ganhasPrimeiraEtapaData ? ganhasPrimeiraEtapaData.length : 0;
+            
+            // Calcular valor total das ganhas
+            valorGanhasPrimeiraEtapa = ganhasPrimeiraEtapaData ? ganhasPrimeiraEtapaData.reduce((acc, opp) => {
+              const valor = parseFloat(opp.value) || 0;
+              return acc + valor;
+            }, 0) : 0;
+
+            console.log(`✅ FunnelStages: Primeira etapa ganhas: ${ganhasPrimeiraEtapa} ganhas no período, valor: R$ ${valorGanhasPrimeiraEtapa.toFixed(2)}`);
+          } catch (error) {
+            console.error(`❌ FunnelStages: Erro ao buscar ganhas na primeira etapa:`, error);
+            ganhasPrimeiraEtapa = 0;
+            valorGanhasPrimeiraEtapa = 0;
+          }
+
           // Salvar as duas informações
           resultado.push({
             ...etapa,
@@ -368,6 +392,8 @@ export const getFunnelStagesData = async (etapas, startDate = null, endDate = nu
             valorCriadasEspecificasEtapa: valorCriadasEspecificasPrimeiraEtapa, // VALOR DAS CRIADAS ESPECÍFICAS
             perdidasPeriodo: perdidasPrimeiraEtapa, // PERDIDAS NA PRIMEIRA ETAPA
             valorPerdidasPeriodo: valorPerdidasPrimeiraEtapa, // VALOR DAS PERDIDAS NA PRIMEIRA ETAPA
+            ganhasPeriodo: ganhasPrimeiraEtapa, // GANHAS NA PRIMEIRA ETAPA
+            valorGanhasPeriodo: valorGanhasPrimeiraEtapa, // VALOR DAS GANHAS NA PRIMEIRA ETAPA
             passaramPorEtapa: 0,
             taxaPassagem: null
           });
@@ -425,6 +451,30 @@ export const getFunnelStagesData = async (etapas, startDate = null, endDate = nu
         valorPerdidasPeriodoEtapa = 0;
       }
 
+      // BUSCAR OPORTUNIDADES GANHAS NO PERÍODO PARA ESTA ETAPA
+      let ganhasPeriodoEtapa = 0;
+      let valorGanhasPeriodoEtapa = 0;
+      try {
+        const ganhasNaEtapaUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicio}&gain_date=lte.${dataFim}&crm_column=eq.${etapa.id_etapa_sprint}${filters}${originFilter}`;
+
+        console.log(`🔍 FunnelStages: Buscando ganhas na etapa "${etapa.nome_etapa}":`, ganhasNaEtapaUrl);
+
+        const ganhasNaEtapaData = await fetchAllRecords(ganhasNaEtapaUrl, baseHeaders);
+        ganhasPeriodoEtapa = ganhasNaEtapaData ? ganhasNaEtapaData.length : 0;
+        
+        // Calcular valor total das ganhas
+        valorGanhasPeriodoEtapa = ganhasNaEtapaData ? ganhasNaEtapaData.reduce((acc, opp) => {
+          const valor = parseFloat(opp.value) || 0;
+          return acc + valor;
+        }, 0) : 0;
+
+        console.log(`✅ FunnelStages: Etapa "${etapa.nome_etapa}": ${ganhasPeriodoEtapa} ganhas no período nesta etapa, valor: R$ ${valorGanhasPeriodoEtapa.toFixed(2)}`);
+      } catch (error) {
+        console.error(`❌ FunnelStages: Erro ao buscar ganhas na etapa "${etapa.nome_etapa}":`, error);
+        ganhasPeriodoEtapa = 0;
+        valorGanhasPeriodoEtapa = 0;
+      }
+
       resultado.push({
         ...etapa,
         abertos: abertosEtapa.length,
@@ -435,6 +485,8 @@ export const getFunnelStagesData = async (etapas, startDate = null, endDate = nu
         valorCriadasEspecificasEtapa: valorCriadasPeriodoEtapa, // Para outras etapas, é igual ao valorCriadasPeriodo
         perdidasPeriodo: perdidasPeriodoEtapa, // ADICIONAR PERDIDAS NO PERÍODO
         valorPerdidasPeriodo: valorPerdidasPeriodoEtapa, // ADICIONAR VALOR DAS PERDIDAS NO PERÍODO
+        ganhasPeriodo: ganhasPeriodoEtapa, // ADICIONAR GANHAS NO PERÍODO
+        valorGanhasPeriodo: valorGanhasPeriodoEtapa, // ADICIONAR VALOR DAS GANHAS NO PERÍODO
         passaramPorEtapa: 0,
         taxaPassagem: null
       });
@@ -478,14 +530,25 @@ export const getFunnelStagesData = async (etapas, startDate = null, endDate = nu
         const etapaAtual = resultado[i];
         const proximaEtapa = resultado[i + 1];
         
-        const passaramAtual = etapaAtual.passaramPorEtapa || 0;
-        const passaramProxima = proximaEtapa.passaramPorEtapa || 0;
-        
-        if (passaramAtual > 0) {
-          const taxa = (passaramProxima / passaramAtual) * 100;
-          proximaEtapa.taxaPassagem = Math.round(taxa * 10) / 10;
+        // Verificar se a próxima etapa tem ampulheta=true OU se a etapa atual tem is_ganho=true
+        if (proximaEtapa.ampulheta === true || etapaAtual.is_ganho === true) {
+          if (proximaEtapa.ampulheta === true) {
+            console.log(`⏳ FunnelStages: Etapa "${proximaEtapa.nome_etapa}" marcada como ampulheta=true - não calculando taxa de passagem`);
+          }
+          if (etapaAtual.is_ganho === true) {
+            console.log(`🏆 FunnelStages: Etapa "${etapaAtual.nome_etapa}" marcada como is_ganho=true - não calculando taxa de passagem`);
+          }
+          proximaEtapa.taxaPassagem = null; // Não mostrar taxa para etapas ampulheta ou após ganho
         } else {
-          proximaEtapa.taxaPassagem = 0;
+          const passaramAtual = etapaAtual.passaramPorEtapa || 0;
+          const passaramProxima = proximaEtapa.passaramPorEtapa || 0;
+          
+          if (passaramAtual > 0) {
+            const taxa = (passaramProxima / passaramAtual) * 100;
+            proximaEtapa.taxaPassagem = Math.round(taxa * 10) / 10;
+          } else {
+            proximaEtapa.taxaPassagem = 0;
+          }
         }
       }
     }
@@ -512,7 +575,7 @@ export const getFunnelStagesData = async (etapas, startDate = null, endDate = nu
 
     console.log('🔍 FunnelStages: Resumo das etapas processadas:');
     resultado.forEach((etapa, index) => {
-      console.log(`   ${index + 1}. "${etapa.nome_etapa}": ${etapa.abertos} abertos | ${etapa.passaramPorEtapa} passaram | ${etapa.criadasPeriodo} criadas | ${etapa.perdidasPeriodo} perdidas | taxa: ${etapa.taxaPassagem}%`);
+      console.log(`   ${index + 1}. "${etapa.nome_etapa}": ${etapa.abertos} abertos | ${etapa.passaramPorEtapa} passaram | ${etapa.criadasPeriodo} criadas | ${etapa.perdidasPeriodo} perdidas | ${etapa.ganhasPeriodo} ganhas | taxa: ${etapa.taxaPassagem}%`);
     });
 
     const resultadoFinal = {

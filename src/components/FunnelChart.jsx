@@ -625,6 +625,16 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                     >
                       {formatNumber(etapa.abertos || 0)}
                     </span>
+                    
+                    {/* 🏆 NOVA MÉTRICA: Oportunidades ganhas no período */}
+                    {etapa.ganhasPeriodo > 0 && (
+                      <span 
+                        className="fc-funnel-value fc-funnel-gained" 
+                        title={`Oportunidades Ganhas no Período ${formatValue(etapa.valorGanhasPeriodo || 0)}`.trim()}
+                      >
+                        {formatNumber(etapa.ganhasPeriodo)}
+                      </span>
+                    )}
                   </div>
                   {/* 🎯 CONTAINER DOS BADGES - LADO A LADO NO CANTO DIREITO */}
                   <div className="fc-funnel-badges-container">
@@ -660,7 +670,7 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
                       )}
                     </div>
                     {/* TAXA DE CONVERSÃO - EMBAIXO DOS BADGES */}
-                    {index < etapas.length - 1 && (
+                    {index < etapas.length - 1 && etapas[index + 1]?.ampulheta !== true && etapa.ampulheta !== true && etapa.is_ganho !== true && (
                       <div 
                         className="funildash_conversion-rate-box"
                         title="Taxa de passagem"
