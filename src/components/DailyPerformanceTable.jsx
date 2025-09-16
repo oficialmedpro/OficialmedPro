@@ -243,9 +243,20 @@ const DailyPerformanceTable = ({
 
             {/* Linhas dos dias */}
             {pagedDays.map((day, index) => {
-              const dayData = dailyData.find(d => 
-                d.date === day.date.toISOString().split('T')[0]
-              ) || {
+              const dayKey = day.date.toLocaleDateString('sv-SE');
+              const dayData = dailyData.find(d => {
+                const found = d.date === dayKey;
+                if (dayKey === '2025-09-16') { // Debug para hoje
+                  console.log('🔍 DEBUG HOJE:', {
+                    dayKey,
+                    searchingFor: dayKey,
+                    foundData: found,
+                    dailyDataSample: dailyData.slice(0, 3),
+                    allDatesInDailyData: dailyData.map(d => d.date)
+                  });
+                }
+                return found;
+              }) || {
                 leads: { realizado: 0, meta: 0, gap: 0 },
                 vendas: { realizado: 0, meta: 0, gap: 0 },
                 faturamento: { realizado: 0, meta: 0, gap: 0 },

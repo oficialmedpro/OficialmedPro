@@ -81,6 +81,80 @@ const fetchAllRecords = async (url, headers) => {
 };
 
 /**
+ * 🎯 BUSCAR OPORTUNIDADES ABERTAS POR ORIGEM EM UMA ETAPA ESPECÍFICA
+ *
+ * @param {number} etapaId - ID da etapa
+ * @param {Object} baseHeaders - Headers da requisição
+ * @param {string} selectedFunnel - Funil selecionado
+ * @param {string} selectedSeller - Vendedor selecionado
+ * @param {string} selectedUnit - Unidade selecionada
+ * @returns {Object} Contagem por origem { google: X, meta: X, organico: X }
+ */
+const getOportunidadesPorOrigemEtapa = async (etapaId, baseHeaders, selectedFunnel = null, selectedSeller = null, selectedUnit = null) => {
+  try {
+    // Construir filtros baseados nos filtros do usuário
+    let filtrosComuns = '';
+
+    // FILTRO DE FUNIL
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      filtrosComuns += `&funil_id=eq.${selectedFunnel}`;
+    } else {
+      filtrosComuns += `&funil_id=in.(6,14)`;
+    }
+
+    // FILTRO DE VENDEDOR
+    if (selectedSeller && selectedSeller !== 'all' && selectedSeller !== 'undefined' && selectedSeller !== '') {
+      filtrosComuns += `&user_id=eq.${selectedSeller}`;
+    }
+
+    // FILTRO DE UNIDADE
+    if (selectedUnit && selectedUnit !== 'all' && selectedUnit !== 'TODOS' && selectedUnit !== '' && selectedUnit !== 'undefined') {
+      filtrosComuns += `&unidade_id=eq.${encodeURIComponent(selectedUnit.toString())}`;
+    }
+
+    // Definir filtros de origem específicos
+    const googleFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent('Google Ads')},utm_source.eq.google,utm_source.eq.GoogleAds)`;
+    const metaFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent('Meta Ads')},utm_source.eq.facebook,utm_source.eq.meta)`;
+    const organicoFilter = `&or=(origem_oportunidade.eq.${encodeURIComponent('Orgânico')},origem_oportunidade.is.null)`;
+
+    // Buscar oportunidades abertas por origem nesta etapa COM FILTROS APLICADOS
+    const queries = [
+      // Google
+      `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.open&crm_column=eq.${etapaId}${filtrosComuns}${googleFilter}`,
+      // Meta
+      `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.open&crm_column=eq.${etapaId}${filtrosComuns}${metaFilter}`,
+      // Orgânico
+      `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id&archived=eq.0&status=eq.open&crm_column=eq.${etapaId}${filtrosComuns}${organicoFilter}`
+    ];
+
+    console.log(`🎯 Buscando origens para etapa ${etapaId} COM FILTROS:`);
+    console.log(`   Filtros aplicados: ${filtrosComuns}`);
+    console.log(`   Google: ${queries[0]}`);
+    console.log(`   Meta: ${queries[1]}`);
+    console.log(`   Orgânico: ${queries[2]}`);
+
+    const [googleData, metaData, organicoData] = await Promise.all(
+      queries.map(url => fetchAllRecords(url, baseHeaders))
+    );
+
+    const resultado = {
+      google: googleData.length,
+      meta: metaData.length,
+      organico: organicoData.length
+    };
+
+    console.log(`✅ Etapa ${etapaId} - Breakdown por origem COM FILTROS:`, resultado);
+    console.log(`   Total somado: ${resultado.google + resultado.meta + resultado.organico}`);
+
+    return resultado;
+
+  } catch (error) {
+    console.error(`❌ Erro ao buscar origens para etapa ${etapaId}:`, error);
+    return { google: 0, meta: 0, organico: 0 };
+  }
+};
+
+/**
  * 📊 BUSCAR DADOS COMPLETOS DO FUNIL POR ETAPAS
  * 
  * @param {Array} etapas - Array de etapas do funil
@@ -356,14 +430,23 @@ export const getFunnelStagesData = async (etapas, startDate = null, endDate = nu
     for (const etapa of etapas) {
       // Filtrar oportunidades abertas desta etapa (converter ambos para string para garantir comparação correta)
       const abertosEtapa = oportunidadesAbertas.filter(o => String(o.crm_column) === String(etapa.id_etapa_sprint));
-      
+
       // DEBUG: Log detalhado por etapa
       console.log(`🔍 FunnelStages: Etapa "${etapa.nome_etapa}" (ID: ${etapa.id_etapa_sprint}):`);
       console.log(`   - Oportunidades abertas nesta etapa: ${abertosEtapa.length}`);
       if (abertosEtapa.length > 0) {
         console.log(`   - IDs das oportunidades: ${abertosEtapa.map(o => o.id).join(', ')}`);
       }
-      
+
+      // 🎯 BUSCAR BREAKDOWN POR ORIGEM PARA ESTA ETAPA ESPECÍFICA COM FILTROS
+      const origemBreakdown = await getOportunidadesPorOrigemEtapa(
+        etapa.id_etapa_sprint,
+        baseHeaders,
+        selectedFunnel,
+        selectedSeller,
+        selectedUnit
+      );
+
       // Calcular valor em aberto
       const valorEmAberto = abertosEtapa.reduce((acc, opp) => {
         const valor = parseFloat(opp.value) || 0;
@@ -459,7 +542,8 @@ export const getFunnelStagesData = async (etapas, startDate = null, endDate = nu
             ganhasPeriodo: ganhasPrimeiraEtapa, // GANHAS NA PRIMEIRA ETAPA
             valorGanhasPeriodo: valorGanhasPrimeiraEtapa, // VALOR DAS GANHAS NA PRIMEIRA ETAPA
             passaramPorEtapa: 0,
-            taxaPassagem: null
+            taxaPassagem: null,
+            origens: origemBreakdown // 🎯 BREAKDOWN POR ORIGEM
           });
 
           continue; // Pular o resultado.push() padrão no final do loop
@@ -552,7 +636,8 @@ export const getFunnelStagesData = async (etapas, startDate = null, endDate = nu
         ganhasPeriodo: ganhasPeriodoEtapa, // ADICIONAR GANHAS NO PERÍODO
         valorGanhasPeriodo: valorGanhasPeriodoEtapa, // ADICIONAR VALOR DAS GANHAS NO PERÍODO
         passaramPorEtapa: 0,
-        taxaPassagem: null
+        taxaPassagem: null,
+        origens: origemBreakdown // 🎯 BREAKDOWN POR ORIGEM
       });
     }
 

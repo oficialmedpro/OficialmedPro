@@ -133,6 +133,16 @@
   display: inline-block !important;
 }
 
+.fc-source-qualified {
+  background-color: #7c3aed !important;
+  border: 2px solid #a78bfa !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  display: inline-block !important;
+}
+
 /* =================== FUNNEL STAGES =================== */
 .fc-funnel-stage {
   position: relative;
@@ -762,5 +772,85 @@
   
   .fc-conversao-item {
     font-size: 12px;
+  }
+}
+
+/* =================== BREAKDOWN DE ORIGENS POR ETAPA =================== */
+.fc-sources-breakdown {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  margin-right: 12px;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.fc-source-mini {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: white;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  min-width: 80px;
+  text-align: center;
+  line-height: 1.2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.fc-source-mini.google {
+  background: linear-gradient(135deg, #000f29, #1a73e8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.fc-source-mini.meta {
+  background: linear-gradient(135deg, #057a96, #10b9b1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.fc-source-mini.organic {
+  background: linear-gradient(135deg, #13b1ff, #42baf4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.fc-source-mini:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Ajustar o layout da fc-funnel-values para acomodar os novos elementos */
+.fc-funnel-values {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+/* Responsividade para mini-indicadores */
+@media (max-width: 768px) {
+  .fc-sources-breakdown {
+    gap: 2px;
+    margin-right: 8px;
+  }
+
+  .fc-source-mini {
+    font-size: 10px;
+    padding: 1px 4px;
+    min-width: 65px;
+  }
+}
+
+@media (max-width: 480px) {
+  .fc-sources-breakdown {
+    gap: 2px;
+    margin-right: 6px;
+  }
+
+  .fc-source-mini {
+    font-size: 9px;
+    padding: 1px 3px;
+    min-width: 55px;
   }
 }

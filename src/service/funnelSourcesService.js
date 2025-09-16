@@ -4,6 +4,7 @@
  * Serviço dedicado para buscar métricas de origens na barra fc-sources-bar
  * - Oportunidades abertas por origem (status=open)
  * - Oportunidades criadas no período por origem (create_date)
+ * - Oportunidades qualificadas (Novas - Desqualificadas)
  * 
  * Com paginação recursiva para garantir que todos os registros sejam buscados
  */
@@ -12,6 +13,27 @@
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+
+// Importar serviço de qualificados
+import { calcularQualificados, calcularQualificadosMultiplosFunils } from './qualificadosService.js';
+
+/**
+ * 🎯 FUNÇÃO AUXILIAR: Obter filtro de origem para fonte específica
+ * 
+ * @param {string} source - Nome da fonte (google, meta, organico, etc.)
+ * @returns {string} Filtro de origem correspondente
+ */
+const getOriginFilterForSource = (source) => {
+  const originFilters = {
+    google: 'Google Ads',
+    meta: 'Meta Ads',
+    organico: 'Orgânico',
+    whatsapp: 'WhatsApp',
+    prescritor: 'Prescritor',
+    franquia: 'Franquia'
+  };
+  return originFilters[source] || 'all';
+};
 
 /**
  * 📄 FUNÇÃO PARA BUSCAR TODOS OS REGISTROS COM PAGINAÇÃO RECURSIVA
@@ -333,13 +355,14 @@ export const getFunnelSourcesMetrics = async (startDate, endDate, selectedFunnel
 
     // Inicializar contadores
     const sourcesData = {
-      google: { abertas: 0, criadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
-      meta: { abertas: 0, criadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
-      organico: { abertas: 0, criadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
-      whatsapp: { abertas: 0, criadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
-      prescritor: { abertas: 0, criadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
-      franquia: { abertas: 0, criadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
+      google: { abertas: 0, criadas: 0, qualificadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
+      meta: { abertas: 0, criadas: 0, qualificadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
+      organico: { abertas: 0, criadas: 0, qualificadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
+      whatsapp: { abertas: 0, criadas: 0, qualificadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
+      prescritor: { abertas: 0, criadas: 0, qualificadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
+      franquia: { abertas: 0, criadas: 0, qualificadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 },
       total: 0,
+      totalQualificadas: 0, // NOVA MÉTRICA: TOTAL DE QUALIFICADAS
       totalAbertas: 0, // ADICIONAR TOTAL REAL DE ABERTAS
       totalGanhas: 0, // ADICIONAR TOTAL DE GANHAS
       totalValorGanhas: 0, // ADICIONAR TOTAL VALOR GANHAS
@@ -419,13 +442,79 @@ export const getFunnelSourcesMetrics = async (startDate, endDate, selectedFunnel
     if (selectedOrigin && selectedOrigin !== 'all' && typeof selectedOrigin === 'string') {
       const selectedSourceName = getSelectedSourceName(selectedOrigin);
       Object.keys(sourcesData).forEach(key => {
-        if (key !== 'total' && key !== 'totalAbertas' && key !== 'totalGanhas' && key !== 'totalValorGanhas' && key !== 'totalPerdidas' && key !== 'totalValorPerdidas' && key !== selectedSourceName) {
-          sourcesData[key] = { abertas: 0, criadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 };
+        if (key !== 'total' && key !== 'totalQualificadas' && key !== 'totalAbertas' && key !== 'totalGanhas' && key !== 'totalValorGanhas' && key !== 'totalPerdidas' && key !== 'totalValorPerdidas' && key !== selectedSourceName) {
+          sourcesData[key] = { abertas: 0, criadas: 0, qualificadas: 0, ganhas: 0, valorGanhas: 0, perdidas: 0, valorPerdidas: 0 };
         }
       });
     }
 
     console.log('📊 FunnelSources: Sources data calculado (com filtros SQL):', sourcesData);
+
+    // 🎯 CALCULAR MÉTRICAS QUALIFICADAS
+    console.log('🎯 FunnelSources: Calculando métricas qualificadas...');
+    
+    try {
+      // Determinar funis para cálculo
+      let funilsParaCalculo = [];
+      if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+        funilsParaCalculo = [selectedFunnel];
+      } else {
+        funilsParaCalculo = [6, 14]; // Ambos funis por padrão
+      }
+
+      // Calcular qualificadas para cada origem
+      const filtrosParaQualificados = {
+        selectedUnit,
+        selectedSeller,
+        selectedOrigin
+      };
+
+      // Calcular qualificadas para total
+      console.log('🚨 DEBUG CRÍTICO: Valor sourcesData.total antes do cálculo:', sourcesData.total);
+      console.log('🚨 DEBUG CRÍTICO: Tipo do valor:', typeof sourcesData.total);
+      console.log('🚨 DEBUG CRÍTICO: Parâmetros para cálculo:', { funilsParaCalculo, filtrosParaQualificados });
+
+      sourcesData.totalQualificadas = await calcularQualificadosMultiplosFunils(
+        sourcesData.total,
+        funilsParaCalculo,
+        filtrosParaQualificados
+      );
+
+      console.log('🚨 DEBUG CRÍTICO: Resultado totalQualificadas:', sourcesData.totalQualificadas);
+
+      // Calcular qualificadas para cada origem
+      const origens = ['google', 'meta', 'organico', 'whatsapp', 'prescritor', 'franquia'];
+      
+      for (const origem of origens) {
+        if (sourcesData[origem].criadas > 0) {
+          // Para origem específica, usar apenas o funil selecionado ou ambos
+          sourcesData[origem].qualificadas = await calcularQualificadosMultiplosFunils(
+            sourcesData[origem].criadas,
+            funilsParaCalculo,
+            {
+              ...filtrosParaQualificados,
+              selectedOrigin: getOriginFilterForSource(origem)
+            }
+          );
+        }
+      }
+
+      console.log('✅ FunnelSources: Métricas qualificadas calculadas:', {
+        total: sourcesData.total,
+        totalQualificadas: sourcesData.totalQualificadas,
+        google: { criadas: sourcesData.google.criadas, qualificadas: sourcesData.google.qualificadas },
+        meta: { criadas: sourcesData.meta.criadas, qualificadas: sourcesData.meta.qualificadas },
+        organico: { criadas: sourcesData.organico.criadas, qualificadas: sourcesData.organico.qualificadas }
+      });
+
+    } catch (error) {
+      console.error('❌ FunnelSources: Erro ao calcular qualificadas:', error);
+      // Em caso de erro, manter qualificadas = criadas
+      sourcesData.totalQualificadas = sourcesData.total;
+      ['google', 'meta', 'organico', 'whatsapp', 'prescritor', 'franquia'].forEach(origem => {
+        sourcesData[origem].qualificadas = sourcesData[origem].criadas;
+      });
+    }
 
     return sourcesData;
 

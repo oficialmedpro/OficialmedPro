@@ -1,6 +1,7 @@
 import DashboardPage from '../pages/DashboardPage';
 import DashboardMetaAds from '../pages/DashboardMetaAds';
 import DashboardGoogleAds from '../pages/DashboardGoogleAds';
+import DailyPerformanceDebugPage from '../pages/DailyPerformanceDebugPage';
 
 // Configuração das rotas da aplicação
 export const routes = [
@@ -21,6 +22,12 @@ export const routes = [
     element: <DashboardGoogleAds />,
     label: 'Dashboard GoogleAds',
     icon: '🔍'
+  },
+  {
+    path: '/debug-daily-performance',
+    element: <DailyPerformanceDebugPage />,
+    label: 'Debug Daily Performance',
+    icon: '🎯'
   }
 ];
 

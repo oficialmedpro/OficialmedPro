@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import DashboardPage from './pages/DashboardPage'
 import DashboardMetaAds from './pages/DashboardMetaAds'
 import DashboardGoogleAds from './pages/DashboardGoogleAds'
+import DailyPerformanceDebugPage from './pages/DailyPerformanceDebugPage'
 import Login from './components/Login'
 import autoSyncService from './service/autoSyncService'
 
@@ -92,6 +93,7 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage onLogout={handleLogout} />} />
         <Route path="/meta-ads" element={<DashboardMetaAds onLogout={handleLogout} />} />
         <Route path="/google-ads" element={<DashboardGoogleAds onLogout={handleLogout} />} />
+        <Route path="/debug-daily-performance" element={<DailyPerformanceDebugPage onLogout={handleLogout} />} />
       </Routes>
     </Router>
   )

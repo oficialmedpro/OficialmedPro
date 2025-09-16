@@ -169,12 +169,19 @@ const fetchLeadsDataByDay = async (startDate, endDate, filters) => {
       'Prefer': 'count=exact'
     };
 
-    // URL para buscar oportunidades criadas no período (leads)
-    const leadsUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,create_date&archived=eq.0&status=in.(open,gain,lost)&create_date=gte.${startDate}&create_date=lte.${endDate}T23:59:59${filters.combined}`;
+    // EXATAMENTE igual ao TotalOportunidadesService
+    const leadsUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,create_date&archived=eq.0&create_date=gte.${startDate}&create_date=lte.${endDate}T23:59:59${filters.combined}`;
     
-    console.log('🔍 DailyPerformanceService: URL leads:', leadsUrl);
+    console.log('🔍 DailyPerformanceService: URL leads (IGUAL ao TotalOportunidadesService):', leadsUrl);
+    console.log('🔍 DailyPerformanceService: Parâmetros:', { startDate, endDate, filtersCombined: filters.combined });
     
     const leadsData = await fetchAllRecords(leadsUrl, baseHeaders);
+    
+    console.log('📊 DailyPerformanceService: Total de registros retornados:', leadsData?.length || 0);
+    if (leadsData && leadsData.length > 0) {
+      console.log('📊 DailyPerformanceService: Primeiros 3 registros:', leadsData.slice(0, 3));
+      console.log('📊 DailyPerformanceService: Últimos 3 registros:', leadsData.slice(-3));
+    }
     
     // Agrupar por dia
     const dailyLeads = {};
@@ -182,7 +189,8 @@ const fetchLeadsDataByDay = async (startDate, endDate, filters) => {
     if (leadsData && Array.isArray(leadsData)) {
       leadsData.forEach(lead => {
         const createDate = new Date(lead.create_date);
-        const dateKey = createDate.toISOString().split('T')[0];
+        // Usar data LOCAL para evitar deslocamento por UTC
+        const dateKey = createDate.toLocaleDateString('sv-SE'); // YYYY-MM-DD
         
         if (!dailyLeads[dateKey]) {
           dailyLeads[dateKey] = {
@@ -197,6 +205,17 @@ const fetchLeadsDataByDay = async (startDate, endDate, filters) => {
     }
     
     console.log('✅ DailyPerformanceService: Dados de leads agrupados por dia:', dailyLeads);
+    
+    // Debug específico para HOJE
+    const todayKey = new Date().toLocaleDateString('sv-SE');
+    console.log('🔎 DailyPerformanceService: todayKey:', todayKey);
+    console.log('🔎 DailyPerformanceService: exists?', !!dailyLeads[todayKey]);
+    console.log('🔎 DailyPerformanceService: value:', dailyLeads[todayKey] || null);
+    
+    // Debug: mostrar todas as chaves de data encontradas
+    const allDateKeys = Object.keys(dailyLeads).sort();
+    console.log('🔎 DailyPerformanceService: Todas as datas encontradas:', allDateKeys);
+    
     return dailyLeads;
     
   } catch (error) {
@@ -213,18 +232,25 @@ const fetchLeadsDataByDay = async (startDate, endDate, filters) => {
  * @param {number} totalDays - Total de dias no período
  * @returns {number} Meta diária de leads
  */
-const fetchLeadsMeta = async (selectedUnit, selectedFunnel, totalDays) => {
+const fetchLeadsMeta = async (selectedUnit, selectedFunnel, selectedSeller, totalDays) => {
   try {
     console.log('📊 DailyPerformanceService: Buscando meta de leads...');
     
-    const unidadeParaMeta = selectedUnit && selectedUnit !== 'all' ? selectedUnit : '[1]';
+    const unidadeParaMeta = selectedUnit && selectedUnit !== 'all' ? selectedUnit : null;
     
-    let metaUrl;
-    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
-      metaUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.novas_oportunidades&funil=eq.${selectedFunnel}`;
-    } else {
-      metaUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.novas_oportunidades&funil=in.(6,14)`;
-    }
+    // Dashboard específico para metas diárias de oportunidades
+    const dashboard = 'oportunidades_diaria';
+    
+    // Montar filtros
+    const unidadeFilter = unidadeParaMeta ? `&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}` : '';
+    const funilFilter = (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined')
+      ? `&funil=eq.${selectedFunnel}`
+      : `&funil=in.(6,14)`;
+    const vendedorFilter = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
+      ? `&vendedor_id=eq.${selectedSeller}`
+      : '';
+    
+    const metaUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&dashboard=eq.${dashboard}${funilFilter}${vendedorFilter}${unidadeFilter}`;
     
     const response = await fetch(metaUrl, {
       method: 'GET',
@@ -239,18 +265,10 @@ const fetchLeadsMeta = async (selectedUnit, selectedFunnel, totalDays) => {
     if (response.ok) {
       const metaData = await response.json();
       if (metaData && metaData.length > 0) {
-        let totalMeta = 0;
-        if (selectedFunnel && selectedFunnel !== 'all') {
-          totalMeta = parseFloat(metaData[0].valor_da_meta) || 0;
-        } else {
-          totalMeta = metaData.reduce((total, meta) => {
-            return total + (parseFloat(meta.valor_da_meta) || 0);
-          }, 0);
-        }
-        
-        const metaDiaria = totalDays > 0 ? Math.round(totalMeta / totalDays) : 0;
-        console.log(`✅ DailyPerformanceService: Meta total: ${totalMeta}, Meta diária: ${metaDiaria}`);
-        return metaDiaria;
+        // Como a dashboard é de metas diárias, somamos os registros (se houver múltiplos vendedores)
+        const totalMeta = metaData.reduce((total, meta) => total + (parseFloat(meta.valor_da_meta) || 0), 0);
+        console.log(`✅ DailyPerformanceService: Meta diária (somada): ${totalMeta}`);
+        return Math.round(totalMeta);
       }
     }
     
@@ -266,31 +284,201 @@ const fetchLeadsMeta = async (selectedUnit, selectedFunnel, totalDays) => {
 };
 
 /**
+ * 🎯 BUSCAR DADOS DE VENDAS/OPORTUNIDADES GANHAS POR DIA
+ * 
+ * @param {string} startDate - Data inicial (formato YYYY-MM-DD)
+ * @param {string} endDate - Data final (formato YYYY-MM-DD)
+ * @param {Object} filters - Filtros construídos
+ * @returns {Array} Array com dados por dia
+ */
+const fetchVendasDataByDay = async (startDate, endDate, filters) => {
+  try {
+    console.log('📊 DailyPerformanceService: Buscando dados de vendas por dia...');
+    
+    const baseHeaders = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+      'Accept-Profile': supabaseSchema,
+      'Prefer': 'count=exact'
+    };
+
+    // EXATAMENTE igual ao fetchLeadsDataByDay, mas com status=eq.gain e gain_date
+    const vendasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,gain_date&archived=eq.0&status=eq.gain&gain_date=gte.${startDate}&gain_date=lte.${endDate}T23:59:59${filters.combined}`;
+    
+    console.log('🔍 DailyPerformanceService: URL vendas (IGUAL ao fetchLeadsDataByDay mas com status=gain e gain_date):', vendasUrl);
+    console.log('🔍 DailyPerformanceService: Parâmetros:', { startDate, endDate, filtersCombined: filters.combined });
+    
+    const vendasData = await fetchAllRecords(vendasUrl, baseHeaders);
+    
+    console.log('📊 DailyPerformanceService: Total de vendas retornadas:', vendasData?.length || 0);
+    if (vendasData && vendasData.length > 0) {
+      console.log('📊 DailyPerformanceService: Primeiras 3 vendas:', vendasData.slice(0, 3));
+      console.log('📊 DailyPerformanceService: Últimas 3 vendas:', vendasData.slice(-3));
+    }
+    
+    // Agrupar por dia
+    const dailyVendas = {};
+    
+    if (vendasData && Array.isArray(vendasData)) {
+      vendasData.forEach(venda => {
+        const gainDate = new Date(venda.gain_date);
+        // Usar data LOCAL para evitar deslocamento por UTC
+        const dateKey = gainDate.toLocaleDateString('sv-SE'); // YYYY-MM-DD
+        
+        if (!dailyVendas[dateKey]) {
+          dailyVendas[dateKey] = {
+            count: 0,
+            totalValue: 0
+          };
+        }
+        
+        dailyVendas[dateKey].count++;
+        dailyVendas[dateKey].totalValue += parseFloat(venda.value) || 0;
+      });
+    }
+    
+    console.log('✅ DailyPerformanceService: Dados de vendas agrupados por dia:', dailyVendas);
+    
+    // Debug específico para HOJE
+    const todayKey = new Date().toLocaleDateString('sv-SE');
+    console.log('🔎 DailyPerformanceService: todayKey vendas:', todayKey);
+    console.log('🔎 DailyPerformanceService: exists?', !!dailyVendas[todayKey]);
+    console.log('🔎 DailyPerformanceService: value:', dailyVendas[todayKey] || null);
+    
+    // Debug: mostrar todas as chaves de data encontradas
+    const allDateKeys = Object.keys(dailyVendas).sort();
+    console.log('🔎 DailyPerformanceService: Todas as datas de vendas encontradas:', allDateKeys);
+    
+    return dailyVendas;
+    
+  } catch (error) {
+    console.error('❌ DailyPerformanceService: Erro ao buscar dados de vendas:', error);
+    return {};
+  }
+};
+
+/**
+ * 🎯 BUSCAR META DE VENDAS POR DIA
+ * 
+ * @param {string} selectedUnit - ID da unidade selecionada
+ * @param {string} selectedFunnel - ID do funil selecionado
+ * @param {string} selectedSeller - ID do vendedor selecionado
+ * @param {number} totalDays - Total de dias no período
+ * @returns {number} Meta diária de vendas
+ */
+const fetchVendasMeta = async (selectedUnit, selectedFunnel, selectedSeller, totalDays) => {
+  try {
+    console.log('📊 DailyPerformanceService: Buscando meta de vendas...');
+    
+    const unidadeParaMeta = selectedUnit && selectedUnit !== 'all' ? selectedUnit : null;
+    
+    // Dashboard específico para metas diárias de vendas/ganhas
+    const dashboard = 'oportunidades_diaria_ganhas';
+    
+    // Montar filtros
+    const unidadeFilter = unidadeParaMeta ? `&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}` : '';
+    const funilFilter = (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined')
+      ? `&funil=eq.${selectedFunnel}`
+      : `&funil=in.(6,14)`;
+    const vendedorFilter = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
+      ? `&vendedor_id=eq.${selectedSeller}`
+      : '';
+    
+    const metaUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&dashboard=eq.${dashboard}${funilFilter}${vendedorFilter}${unidadeFilter}`;
+    
+    console.log('🔍 DailyPerformanceService: URL meta vendas:', metaUrl);
+    
+    const response = await fetch(metaUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+      }
+    });
+
+    if (response.ok) {
+      const metaData = await response.json();
+      if (metaData && metaData.length > 0) {
+        // Como a dashboard é de metas diárias, somamos os registros (se houver múltiplos vendedores)
+        const totalMeta = metaData.reduce((total, meta) => total + (parseFloat(meta.valor_da_meta) || 0), 0);
+        console.log(`✅ DailyPerformanceService: Meta diária de vendas (somada): ${totalMeta}`);
+        return Math.round(totalMeta);
+      }
+    }
+    
+    // Fallback: meta padrão de 20 vendas por dia
+    const metaPadrao = 20;
+    console.log(`⚠️ DailyPerformanceService: Usando meta padrão de vendas: ${metaPadrao} vendas/dia`);
+    return metaPadrao;
+    
+  } catch (error) {
+    console.error('❌ DailyPerformanceService: Erro ao buscar meta de vendas:', error);
+    return 20; // Meta padrão
+  }
+};
+
+/**
  * 🎯 GERAR DADOS DIÁRIOS COM ESTRUTURA PADRONIZADA
  * 
  * @param {string} startDate - Data inicial
  * @param {string} endDate - Data final
  * @param {Object} dailyLeads - Dados de leads por dia
+ * @param {Object} dailyVendas - Dados de vendas por dia
  * @param {number} metaDiariaLeads - Meta diária de leads
+ * @param {number} metaDiariaVendas - Meta diária de vendas
  * @returns {Array} Array com dados estruturados por dia
  */
-const generateDailyData = (startDate, endDate, dailyLeads, metaDiariaLeads) => {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const today = new Date();
+const generateDailyData = (startDate, endDate, dailyLeads, dailyVendas, metaDiariaLeads, metaDiariaVendas) => {
+  const start = new Date(startDate + 'T00:00:00');
+  const end = new Date(endDate + 'T23:59:59');
+  // Tratar "hoje" usando timezone local e incluindo todo o dia atual
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+  
+  console.log('🔍 DEBUG generateDailyData:', {
+    startDate,
+    endDate,
+    start: start.toISOString(),
+    end: end.toISOString(),
+    today: today.toISOString(),
+    totalKeysInDailyLeads: Object.keys(dailyLeads).length,
+    dailyLeadsKeys: Object.keys(dailyLeads).sort()
+  });
   
   const dailyData = [];
   const current = new Date(start);
   
   while (current <= end && current <= today) {
-    const dateKey = current.toISOString().split('T')[0];
+    // Data LOCAL para alinhar com os outros componentes
+    const dateKey = current.toLocaleDateString('sv-SE');
     const leadsData = dailyLeads[dateKey] || { count: 0, totalValue: 0 };
+    const vendasData = dailyVendas[dateKey] || { count: 0, totalValue: 0 };
     
+    console.log(`🔍 Processando dia ${dateKey}:`, {
+      hasLeadsData: !!dailyLeads[dateKey],
+      leadsCount: leadsData.count,
+      hasVendasData: !!dailyVendas[dateKey],
+      vendasCount: vendasData.count,
+      currentDate: current.toISOString()
+    });
+    
+    // Cálculos de leads
     const leadsGap = leadsData.count - metaDiariaLeads;
     const faturamentoMeta = metaDiariaLeads * 250;
     const faturamentoGap = leadsData.totalValue - faturamentoMeta;
     const ticketMedioRealizado = leadsData.count > 0 ? leadsData.totalValue / leadsData.count : 0;
     const ticketMedioGap = ticketMedioRealizado - 250;
+    
+    // Cálculos de vendas
+    const vendasGap = vendasData.count - metaDiariaVendas;
+    
+    // Cálculo de conversão (vendas / leads * 100)
+    const conversaoRealizada = leadsData.count > 0 ? (vendasData.count / leadsData.count) * 100 : 0;
+    const conversaoMeta = 30; // 30% de conversão padrão
+    const conversaoGap = conversaoRealizada - conversaoMeta;
     
     dailyData.push({
       date: dateKey,
@@ -300,9 +488,9 @@ const generateDailyData = (startDate, endDate, dailyLeads, metaDiariaLeads) => {
         gap: leadsGap
       },
       vendas: {
-        realizado: 0, // TODO: Implementar quando você me disser onde buscar
-        meta: 0,
-        gap: 0
+        realizado: vendasData.count,
+        meta: metaDiariaVendas,
+        gap: vendasGap
       },
       faturamento: {
         realizado: leadsData.totalValue,
@@ -310,9 +498,9 @@ const generateDailyData = (startDate, endDate, dailyLeads, metaDiariaLeads) => {
         gap: faturamentoGap
       },
       conversao: {
-        realizado: 0, // TODO: Implementar quando você me disser onde buscar
-        meta: 30, // 30% de conversão padrão
-        gap: 0
+        realizado: conversaoRealizada,
+        meta: conversaoMeta,
+        gap: conversaoGap
       },
       ticketMedio: {
         realizado: ticketMedioRealizado,
@@ -323,6 +511,9 @@ const generateDailyData = (startDate, endDate, dailyLeads, metaDiariaLeads) => {
     
     current.setDate(current.getDate() + 1);
   }
+  
+  console.log(`🔍 generateDailyData resultado: ${dailyData.length} dias gerados`);
+  console.log('🔍 Datas geradas:', dailyData.map(d => d.date));
   
   return dailyData;
 };
@@ -404,33 +595,36 @@ export const getDailyPerformanceData = async (
     console.log('  - selectedOrigin:', selectedOrigin);
     console.log('='.repeat(80));
 
-    // Fallback para datas se não estiverem definidas
-    let dataInicio = startDate;
-    let dataFim = endDate;
-    
-    if (!dataInicio || !dataFim || dataInicio === '' || dataFim === '') {
-      const hoje = new Date().toISOString().split('T')[0];
-      dataInicio = hoje;
-      dataFim = hoje;
-      console.log('⚠️ DailyPerformanceService: Usando datas fallback (hoje):', { dataInicio, dataFim });
-    }
+    // Sempre considerar o mês corrente (01 até HOJE) para a tabela diária
+    const now = new Date();
+    const hojeDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const inicioMesDate = new Date(hojeDate.getFullYear(), hojeDate.getMonth(), 1);
+    const dataInicioMes = inicioMesDate.toISOString().split('T')[0];
+    const dataFimMes = hojeDate.toISOString().split('T')[0];
+    console.log('📅 Intervalo mensal usado para a tabela diária:', { dataInicioMes, dataFimMes });
 
     // Construir filtros
     const filters = await buildFilters(selectedFunnel, selectedUnit, selectedSeller, selectedOrigin);
     
     // Calcular total de dias
-    const start = new Date(dataInicio);
-    const end = new Date(dataFim);
+    const start = new Date(inicioMesDate);
+    const end = new Date(hojeDate);
     const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
-    // Buscar dados de leads por dia
-    const dailyLeads = await fetchLeadsDataByDay(dataInicio, dataFim, filters);
+    // Buscar dados de leads por dia (mês corrente)
+    const dailyLeads = await fetchLeadsDataByDay(dataInicioMes, dataFimMes, filters);
+    
+    // Buscar dados de vendas por dia (mês corrente)
+    const dailyVendas = await fetchVendasDataByDay(dataInicioMes, dataFimMes, filters);
     
     // Buscar meta de leads
-    const metaDiariaLeads = await fetchLeadsMeta(selectedUnit, selectedFunnel, totalDays);
+    const metaDiariaLeads = await fetchLeadsMeta(selectedUnit, selectedFunnel, selectedSeller, totalDays);
+    
+    // Buscar meta de vendas
+    const metaDiariaVendas = await fetchVendasMeta(selectedUnit, selectedFunnel, selectedSeller, totalDays);
     
     // Gerar dados diários estruturados
-    const dailyData = generateDailyData(dataInicio, dataFim, dailyLeads, metaDiariaLeads);
+    const dailyData = generateDailyData(dataInicioMes, dataFimMes, dailyLeads, dailyVendas, metaDiariaLeads, metaDiariaVendas);
     
     // Calcular dados de resumo
     const summaryData = calculateSummaryData(dailyData);
@@ -438,7 +632,12 @@ export const getDailyPerformanceData = async (
     console.log('✅ DailyPerformanceService: Dados processados:');
     console.log('  - Total de dias:', dailyData.length);
     console.log('  - Meta diária de leads:', metaDiariaLeads);
+    console.log('  - Meta diária de vendas:', metaDiariaVendas);
     console.log('  - Dados de resumo:', summaryData);
+    console.log('🔍 DEBUG: Estrutura dos dados diários:');
+    console.log('  - Primeiros 3 dias:', dailyData.slice(0, 3));
+    console.log('  - Últimos 3 dias:', dailyData.slice(-3));
+    console.log('  - Todas as datas:', dailyData.map(d => d.date));
     
     return {
       dailyData,

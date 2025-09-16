@@ -3151,6 +3151,20 @@ const TopMenuBar = ({
               )}
             </button>
 
+            <button 
+              className="tmb-sync-btn"
+              onClick={() => navigate('/debug-daily-performance')}
+              title="🎯 DEBUG DAILY PERFORMANCE - Abrir tabela de performance diária em página isolada para debug"
+              style={{ 
+                marginLeft: '8px', 
+                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                fontSize: '12px',
+                padding: '8px 12px'
+              }}
+            >
+              🎯 DEBUG
+            </button>
+
           </>
         )}
       </div>
