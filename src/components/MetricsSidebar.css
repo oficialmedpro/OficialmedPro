@@ -7,9 +7,10 @@
   border-radius: 12px;
   padding: 24px;
   overflow-y: auto;
-  height: 100vh;
-  position: sticky;
-  top: 0;
+  min-height: 600px; /* Altura mínima igual ao main-chart */
+  height: 100% !important; /* Força altura total do container */
+  align-self: stretch; /* Força a ocupar toda altura disponível */
+  box-sizing: border-box; /* Inclui padding e border na altura */
 }
 
 .ms-users-header {

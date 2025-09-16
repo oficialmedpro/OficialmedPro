@@ -3,7 +3,7 @@ import './FilterBar.css';
 import { getUnidades, getFunisPorUnidade, getVendedores, getOrigens } from '../service/FilterBarService.js';
 import { handleDatePreset } from '../utils/utils.js';
 
-const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSelectedPeriod, selectedFunnel, setSelectedFunnel, selectedUnit, setSelectedUnit, selectedOrigin, setSelectedOrigin, startDate, setStartDate, endDate, setEndDate, onUnitFilterChange, onSellerFilterChange, onOriginFilterChange, marketData }) => {
+const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSelectedPeriod, selectedFunnel, setSelectedFunnel, selectedUnit, setSelectedUnit, selectedOrigin, setSelectedOrigin, startDate, setStartDate, endDate, setEndDate, onUnitFilterChange, onSellerFilterChange, onOriginFilterChange, marketData, onSellerNameChange }) => {
 
   
   // Estado único para controlar qual dropdown está aberto (accordion)
@@ -279,6 +279,9 @@ const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSe
         
         // Chama o callback do componente pai para aplicar o filtro
         onSellerFilterChange(filterValue);
+        if (onSellerNameChange) {
+          onSellerNameChange(sellerId === 'all' ? null : selectedSellerData.name);
+        }
       }
     }
     

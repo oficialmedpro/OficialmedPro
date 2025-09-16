@@ -24,9 +24,8 @@ const OrcamentoNegociacaoCard = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Hooks para animação dos números - sempre chamados na mesma ordem
+  // Hook para animação do número principal
   const primaryCount = useCountUp(parseInt(orcamentoNegociacaoData.value.replace(/,/g, '')), 1500);
-  const secondaryCount = useCountUp(parseInt(orcamentoNegociacaoData.previousValue.replace(/,/g, '')), 1500);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -108,12 +107,6 @@ const OrcamentoNegociacaoCard = ({
             </div>
             <div className="onc-primary-value-amount">
               {orcamentoNegociacaoData.opportunityValue}
-            </div>
-            <div className="onc-secondary-value">
-              {secondaryCount.toLocaleString()} anterior
-            </div>
-            <div className="onc-secondary-value-amount">
-              R$ 0,00
             </div>
           </div>
 

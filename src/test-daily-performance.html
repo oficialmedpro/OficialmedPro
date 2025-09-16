@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Daily Performance Table</title>
+    <style>
+        body {
+            background: #1a1a1a;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .test-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-header h1 {
+            color: #ffffff;
+            font-size: 2rem;
+            margin: 0;
+        }
+        
+        .test-info {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .test-info h2 {
+            color: #3b82f6;
+            margin-top: 0;
+        }
+        
+        .test-info p {
+            color: #cccccc;
+            line-height: 1.6;
+        }
+        
+        .test-steps {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .test-steps h2 {
+            color: #10b981;
+            margin-top: 0;
+        }
+        
+        .test-steps ol {
+            color: #cccccc;
+            line-height: 1.8;
+        }
+        
+        .test-steps li {
+            margin-bottom: 10px;
+        }
+        
+        .test-steps code {
+            background: #404040;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="test-header">
+            <h1>🎯 Teste - Daily Performance Table</h1>
+        </div>
+        
+        <div class="test-info">
+            <h2>📊 O que foi implementado:</h2>
+            <p>
+                ✅ <strong>Componente DailyPerformanceTable.jsx</strong> - Tabela com estrutura idêntica à imagem<br>
+                ✅ <strong>CSS DailyPerformanceTable.css</strong> - Estilo personalizado com cores corretas<br>
+                ✅ <strong>Service dailyPerformanceService.js</strong> - Busca dados de leads/oportunidades por dia<br>
+                ✅ <strong>Integração no DashboardPage.jsx</strong> - Aparece após chart-section quando funil selecionado
+            </p>
+        </div>
+        
+        <div class="test-steps">
+            <h2>🧪 Como testar:</h2>
+            <ol>
+                <li>Execute o projeto: <code>npm run dev</code></li>
+                <li>Acesse a dashboard no navegador</li>
+                <li>Selecione um <strong>funil específico</strong> (não "all")</li>
+                <li>Selecione uma <strong>unidade específica</strong> (não "all")</li>
+                <li>A tabela "Performance Diária" deve aparecer após o chart-section</li>
+                <li>Verifique se as cores estão corretas (fundo escuro, texto branco)</li>
+                <li>Verifique se os gaps negativos aparecem em vermelho</li>
+                <li>Verifique se a tabela está alinhada corretamente</li>
+            </ol>
+        </div>
+        
+        <div class="test-info">
+            <h2>🔧 Dados implementados:</h2>
+            <p>
+                ✅ <strong>Leads:</strong> Busca oportunidades criadas por dia do Supabase<br>
+                ✅ <strong>Faturamento:</strong> Soma dos valores das oportunidades por dia<br>
+                ✅ <strong>Ticket Médio:</strong> Faturamento dividido por número de leads<br>
+                ⏳ <strong>N° Vendas:</strong> Aguardando onde buscar os dados<br>
+                ⏳ <strong>Taxa Conversão:</strong> Aguardando como calcular
+            </p>
+        </div>
+        
+        <div class="test-steps">
+            <h2>🎨 Estrutura visual:</h2>
+            <ol>
+                <li><strong>Header:</strong> "Performance Diária - [mês/ano]"</li>
+                <li><strong>Colunas:</strong> Leads, N° Vendas, Faturamento, Taxa Conversão, Ticket Médio</li>
+                <li><strong>Sub-colunas:</strong> Realizado, Meta, Gap</li>
+                <li><strong>Linhas:</strong> Resumo do mês + dias do mês (1º até hoje)</li>
+                <li><strong>Cores:</strong> Fundo escuro, texto branco, gaps negativos em vermelho</li>
+            </ol>
+        </div>
+    </div>
+</body>
+</html>

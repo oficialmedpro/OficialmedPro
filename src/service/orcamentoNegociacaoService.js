@@ -161,21 +161,82 @@ export const getOrcamentoNegociacaoMetrics = async (
     // Combinar todos os filtros
     const filtrosCombinados = `${unidadeFilter}${sellerFilter}${originFilter}${funilFilter}`;
 
-    // 1. Orçamento em Negociação - Oportunidades abertas nas etapas de orçamento (crm_column)
-    let orcamentoNegociacaoUrl;
-    let useDualFetch = false;
-    
+    // 🔄 DEFINIR HEADERS BASE PRIMEIRO
+    const baseHeaders = {
+      'Accept': 'application/json',
+      'Authorization': `Bearer ${supabaseServiceKey}`,
+      'apikey': supabaseServiceKey,
+      'Accept-Profile': supabaseSchema,
+      'Prefer': 'count=exact'
+    };
+
+    // 🔍 BUSCAR ETAPAS DE ORÇAMENTO (baseado no googleConversaoService)
+    console.log('🔍 Buscando etapas de orçamento na tabela funil_etapas...');
+
+    // Usar lógica similar ao googleConversaoService, mas adaptada para filtros gerais
+    let etapasOrcamentoIds = [];
+
     if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS') {
-      // Funil específico selecionado: considerar ambas etapas (206 e 207), se existirem
-      orcamentoNegociacaoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&or=(crm_column.eq.207,crm_column.eq.206)&funil_id=eq.${selectedFunnel}&status=eq.open${sellerFilter}${unidadeFilter}${originFilter}`;
-      console.log(`🎯 Usando etapas ORÇAMENTO (206/207) do funil ${selectedFunnel} com status OPEN`);
+      // Funil específico - buscar etapas de orçamento apenas deste funil
+      const etapasUrl = `${supabaseUrl}/rest/v1/funil_etapas?select=id_etapa_sprint&orcamento=eq.true&id_funil_sprint=eq.${selectedFunnel}`;
+      console.log('🔍 URL busca etapas orçamento (funil específico):', etapasUrl);
+
+      const etapasResponse = await fetch(etapasUrl, {
+        method: 'GET',
+        headers: baseHeaders
+      });
+
+      if (etapasResponse.ok) {
+        const etapasData = await etapasResponse.json();
+        console.log(`🔍 DEBUG: Resposta da busca de etapas (funil ${selectedFunnel}):`, etapasData);
+        if (etapasData && etapasData.length > 0) {
+          etapasOrcamentoIds = etapasData.map(etapa => etapa.id_etapa_sprint);
+          console.log(`✅ Etapas de orçamento do funil ${selectedFunnel}:`, etapasOrcamentoIds);
+        } else {
+          console.log(`⚠️ Nenhuma etapa de orçamento encontrada para o funil ${selectedFunnel}`);
+        }
+      } else {
+        console.error('❌ Erro ao buscar etapas de orçamento:', etapasResponse.status);
+      }
     } else {
-      // Sem funil específico: somar todos os funis da unidade nas etapas 206 e 207 (sem filtrar por status)
-      orcamentoNegociacaoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&or=(crm_column.eq.207,crm_column.eq.206)${sellerFilter}${unidadeFilter}${originFilter}`;
-      console.log('🎯 Somando etapas ORÇAMENTO (206 e 207) para todos os funis da unidade, sem filtro de status');
+      // Sem funil específico - buscar etapas de orçamento dos funis padrão (6 e 14)
+      const etapasUrl = `${supabaseUrl}/rest/v1/funil_etapas?select=id_etapa_sprint&orcamento=eq.true&id_funil_sprint=in.(6,14)`;
+      console.log('🔍 URL busca etapas orçamento (funis padrão 6,14):', etapasUrl);
+
+      const etapasResponse = await fetch(etapasUrl, {
+        method: 'GET',
+        headers: baseHeaders
+      });
+
+      if (etapasResponse.ok) {
+        const etapasData = await etapasResponse.json();
+        console.log(`🔍 DEBUG: Resposta da busca de etapas (funis 6,14):`, etapasData);
+        if (etapasData && etapasData.length > 0) {
+          etapasOrcamentoIds = etapasData.map(etapa => etapa.id_etapa_sprint);
+          console.log(`✅ Etapas de orçamento encontradas (funis 6,14):`, etapasOrcamentoIds);
+        } else {
+          console.log(`⚠️ Nenhuma etapa de orçamento encontrada para funis 6,14`);
+        }
+      } else {
+        console.error('❌ Erro ao buscar etapas de orçamento:', etapasResponse.status);
+      }
     }
-    
-    console.log('🔍 URL Orçamento Negociação:', orcamentoNegociacaoUrl);
+
+    // 2. Buscar oportunidades nas etapas de orçamento com status=open (GERAL - não só Google)
+    let orcamentoNegociacaoUrl = null;
+
+    if (etapasOrcamentoIds.length > 0) {
+      // Construir filtro para múltiplas etapas
+      const etapasFilter = etapasOrcamentoIds.length === 1
+        ? `&crm_column=eq.${etapasOrcamentoIds[0]}`
+        : `&crm_column=in.(${etapasOrcamentoIds.join(',')})`;
+
+      orcamentoNegociacaoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open${etapasFilter}${funilFilter}${sellerFilter}${unidadeFilter}${originFilter}`;
+      console.log('🎯 Query final orçamento em negociação:', orcamentoNegociacaoUrl);
+    } else {
+      console.log('⚠️ Nenhuma etapa de orçamento encontrada, não executará query de oportunidades');
+      orcamentoNegociacaoUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&crm_column=eq.0`; // Query que retorna vazio
+    }
 
     // 2. Meta de Orçamento em Negociação (espelhar lógica do serviço que funciona)
     const unidadeParaMeta = (selectedUnit && selectedUnit !== 'all' && selectedUnit !== 'TODOS' && selectedUnit !== '')
@@ -196,13 +257,6 @@ export const getOrcamentoNegociacaoMetrics = async (
     console.log('🔍 URL Meta Orçamento Negociação:', metaOrcamentoNegociacaoUrl);
 
     // 🔄 EXECUTAR QUERIES COM PAGINAÇÃO
-    const baseHeaders = {
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
-      'Accept-Profile': supabaseSchema,
-      'Prefer': 'count=exact'
-    };
 
     // Executar queries com paginação em paralelo
     const [orcamentoData, metaResponse] = await Promise.all([
@@ -218,8 +272,21 @@ export const getOrcamentoNegociacaoMetrics = async (
     let valorTotalOrcamento = 0;
     let quantidadeOrcamento = 0;
 
+    console.log('🔍 DEBUG: Verificando orcamentoData:', {
+      isArray: Array.isArray(orcamentoData),
+      length: orcamentoData ? orcamentoData.length : 'null/undefined',
+      sample: orcamentoData ? orcamentoData.slice(0, 3) : 'none'
+    });
+
     if (orcamentoData && Array.isArray(orcamentoData)) {
       console.log('🔍 Dados brutos de Orçamento em Negociação recebidos (paginação):', orcamentoData.length, 'registros');
+
+      if (orcamentoData.length === 0) {
+        console.log('⚠️ DEBUG: Query retornou 0 registros. Verificar se:');
+        console.log('   1. Existem etapas com orcamento=true na tabela funil_etapas');
+        console.log('   2. Existem oportunidades nessas etapas com status=open');
+        console.log('   3. Os filtros aplicados estão corretos');
+      }
 
       quantidadeOrcamento = orcamentoData.length;
       valorTotalOrcamento = orcamentoData.reduce((total, item) => {
@@ -230,6 +297,7 @@ export const getOrcamentoNegociacaoMetrics = async (
       console.log(`✅ Orçamento Negociação: ${quantidadeOrcamento} oportunidades, R$ ${valorTotalOrcamento.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
     } else {
       console.error('❌ Erro ao buscar orçamento em negociação com paginação');
+      console.error('🔍 DEBUG: orcamentoData recebido:', orcamentoData);
     }
 
     // Processar meta (mesma regra do serviço que funciona: somar quando sem funil)
@@ -368,15 +436,18 @@ const getOrcamentoNegociacaoAnteriores = async (dataInicio, dataFim, selectedFun
 
     const filtrosCombinados = `${unidadeFilter}${sellerFilter}${originFilter}${funilFilter}`;
 
-    // Buscar orçamento em negociação do período anterior
-    let orcamentoAnteriorUrl;
-    
-    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS') {
-      // Funil específico: considerar as duas etapas, sem filtrar por status
-      orcamentoAnteriorUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&or=(crm_column.eq.207,crm_column.eq.206)&funil_id=eq.${selectedFunnel}&create_date=gte.${dataInicioAnteriorStr}&create_date=lte.${dataFimAnteriorStr}T23:59:59${sellerFilter}${unidadeFilter}${originFilter}`;
+    // Buscar orçamento em negociação do período anterior - reutilizar mesmas etapas
+    let orcamentoAnteriorUrl = null;
+
+    if (etapasOrcamentoIds.length > 0) {
+      // Usar as mesmas etapas de orçamento encontradas anteriormente
+      const etapasFilter = etapasOrcamentoIds.length === 1
+        ? `&crm_column=eq.${etapasOrcamentoIds[0]}`
+        : `&crm_column=in.(${etapasOrcamentoIds.join(',')})`;
+
+      orcamentoAnteriorUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.open${etapasFilter}&create_date=gte.${dataInicioAnteriorStr}&create_date=lte.${dataFimAnteriorStr}T23:59:59${sellerFilter}${unidadeFilter}${originFilter}`;
     } else {
-      // Todos os funis: etapas 206 e 207 para a unidade, sem filtrar por status
-      orcamentoAnteriorUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&or=(crm_column.eq.207,crm_column.eq.206)&create_date=gte.${dataInicioAnteriorStr}&create_date=lte.${dataFimAnteriorStr}T23:59:59${sellerFilter}${unidadeFilter}${originFilter}`;
+      orcamentoAnteriorUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&crm_column=eq.0`; // Query vazia
     }
 
     console.log('🔍 URL Orçamento Negociação Anterior:', orcamentoAnteriorUrl);

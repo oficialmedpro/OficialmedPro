@@ -10,6 +10,7 @@ import FunnelChart from '../components/FunnelChart';
 import StatsSection from '../components/StatsSection';
 import TimelineChart from '../components/TimelineChart';
 import OportunidadesGanhasCard from '../components/OportunidadesGanhasCard';
+import DailyPerformanceTable from '../components/DailyPerformanceTable';
 import { translations } from '../data/translations';
 import { getStatsCards, getMenuItems } from '../data/statsData';
 import { 
@@ -36,6 +37,7 @@ const DashboardPage = ({ onLogout }) => {
   const [isLoadingRate, setIsLoadingRate] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('sale');
   const [selectedSeller, setSelectedSeller] = useState('all');
+  const [selectedSellerName, setSelectedSellerName] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState('today');
   const [selectedFunnel, setSelectedFunnel] = useState('all');
   const [selectedUnit, setSelectedUnit] = useState('all');
@@ -295,6 +297,7 @@ const DashboardPage = ({ onLogout }) => {
         setSelectedStatus={setSelectedStatus}
         selectedSeller={selectedSeller}
         setSelectedSeller={setSelectedSeller}
+        onSellerNameChange={setSelectedSellerName}
         selectedPeriod={selectedPeriod}
         setSelectedPeriod={setSelectedPeriod}
         selectedFunnel={selectedFunnel}
@@ -371,6 +374,20 @@ const DashboardPage = ({ onLogout }) => {
                 selectedSeller={selectedSeller}
               />
             </section>
+          )}
+
+          {/* Daily Performance Table - mostrar apenas quando um funil específico estiver selecionado */}
+          {selectedFunnel && selectedFunnel !== 'all' && (
+            <DailyPerformanceTable 
+              t={t}
+              startDate={startDate}
+              endDate={endDate}
+              selectedFunnel={selectedFunnel}
+              selectedUnit={selectedUnit}
+              selectedSeller={selectedSeller}
+              selectedSellerName={selectedSellerName}
+              selectedOrigin={selectedOrigin}
+            />
           )}
 
         {/* Lista de Oportunidades Ganhas removida */}
