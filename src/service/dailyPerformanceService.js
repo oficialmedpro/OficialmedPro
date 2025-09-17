@@ -421,17 +421,204 @@ const fetchVendasMeta = async (selectedUnit, selectedFunnel, selectedSeller, tot
 };
 
 /**
- * 🎯 GERAR DADOS DIÁRIOS COM ESTRUTURA PADRONIZADA
+ * 🎯 BUSCAR META DE FATURAMENTO POR DIA
  * 
+ * @param {string} selectedUnit - ID da unidade selecionada
+ * @param {string} selectedFunnel - ID do funil selecionado
+ * @param {string} selectedSeller - ID do vendedor selecionado
+ * @param {number} totalDays - Total de dias no período
+ * @returns {number} Meta diária de faturamento
+ */
+const fetchFaturamentoMeta = async (selectedUnit, selectedFunnel, selectedSeller, totalDays) => {
+  try {
+    console.log('📊 DailyPerformanceService: Buscando meta de faturamento...');
+    
+    const unidadeParaMeta = selectedUnit && selectedUnit !== 'all' ? selectedUnit : null;
+    
+    // Dashboard específico para metas de faturamento
+    const dashboard = 'oportunidades_faturamento';
+    
+    // Montar filtros
+    const unidadeFilter = unidadeParaMeta ? `&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}` : '';
+    const funilFilter = (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined')
+      ? `&funil=eq.${selectedFunnel}`
+      : `&funil=in.(6,14)`;
+    const vendedorFilter = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
+      ? `&vendedor_id=eq.${selectedSeller}`
+      : '';
+    
+    const metaUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&dashboard=eq.${dashboard}${funilFilter}${vendedorFilter}${unidadeFilter}`;
+    
+    console.log('🔍 DailyPerformanceService: URL meta faturamento:', metaUrl);
+    
+    const response = await fetch(metaUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+      }
+    });
+
+    if (response.ok) {
+      const metaData = await response.json();
+      if (metaData && metaData.length > 0) {
+        // Como a dashboard é de metas diárias, somamos os registros (se houver múltiplos vendedores)
+        const totalMeta = metaData.reduce((total, meta) => total + (parseFloat(meta.valor_da_meta) || 0), 0);
+        console.log(`✅ DailyPerformanceService: Meta diária de faturamento (somada): ${totalMeta}`);
+        return Math.round(totalMeta);
+      }
+    }
+    
+    // Fallback: meta padrão de R$ 6.000 por dia
+    const metaPadrao = 6000;
+    console.log(`⚠️ DailyPerformanceService: Usando meta padrão de faturamento: R$ ${metaPadrao}/dia`);
+    return metaPadrao;
+    
+  } catch (error) {
+    console.error('❌ DailyPerformanceService: Erro ao buscar meta de faturamento:', error);
+    return 6000; // Meta padrão
+  }
+};
+
+/**
+ * 🎯 BUSCAR META DE TAXA DE CONVERSÃO POR DIA
+ *
+ * @param {string} selectedUnit - ID da unidade selecionada
+ * @param {string} selectedFunnel - ID do funil selecionado
+ * @param {string} selectedSeller - ID do vendedor selecionado
+ * @returns {number} Meta diária de taxa de conversão em %
+ */
+const fetchTaxaConversaoMeta = async (selectedUnit, selectedFunnel, selectedSeller) => {
+  try {
+    console.log('📊 DailyPerformanceService: Buscando meta de taxa de conversão...');
+
+    const unidadeParaMeta = selectedUnit && selectedUnit !== 'all' ? selectedUnit : null;
+
+    // Dashboard específico para metas de taxa de conversão diária
+    const dashboard = 'taxa_conversao_diaria';
+
+    // Montar filtros
+    const unidadeFilter = unidadeParaMeta ? `&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}` : '';
+    const funilFilter = (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined')
+      ? `&funil=eq.${selectedFunnel}`
+      : `&funil=in.(6,14)`;
+    const vendedorFilter = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
+      ? `&vendedor_id=eq.${selectedSeller}`
+      : '';
+
+    const metaUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&dashboard=eq.${dashboard}${funilFilter}${vendedorFilter}${unidadeFilter}`;
+
+    console.log('🔍 DailyPerformanceService: URL meta taxa conversão:', metaUrl);
+
+    const response = await fetch(metaUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+      }
+    });
+
+    if (response.ok) {
+      const metaData = await response.json();
+      if (metaData && metaData.length > 0) {
+        // Como a dashboard é de metas diárias, somamos os registros (se houver múltiplos vendedores)
+        const totalMeta = metaData.reduce((total, meta) => total + (parseFloat(meta.valor_da_meta) || 0), 0);
+        console.log(`✅ DailyPerformanceService: Meta diária de taxa de conversão (somada): ${totalMeta}%`);
+        return totalMeta;
+      }
+    }
+
+    // Fallback: meta padrão de 30% de conversão
+    const metaPadrao = 30;
+    console.log(`⚠️ DailyPerformanceService: Usando meta padrão de taxa de conversão: ${metaPadrao}%`);
+    return metaPadrao;
+
+  } catch (error) {
+    console.error('❌ DailyPerformanceService: Erro ao buscar meta de taxa de conversão:', error);
+    return 30; // Meta padrão
+  }
+};
+
+/**
+ * 🎯 BUSCAR META DE TICKET MÉDIO POR DIA
+ *
+ * @param {string} selectedUnit - ID da unidade selecionada
+ * @param {string} selectedFunnel - ID do funil selecionado
+ * @param {string} selectedSeller - ID do vendedor selecionado
+ * @returns {number} Meta de ticket médio em R$
+ */
+const fetchTicketMedioMeta = async (selectedUnit, selectedFunnel, selectedSeller) => {
+  try {
+    console.log('📊 DailyPerformanceService: Buscando meta de ticket médio...');
+
+    const unidadeParaMeta = selectedUnit && selectedUnit !== 'all' ? selectedUnit : null;
+
+    // Dashboard específico para metas de ticket médio diário
+    const dashboard = 'ticket_medio_diario';
+
+    // Montar filtros
+    const unidadeFilter = unidadeParaMeta ? `&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}` : '';
+    const funilFilter = (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined')
+      ? `&funil=eq.${selectedFunnel}`
+      : `&funil=in.(6,14)`;
+    const vendedorFilter = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
+      ? `&vendedor_id=eq.${selectedSeller}`
+      : '';
+
+    const metaUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&dashboard=eq.${dashboard}${funilFilter}${vendedorFilter}${unidadeFilter}`;
+
+    console.log('🔍 DailyPerformanceService: URL meta ticket médio:', metaUrl);
+
+    const response = await fetch(metaUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+      }
+    });
+
+    if (response.ok) {
+      const metaData = await response.json();
+      if (metaData && metaData.length > 0) {
+        // Como a dashboard é de metas diárias, somamos os registros (se houver múltiplos vendedores)
+        const totalMeta = metaData.reduce((total, meta) => total + (parseFloat(meta.valor_da_meta) || 0), 0);
+        console.log(`✅ DailyPerformanceService: Meta de ticket médio (somada): R$ ${totalMeta}`);
+        return totalMeta;
+      }
+    }
+
+    // Fallback: meta padrão de R$ 250
+    const metaPadrao = 250;
+    console.log(`⚠️ DailyPerformanceService: Usando meta padrão de ticket médio: R$ ${metaPadrao}`);
+    return metaPadrao;
+
+  } catch (error) {
+    console.error('❌ DailyPerformanceService: Erro ao buscar meta de ticket médio:', error);
+    return 250; // Meta padrão
+  }
+};
+
+/**
+ * 🎯 GERAR DADOS DIÁRIOS COM ESTRUTURA PADRONIZADA
+ *
  * @param {string} startDate - Data inicial
  * @param {string} endDate - Data final
  * @param {Object} dailyLeads - Dados de leads por dia
  * @param {Object} dailyVendas - Dados de vendas por dia
  * @param {number} metaDiariaLeads - Meta diária de leads
  * @param {number} metaDiariaVendas - Meta diária de vendas
+ * @param {number} metaDiariaFaturamento - Meta diária de faturamento
+ * @param {number} metaTaxaConversao - Meta de taxa de conversão em %
+ * @param {number} metaTicketMedio - Meta de ticket médio em R$
  * @returns {Array} Array com dados estruturados por dia
  */
-const generateDailyData = (startDate, endDate, dailyLeads, dailyVendas, metaDiariaLeads, metaDiariaVendas) => {
+const generateDailyData = (startDate, endDate, dailyLeads, dailyVendas, metaDiariaLeads, metaDiariaVendas, metaDiariaFaturamento, metaTaxaConversao, metaTicketMedio) => {
   const start = new Date(startDate + 'T00:00:00');
   const end = new Date(endDate + 'T23:59:59');
   // Tratar "hoje" usando timezone local e incluindo todo o dia atual
@@ -467,45 +654,86 @@ const generateDailyData = (startDate, endDate, dailyLeads, dailyVendas, metaDiar
     
     // Cálculos de leads
     const leadsGap = leadsData.count - metaDiariaLeads;
-    const faturamentoMeta = metaDiariaLeads * 250;
-    const faturamentoGap = leadsData.totalValue - faturamentoMeta;
-    const ticketMedioRealizado = leadsData.count > 0 ? leadsData.totalValue / leadsData.count : 0;
-    const ticketMedioGap = ticketMedioRealizado - 250;
-    
+    const leadsGapPercentual = metaDiariaLeads > 0 ? (leadsGap / metaDiariaLeads) * 100 : 0;
+
     // Cálculos de vendas
     const vendasGap = vendasData.count - metaDiariaVendas;
-    
+    const vendasGapPercentual = metaDiariaVendas > 0 ? (vendasGap / metaDiariaVendas) * 100 : 0;
+
+    // Cálculos de faturamento (baseado nas vendas reais)
+    const faturamentoRealizado = vendasData.totalValue || 0; // Soma dos valores das vendas
+    const faturamentoGap = (faturamentoRealizado || 0) - (metaDiariaFaturamento || 0);
+    const faturamentoGapPercentual = (metaDiariaFaturamento && metaDiariaFaturamento > 0) ? (faturamentoGap / metaDiariaFaturamento) * 100 : 0;
+
     // Cálculo de conversão (vendas / leads * 100)
     const conversaoRealizada = leadsData.count > 0 ? (vendasData.count / leadsData.count) * 100 : 0;
-    const conversaoMeta = 30; // 30% de conversão padrão
-    const conversaoGap = conversaoRealizada - conversaoMeta;
-    
+    const conversaoGap = conversaoRealizada - metaTaxaConversao;
+
+    // Cálculo de ticket médio (faturamento / vendas)
+    const ticketMedioRealizado = (vendasData.count > 0) ? (vendasData.totalValue || 0) / vendasData.count : 0;
+    const ticketMedioGap = (ticketMedioRealizado || 0) - (metaTicketMedio || 0);
+    const ticketMedioGapPercentual = (metaTicketMedio && metaTicketMedio > 0) ? (ticketMedioGap / metaTicketMedio) * 100 : 0;
+
+    // Formatar gaps para valores inteiros (leads, vendas)
+    const formatGapInteger = (gap, gapPercentual) => {
+      if (isNaN(gap) || isNaN(gapPercentual)) {
+        return '0 (0.0%)';
+      }
+      const sinalGap = gap >= 0 ? '+' : '';
+      const sinalPerc = gapPercentual >= 0 ? '+' : '';
+      return `${sinalGap}${Math.round(gap)} (${sinalPerc}${gapPercentual.toFixed(1)}%)`;
+    };
+
+    // Formatar gaps para valores monetários (faturamento, ticket médio)
+    const formatGapMonetary = (gap, gapPercentual) => {
+      // Forçar conversão para número
+      const gapNumber = Number(gap) || 0;
+      const gapPercNumber = Number(gapPercentual) || 0;
+
+      if (isNaN(gapNumber) || isNaN(gapPercNumber)) {
+        return 'R$ 0 (0.0%)';
+      }
+
+      const sinalGap = gapNumber >= 0 ? '+' : '';
+      const sinalPerc = gapPercNumber >= 0 ? '+' : '';
+
+      try {
+        const valorFormatado = Math.abs(gapNumber).toLocaleString('pt-BR', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        });
+        return `${sinalGap}R$ ${valorFormatado} (${sinalPerc}${gapPercNumber.toFixed(1)}%)`;
+      } catch (error) {
+        return 'R$ 0 (0.0%)';
+      }
+    };
+
     dailyData.push({
       date: dateKey,
       leads: {
         realizado: leadsData.count,
         meta: metaDiariaLeads,
-        gap: leadsGap
+        gap: formatGapInteger(leadsGap, leadsGapPercentual)
       },
       vendas: {
         realizado: vendasData.count,
         meta: metaDiariaVendas,
-        gap: vendasGap
+        gap: formatGapInteger(vendasGap, vendasGapPercentual)
       },
       faturamento: {
-        realizado: leadsData.totalValue,
-        meta: faturamentoMeta,
-        gap: faturamentoGap
+        realizado: faturamentoRealizado,
+        meta: metaDiariaFaturamento,
+        gap: formatGapMonetary(faturamentoGap, faturamentoGapPercentual)
       },
       conversao: {
         realizado: conversaoRealizada,
-        meta: conversaoMeta,
+        meta: metaTaxaConversao,
         gap: conversaoGap
       },
       ticketMedio: {
         realizado: ticketMedioRealizado,
-        meta: 250, // R$ 250 ticket médio padrão
-        gap: ticketMedioGap
+        meta: metaTicketMedio,
+        gap: formatGapMonetary(ticketMedioGap, ticketMedioGapPercentual)
       }
     });
     
@@ -526,11 +754,11 @@ const generateDailyData = (startDate, endDate, dailyLeads, dailyVendas, metaDiar
  */
 const calculateSummaryData = (dailyData) => {
   const summary = {
-    leads: { realizado: 0, meta: 0, gap: 0 },
-    vendas: { realizado: 0, meta: 0, gap: 0 },
-    faturamento: { realizado: 0, meta: 0, gap: 0 },
-    conversao: { realizado: 0, meta: 0, gap: 0 },
-    ticketMedio: { realizado: 0, meta: 0, gap: 0 }
+    leads: { realizado: 0, meta: 0, gap: '' },
+    vendas: { realizado: 0, meta: 0, gap: '' },
+    faturamento: { realizado: 0, meta: 0, gap: '' },
+    conversao: { realizado: 0, meta: 0, gap: '' },
+    ticketMedio: { realizado: 0, meta: 0, gap: '' }
   };
   
   dailyData.forEach(day => {
@@ -546,19 +774,67 @@ const calculateSummaryData = (dailyData) => {
     summary.ticketMedio.meta += day.ticketMedio.meta;
   });
   
-  // Calcular gaps
-  summary.leads.gap = summary.leads.realizado - summary.leads.meta;
-  summary.vendas.gap = summary.vendas.realizado - summary.vendas.meta;
-  summary.faturamento.gap = summary.faturamento.realizado - summary.faturamento.meta;
-  summary.conversao.gap = summary.conversao.realizado - summary.conversao.meta;
-  summary.ticketMedio.gap = summary.ticketMedio.realizado - summary.ticketMedio.meta;
-  
-  // Calcular médias para conversão e ticket médio
+  // Formatar gaps para valores inteiros (leads, vendas)
+  const formatGapInteger = (gap, gapPercentual) => {
+    if (isNaN(gap) || isNaN(gapPercentual)) {
+      return '0 (0.0%)';
+    }
+    const sinalGap = gap >= 0 ? '+' : '';
+    const sinalPerc = gapPercentual >= 0 ? '+' : '';
+    return `${sinalGap}${Math.round(gap)} (${sinalPerc}${gapPercentual.toFixed(1)}%)`;
+  };
+
+  // Formatar gaps para valores monetários (faturamento, ticket médio)
+  const formatGapMonetary = (gap, gapPercentual) => {
+    // Forçar conversão para número
+    const gapNumber = Number(gap) || 0;
+    const gapPercNumber = Number(gapPercentual) || 0;
+
+    if (isNaN(gapNumber) || isNaN(gapPercNumber)) {
+      return 'R$ 0 (0.0%)';
+    }
+
+    const sinalGap = gapNumber >= 0 ? '+' : '';
+    const sinalPerc = gapPercNumber >= 0 ? '+' : '';
+
+    try {
+      const valorFormatado = Math.abs(gapNumber).toLocaleString('pt-BR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      });
+      return `${sinalGap}R$ ${valorFormatado} (${sinalPerc}${gapPercNumber.toFixed(1)}%)`;
+    } catch (error) {
+      return 'R$ 0 (0.0%)';
+    }
+  };
+
+  // Calcular gaps para itens que são somados
+  const leadsGap = (summary.leads.realizado || 0) - (summary.leads.meta || 0);
+  const leadsGapPercentual = (summary.leads.meta && summary.leads.meta > 0) ? (leadsGap / summary.leads.meta) * 100 : 0;
+  summary.leads.gap = formatGapInteger(leadsGap, leadsGapPercentual);
+
+  const vendasGap = (summary.vendas.realizado || 0) - (summary.vendas.meta || 0);
+  const vendasGapPercentual = (summary.vendas.meta && summary.vendas.meta > 0) ? (vendasGap / summary.vendas.meta) * 100 : 0;
+  summary.vendas.gap = formatGapInteger(vendasGap, vendasGapPercentual);
+
+  const faturamentoGap = (summary.faturamento.realizado || 0) - (summary.faturamento.meta || 0);
+  const faturamentoGapPercentual = (summary.faturamento.meta && summary.faturamento.meta > 0) ? (faturamentoGap / summary.faturamento.meta) * 100 : 0;
+  summary.faturamento.gap = formatGapMonetary(faturamentoGap, faturamentoGapPercentual);
+
+  // Calcular médias e totais corretos
   if (dailyData.length > 0) {
-    summary.conversao.realizado = summary.conversao.realizado / dailyData.length;
-    summary.conversao.meta = summary.conversao.meta / dailyData.length;
-    summary.ticketMedio.realizado = summary.ticketMedio.realizado / dailyData.length;
-    summary.ticketMedio.meta = summary.ticketMedio.meta / dailyData.length;
+    // Para conversão: calcular taxa total (vendas totais / leads totais * 100)
+    summary.conversao.realizado = summary.leads.realizado > 0 ? (summary.vendas.realizado / summary.leads.realizado) * 100 : 0;
+    summary.conversao.meta = summary.conversao.meta / dailyData.length; // Meta média
+    const conversaoGap = summary.conversao.realizado - summary.conversao.meta;
+    summary.conversao.gap = conversaoGap;
+
+    // Para ticket médio: calcular ticket total (faturamento total / vendas totais)
+    summary.ticketMedio.realizado = (summary.vendas.realizado && summary.vendas.realizado > 0) ? (summary.faturamento.realizado || 0) / summary.vendas.realizado : 0;
+    summary.ticketMedio.meta = (summary.ticketMedio.meta || 0) / dailyData.length; // Meta média
+    const ticketMedioGap = (summary.ticketMedio.realizado || 0) - (summary.ticketMedio.meta || 0);
+    const ticketMedioGapPercentual = (summary.ticketMedio.meta && summary.ticketMedio.meta > 0) ? (ticketMedioGap / summary.ticketMedio.meta) * 100 : 0;
+    summary.ticketMedio.gap = formatGapMonetary(ticketMedioGap, ticketMedioGapPercentual);
   }
   
   return summary;
@@ -623,8 +899,17 @@ export const getDailyPerformanceData = async (
     // Buscar meta de vendas
     const metaDiariaVendas = await fetchVendasMeta(selectedUnit, selectedFunnel, selectedSeller, totalDays);
     
+    // Buscar meta de faturamento
+    const metaDiariaFaturamento = await fetchFaturamentoMeta(selectedUnit, selectedFunnel, selectedSeller, totalDays);
+
+    // Buscar meta de taxa de conversão
+    const metaTaxaConversao = await fetchTaxaConversaoMeta(selectedUnit, selectedFunnel, selectedSeller);
+
+    // Buscar meta de ticket médio
+    const metaTicketMedio = await fetchTicketMedioMeta(selectedUnit, selectedFunnel, selectedSeller);
+
     // Gerar dados diários estruturados
-    const dailyData = generateDailyData(dataInicioMes, dataFimMes, dailyLeads, dailyVendas, metaDiariaLeads, metaDiariaVendas);
+    const dailyData = generateDailyData(dataInicioMes, dataFimMes, dailyLeads, dailyVendas, metaDiariaLeads, metaDiariaVendas, metaDiariaFaturamento, metaTaxaConversao, metaTicketMedio);
     
     // Calcular dados de resumo
     const summaryData = calculateSummaryData(dailyData);
@@ -638,6 +923,22 @@ export const getDailyPerformanceData = async (
     console.log('  - Primeiros 3 dias:', dailyData.slice(0, 3));
     console.log('  - Últimos 3 dias:', dailyData.slice(-3));
     console.log('  - Todas as datas:', dailyData.map(d => d.date));
+
+    // DEBUG: Verificar gaps formatados
+    console.log('🔍 DEBUG: Gaps formatados do primeiro dia:');
+    if (dailyData.length > 0) {
+      const firstDay = dailyData[0];
+      console.log('  - Faturamento gap:', firstDay.faturamento.gap);
+      console.log('  - Ticket médio gap:', firstDay.ticketMedio.gap);
+      console.log('  - Leads gap:', firstDay.leads.gap);
+      console.log('  - Vendas gap:', firstDay.vendas.gap);
+    }
+
+    console.log('🔍 DEBUG: Gaps formatados do resumo:');
+    console.log('  - Faturamento gap:', summaryData.faturamento.gap);
+    console.log('  - Ticket médio gap:', summaryData.ticketMedio.gap);
+    console.log('  - Leads gap:', summaryData.leads.gap);
+    console.log('  - Vendas gap:', summaryData.vendas.gap);
     
     return {
       dailyData,

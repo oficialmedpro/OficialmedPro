@@ -19,8 +19,11 @@ const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 export const getEtapasDesqualificadas = async (funilId) => {
   try {
     console.log('🔍 QualificadosService: Buscando etapas desqualificadas para funil:', funilId);
-    
-    const response = await fetch(`${supabaseUrl}/rest/v1/funil_etapas?select=id_etapa_sprint&id_funil_sprint=eq.${funilId}&desqualificado=eq.true`, {
+
+    const url = `${supabaseUrl}/rest/v1/funil_etapas?select=id_etapa_sprint&id_funil_sprint=eq.${funilId}&desqualificado=eq.true`;
+    console.log('🔍 URL para buscar etapas desqualificadas:', url);
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -105,9 +108,11 @@ export const getOportunidadesDesqualificadas = async (startDate, endDate, funilI
     }
 
     // LÓGICA CORRETA: Buscar oportunidades CRIADAS NO PERÍODO que estão ATUALMENTE nas etapas desqualificadas
-    const etapasFilter = `crm_column.in.(${etapasDesqualificadas.join(',')})`;
+    // CORREÇÃO: crm_column é string, precisa de aspas na query PostgREST
+    const etapasFilter = `crm_column.in.("${etapasDesqualificadas.join('","')}")`;
 
     console.log('🎯 CORRETO: Etapas desqualificadas:', etapasDesqualificadas);
+    console.log('🔧 CORREÇÃO: Filtro de etapas com aspas:', etapasFilter);
 
     const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,crm_column&archived=eq.0&create_date=gte.${startDate}&create_date=lte.${endDate}T23:59:59${funilFilter}&${etapasFilter}${unidadeFilter}${sellerFilter}${originFilter}`;
 
@@ -131,6 +136,21 @@ export const getOportunidadesDesqualificadas = async (startDate, endDate, funilI
       console.log(`✅ CORRETO: Oportunidades CRIADAS NO PERÍODO que estão nas etapas desqualificadas: ${count}`);
       console.log(`📊 CORRETO: Etapa 130: ${oportunidades.filter(o => String(o.crm_column) === '130').length}`);
       console.log(`📊 CORRETO: Etapa 231: ${oportunidades.filter(o => String(o.crm_column) === '231').length}`);
+
+      // DEBUG: Mostrar TODAS as etapas encontradas
+      if (count > 0) {
+        const todasEtapas = [...new Set(oportunidades.map(o => String(o.crm_column)))];
+        console.log(`🔍 TODAS as etapas encontradas:`, todasEtapas);
+        todasEtapas.forEach(etapa => {
+          const countEtapa = oportunidades.filter(o => String(o.crm_column) === etapa).length;
+          console.log(`   Etapa ${etapa}: ${countEtapa} oportunidades`);
+        });
+
+        const somaEtapas = todasEtapas.reduce((sum, etapa) => {
+          return sum + oportunidades.filter(o => String(o.crm_column) === etapa).length;
+        }, 0);
+        console.log(`🔢 Soma manual de todas as etapas: ${somaEtapas} (deve = ${count})`);
+      }
 
       return count;
     } else {

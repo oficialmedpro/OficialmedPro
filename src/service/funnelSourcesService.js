@@ -472,10 +472,12 @@ export const getFunnelSourcesMetrics = async (startDate, endDate, selectedFunnel
       // Calcular qualificadas para total
       console.log('🚨 DEBUG CRÍTICO: Valor sourcesData.total antes do cálculo:', sourcesData.total);
       console.log('🚨 DEBUG CRÍTICO: Tipo do valor:', typeof sourcesData.total);
-      console.log('🚨 DEBUG CRÍTICO: Parâmetros para cálculo:', { funilsParaCalculo, filtrosParaQualificados });
+      console.log('🚨 DEBUG CRÍTICO: Parâmetros para cálculo:', { startDate, endDate, funilsParaCalculo, filtrosParaQualificados });
 
       sourcesData.totalQualificadas = await calcularQualificadosMultiplosFunils(
         sourcesData.total,
+        startDate,
+        endDate,
         funilsParaCalculo,
         filtrosParaQualificados
       );
@@ -490,6 +492,8 @@ export const getFunnelSourcesMetrics = async (startDate, endDate, selectedFunnel
           // Para origem específica, usar apenas o funil selecionado ou ambos
           sourcesData[origem].qualificadas = await calcularQualificadosMultiplosFunils(
             sourcesData[origem].criadas,
+            startDate,
+            endDate,
             funilsParaCalculo,
             {
               ...filtrosParaQualificados,

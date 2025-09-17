@@ -112,6 +112,13 @@ const DailyPerformanceTable = ({
 
   // Função para obter classe CSS do gap
   const getGapClass = (gap) => {
+    // Para gaps já formatados como string (faturamento e ticket médio)
+    if (typeof gap === 'string') {
+      if (gap.startsWith('+')) return 'gap-positive';
+      if (gap.startsWith('-') || gap.startsWith('−')) return 'gap-negative';
+      return 'gap-neutral';
+    }
+    // Para gaps numéricos (leads, vendas, conversão)
     if (gap > 0) return 'gap-positive';
     if (gap < 0) return 'gap-negative';
     return 'gap-neutral';
@@ -208,25 +215,31 @@ const DailyPerformanceTable = ({
                 <td className="indicators-cell summary-indicator">
                   {(() => {
                     const monthName = new Date().toLocaleDateString('pt-BR', { month: 'long' });
+                    const monthCapitalized = monthName.charAt(0).toUpperCase() + monthName.slice(1);
                     return selectedSeller && selectedSeller !== 'all' && selectedSellerName
-                      ? `${monthName} ${selectedSellerName}`
-                      : monthName;
+                      ? (
+                          <div>
+                            <div>{monthCapitalized}</div>
+                            <div className="seller-name">{selectedSellerName}</div>
+                          </div>
+                        )
+                      : monthCapitalized;
                   })()}
                 </td>
                 <td className="metric-cell">{summaryData.leads.realizado}</td>
                 <td className="metric-cell">{summaryData.leads.meta}</td>
                 <td className={`metric-cell gap-cell ${getGapClass(summaryData.leads.gap)}`}>
-                  {summaryData.leads.gap > 0 ? '+' : ''}{summaryData.leads.gap}
+                  {summaryData.leads.gap}
                 </td>
                 <td className="metric-cell">{summaryData.vendas.realizado}</td>
                 <td className="metric-cell">{summaryData.vendas.meta}</td>
                 <td className={`metric-cell gap-cell ${getGapClass(summaryData.vendas.gap)}`}>
-                  {summaryData.vendas.gap > 0 ? '+' : ''}{summaryData.vendas.gap}
+                  {summaryData.vendas.gap}
                 </td>
                 <td className="metric-cell">{formatCurrency(summaryData.faturamento.realizado)}</td>
                 <td className="metric-cell">{formatCurrency(summaryData.faturamento.meta)}</td>
                 <td className={`metric-cell gap-cell ${getGapClass(summaryData.faturamento.gap)}`}>
-                  {summaryData.faturamento.gap > 0 ? '+' : ''}{formatCurrency(summaryData.faturamento.gap)}
+                  {summaryData.faturamento.gap}
                 </td>
                 <td className="metric-cell">{formatPercentage(summaryData.conversao.realizado)}</td>
                 <td className="metric-cell">{formatPercentage(summaryData.conversao.meta)}</td>
@@ -236,7 +249,7 @@ const DailyPerformanceTable = ({
                 <td className="metric-cell">{formatCurrency(summaryData.ticketMedio.realizado)}</td>
                 <td className="metric-cell">{formatCurrency(summaryData.ticketMedio.meta)}</td>
                 <td className={`metric-cell gap-cell ${getGapClass(summaryData.ticketMedio.gap)}`}>
-                  {summaryData.ticketMedio.gap > 0 ? '+' : ''}{formatCurrency(summaryData.ticketMedio.gap)}
+                  {summaryData.ticketMedio.gap}
                 </td>
               </tr>
             )}
@@ -277,21 +290,21 @@ const DailyPerformanceTable = ({
                   <td className="metric-cell">{dayData.leads.realizado}</td>
                   <td className="metric-cell">{dayData.leads.meta}</td>
                   <td className={`metric-cell gap-cell ${getGapClass(dayData.leads.gap)}`}>
-                    {dayData.leads.gap > 0 ? '+' : ''}{dayData.leads.gap}
+                    {dayData.leads.gap}
                   </td>
                   
                   {/* Vendas */}
                   <td className="metric-cell">{dayData.vendas.realizado}</td>
                   <td className="metric-cell">{dayData.vendas.meta}</td>
                   <td className={`metric-cell gap-cell ${getGapClass(dayData.vendas.gap)}`}>
-                    {dayData.vendas.gap > 0 ? '+' : ''}{dayData.vendas.gap}
+                    {dayData.vendas.gap}
                   </td>
                   
                   {/* Faturamento */}
                   <td className="metric-cell">{formatCurrency(dayData.faturamento.realizado)}</td>
                   <td className="metric-cell">{formatCurrency(dayData.faturamento.meta)}</td>
                   <td className={`metric-cell gap-cell ${getGapClass(dayData.faturamento.gap)}`}>
-                    {dayData.faturamento.gap > 0 ? '+' : ''}{formatCurrency(dayData.faturamento.gap)}
+                    {dayData.faturamento.gap}
                   </td>
                   
                   {/* Taxa Conversão */}
@@ -305,7 +318,7 @@ const DailyPerformanceTable = ({
                   <td className="metric-cell">{formatCurrency(dayData.ticketMedio.realizado)}</td>
                   <td className="metric-cell">{formatCurrency(dayData.ticketMedio.meta)}</td>
                   <td className={`metric-cell gap-cell ${getGapClass(dayData.ticketMedio.gap)}`}>
-                    {dayData.ticketMedio.gap > 0 ? '+' : ''}{formatCurrency(dayData.ticketMedio.gap)}
+                    {dayData.ticketMedio.gap}
                   </td>
                 </tr>
               );
