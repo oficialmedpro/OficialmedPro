@@ -56,15 +56,27 @@ const DailyPerformanceTable = ({
     fetchDailyData();
   }, [startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin]);
 
-  // Gerar array de dias do mês atual: do dia 01 até HOJE
-  const generateDaysOfMonth = () => {
+  // Gerar array de dias baseado no período selecionado
+  const generateDaysOfPeriod = () => {
     const today = new Date();
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    let periodStart, periodEnd;
+
+    if (startDate && endDate) {
+      // Usar período fornecido - forçar timezone local
+      const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+      const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+      periodStart = new Date(startYear, startMonth - 1, startDay);
+      periodEnd = new Date(endYear, endMonth - 1, endDay);
+    } else {
+      // Fallback: mês atual
+      periodStart = new Date(today.getFullYear(), today.getMonth(), 1);
+      periodEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    }
 
     const days = [];
-    const current = new Date(startOfMonth);
+    const current = new Date(periodStart);
 
-    while (current <= today) {
+    while (current <= periodEnd) {
       days.push({
         date: new Date(current),
         day: current.getDate(),
@@ -79,7 +91,7 @@ const DailyPerformanceTable = ({
     return days;
   };
 
-  const days = generateDaysOfMonth();
+  const days = generateDaysOfPeriod();
 
   // Paginação por blocos de 10 dias
   const rowsPerPage = 10;
@@ -112,15 +124,29 @@ const DailyPerformanceTable = ({
 
   // Função para obter classe CSS do gap
   const getGapClass = (gap) => {
-    // Para gaps já formatados como string (faturamento e ticket médio)
+    // Para gaps já formatados como string (faturamento, ticket médio, leads, vendas)
     if (typeof gap === 'string') {
-      if (gap.startsWith('+')) return 'gap-positive';
-      if (gap.startsWith('-') || gap.startsWith('−')) return 'gap-negative';
+      const trimmedGap = gap.trim();
+
+      if (trimmedGap.startsWith('+')) {
+        return 'gap-positive';
+      }
+      if (trimmedGap.startsWith('-') || trimmedGap.startsWith('−')) {
+        return 'gap-negative';
+      }
+      // Verificar se começa com número positivo sem sinal (ex: "238 (+7%)")
+      if (trimmedGap.match(/^\d/)) {
+        return 'gap-positive';
+      }
       return 'gap-neutral';
     }
-    // Para gaps numéricos (leads, vendas, conversão)
-    if (gap > 0) return 'gap-positive';
-    if (gap < 0) return 'gap-negative';
+
+    // Para gaps numéricos (conversão)
+    if (typeof gap === 'number') {
+      if (gap > 0) return 'gap-positive';
+      if (gap < 0) return 'gap-negative';
+    }
+
     return 'gap-neutral';
   };
 
@@ -153,7 +179,25 @@ const DailyPerformanceTable = ({
     <div className="main-chart">
       <div className="daily-performance-table-container">
       <div className="daily-performance-header">
-        <h2>Performance Diária - {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</h2>
+        <h2>Performance Diária - {(() => {
+          if (startDate && endDate) {
+            const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+            const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+            const start = new Date(startYear, startMonth - 1, startDay);
+            const end = new Date(endYear, endMonth - 1, endDay);
+
+            if (startMonth === endMonth && startYear === endYear) {
+              // Mesmo mês
+              return start.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+            } else {
+              // Período customizado
+              return `${start.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })} a ${end.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
+            }
+          } else {
+            // Mês atual
+            return new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+          }
+        })()}</h2>
       </div>
 
       <div className="daily-performance-table-wrapper">
@@ -214,16 +258,36 @@ const DailyPerformanceTable = ({
               <tr className="summary-row">
                 <td className="indicators-cell summary-indicator">
                   {(() => {
-                    const monthName = new Date().toLocaleDateString('pt-BR', { month: 'long' });
-                    const monthCapitalized = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+                    let periodLabel;
+
+                    if (startDate && endDate) {
+                      const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+                      const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+                      const startDateObj = new Date(startYear, startMonth - 1, startDay);
+                      const endDateObj = new Date(endYear, endMonth - 1, endDay);
+
+                      if (startMonth === endMonth && startYear === endYear) {
+                        // Mesmo mês
+                        const monthName = startDateObj.toLocaleDateString('pt-BR', { month: 'long' });
+                        periodLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+                      } else {
+                        // Período customizado
+                        periodLabel = `${startDateObj.toLocaleDateString('pt-BR', { month: 'short' })} a ${endDateObj.toLocaleDateString('pt-BR', { month: 'short' })}`;
+                      }
+                    } else {
+                      // Mês atual (fallback)
+                      const monthName = new Date().toLocaleDateString('pt-BR', { month: 'long' });
+                      periodLabel = monthName.charAt(0).toUpperCase() + monthName.slice(1);
+                    }
+
                     return selectedSeller && selectedSeller !== 'all' && selectedSellerName
                       ? (
                           <div>
-                            <div>{monthCapitalized}</div>
+                            <div>{periodLabel}</div>
                             <div className="seller-name">{selectedSellerName}</div>
                           </div>
                         )
-                      : monthCapitalized;
+                      : periodLabel;
                   })()}
                 </td>
                 <td className="metric-cell">{summaryData.leads.realizado}</td>

@@ -694,10 +694,11 @@ const generateDailyData = (startDate, endDate, dailyLeads, dailyVendas, metaDiar
         return 'R$ 0 (0.0%)';
       }
 
-      const sinalGap = gapNumber >= 0 ? '+' : '';
+      const sinalGap = gapNumber >= 0 ? '+' : '-';
       const sinalPerc = gapPercNumber >= 0 ? '+' : '';
 
       try {
+        // Usar valor absoluto apenas para formatação, mas manter sinal explícito
         const valorFormatado = Math.abs(gapNumber).toLocaleString('pt-BR', {
           minimumFractionDigits: 0,
           maximumFractionDigits: 0
@@ -794,10 +795,11 @@ const calculateSummaryData = (dailyData) => {
       return 'R$ 0 (0.0%)';
     }
 
-    const sinalGap = gapNumber >= 0 ? '+' : '';
+    const sinalGap = gapNumber >= 0 ? '+' : '-';
     const sinalPerc = gapPercNumber >= 0 ? '+' : '';
 
     try {
+      // Usar valor absoluto apenas para formatação, mas manter sinal explícito
       const valorFormatado = Math.abs(gapNumber).toLocaleString('pt-BR', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0
@@ -871,20 +873,30 @@ export const getDailyPerformanceData = async (
     console.log('  - selectedOrigin:', selectedOrigin);
     console.log('='.repeat(80));
 
-    // Sempre considerar o mês corrente (01 até HOJE) para a tabela diária
-    const now = new Date();
-    const hojeDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const inicioMesDate = new Date(hojeDate.getFullYear(), hojeDate.getMonth(), 1);
-    const dataInicioMes = inicioMesDate.toISOString().split('T')[0];
-    const dataFimMes = hojeDate.toISOString().split('T')[0];
-    console.log('📅 Intervalo mensal usado para a tabela diária:', { dataInicioMes, dataFimMes });
+    // Usar datas fornecidas ou defaultar para o mês corrente
+    let dataInicioMes, dataFimMes;
+
+    if (startDate && endDate) {
+      // Usar as datas fornecidas
+      dataInicioMes = startDate;
+      dataFimMes = endDate;
+      console.log('📅 Intervalo fornecido pelos parâmetros:', { dataInicioMes, dataFimMes });
+    } else {
+      // Fallback: mês corrente (01 até HOJE)
+      const now = new Date();
+      const hojeDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const inicioMesDate = new Date(hojeDate.getFullYear(), hojeDate.getMonth(), 1);
+      dataInicioMes = inicioMesDate.toISOString().split('T')[0];
+      dataFimMes = hojeDate.toISOString().split('T')[0];
+      console.log('📅 Intervalo padrão (mês atual):', { dataInicioMes, dataFimMes });
+    }
 
     // Construir filtros
     const filters = await buildFilters(selectedFunnel, selectedUnit, selectedSeller, selectedOrigin);
     
     // Calcular total de dias
-    const start = new Date(inicioMesDate);
-    const end = new Date(hojeDate);
+    const start = new Date(dataInicioMes);
+    const end = new Date(dataFimMes);
     const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     
     // Buscar dados de leads por dia (mês corrente)

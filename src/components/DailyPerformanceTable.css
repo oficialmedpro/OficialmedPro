@@ -274,22 +274,37 @@
   background: #171e31 !important;
 }
 
-/* Gap cells com cores */
+/* Gap cells com cores - com maior especificidade para sobrescrever outras regras */
 .gap-cell {
   font-weight: 600;
 }
 
-.gap-positive {
+.metric-cell.gap-cell.gap-positive,
+.day-row .metric-cell.gap-cell.gap-positive,
+.day-row:nth-child(even) .metric-cell.gap-cell.gap-positive,
+.today-row .metric-cell.gap-cell.gap-positive,
+.weekend-row .metric-cell.gap-cell.gap-positive,
+.summary-row .metric-cell.gap-cell.gap-positive {
   color: #10b981 !important;
   background: rgba(16, 185, 129, 0.1) !important;
 }
 
-.gap-negative {
+.metric-cell.gap-cell.gap-negative,
+.day-row .metric-cell.gap-cell.gap-negative,
+.day-row:nth-child(even) .metric-cell.gap-cell.gap-negative,
+.today-row .metric-cell.gap-cell.gap-negative,
+.weekend-row .metric-cell.gap-cell.gap-negative,
+.summary-row .metric-cell.gap-cell.gap-negative {
   color: #ef4444 !important;
   background: rgba(239, 68, 68, 0.1) !important;
 }
 
-.gap-neutral {
+.metric-cell.gap-cell.gap-neutral,
+.day-row .metric-cell.gap-cell.gap-neutral,
+.day-row:nth-child(even) .metric-cell.gap-cell.gap-neutral,
+.today-row .metric-cell.gap-cell.gap-neutral,
+.weekend-row .metric-cell.gap-cell.gap-neutral,
+.summary-row .metric-cell.gap-cell.gap-neutral {
   color: #cccccc !important;
 }
 
