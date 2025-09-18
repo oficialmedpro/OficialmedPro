@@ -1,22 +1,49 @@
 import React from 'react';
 import './MetricsCards.css';
 import OpportunitySources from './OpportunitySources';
-import LossReasons from './LossReasons';
-import TicketRanking from './TicketRanking';
+import LossReasonsHeader from './LossReasonsHeader';
+import TicketRankingCard from './TicketRankingCard';
 import SellerRanking from './SellerRanking';
 
-const MetricsCards = ({ formatCurrency, t }) => {
+const MetricsCards = ({ 
+  formatCurrency, 
+  t, 
+  startDate, 
+  endDate, 
+  selectedFunnel, 
+  selectedUnit, 
+  selectedSeller, 
+  selectedOrigin 
+}) => {
   return (
     <div className="metrics-cards-container">
       <div className="metrics-cards-grid">
-        {/* Card 1: Origens das Oportunidades */}
+        {/* Card 1: Principais motivos de perda */}
+        <LossReasonsHeader 
+          formatCurrency={formatCurrency} 
+          t={t}
+          startDate={startDate}
+          endDate={endDate}
+          selectedFunnel={selectedFunnel}
+          selectedUnit={selectedUnit}
+          selectedSeller={selectedSeller}
+          selectedOrigin={selectedOrigin}
+        />
+
+        {/* Card 2: Origens das Oportunidades */}
         <OpportunitySources formatCurrency={formatCurrency} t={t} />
 
-        {/* Card 2: Principais motivos de loss */}
-        <LossReasons formatCurrency={formatCurrency} t={t} />
-
         {/* Card 3: Ranking por ticket maior */}
-        <TicketRanking formatCurrency={formatCurrency} t={t} />
+        <TicketRankingCard
+          formatCurrency={formatCurrency}
+          t={t}
+          startDate={startDate}
+          endDate={endDate}
+          selectedFunnel={selectedFunnel}
+          selectedUnit={selectedUnit}
+          selectedSeller={selectedSeller}
+          selectedOrigin={selectedOrigin}
+        />
 
         {/* Card 4: Ranking de vendedores (componente separado com paginação) */}
         <SellerRanking formatCurrency={formatCurrency} t={t} />

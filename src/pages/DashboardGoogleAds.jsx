@@ -9,7 +9,6 @@ import GoogleAdsFunnelCards from '../components/GoogleAdsFunnelCards';
 import '../components/GoogleAdsFunnelCards.css';
 import TrafficFunnel from '../components/TrafficFunnel';
 import StatsSection from '../components/StatsSection';
-import TimelineChart from '../components/TimelineChart';
 import SimpleGoogleAdsMetricsBar from '../components/SimpleGoogleAdsMetricsBar';
 import { translations } from '../data/translations';
 import { getStatsCards, getMenuItems } from '../data/statsData';
@@ -472,11 +471,18 @@ const DashboardGoogleAds = ({ onLogout }) => {
         {/* Traffic Funnel & Performance Section */}
         <TrafficFunnel />
 
-        {/* Timeline Chart - Performance dos Últimos 7 Dias */}
-        <TimelineChart selectedDate={endDate} t={t} />
 
         {/* Metrics Cards Section */}
-        <MetricsCards formatCurrency={formatCurrencyLocal} t={t} />
+        <MetricsCards 
+          formatCurrency={formatCurrencyLocal} 
+          t={t}
+          startDate={startDate}
+          endDate={endDate}
+          selectedFunnel={selectedFunnel}
+          selectedUnit={selectedUnit}
+          selectedSeller={selectedSeller}
+          selectedOrigin="all"
+        />
       </main>
 
       {/* Mobile Bottom Navigation */}

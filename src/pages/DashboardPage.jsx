@@ -8,7 +8,6 @@ import TopMenuBar from '../components/TopMenuBar';
 import Sidebar from '../components/Sidebar';
 import FunnelChart from '../components/FunnelChart';
 import StatsSection from '../components/StatsSection';
-import TimelineChart from '../components/TimelineChart';
 import OportunidadesGanhasCard from '../components/OportunidadesGanhasCard';
 import DailyPerformanceTable from '../components/DailyPerformanceTable';
 import { translations } from '../data/translations';
@@ -392,14 +391,20 @@ const DashboardPage = ({ onLogout }) => {
 
         {/* Lista de Oportunidades Ganhas removida */}
 
-        {/* Timeline Chart - mostrar apenas quando um funil específico estiver selecionado */}
-        {selectedFunnel && selectedFunnel !== 'all' && (
-          <TimelineChart selectedDate={endDate} t={t} />
-        )}
+        {/* Timeline Chart - removido temporariamente */}
 
         {/* Metrics Cards Section - mostrar apenas quando um funil específico estiver selecionado */}
         {selectedFunnel && selectedFunnel !== 'all' && (
-          <MetricsCards formatCurrency={formatCurrencyLocal} t={t} />
+          <MetricsCards 
+            formatCurrency={formatCurrencyLocal} 
+            t={t}
+            startDate={startDate}
+            endDate={endDate}
+            selectedFunnel={selectedFunnel}
+            selectedUnit={selectedUnit}
+            selectedSeller={selectedSeller}
+            selectedOrigin={selectedOrigin}
+          />
         )}
       </main>
 

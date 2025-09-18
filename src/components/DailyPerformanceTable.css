@@ -191,11 +191,11 @@
 }
 
 .summary-indicator .seller-name {
-  font-size: 0.8rem;
+  font-size: 1.0rem;
   font-weight: 500;
   margin-top: 2px;
   opacity: 0.9;
-  background: #22c55e; /* Verde apenas atrás do nome do vendedor */
+  background: #4285f4;
   padding: 2px 6px;
   border-radius: 4px;
   display: inline-block;
@@ -206,14 +206,55 @@
   font-weight: 500;
 }
 
+.day-date {
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.day-week {
+  font-size: 1rem;
+  font-weight: 700;
+  opacity: 1;
+  text-transform: lowercase;
+  margin-top: 2px;
+  color: #3b82f6;
+}
+
 .metric-cell {
   background: #171e31;
   color: #ffffff;
   text-align: center;
-  padding: 12px 8px;
+  padding: 4px 4px;
   border: 1px solid #334155;
   vertical-align: middle;
   font-weight: 500;
+}
+
+.metric-cell-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+}
+
+.vertical-bar-container {
+  display: flex;
+  align-items: flex-end;
+  height: 50px;
+  width: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.vertical-bar {
+  width: 8px;
+  border-radius: 4px;
+  transition: height 0.3s ease;
+  min-height: 2px;
 }
 
 /* Linhas da tabela */
@@ -306,6 +347,51 @@
 .weekend-row .metric-cell.gap-cell.gap-neutral,
 .summary-row .metric-cell.gap-cell.gap-neutral {
   color: #cccccc !important;
+}
+
+/* =================== SEÇÃO DE FILTROS APLICADOS =================== */
+.fc-applied-filters {
+  background: linear-gradient(135deg, rgb(15 23 42), rgb(15 23 42));
+  border: 1px solid rgb(51 65 85);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 20px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.fc-applied-filters-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+}
+
+.fc-filter-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.fc-filter-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fc-filter-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1f2937;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 /* Estados de loading e erro */

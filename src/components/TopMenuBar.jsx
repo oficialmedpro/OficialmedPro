@@ -3151,18 +3151,32 @@ const TopMenuBar = ({
               )}
             </button>
 
-            <button 
+            <button
               className="tmb-sync-btn"
-              onClick={() => navigate('/debug-daily-performance')}
-              title="🎯 DEBUG DAILY PERFORMANCE - Abrir tabela de performance diária em página isolada para debug"
-              style={{ 
-                marginLeft: '8px', 
-                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+              onClick={() => navigate('/debug-loss-reasons')}
+              title="🎯 DEBUG LOSS REASONS - Abrir componente de motivos de perda em página isolada para debug"
+              style={{
+                marginLeft: '8px',
+                background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
                 fontSize: '12px',
                 padding: '8px 12px'
               }}
             >
               🎯 DEBUG
+            </button>
+
+            <button
+              className="tmb-sync-btn"
+              onClick={() => navigate('/debug-ranking')}
+              title="📊 DEBUG RANKING - Abrir página dedicada para testar o serviço de ticket ranking"
+              style={{
+                marginLeft: '8px',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                fontSize: '12px',
+                padding: '8px 12px'
+              }}
+            >
+              📊 RANKING
             </button>
 
           </>

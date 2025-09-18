@@ -1,0 +1,361 @@
+/* LossReasonsHeader Component Styles */
+
+.loss-reasons-header {
+  background: linear-gradient(135deg, #171e31 0%, #171e31 100%);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.loss-reasons-header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.loss-reasons-title h3 {
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-start;
+}
+
+.loss-reasons-icon {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.loss-reasons-subtitle {
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.loss-reasons-tabs {
+  display: flex;
+  gap: 8px;
+  background: rgb(15 23 42);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+}
+
+.loss-reasons-tab {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  flex: 1;
+  text-align: center;
+}
+
+.loss-reasons-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+.loss-reasons-tab.active {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.loss-reasons-content {
+  flex: 1;
+  min-height: 200px;
+  width: 100%;
+}
+
+/* General Ranking Styles */
+.loss-reasons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.loss-reason-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  background: rgb(15 23 42);
+  border-radius: 12px;
+  border: 1px solid rgb(51 65 85);
+  transition: all 0.3s ease;
+}
+
+.loss-reason-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+}
+
+.loss-reason-rank {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.loss-reason-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.loss-reason-name {
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 0px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.loss-reason-stats {
+  display: flex;
+  gap: 8px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.loss-reason-count {
+  font-weight: 500;
+}
+
+.loss-reason-value {
+  font-weight: 600;
+  color: #ef4444;
+}
+
+.loss-reason-bar {
+  width: 100%;
+  height: 3px;
+  background: rgb(255 255 255 / 21%);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.loss-reason-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Stage Ranking Styles - Grouped by stage */
+.loss-reasons-stage-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.loss-reasons-stage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.loss-stage-group {
+  background: rgb(23 30 49);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid rgb(0 0 0);
+  transition: all 0.3s ease;
+}
+
+.loss-stage-group:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.loss-stage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.loss-stage-header h4 {
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.loss-stage-total {
+  color: #ef4444;
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* Pagination Styles */
+.loss-reasons-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 8px;
+}
+
+.loss-pagination-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f8fafc;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 80px;
+}
+
+.loss-pagination-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.loss-pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.loss-pagination-info {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 500;
+  min-width: 100px;
+  text-align: center;
+}
+
+/* Loading and Error States */
+.loss-reasons-loading,
+.loss-reasons-error,
+.loss-reasons-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #94a3b8;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.loss-reasons-error {
+  color: #ef4444;
+}
+
+.loss-reasons-empty {
+  color: #64748b;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .loss-reasons-header {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .loss-reasons-header-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .loss-reasons-tabs {
+    justify-content: center;
+  }
+
+  .loss-reasons-tab {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .loss-reason-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .loss-reason-content {
+    text-align: center;
+  }
+
+  .loss-reason-stats {
+    justify-content: center;
+  }
+
+  .loss-reason-bar {
+    width: 100%;
+  }
+
+  .loss-reasons-funnel-list,
+  .loss-reasons-stage-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .loss-reasons-title h3 {
+    font-size: 20px;
+  }
+
+  .loss-reasons-subtitle {
+    font-size: 13px;
+  }
+
+  .loss-reasons-tab {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .loss-reason-name {
+    font-size: 14px;
+  }
+
+  .loss-reason-stats {
+    font-size: 13px;
+    gap: 12px;
+  }
+}

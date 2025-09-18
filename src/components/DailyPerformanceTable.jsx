@@ -8,12 +8,12 @@ import { getDailyPerformanceData } from '../service/dailyPerformanceService';
  * Tabela de performance diária que mostra métricas por dia do mês
  * Estrutura similar à imagem fornecida com padrão visual da dashboard
  */
-const DailyPerformanceTable = ({ 
-  startDate, 
-  endDate, 
-  selectedFunnel, 
-  selectedUnit, 
-  selectedSeller, 
+const DailyPerformanceTable = ({
+  startDate,
+  endDate,
+  selectedFunnel,
+  selectedUnit,
+  selectedSeller,
   selectedSellerName,
   selectedOrigin,
   t // traduções
@@ -22,6 +22,203 @@ const DailyPerformanceTable = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [summaryData, setSummaryData] = useState(null);
+
+  // Estados para nomes dos filtros (igual ao FunnelChart)
+  const [funnelName, setFunnelName] = useState('');
+  const [unitName, setUnitName] = useState('');
+  const [sellerName, setSellerName] = useState('');
+  const [originName, setOriginName] = useState('');
+
+  // Função para buscar nome do funil
+  const fetchFunnelName = async (funnelId) => {
+    if (!funnelId || funnelId === 'all') {
+      setFunnelName('');
+      return;
+    }
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+
+      const response = await fetch(`${supabaseUrl}/rest/v1/funis?select=nome_funil&id_funil_sprint=eq.${funnelId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': supabaseSchema,
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          setFunnelName(data[0].nome_funil);
+        } else {
+          setFunnelName('');
+        }
+      } else {
+        setFunnelName('');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar nome do funil:', error);
+      setFunnelName('');
+    }
+  };
+
+  // Função para buscar nome da unidade
+  const fetchUnitName = async (unitId) => {
+    if (!unitId || unitId === 'all') {
+      setUnitName('');
+      return;
+    }
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+
+      const response = await fetch(`${supabaseUrl}/rest/v1/unidades?select=unidade&codigo_sprint=eq.${encodeURIComponent(unitId)}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': supabaseSchema,
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          setUnitName(data[0].unidade);
+        } else {
+          setUnitName('');
+        }
+      } else {
+        setUnitName('');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar nome da unidade:', error);
+      setUnitName('');
+    }
+  };
+
+  // Função para buscar nome do vendedor
+  const fetchSellerName = async (sellerId) => {
+    if (!sellerId || sellerId === 'all') {
+      setSellerName('');
+      return;
+    }
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+
+      const response = await fetch(`${supabaseUrl}/rest/v1/vendedores?select=nome&id_sprint=eq.${parseInt(sellerId)}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': supabaseSchema,
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          setSellerName(data[0].nome);
+        } else {
+          setSellerName('');
+        }
+      } else {
+        setSellerName('');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar nome do vendedor:', error);
+      setSellerName('');
+    }
+  };
+
+  // Função para buscar nome da origem
+  const fetchOriginName = async (originId) => {
+    if (!originId || originId === 'all') {
+      setOriginName('');
+      return;
+    }
+
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+
+      const response = await fetch(`${supabaseUrl}/rest/v1/origem_oportunidade?select=nome&id=eq.${originId}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': supabaseSchema,
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.length > 0) {
+          setOriginName(data[0].nome);
+        } else {
+          setOriginName('');
+        }
+      } else {
+        setOriginName('');
+      }
+    } catch (error) {
+      console.error('❌ Erro ao buscar nome da origem:', error);
+      setOriginName('');
+    }
+  };
+
+  // Função para formatar o período dinâmico (igual ao FunnelChart)
+  const getDynamicPeriod = () => {
+    if (startDate && endDate) {
+      // Usar fuso horário local para formatação
+      const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
+      const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
+      const start = new Date(startYear, startMonth - 1, startDay);
+      const end = new Date(endYear, endMonth - 1, endDay);
+
+      // Se for o mesmo dia
+      if (startDate === endDate) {
+        return start.toLocaleDateString('pt-BR');
+      }
+
+      // Se for um período
+      return `${start.toLocaleDateString('pt-BR')} - ${end.toLocaleDateString('pt-BR')}`;
+    }
+
+    // Fallback: mês atual
+    return new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  };
+
+  // useEffects para buscar nomes dos filtros quando mudarem
+  useEffect(() => {
+    fetchFunnelName(selectedFunnel);
+  }, [selectedFunnel]);
+
+  useEffect(() => {
+    fetchUnitName(selectedUnit);
+  }, [selectedUnit]);
+
+  useEffect(() => {
+    fetchSellerName(selectedSeller);
+  }, [selectedSeller]);
+
+  useEffect(() => {
+    fetchOriginName(selectedOrigin);
+  }, [selectedOrigin]);
 
   // Buscar dados diários
   useEffect(() => {
@@ -93,8 +290,71 @@ const DailyPerformanceTable = ({
 
   const days = generateDaysOfPeriod();
 
-  // Paginação por blocos de 10 dias
-  const rowsPerPage = 10;
+  // Função para calcular porcentagem do realizado em relação à meta
+  const calculatePercentage = (realizado, meta) => {
+    if (!meta || meta === 0) return 0;
+    return Math.min((realizado / meta) * 100, 150); // Limita a 150% para visualização
+  };
+
+  // Função para calcular porcentagem do gap
+  const calculateGapPercentage = (gap, meta) => {
+    if (!meta || meta === 0) return 0;
+    return Math.abs((gap / meta) * 100);
+  };
+
+  // Função para extrair valor numérico do gap formatado
+  const extractGapValue = (gapString) => {
+    if (typeof gapString === 'number') return gapString;
+    if (typeof gapString !== 'string') return 0;
+
+    // Remove símbolos e extrai o primeiro número
+    const match = gapString.match(/^([+-]?)([0-9,\.]+)/);
+    if (match) {
+      const sign = match[1] === '-' ? -1 : 1;
+      const value = parseFloat(match[2].replace(/,/g, ''));
+      return sign * value;
+    }
+    return 0;
+  };
+
+  // Componente para barra vertical de métrica
+  const VerticalBar = ({ type, realizado, meta, gap }) => {
+    let percentage = 0;
+    let barColor = '#3b82f6'; // azul padrão
+
+    if (type === 'meta') {
+      percentage = 100; // Meta sempre 100%
+      barColor = '#3b82f6';
+    } else if (type === 'realizado') {
+      percentage = calculatePercentage(realizado, meta);
+      barColor = '#3b82f6';
+    } else if (type === 'gap') {
+      const gapValue = extractGapValue(gap);
+      percentage = calculateGapPercentage(gapValue, meta);
+      barColor = gapValue > 0 ? '#10b981' : '#ef4444'; // verde se positivo, vermelho se negativo
+    }
+
+    return (
+      <div className="vertical-bar-container">
+        <div
+          className="vertical-bar"
+          style={{
+            height: `${Math.min(percentage / 100 * 50, 50)}px`,
+            backgroundColor: barColor
+          }}
+        />
+      </div>
+    );
+  };
+
+  // Função para obter nome do dia da semana em português abreviado
+  const getDayOfWeekShort = (date) => {
+    const dayNames = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+    return dayNames[date.getDay()];
+  };
+
+  // Paginação por blocos de 7 dias
+  const rowsPerPage = 7;
   const [currentPage, setCurrentPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(days.length / rowsPerPage));
   const pageStartIndex = (currentPage - 1) * rowsPerPage;
@@ -179,25 +439,50 @@ const DailyPerformanceTable = ({
     <div className="main-chart">
       <div className="daily-performance-table-container">
       <div className="daily-performance-header">
-        <h2>Performance Diária - {(() => {
-          if (startDate && endDate) {
-            const [startYear, startMonth, startDay] = startDate.split('-').map(Number);
-            const [endYear, endMonth, endDay] = endDate.split('-').map(Number);
-            const start = new Date(startYear, startMonth - 1, startDay);
-            const end = new Date(endYear, endMonth - 1, endDay);
+        <h2>Performance Diária</h2>
 
-            if (startMonth === endMonth && startYear === endYear) {
-              // Mesmo mês
-              return start.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-            } else {
-              // Período customizado
-              return `${start.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })} a ${end.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
-            }
-          } else {
-            // Mês atual
-            return new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-          }
-        })()}</h2>
+        {/* Seção de Filtros Aplicados (igual ao FunnelChart) */}
+        <div className="fc-applied-filters">
+          <div className="fc-applied-filters-content">
+            {/* Funil */}
+            <div className="fc-filter-item">
+              <span className="fc-filter-label">Funil:</span>
+              <span className="fc-filter-value">
+                {funnelName || (selectedFunnel === 'all' ? 'Todos os Funis' : `Funil ${selectedFunnel}`)}
+              </span>
+            </div>
+
+            {/* Unidade */}
+            <div className="fc-filter-item">
+              <span className="fc-filter-label">Unidade:</span>
+              <span className="fc-filter-value">
+                {selectedUnit === 'all' ? 'Todas as Unidades' : (unitName || selectedUnit)}
+              </span>
+            </div>
+
+            {/* Vendedor */}
+            <div className="fc-filter-item">
+              <span className="fc-filter-label">Vendedor:</span>
+              <span className="fc-filter-value">
+                {selectedSeller === 'all' ? 'Todos os Vendedores' : (sellerName || selectedSeller)}
+              </span>
+            </div>
+
+            {/* Origem */}
+            <div className="fc-filter-item">
+              <span className="fc-filter-label">Origem:</span>
+              <span className="fc-filter-value">
+                {!selectedOrigin || selectedOrigin === 'all' ? 'Todas as Origens' : (originName || selectedOrigin)}
+              </span>
+            </div>
+
+            {/* Período */}
+            <div className="fc-filter-item">
+              <span className="fc-filter-label">Período:</span>
+              <span className="fc-filter-value">{getDynamicPeriod()}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="daily-performance-table-wrapper">
@@ -290,30 +575,95 @@ const DailyPerformanceTable = ({
                       : periodLabel;
                   })()}
                 </td>
-                <td className="metric-cell">{summaryData.leads.realizado}</td>
-                <td className="metric-cell">{summaryData.leads.meta}</td>
+                <td className="metric-cell">
+                  <div className="metric-cell-content">
+                    <VerticalBar type="realizado" realizado={summaryData.leads.realizado} meta={summaryData.leads.meta} />
+                    {summaryData.leads.realizado}
+                  </div>
+                </td>
+                <td className="metric-cell">
+                  <div className="metric-cell-content">
+                    <VerticalBar type="meta" realizado={summaryData.leads.realizado} meta={summaryData.leads.meta} />
+                    {summaryData.leads.meta}
+                  </div>
+                </td>
                 <td className={`metric-cell gap-cell ${getGapClass(summaryData.leads.gap)}`}>
-                  {summaryData.leads.gap}
+                  <div className="metric-cell-content">
+                    <VerticalBar type="gap" realizado={summaryData.leads.realizado} meta={summaryData.leads.meta} gap={summaryData.leads.gap} />
+                    {summaryData.leads.gap}
+                  </div>
                 </td>
-                <td className="metric-cell">{summaryData.vendas.realizado}</td>
-                <td className="metric-cell">{summaryData.vendas.meta}</td>
+                <td className="metric-cell">
+                  <div className="metric-cell-content">
+                    <VerticalBar type="realizado" realizado={summaryData.vendas.realizado} meta={summaryData.vendas.meta} />
+                    {summaryData.vendas.realizado}
+                  </div>
+                </td>
+                <td className="metric-cell">
+                  <div className="metric-cell-content">
+                    <VerticalBar type="meta" realizado={summaryData.vendas.realizado} meta={summaryData.vendas.meta} />
+                    {summaryData.vendas.meta}
+                  </div>
+                </td>
                 <td className={`metric-cell gap-cell ${getGapClass(summaryData.vendas.gap)}`}>
-                  {summaryData.vendas.gap}
+                  <div className="metric-cell-content">
+                    <VerticalBar type="gap" realizado={summaryData.vendas.realizado} meta={summaryData.vendas.meta} gap={summaryData.vendas.gap} />
+                    {summaryData.vendas.gap}
+                  </div>
                 </td>
-                <td className="metric-cell">{formatCurrency(summaryData.faturamento.realizado)}</td>
-                <td className="metric-cell">{formatCurrency(summaryData.faturamento.meta)}</td>
+                <td className="metric-cell">
+                  <div className="metric-cell-content">
+                    <VerticalBar type="realizado" realizado={summaryData.faturamento.realizado} meta={summaryData.faturamento.meta} />
+                    {formatCurrency(summaryData.faturamento.realizado)}
+                  </div>
+                </td>
+                <td className="metric-cell">
+                  <div className="metric-cell-content">
+                    <VerticalBar type="meta" realizado={summaryData.faturamento.realizado} meta={summaryData.faturamento.meta} />
+                    {formatCurrency(summaryData.faturamento.meta)}
+                  </div>
+                </td>
                 <td className={`metric-cell gap-cell ${getGapClass(summaryData.faturamento.gap)}`}>
-                  {summaryData.faturamento.gap}
+                  <div className="metric-cell-content">
+                    <VerticalBar type="gap" realizado={summaryData.faturamento.realizado} meta={summaryData.faturamento.meta} gap={summaryData.faturamento.gap} />
+                    {summaryData.faturamento.gap}
+                  </div>
                 </td>
-                <td className="metric-cell">{formatPercentage(summaryData.conversao.realizado)}</td>
-                <td className="metric-cell">{formatPercentage(summaryData.conversao.meta)}</td>
+                <td className="metric-cell">
+                  <div className="metric-cell-content">
+                    <VerticalBar type="realizado" realizado={summaryData.conversao.realizado} meta={summaryData.conversao.meta} />
+                    {formatPercentage(summaryData.conversao.realizado)}
+                  </div>
+                </td>
+                <td className="metric-cell">
+                  <div className="metric-cell-content">
+                    <VerticalBar type="meta" realizado={summaryData.conversao.realizado} meta={summaryData.conversao.meta} />
+                    {formatPercentage(summaryData.conversao.meta)}
+                  </div>
+                </td>
                 <td className={`metric-cell gap-cell ${getGapClass(summaryData.conversao.gap)}`}>
-                  {summaryData.conversao.gap > 0 ? '+' : ''}{formatPercentage(summaryData.conversao.gap)}
+                  <div className="metric-cell-content">
+                    <VerticalBar type="gap" realizado={summaryData.conversao.realizado} meta={summaryData.conversao.meta} gap={summaryData.conversao.gap} />
+                    {summaryData.conversao.gap > 0 ? '+' : ''}{formatPercentage(summaryData.conversao.gap)}
+                  </div>
                 </td>
-                <td className="metric-cell">{formatCurrency(summaryData.ticketMedio.realizado)}</td>
-                <td className="metric-cell">{formatCurrency(summaryData.ticketMedio.meta)}</td>
+                <td className="metric-cell">
+                  <div className="metric-cell-content">
+                    <VerticalBar type="realizado" realizado={summaryData.ticketMedio.realizado} meta={summaryData.ticketMedio.meta} />
+                    {formatCurrency(summaryData.ticketMedio.realizado)}
+                  </div>
+                </td>
+                <td className="metric-cell">
+                  <div className="metric-cell-content">
+                    <VerticalBar type="meta" realizado={summaryData.ticketMedio.realizado} meta={summaryData.ticketMedio.meta} />
+                    {formatCurrency(summaryData.ticketMedio.meta)}
+                  </div>
+                </td>
                 <td className={`metric-cell gap-cell ${getGapClass(summaryData.ticketMedio.gap)}`}>
-                  {summaryData.ticketMedio.gap}
+                  <div className="metric-cell-content">
+                    <VerticalBar type="gap" realizado={summaryData.ticketMedio.realizado} meta={summaryData.ticketMedio.meta} gap={summaryData.ticketMedio.gap} />
+                    {summaryData.ticketMedio.gap}
+                  </div>
                 </td>
               </tr>
             )}
@@ -347,7 +697,8 @@ const DailyPerformanceTable = ({
                   className={`day-row ${day.isToday ? 'today-row' : ''} ${day.isWeekend ? 'weekend-row' : ''}`}
                 >
                   <td className="indicators-cell day-indicator">
-                    {day.day.toString().padStart(2, '0')}/{day.month.toString().padStart(2, '0')}/{day.year}
+                    <div className="day-date">{day.day.toString().padStart(2, '0')}/{day.month.toString().padStart(2, '0')}/{day.year}</div>
+                    <div className="day-week">{getDayOfWeekShort(day.date)}</div>
                   </td>
                   
                   {/* Leads */}

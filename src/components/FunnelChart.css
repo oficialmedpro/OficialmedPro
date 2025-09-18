@@ -350,8 +350,8 @@
 
 /* =================== SEÇÃO DE FILTROS APLICADOS =================== */
 .fc-applied-filters {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(59, 130, 246, 0.1));
-  border: 1px solid rgba(59, 130, 246, 0.2);
+  background: linear-gradient(135deg, rgb(15 23 42), rgb(15 23 42));
+  border: 1px solid rgb(51 65 85);
   border-radius: 12px;
   padding: 16px 20px;
   margin: 20px 0;
