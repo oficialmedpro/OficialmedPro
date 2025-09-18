@@ -283,19 +283,29 @@ const fetchLeadsMeta = async (selectedUnit, selectedFunnel, selectedSeller, tota
       if (metaData && metaData.length > 0) {
         // Como a dashboard é de metas diárias, somamos os registros (se houver múltiplos vendedores)
         const totalMeta = metaData.reduce((total, meta) => total + (parseFloat(meta.valor_da_meta) || 0), 0);
-        console.log(`✅ DailyPerformanceService: Meta diária (somada): ${totalMeta}`);
+        console.log(`✅ DailyPerformanceService: Meta diária de leads encontrada: ${totalMeta}`);
         return Math.round(totalMeta);
       }
     }
-    
-    // Fallback: meta padrão de 80 leads por dia
+
+    // Se é um funil específico e não encontrou meta, retornar 0
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      console.log(`⚠️ DailyPerformanceService: Nenhuma meta encontrada para funil ${selectedFunnel} - retornando 0`);
+      return 0;
+    }
+
+    // Fallback: meta padrão de 80 leads por dia (apenas para "todos os funis")
     const metaPadrao = 80;
     console.log(`⚠️ DailyPerformanceService: Usando meta padrão: ${metaPadrao} leads/dia`);
     return metaPadrao;
     
   } catch (error) {
     console.error('❌ DailyPerformanceService: Erro ao buscar meta de leads:', error);
-    return 80; // Meta padrão
+    // Se é um funil específico e deu erro, retornar 0
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      return 0;
+    }
+    return 80; // Meta padrão apenas para "todos os funis"
   }
 };
 
@@ -436,19 +446,29 @@ const fetchVendasMeta = async (selectedUnit, selectedFunnel, selectedSeller, tot
       if (metaData && metaData.length > 0) {
         // Como a dashboard é de metas diárias, somamos os registros (se houver múltiplos vendedores)
         const totalMeta = metaData.reduce((total, meta) => total + (parseFloat(meta.valor_da_meta) || 0), 0);
-        console.log(`✅ DailyPerformanceService: Meta diária de vendas (somada): ${totalMeta}`);
+        console.log(`✅ DailyPerformanceService: Meta diária de vendas encontrada: ${totalMeta}`);
         return Math.round(totalMeta);
       }
     }
-    
-    // Fallback: meta padrão de 20 vendas por dia
+
+    // Se é um funil específico e não encontrou meta, retornar 0
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      console.log(`⚠️ DailyPerformanceService: Nenhuma meta de vendas encontrada para funil ${selectedFunnel} - retornando 0`);
+      return 0;
+    }
+
+    // Fallback: meta padrão de 20 vendas por dia (apenas para "todos os funis")
     const metaPadrao = 20;
     console.log(`⚠️ DailyPerformanceService: Usando meta padrão de vendas: ${metaPadrao} vendas/dia`);
     return metaPadrao;
     
   } catch (error) {
     console.error('❌ DailyPerformanceService: Erro ao buscar meta de vendas:', error);
-    return 20; // Meta padrão
+    // Se é um funil específico e deu erro, retornar 0
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      return 0;
+    }
+    return 20; // Meta padrão apenas para "todos os funis"
   }
 };
 
@@ -514,19 +534,29 @@ const fetchFaturamentoMeta = async (selectedUnit, selectedFunnel, selectedSeller
       if (metaData && metaData.length > 0) {
         // Como a dashboard é de metas diárias, somamos os registros (se houver múltiplos vendedores)
         const totalMeta = metaData.reduce((total, meta) => total + (parseFloat(meta.valor_da_meta) || 0), 0);
-        console.log(`✅ DailyPerformanceService: Meta diária de faturamento (somada): ${totalMeta}`);
+        console.log(`✅ DailyPerformanceService: Meta diária de faturamento encontrada: ${totalMeta}`);
         return Math.round(totalMeta);
       }
     }
-    
-    // Fallback: meta padrão de R$ 6.000 por dia
+
+    // Se é um funil específico e não encontrou meta, retornar 0
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      console.log(`⚠️ DailyPerformanceService: Nenhuma meta de faturamento encontrada para funil ${selectedFunnel} - retornando 0`);
+      return 0;
+    }
+
+    // Fallback: meta padrão de R$ 6.000 por dia (apenas para "todos os funis")
     const metaPadrao = 6000;
     console.log(`⚠️ DailyPerformanceService: Usando meta padrão de faturamento: R$ ${metaPadrao}/dia`);
     return metaPadrao;
     
   } catch (error) {
     console.error('❌ DailyPerformanceService: Erro ao buscar meta de faturamento:', error);
-    return 6000; // Meta padrão
+    // Se é um funil específico e deu erro, retornar 0
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      return 0;
+    }
+    return 6000; // Meta padrão apenas para "todos os funis"
   }
 };
 
@@ -591,19 +621,29 @@ const fetchTaxaConversaoMeta = async (selectedUnit, selectedFunnel, selectedSell
       if (metaData && metaData.length > 0) {
         // Como a dashboard é de metas diárias, somamos os registros (se houver múltiplos vendedores)
         const totalMeta = metaData.reduce((total, meta) => total + (parseFloat(meta.valor_da_meta) || 0), 0);
-        console.log(`✅ DailyPerformanceService: Meta diária de taxa de conversão (somada): ${totalMeta}%`);
+        console.log(`✅ DailyPerformanceService: Meta diária de taxa de conversão encontrada: ${totalMeta}%`);
         return totalMeta;
       }
     }
 
-    // Fallback: meta padrão de 30% de conversão
+    // Se é um funil específico e não encontrou meta, retornar 0
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      console.log(`⚠️ DailyPerformanceService: Nenhuma meta de taxa de conversão encontrada para funil ${selectedFunnel} - retornando 0`);
+      return 0;
+    }
+
+    // Fallback: meta padrão de 30% de conversão (apenas para "todos os funis")
     const metaPadrao = 30;
     console.log(`⚠️ DailyPerformanceService: Usando meta padrão de taxa de conversão: ${metaPadrao}%`);
     return metaPadrao;
 
   } catch (error) {
     console.error('❌ DailyPerformanceService: Erro ao buscar meta de taxa de conversão:', error);
-    return 30; // Meta padrão
+    // Se é um funil específico e deu erro, retornar 0
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      return 0;
+    }
+    return 30; // Meta padrão apenas para "todos os funis"
   }
 };
 
@@ -668,19 +708,29 @@ const fetchTicketMedioMeta = async (selectedUnit, selectedFunnel, selectedSeller
       if (metaData && metaData.length > 0) {
         // Como a dashboard é de metas diárias, somamos os registros (se houver múltiplos vendedores)
         const totalMeta = metaData.reduce((total, meta) => total + (parseFloat(meta.valor_da_meta) || 0), 0);
-        console.log(`✅ DailyPerformanceService: Meta de ticket médio (somada): R$ ${totalMeta}`);
+        console.log(`✅ DailyPerformanceService: Meta de ticket médio encontrada: R$ ${totalMeta}`);
         return totalMeta;
       }
     }
 
-    // Fallback: meta padrão de R$ 250
+    // Se é um funil específico e não encontrou meta, retornar 0
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      console.log(`⚠️ DailyPerformanceService: Nenhuma meta de ticket médio encontrada para funil ${selectedFunnel} - retornando 0`);
+      return 0;
+    }
+
+    // Fallback: meta padrão de R$ 250 (apenas para "todos os funis")
     const metaPadrao = 250;
     console.log(`⚠️ DailyPerformanceService: Usando meta padrão de ticket médio: R$ ${metaPadrao}`);
     return metaPadrao;
 
   } catch (error) {
     console.error('❌ DailyPerformanceService: Erro ao buscar meta de ticket médio:', error);
-    return 250; // Meta padrão
+    // Se é um funil específico e deu erro, retornar 0
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      return 0;
+    }
+    return 250; // Meta padrão apenas para "todos os funis"
   }
 };
 

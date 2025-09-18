@@ -1,0 +1,419 @@
+/* OrigemRanking Component Styles */
+
+.origem-ranking-header {
+  background: linear-gradient(135deg, #171e31 0%, #171e31 100%);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Modo light para origem-ranking-header */
+.dashboard-container.light-theme .origem-ranking-header {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid #cbd5e1;
+}
+
+.origem-ranking-header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.origem-ranking-title h3 {
+  color: #f8fafc;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: flex-start;
+}
+
+/* Modo light para origem-ranking-title */
+.dashboard-container.light-theme .origem-ranking-title h3 {
+  color: #1e293b;
+}
+
+.origem-ranking-icon-main {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.origem-ranking-subtitle {
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+/* Modo light para origem-ranking-subtitle */
+.dashboard-container.light-theme .origem-ranking-subtitle {
+  color: #64748b;
+}
+
+.origem-ranking-tabs {
+  display: flex;
+  gap: 8px;
+  background: rgb(15 23 42);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+}
+
+/* Modo light para origem-ranking-tabs */
+.dashboard-container.light-theme .origem-ranking-tabs {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+.origem-ranking-tab {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  flex: 1;
+  text-align: center;
+}
+
+/* Modo light para origem-ranking-tab */
+.dashboard-container.light-theme .origem-ranking-tab {
+  color: #64748b;
+}
+
+.origem-ranking-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+/* Modo light para origem-ranking-tab hover */
+.dashboard-container.light-theme .origem-ranking-tab:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1e293b;
+}
+
+.origem-ranking-tab.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Modo light para origem-ranking-tab active - manter texto branco */
+.dashboard-container.light-theme .origem-ranking-tab.active {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.origem-ranking-content {
+  flex: 1;
+  min-height: 200px;
+  width: 100%;
+}
+
+/* Ranking List Styles */
+.origem-ranking-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+/* Scrollbar Styles */
+.origem-ranking-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.origem-ranking-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.origem-ranking-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.origem-ranking-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.origem-ranking-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: rgb(15 23 42);
+  border-radius: 12px;
+  border: 1px solid rgb(51 65 85);
+  transition: all 0.3s ease;
+}
+
+/* Modo light para origem-ranking-item */
+.dashboard-container.light-theme .origem-ranking-item {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+}
+
+.origem-ranking-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Modo light para origem-ranking-item hover */
+.dashboard-container.light-theme .origem-ranking-item:hover {
+  background: rgba(59, 130, 246, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.origem-ranking-rank {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  color: white;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.origem-ranking-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.origem-ranking-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.origem-ranking-name {
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Modo light para origem-ranking-name */
+.dashboard-container.light-theme .origem-ranking-name {
+  color: #1e293b;
+}
+
+.origem-ranking-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: #94a3b8;
+  align-items: center;
+}
+
+/* Modo light para origem-ranking-stats */
+.dashboard-container.light-theme .origem-ranking-stats {
+  color: #64748b;
+}
+
+.origem-ranking-count {
+  font-weight: 600;
+}
+
+.origem-ranking-value {
+  font-weight: 700;
+  color: #10b981;
+  font-family: 'Courier New', monospace;
+}
+
+.origem-ranking-percentage {
+  font-weight: 600;
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.origem-ranking-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* Modo light para origem-ranking-bar */
+.dashboard-container.light-theme .origem-ranking-bar {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+.origem-ranking-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.origem-ranking-fill.faturamento {
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+.origem-ranking-fill.quantidade {
+  background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.origem-ranking-fill.perdas {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* Loading and Error States */
+.origem-ranking-loading,
+.origem-ranking-error,
+.origem-ranking-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: #94a3b8;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.origem-ranking-error {
+  color: #ef4444;
+}
+
+.origem-ranking-empty {
+  color: #64748b;
+}
+
+/* Modo light para loading e error states */
+.dashboard-container.light-theme .origem-ranking-loading,
+.dashboard-container.light-theme .origem-ranking-empty {
+  color: #64748b;
+}
+
+.dashboard-container.light-theme .origem-ranking-error {
+  color: #dc2626;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .origem-ranking-header {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .origem-ranking-header-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .origem-ranking-tabs {
+    justify-content: center;
+  }
+
+  .origem-ranking-tab {
+    padding: 10px 8px;
+    font-size: 11px;
+  }
+
+  .origem-ranking-item {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .origem-ranking-rank {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+
+  .origem-ranking-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .origem-ranking-name {
+    font-size: 12px;
+  }
+
+  .origem-ranking-stats {
+    font-size: 11px;
+    gap: 8px;
+  }
+
+  .origem-ranking-list {
+    max-height: 300px;
+  }
+}
+
+@media (max-width: 480px) {
+  .origem-ranking-title h3 {
+    font-size: 18px;
+  }
+
+  .origem-ranking-subtitle {
+    font-size: 13px;
+  }
+
+  .origem-ranking-tab {
+    padding: 8px 6px;
+    font-size: 10px;
+  }
+
+  .origem-ranking-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .origem-ranking-stats {
+    justify-content: center;
+  }
+
+  .origem-ranking-list {
+    max-height: 250px;
+  }
+}

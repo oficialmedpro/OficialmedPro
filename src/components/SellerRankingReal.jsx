@@ -27,7 +27,7 @@ const SellerRankingReal = ({
     currentPage: 1,
     totalPages: 0,
     totalItems: 0,
-    pageSize: 6,
+    pageSize: 8,
     hasNext: false,
     hasPrev: false
   });
@@ -40,7 +40,7 @@ const SellerRankingReal = ({
     originName: ''
   });
 
-  const sellersPerPage = 6;
+  const sellersPerPage = 8;
 
   // Função para buscar dados do ranking
   const fetchSellerRanking = async (page = 1) => {
@@ -244,9 +244,12 @@ const SellerRankingReal = ({
               <div className="source-content">
                 <div className="seller-info">
                   <div className="seller-header">
-                    <span className="source-name">{seller.rank}. {seller.name}</span>
+                    <div className="seller-rank">
+                      {renderRankBadge(seller)}
+                    </div>
+                    <span className="source-name">{seller.name}</span>
                     <span className="seller-total">
-                      {seller.opportunityCount} - {formatCurrency(seller.totalValue)}
+                      {formatCurrency(seller.totalValue)}
                     </span>
                   </div>
                   <div className="seller-metrics">
@@ -256,26 +259,13 @@ const SellerRankingReal = ({
                         <span className="metric-value">{seller.opportunityCount}</span>
                       </div>
                       <div className="metric-col">
-                        <span className="metric-label">Valor Total:</span>
-                        <span className="metric-value">{formatCurrency(seller.totalValue)}</span>
-                      </div>
-                    </div>
-                    <div className="metric-row">
-                      <div className="metric-col">
                         <span className="metric-label">Ticket Médio:</span>
                         <span className="metric-value">
                           {formatCurrency(seller.totalValue / seller.opportunityCount)}
                         </span>
                       </div>
-                      <div className="metric-col">
-                        <span className="metric-label">ID:</span>
-                        <span className="metric-value">{seller.userId}</span>
-                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="seller-rank">
-                  {renderRankBadge(seller)}
                 </div>
               </div>
               <div className="source-color-bar" style={{background: '#3b82f6', width: `${seller.progress}%`}}></div>

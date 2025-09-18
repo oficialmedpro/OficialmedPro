@@ -232,24 +232,24 @@
 
 /* Link do perfil do lead */
 .lead-link {
-  color: #10b981;
+  color: #a9a9a9;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.2s ease;
 }
 
 .lead-link:hover {
-  color: #059669;
+  color: #6b7280;
   text-decoration: underline;
 }
 
 /* Modo light para lead-link */
 .dashboard-container.light-theme .lead-link {
-  color: #059669;
+  color: #6b7280;
 }
 
 .dashboard-container.light-theme .lead-link:hover {
-  color: #047857;
+  color: #4b5563;
 }
 
 .ticket-value {
@@ -278,10 +278,11 @@
 }
 
 .ticket-color-bar {
-  height: 4px;
+  height: 2px;
   border-radius: 2px;
   margin-top: 4px;
   opacity: 0.8;
+  background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
 }
 
 /* Estados de loading e erro */

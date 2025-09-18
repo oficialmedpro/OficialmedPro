@@ -262,17 +262,17 @@ const TicketRankingCard = ({
 
   // Efeito para buscar dados quando página mudar
   useEffect(() => {
-    if (currentPage !== 1) {
-      if (activeTab === 'ticket-maior') {
-        fetchTicketRanking(currentPage);
-      } else {
-        fetchPurchaseCountRanking(currentPage);
-      }
+    console.log('🔄 TicketRankingCard: Página alterada para', currentPage);
+    if (activeTab === 'ticket-maior') {
+      fetchTicketRanking(currentPage);
+    } else {
+      fetchPurchaseCountRanking(currentPage);
     }
   }, [currentPage, activeTab]);
 
   // Função para mudar de página
   const changePage = (page) => {
+    console.log('🔄 TicketRankingCard: changePage chamada com página', page);
     if (page >= 1 && page <= pagination.totalPages) {
       setCurrentPage(page);
     }
@@ -280,6 +280,7 @@ const TicketRankingCard = ({
 
   // Função para ir para próxima página
   const nextPage = () => {
+    console.log('🔄 TicketRankingCard: nextPage chamada, página atual:', currentPage);
     if (pagination.hasNext) {
       setCurrentPage(currentPage + 1);
     }
@@ -287,6 +288,7 @@ const TicketRankingCard = ({
 
   // Função para ir para página anterior
   const prevPage = () => {
+    console.log('🔄 TicketRankingCard: prevPage chamada, página atual:', currentPage);
     if (pagination.hasPrev) {
       setCurrentPage(currentPage - 1);
     }
