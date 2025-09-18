@@ -31,7 +31,8 @@ export const getSellerRankingData = async (
   selectedSeller = null,
   selectedOrigin = null,
   page = 1,
-  pageSize = 6
+  pageSize = 6,
+  rankingType = 'valor'
 ) => {
   try {
     // Normalizador robusto para valores monetários
@@ -140,10 +141,55 @@ export const getSellerRankingData = async (
       filtrosCombinados
     });
 
-    // 🏆 URL para buscar oportunidades ganhas com user_id
-    const opportunitiesUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,gain_date,user_id,lead_firstname,lead_city,funil_id,lead_id&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicio}&gain_date=lte.${dataFim}${filtrosCombinados}&order=value.desc`;
+    // 🏆 Determinar status e campo de data baseado no tipo de ranking
+    let statusFilter, dateField, orderField;
+    
+    switch (rankingType) {
+      case 'valor':
+        statusFilter = 'status=eq.gain';
+        dateField = 'gain_date';
+        orderField = 'value.desc';
+        break;
+      case 'ticket':
+        statusFilter = 'status=eq.gain';
+        dateField = 'gain_date';
+        orderField = 'value.desc'; // Será reordenado por ticket médio depois
+        break;
+      case 'abertas':
+        statusFilter = 'status=eq.open';
+        dateField = null; // Não precisa de filtro de data
+        orderField = 'id.desc';
+        break;
+      case 'perdidas':
+        statusFilter = 'status=eq.lost';
+        dateField = 'lost_date';
+        orderField = 'lost_date.desc';
+        break;
+      default:
+        statusFilter = 'status=eq.gain';
+        dateField = 'gain_date';
+        orderField = 'value.desc';
+    }
+
+    // 🏆 URL para buscar oportunidades baseada no tipo de ranking
+    let opportunitiesUrl;
+    if (dateField) {
+      // Com filtro de data
+      opportunitiesUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,${dateField},user_id,lead_firstname,lead_city,funil_id,lead_id&archived=eq.0&${statusFilter}&${dateField}=gte.${dataInicio}&${dateField}=lte.${dataFim}${filtrosCombinados}&order=${orderField}`;
+    } else {
+      // Sem filtro de data (para oportunidades abertas)
+      opportunitiesUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,user_id,lead_firstname,lead_city,funil_id,lead_id&archived=eq.0&${statusFilter}${filtrosCombinados}&order=${orderField}`;
+    }
 
     console.log('🔍 SellerRankingService: URL construída:', opportunitiesUrl);
+    console.log('🔍 SellerRankingService: Detalhes da URL:', {
+      statusFilter,
+      dateField,
+      orderField,
+      dataInicio,
+      dataFim,
+      filtrosCombinados
+    });
 
     // Headers para a requisição
     const baseHeaders = {
@@ -162,6 +208,17 @@ export const getSellerRankingData = async (
 
     if (!response.ok) {
       console.error('❌ SellerRankingService: Erro na requisição:', response.status);
+      console.error('❌ SellerRankingService: URL que causou erro:', opportunitiesUrl);
+      console.error('❌ SellerRankingService: Headers enviados:', baseHeaders);
+      
+      // Tentar capturar o corpo da resposta de erro
+      try {
+        const errorText = await response.text();
+        console.error('❌ SellerRankingService: Corpo do erro:', errorText);
+      } catch (e) {
+        console.error('❌ SellerRankingService: Não foi possível ler o corpo do erro');
+      }
+      
       throw new Error(`Erro na requisição: ${response.status}`);
     }
 
@@ -272,11 +329,59 @@ export const getSellerRankingData = async (
           opportunities: seller.opportunities
         };
       })
-      .sort((a, b) => b.opportunityCount - a.opportunityCount) // Ordenar por quantidade de oportunidades
-      .map((seller, index) => ({
+      .sort((a, b) => {
+        // Ordenar baseado no tipo de ranking
+        switch (rankingType) {
+          case 'valor':
+            return b.totalValue - a.totalValue; // Por valor total
+          case 'ticket':
+            const ticketA = a.opportunityCount > 0 ? a.totalValue / a.opportunityCount : 0;
+            const ticketB = b.opportunityCount > 0 ? b.totalValue / b.opportunityCount : 0;
+            return ticketB - ticketA; // Por ticket médio
+          case 'abertas':
+          case 'perdidas':
+            return b.opportunityCount - a.opportunityCount; // Por quantidade de oportunidades
+          default:
+            return b.totalValue - a.totalValue; // Padrão: por valor total
+        }
+      })
+      .map((seller, index, sortedArray) => ({
         ...seller,
         rank: index + 1,
-        progress: index === 0 ? 100 : Math.max(1, Math.round((seller.opportunityCount / Object.values(sellerGroups)[0].opportunityCount) * 100))
+        progress: (() => {
+          if (index === 0) return 100;
+          const firstSeller = sortedArray[0]; // Usar o primeiro da lista ordenada
+          let comparisonValue, currentValue;
+
+          switch (rankingType) {
+            case 'valor':
+              comparisonValue = firstSeller.totalValue;
+              currentValue = seller.totalValue;
+              break;
+            case 'ticket':
+              const firstTicket = firstSeller.opportunityCount > 0 ? firstSeller.totalValue / firstSeller.opportunityCount : 0;
+              const currentTicket = seller.opportunityCount > 0 ? seller.totalValue / seller.opportunityCount : 0;
+              comparisonValue = firstTicket;
+              currentValue = currentTicket;
+              break;
+            case 'abertas':
+            case 'perdidas':
+              comparisonValue = firstSeller.opportunityCount;
+              currentValue = seller.opportunityCount;
+              break;
+            default:
+              comparisonValue = firstSeller.totalValue;
+              currentValue = seller.totalValue;
+          }
+
+          // Evitar divisão por zero e garantir que o progresso seja válido
+          if (comparisonValue === 0 || currentValue === 0) {
+            return 1;
+          }
+
+          const progressValue = (currentValue / comparisonValue) * 100;
+          return Math.max(1, Math.min(100, Math.round(progressValue)));
+        })()
       }));
 
     console.log('🏆 SellerRankingService: Vendedores processados:', {

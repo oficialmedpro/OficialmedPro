@@ -132,40 +132,24 @@
   width: 100%;
 }
 
-/* Ranking List Styles */
+/* Ranking Container and List Styles */
+.origem-ranking-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
 .origem-ranking-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 8px;
-}
-
-/* Scrollbar Styles */
-.origem-ranking-list::-webkit-scrollbar {
-  width: 6px;
-}
-
-.origem-ranking-list::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
-}
-
-.origem-ranking-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 3px;
-}
-
-.origem-ranking-list::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
 }
 
 .origem-ranking-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
+  gap: 4px;
+  padding: 8px;
   background: rgb(15 23 42);
   border-radius: 12px;
   border: 1px solid rgb(51 65 85);
@@ -202,21 +186,10 @@
   font-weight: 700;
   font-size: 12px;
   flex-shrink: 0;
+  flex-basis: 30px;
 }
 
-.origem-ranking-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 14px;
-  color: white;
-  flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
+/* ícone removido - não usado mais */
 
 .origem-ranking-content {
   flex: 1;
@@ -228,9 +201,9 @@
 
 .origem-ranking-name {
   color: #f8fafc;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  margin-bottom: 2px;
+  margin-bottom: 0px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -243,10 +216,9 @@
 
 .origem-ranking-stats {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   font-size: 12px;
   color: #94a3b8;
-  align-items: center;
 }
 
 /* Modo light para origem-ranking-stats */
@@ -275,8 +247,8 @@
 
 .origem-ranking-bar {
   width: 100%;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  height: 3px;
+  background: rgb(255 255 255 / 21%);
   border-radius: 4px;
   overflow: hidden;
   flex-shrink: 0;
@@ -303,6 +275,128 @@
 
 .origem-ranking-fill.perdas {
   background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* Cores específicas para cada aba do ranking de origens */
+
+/* Aba Faturamento - Verde */
+.origem-ranking-container.faturamento .loss-reason-rank {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.origem-ranking-container.faturamento .loss-reason-value {
+  color: #10b981;
+}
+
+.origem-ranking-container.faturamento .loss-reason-fill {
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+/* Aba Quantidade - Azul */
+.origem-ranking-container.quantidade .loss-reason-rank {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+.origem-ranking-container.quantidade .loss-reason-value {
+  color: #3b82f6;
+}
+
+.origem-ranking-container.quantidade .loss-reason-fill {
+  background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+}
+
+/* Aba Perdas - Vermelho (já é o padrão, mas vou deixar explícito) */
+.origem-ranking-container.perdas .loss-reason-rank {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.origem-ranking-container.perdas .loss-reason-value {
+  color: #ef4444;
+}
+
+.origem-ranking-container.perdas .loss-reason-fill {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+/* Cores das abas ativas */
+.origem-ranking-tab.active.faturamento {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3) !important;
+}
+
+.origem-ranking-tab.active.quantidade {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+.origem-ranking-tab.active.perdas {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3) !important;
+}
+
+/* Pagination Styles */
+.origem-ranking-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 8px;
+}
+
+.origem-pagination-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #f8fafc;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 80px;
+}
+
+.origem-pagination-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.origem-pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.origem-pagination-info {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 500;
+  min-width: 100px;
+  text-align: center;
+}
+
+/* Modo light para pagination */
+.dashboard-container.light-theme .origem-ranking-pagination {
+  border-top: 1px solid #e2e8f0;
+}
+
+.dashboard-container.light-theme .origem-pagination-btn {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+}
+
+.dashboard-container.light-theme .origem-pagination-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+}
+
+.dashboard-container.light-theme .origem-pagination-info {
+  color: #64748b;
 }
 
 /* Loading and Error States */
@@ -358,8 +452,8 @@
   }
 
   .origem-ranking-item {
-    gap: 8px;
-    padding: 10px;
+    gap: 4px;
+    padding: 8px;
   }
 
   .origem-ranking-rank {
@@ -369,9 +463,9 @@
   }
 
   .origem-ranking-icon {
-    width: 28px;
-    height: 28px;
-    font-size: 12px;
+    width: 20px;
+    height: 20px;
+    font-size: 10px;
   }
 
   .origem-ranking-name {

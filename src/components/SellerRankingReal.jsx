@@ -23,6 +23,7 @@ const SellerRankingReal = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState('valor'); // 'valor', 'ticket', 'abertas', 'perdidas'
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 0,
@@ -43,7 +44,7 @@ const SellerRankingReal = ({
   const sellersPerPage = 8;
 
   // Função para buscar dados do ranking
-  const fetchSellerRanking = async (page = 1) => {
+  const fetchSellerRanking = async (page = 1, rankingType = 'valor') => {
     try {
       setLoading(true);
       setError(null);
@@ -56,7 +57,8 @@ const SellerRankingReal = ({
         selectedSeller,
         selectedOrigin,
         page,
-        sellersPerPage
+        sellersPerPage,
+        rankingType
       });
 
       // Primeira tentativa: com filtros específicos
@@ -68,7 +70,8 @@ const SellerRankingReal = ({
         selectedSeller,
         selectedOrigin,
         page,
-        sellersPerPage
+        sellersPerPage,
+        rankingType
       );
 
       // Se não encontrou dados, tentar com período expandido (últimos 30 dias)
@@ -90,7 +93,8 @@ const SellerRankingReal = ({
           selectedSeller,
           selectedOrigin,
           page,
-          sellersPerPage
+          sellersPerPage,
+          rankingType
         );
 
         console.log('🔄 SellerRankingReal: Tentativa com período expandido:', result);
@@ -132,14 +136,14 @@ const SellerRankingReal = ({
   useEffect(() => {
     console.log('🔄 SellerRankingReal: Filtros alterados, recarregando dados...');
     setCurrentPage(1); // Reset para primeira página
-    fetchSellerRanking(1);
+    fetchSellerRanking(1, activeTab);
     fetchFilterNames();
-  }, [startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin]);
+  }, [startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin, activeTab]);
 
   // Efeito para buscar dados quando página mudar
   useEffect(() => {
-    fetchSellerRanking(currentPage);
-  }, [currentPage]);
+    fetchSellerRanking(currentPage, activeTab);
+  }, [currentPage, activeTab]);
 
   // Função para mudar de página
   const changePage = (page) => {
@@ -233,6 +237,34 @@ const SellerRankingReal = ({
         <span className="platform-name">Ranking de Vendedores</span>
       </div>
       
+      {/* Abas de ranking */}
+      <div className="seller-tabs">
+        <button
+          className={`seller-tab ${activeTab === 'valor' ? 'active' : ''}`}
+          onClick={() => setActiveTab('valor')}
+        >
+          Por Valor
+        </button>
+        <button
+          className={`seller-tab ${activeTab === 'ticket' ? 'active ticket' : ''}`}
+          onClick={() => setActiveTab('ticket')}
+        >
+          Por Ticket Médio
+        </button>
+        <button
+          className={`seller-tab ${activeTab === 'abertas' ? 'active abertas' : ''}`}
+          onClick={() => setActiveTab('abertas')}
+        >
+          Oportunidades Abertas
+        </button>
+        <button
+          className={`seller-tab ${activeTab === 'perdidas' ? 'active perdidas' : ''}`}
+          onClick={() => setActiveTab('perdidas')}
+        >
+          Oportunidades Perdidas
+        </button>
+      </div>
+      
       <div className="sources-list">
         {sellerData.length === 0 ? (
           <div className="seller-empty">
@@ -248,8 +280,11 @@ const SellerRankingReal = ({
                       {renderRankBadge(seller)}
                     </div>
                     <span className="source-name">{seller.name}</span>
-                    <span className="seller-total">
-                      {formatCurrency(seller.totalValue)}
+                    <span className={`seller-total ${activeTab === 'perdidas' ? 'seller-total-red' : ''}`}>
+                      {activeTab === 'ticket' 
+                        ? formatCurrency(seller.totalValue / seller.opportunityCount)
+                        : formatCurrency(seller.totalValue)
+                      }
                     </span>
                   </div>
                   <div className="seller-metrics">
@@ -259,9 +294,14 @@ const SellerRankingReal = ({
                         <span className="metric-value">{seller.opportunityCount}</span>
                       </div>
                       <div className="metric-col">
-                        <span className="metric-label">Ticket Médio:</span>
+                        <span className="metric-label">
+                          {activeTab === 'ticket' ? 'Valor Total:' : 'Ticket Médio:'}
+                        </span>
                         <span className="metric-value">
-                          {formatCurrency(seller.totalValue / seller.opportunityCount)}
+                          {activeTab === 'ticket' 
+                            ? formatCurrency(seller.totalValue)
+                            : formatCurrency(seller.totalValue / seller.opportunityCount)
+                          }
                         </span>
                       </div>
                     </div>

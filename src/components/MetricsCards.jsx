@@ -1,6 +1,6 @@
 import React from 'react';
 import './MetricsCards.css';
-import OpportunitySources from './OpportunitySources';
+import OrigemRanking from './OrigemRanking';
 import LossReasonsHeader from './LossReasonsHeader';
 import TicketRankingCard from './TicketRankingCard';
 import SellerRanking from './SellerRanking';
@@ -31,8 +31,16 @@ const MetricsCards = ({
           selectedOrigin={selectedOrigin}
         />
 
-        {/* Card 2: Origens das Oportunidades */}
-        <OpportunitySources formatCurrency={formatCurrency} t={t} />
+        {/* Card 2: Ranking de Origens das Oportunidades */}
+        <OrigemRanking
+          formatCurrency={formatCurrency}
+          t={t}
+          startDate={startDate}
+          endDate={endDate}
+          selectedFunnel={selectedFunnel}
+          selectedUnit={selectedUnit}
+          selectedSeller={selectedSeller}
+        />
 
         {/* Card 3: Ranking por ticket maior */}
         <TicketRankingCard

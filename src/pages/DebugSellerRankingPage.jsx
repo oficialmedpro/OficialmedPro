@@ -12,7 +12,8 @@ const DebugSellerRankingPage = ({ onLogout }) => {
     selectedFunnel: 'all',
     selectedUnit: 'all',
     selectedSeller: 'all',
-    selectedOrigin: 'all'
+    selectedOrigin: 'all',
+    rankingType: 'valor'
   });
 
   // Função para adicionar log
@@ -20,6 +21,78 @@ const DebugSellerRankingPage = ({ onLogout }) => {
     const timestamp = new Date().toLocaleTimeString();
     setLogs(prev => [...prev, { timestamp, message, type }]);
     console.log(`[${timestamp}] ${message}`);
+  };
+
+  // Função para testar campos da tabela
+  const testTableFields = async () => {
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      
+      // Testar se lost_date existe
+      const testUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,status,lost_date&status=eq.lost&limit=1`;
+      
+      addLog('🔍 Testando campo lost_date...', 'info');
+      addLog(`URL de teste: ${testUrl}`, 'info');
+      
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey
+        }
+      });
+      
+      addLog(`Status da resposta: ${response.status}`, response.ok ? 'success' : 'error');
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        addLog(`Erro: ${errorText}`, 'error');
+      } else {
+        const data = await response.json();
+        addLog(`Dados retornados: ${JSON.stringify(data)}`, 'success');
+      }
+      
+    } catch (error) {
+      addLog(`Erro ao testar campos: ${error.message}`, 'error');
+    }
+  };
+
+  // Função para testar oportunidades abertas
+  const testOpenFields = async () => {
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      
+      // Testar se status=open funciona
+      const testUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,status,user_id&status=eq.open&limit=1`;
+      
+      addLog('🔍 Testando status=open...', 'info');
+      addLog(`URL de teste: ${testUrl}`, 'info');
+      
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey
+        }
+      });
+      
+      addLog(`Status da resposta: ${response.status}`, response.ok ? 'success' : 'error');
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        addLog(`Erro: ${errorText}`, 'error');
+      } else {
+        const data = await response.json();
+        addLog(`Dados retornados: ${JSON.stringify(data)}`, 'success');
+      }
+      
+    } catch (error) {
+      addLog(`Erro ao testar oportunidades abertas: ${error.message}`, 'error');
+    }
   };
 
   // Função para testar o serviço
@@ -41,6 +114,18 @@ const DebugSellerRankingPage = ({ onLogout }) => {
       addLog(`  - selectedOrigin: ${filters.selectedOrigin}`, 'info');
 
       addLog('🔍 Chamando getSellerRankingData...', 'info');
+      addLog(`📊 Tipo de ranking: ${filters.rankingType}`, 'info');
+      
+      // Teste específico para verificar campos da tabela
+      if (filters.rankingType === 'perdidas') {
+        addLog('🔍 Testando campos da tabela para oportunidades perdidas...', 'info');
+        await testTableFields();
+      }
+      
+      if (filters.rankingType === 'abertas') {
+        addLog('🔍 Testando campos da tabela para oportunidades abertas...', 'info');
+        await testOpenFields();
+      }
       
       const result = await getSellerRankingData(
         filters.startDate,
@@ -50,7 +135,8 @@ const DebugSellerRankingPage = ({ onLogout }) => {
         filters.selectedSeller,
         filters.selectedOrigin,
         1, // page
-        6  // pageSize
+        6, // pageSize
+        filters.rankingType
       );
 
       addLog('✅ Dados recebidos com sucesso!', 'success');
@@ -229,6 +315,63 @@ const DebugSellerRankingPage = ({ onLogout }) => {
                   color: 'var(--text-primary)'
                 }}
               />
+            </div>
+            
+          </div>
+
+          {/* Abas de teste */}
+          <div style={{ marginBottom: '16px' }}>
+            <div style={{ 
+              display: 'flex', 
+              background: 'var(--bg-secondary)', 
+              borderRadius: '8px', 
+              padding: '4px',
+              gap: '4px',
+              border: '1px solid var(--border-color)',
+              marginBottom: '8px'
+            }}>
+            {[
+              { value: 'valor', label: 'Por Valor' },
+              { value: 'ticket', label: 'Por Ticket Médio' },
+              { value: 'abertas', label: 'Oportunidades Abertas' },
+              { value: 'perdidas', label: 'Oportunidades Perdidas' }
+            ].map(tab => (
+              <button
+                key={tab.value}
+                onClick={() => setFilters(prev => ({ ...prev, rankingType: tab.value }))}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  border: 'none',
+                  background: filters.rankingType === tab.value ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'transparent',
+                  color: filters.rankingType === tab.value ? '#ffffff' : 'var(--text-muted)',
+                  fontSize: '12px',
+                  fontWeight: filters.rankingType === tab.value ? '600' : '500',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  textAlign: 'center',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+            </div>
+            
+            {/* Indicador de status */}
+            <div style={{ 
+              padding: '8px 12px', 
+              background: 'var(--bg-tertiary)', 
+              borderRadius: '6px',
+              fontSize: '12px',
+              color: 'var(--text-secondary)',
+              textAlign: 'center'
+            }}>
+              🎯 Testando: <strong>{filters.rankingType === 'valor' ? 'Por Valor' : 
+                                   filters.rankingType === 'ticket' ? 'Por Ticket Médio' :
+                                   filters.rankingType === 'abertas' ? 'Oportunidades Abertas' : 
+                                   'Oportunidades Perdidas'}</strong>
             </div>
           </div>
 

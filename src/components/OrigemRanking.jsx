@@ -19,11 +19,18 @@ const OrigemRanking = ({
     quantidade: [],
     perdas: []
   });
+  const [currentPage, setCurrentPage] = useState(0);
+  const itemsPerPage = 10;
 
   // Carregar dados quando os parâmetros mudarem
   useEffect(() => {
     loadData();
   }, [startDate, endDate, selectedFunnel, selectedUnit, selectedSeller]);
+
+  // Resetar página quando mudar a aba
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [activeTab]);
 
   const loadData = async () => {
     try {
@@ -107,35 +114,53 @@ const OrigemRanking = ({
     return originIcons[origem] || origem?.charAt(0)?.toUpperCase() || '?';
   };
 
+  // Função para paginar dados
+  const getPaginatedData = (dataArray) => {
+    const startIndex = currentPage * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return dataArray.slice(startIndex, endIndex);
+  };
+
+  // Função para calcular total de páginas
+  const getTotalPages = (dataArray) => {
+    return Math.ceil(dataArray.length / itemsPerPage);
+  };
+
+  // Funções de navegação
+  const handlePrevPage = () => {
+    setCurrentPage(prev => Math.max(0, prev - 1));
+  };
+
+  const handleNextPage = (totalPages) => {
+    setCurrentPage(prev => Math.min(totalPages - 1, prev + 1));
+  };
+
   const renderFaturamentoRanking = () => {
     if (loading) return <div className="origem-ranking-loading">Carregando...</div>;
     if (error) return <div className="origem-ranking-error">Erro: {error}</div>;
     if (!data.faturamento || data.faturamento.length === 0) return <div className="origem-ranking-empty">Nenhuma origem encontrada</div>;
 
+    const paginatedData = getPaginatedData(data.faturamento);
+    const totalPages = getTotalPages(data.faturamento);
     const maxValue = data.faturamento[0]?.totalValue || 1;
 
     return (
-      <div className="origem-ranking-list">
-        {data.faturamento.map((item, index) => (
-          <div key={item.origem} className="origem-ranking-item">
-            <div className="origem-ranking-rank">#{index + 1}</div>
-            <div
-              className="origem-ranking-icon"
-              style={{ background: getOriginColor(item.origem) }}
-            >
-              {getOriginIcon(item.origem)}
-            </div>
-            <div className="origem-ranking-content">
-              <div className="origem-ranking-name">{item.origem}</div>
-              <div className="origem-ranking-stats">
-                <span className="origem-ranking-count">{item.count} ganhas</span>
-                <span className="origem-ranking-value">
+      <div className="origem-ranking-container faturamento">
+        <div className="origem-ranking-list">
+          {paginatedData.map((item, index) => (
+          <div key={item.origem} className="loss-reason-item">
+            <div className="loss-reason-rank">#{currentPage * itemsPerPage + index + 1}</div>
+            <div className="loss-reason-content">
+              <div className="loss-reason-name">{item.origem}</div>
+              <div className="loss-reason-stats">
+                <span className="loss-reason-count">{item.count} ganhas</span>
+                <span className="loss-reason-value">
                   {formatCurrency ? formatCurrency(item.totalValue, 'BRL') : `R$ ${item.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                 </span>
               </div>
-              <div className="origem-ranking-bar">
+              <div className="loss-reason-bar">
                 <div
-                  className="origem-ranking-fill faturamento"
+                  className="loss-reason-fill faturamento"
                   style={{
                     width: `${Math.min((item.totalValue / maxValue) * 100, 100)}%`
                   }}
@@ -144,6 +169,29 @@ const OrigemRanking = ({
             </div>
           </div>
         ))}
+        </div>
+
+        {totalPages > 1 && (
+          <div className="origem-ranking-pagination">
+            <button
+              className="origem-pagination-btn"
+              onClick={handlePrevPage}
+              disabled={currentPage === 0}
+            >
+              ← Anterior
+            </button>
+            <span className="origem-pagination-info">
+              Página {currentPage + 1} de {totalPages}
+            </span>
+            <button
+              className="origem-pagination-btn"
+              onClick={() => handleNextPage(totalPages)}
+              disabled={currentPage === totalPages - 1}
+            >
+              Próxima →
+            </button>
+          </div>
+        )}
       </div>
     );
   };
@@ -153,30 +201,27 @@ const OrigemRanking = ({
     if (error) return <div className="origem-ranking-error">Erro: {error}</div>;
     if (!data.quantidade || data.quantidade.length === 0) return <div className="origem-ranking-empty">Nenhuma origem encontrada</div>;
 
+    const paginatedData = getPaginatedData(data.quantidade);
+    const totalPages = getTotalPages(data.quantidade);
     const maxValue = data.quantidade[0]?.count || 1;
 
     return (
-      <div className="origem-ranking-list">
-        {data.quantidade.map((item, index) => (
-          <div key={item.origem} className="origem-ranking-item">
-            <div className="origem-ranking-rank">#{index + 1}</div>
-            <div
-              className="origem-ranking-icon"
-              style={{ background: getOriginColor(item.origem) }}
-            >
-              {getOriginIcon(item.origem)}
-            </div>
-            <div className="origem-ranking-content">
-              <div className="origem-ranking-name">{item.origem}</div>
-              <div className="origem-ranking-stats">
-                <span className="origem-ranking-count">{item.count} criadas</span>
-                <span className="origem-ranking-percentage">
+      <div className="origem-ranking-container quantidade">
+        <div className="origem-ranking-list">
+          {paginatedData.map((item, index) => (
+          <div key={item.origem} className="loss-reason-item">
+            <div className="loss-reason-rank">#{currentPage * itemsPerPage + index + 1}</div>
+            <div className="loss-reason-content">
+              <div className="loss-reason-name">{item.origem}</div>
+              <div className="loss-reason-stats">
+                <span className="loss-reason-count">{item.count} criadas</span>
+                <span className="loss-reason-value">
                   {item.percentage ? `${item.percentage.toFixed(1)}%` : '0%'}
                 </span>
               </div>
-              <div className="origem-ranking-bar">
+              <div className="loss-reason-bar">
                 <div
-                  className="origem-ranking-fill quantidade"
+                  className="loss-reason-fill quantidade"
                   style={{
                     width: `${Math.min((item.count / maxValue) * 100, 100)}%`
                   }}
@@ -185,6 +230,29 @@ const OrigemRanking = ({
             </div>
           </div>
         ))}
+        </div>
+
+        {totalPages > 1 && (
+          <div className="origem-ranking-pagination">
+            <button
+              className="origem-pagination-btn"
+              onClick={handlePrevPage}
+              disabled={currentPage === 0}
+            >
+              ← Anterior
+            </button>
+            <span className="origem-pagination-info">
+              Página {currentPage + 1} de {totalPages}
+            </span>
+            <button
+              className="origem-pagination-btn"
+              onClick={() => handleNextPage(totalPages)}
+              disabled={currentPage === totalPages - 1}
+            >
+              Próxima →
+            </button>
+          </div>
+        )}
       </div>
     );
   };
@@ -194,30 +262,27 @@ const OrigemRanking = ({
     if (error) return <div className="origem-ranking-error">Erro: {error}</div>;
     if (!data.perdas || data.perdas.length === 0) return <div className="origem-ranking-empty">Nenhuma origem encontrada</div>;
 
+    const paginatedData = getPaginatedData(data.perdas);
+    const totalPages = getTotalPages(data.perdas);
     const maxValue = data.perdas[0]?.count || 1;
 
     return (
-      <div className="origem-ranking-list">
-        {data.perdas.map((item, index) => (
-          <div key={item.origem} className="origem-ranking-item">
-            <div className="origem-ranking-rank">#{index + 1}</div>
-            <div
-              className="origem-ranking-icon"
-              style={{ background: getOriginColor(item.origem) }}
-            >
-              {getOriginIcon(item.origem)}
-            </div>
-            <div className="origem-ranking-content">
-              <div className="origem-ranking-name">{item.origem}</div>
-              <div className="origem-ranking-stats">
-                <span className="origem-ranking-count">{item.count} perdidas</span>
-                <span className="origem-ranking-value">
+      <div className="origem-ranking-container perdas">
+        <div className="origem-ranking-list">
+          {paginatedData.map((item, index) => (
+          <div key={item.origem} className="loss-reason-item">
+            <div className="loss-reason-rank">#{currentPage * itemsPerPage + index + 1}</div>
+            <div className="loss-reason-content">
+              <div className="loss-reason-name">{item.origem}</div>
+              <div className="loss-reason-stats">
+                <span className="loss-reason-count">{item.count} perdidas</span>
+                <span className="loss-reason-value">
                   {formatCurrency ? formatCurrency(item.totalValue, 'BRL') : `R$ ${item.totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                 </span>
               </div>
-              <div className="origem-ranking-bar">
+              <div className="loss-reason-bar">
                 <div
-                  className="origem-ranking-fill perdas"
+                  className="loss-reason-fill perdas"
                   style={{
                     width: `${Math.min((item.count / maxValue) * 100, 100)}%`
                   }}
@@ -226,6 +291,29 @@ const OrigemRanking = ({
             </div>
           </div>
         ))}
+        </div>
+
+        {totalPages > 1 && (
+          <div className="origem-ranking-pagination">
+            <button
+              className="origem-pagination-btn"
+              onClick={handlePrevPage}
+              disabled={currentPage === 0}
+            >
+              ← Anterior
+            </button>
+            <span className="origem-pagination-info">
+              Página {currentPage + 1} de {totalPages}
+            </span>
+            <button
+              className="origem-pagination-btn"
+              onClick={() => handleNextPage(totalPages)}
+              disabled={currentPage === totalPages - 1}
+            >
+              Próxima →
+            </button>
+          </div>
+        )}
       </div>
     );
   };
@@ -235,7 +323,7 @@ const OrigemRanking = ({
       <div className="origem-ranking-header-content">
         <div className="origem-ranking-title">
           <h3>
-            <span className="origem-ranking-icon-main">📊</span>
+            <span className="origem-ranking-icon-main">O</span>
             Ranking de Origens
           </h3>
           <div className="origem-ranking-subtitle">
@@ -245,22 +333,22 @@ const OrigemRanking = ({
 
         <div className="origem-ranking-tabs">
           <button
-            className={`origem-ranking-tab ${activeTab === 'faturamento' ? 'active' : ''}`}
+            className={`origem-ranking-tab ${activeTab === 'faturamento' ? 'active faturamento' : ''}`}
             onClick={() => setActiveTab('faturamento')}
           >
-            💰 Faturamento
+            Faturamento
           </button>
           <button
-            className={`origem-ranking-tab ${activeTab === 'quantidade' ? 'active' : ''}`}
+            className={`origem-ranking-tab ${activeTab === 'quantidade' ? 'active quantidade' : ''}`}
             onClick={() => setActiveTab('quantidade')}
           >
-            📈 Quantidade
+            Quantidade
           </button>
           <button
-            className={`origem-ranking-tab ${activeTab === 'perdas' ? 'active' : ''}`}
+            className={`origem-ranking-tab ${activeTab === 'perdas' ? 'active perdas' : ''}`}
             onClick={() => setActiveTab('perdas')}
           >
-            📉 Perdas
+            Perdas
           </button>
         </div>
       </div>

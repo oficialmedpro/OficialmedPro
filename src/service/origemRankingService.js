@@ -60,7 +60,7 @@ const fetchAllRecords = async (url, headers) => {
 
       const contentRange = response.headers.get('Content-Range');
       if (contentRange) {
-        const match = contentRange.match(/(\\d+)-(\\d+)\\/(\\d+|\\*)/);
+        const match = contentRange.match(/(\d+)-(\d+)\/(\d+|\*)/);
         if (match) {
           const [, , end, total] = match;
           if (total !== '*' && parseInt(end) >= parseInt(total) - 1) {
