@@ -619,10 +619,14 @@ const fetchTaxaConversaoMeta = async (selectedUnit, selectedFunnel, selectedSell
     if (response.ok) {
       const metaData = await response.json();
       if (metaData && metaData.length > 0) {
-        // Como a dashboard é de metas diárias, somamos os registros (se houver múltiplos vendedores)
-        const totalMeta = metaData.reduce((total, meta) => total + (parseFloat(meta.valor_da_meta) || 0), 0);
-        console.log(`✅ DailyPerformanceService: Meta diária de taxa de conversão encontrada: ${totalMeta}%`);
-        return totalMeta;
+        // Para taxa de conversão, calculamos a MÉDIA ao invés de somar (faz mais sentido estatisticamente)
+        const validMetas = metaData.filter(meta => parseFloat(meta.valor_da_meta) > 0);
+        if (validMetas.length > 0) {
+          const totalMeta = validMetas.reduce((total, meta) => total + (parseFloat(meta.valor_da_meta) || 0), 0);
+          const mediaMeta = totalMeta / validMetas.length;
+          console.log(`✅ DailyPerformanceService: Meta média de taxa de conversão encontrada: ${mediaMeta}% (${validMetas.length} vendedor(es))`);
+          return Math.round(mediaMeta * 100) / 100; // Arredondar para 2 casas decimais
+        }
       }
     }
 
@@ -706,10 +710,14 @@ const fetchTicketMedioMeta = async (selectedUnit, selectedFunnel, selectedSeller
     if (response.ok) {
       const metaData = await response.json();
       if (metaData && metaData.length > 0) {
-        // Como a dashboard é de metas diárias, somamos os registros (se houver múltiplos vendedores)
-        const totalMeta = metaData.reduce((total, meta) => total + (parseFloat(meta.valor_da_meta) || 0), 0);
-        console.log(`✅ DailyPerformanceService: Meta de ticket médio encontrada: R$ ${totalMeta}`);
-        return totalMeta;
+        // Para ticket médio, calculamos a MÉDIA ao invés de somar (faz mais sentido estatisticamente)
+        const validMetas = metaData.filter(meta => parseFloat(meta.valor_da_meta) > 0);
+        if (validMetas.length > 0) {
+          const totalMeta = validMetas.reduce((total, meta) => total + (parseFloat(meta.valor_da_meta) || 0), 0);
+          const mediaMeta = totalMeta / validMetas.length;
+          console.log(`✅ DailyPerformanceService: Meta média de ticket médio encontrada: R$ ${mediaMeta} (${validMetas.length} vendedor(es))`);
+          return Math.round(mediaMeta * 100) / 100; // Arredondar para 2 casas decimais
+        }
       }
     }
 

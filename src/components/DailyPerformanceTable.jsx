@@ -317,7 +317,193 @@ const DailyPerformanceTable = ({
     return 0;
   };
 
-  // Componente para barra vertical de métrica
+  // Função para obter cor baseada na porcentagem
+  const getProgressColor = (percentage) => {
+    if (percentage >= 100) {
+      return '#10b981'; // Verde total para 100%+
+    } else if (percentage >= 76) {
+      // Gradiente amarelo para verde (76-99%)
+      const intensity = (percentage - 76) / 23; // 0 a 1
+      return `url(#gradient-yellow-green-${Math.floor(intensity * 10)})`;
+    } else if (percentage >= 51) {
+      // Gradiente laranja para amarelo (51-75%)
+      const intensity = (percentage - 51) / 24; // 0 a 1
+      return `url(#gradient-orange-yellow-${Math.floor(intensity * 10)})`;
+    } else if (percentage > 0) {
+      // Gradiente vermelho para laranja (1-50%)
+      const intensity = percentage / 50; // 0 a 1
+      return `url(#gradient-red-orange-${Math.floor(intensity * 10)})`;
+    } else {
+      return '#6b7280'; // Cinza para 0%
+    }
+  };
+
+  // Função para gerar gradientes SVG
+  const generateGradients = () => {
+    const gradients = [];
+    
+    // Gradientes vermelho para laranja (0-50%)
+    for (let i = 0; i <= 10; i++) {
+      const intensity = i / 10;
+      const red = Math.round(239 + (255 - 239) * intensity); // 239 (vermelho) para 255 (laranja)
+      const green = Math.round(68 + (165 - 68) * intensity); // 68 para 165
+      const blue = Math.round(68 + (0 - 68) * intensity); // 68 para 0
+      gradients.push(
+        <linearGradient key={`gradient-red-orange-${i}`} id={`gradient-red-orange-${i}`} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#ef4444" />
+          <stop offset="100%" stopColor={`rgb(${red}, ${green}, ${blue})`} />
+        </linearGradient>
+      );
+    }
+
+    // Gradientes laranja para amarelo (51-75%)
+    for (let i = 0; i <= 10; i++) {
+      const intensity = i / 10;
+      const red = Math.round(255 + (255 - 255) * intensity); // 255 (laranja) para 255 (amarelo)
+      const green = Math.round(165 + (234 - 165) * intensity); // 165 para 234
+      const blue = Math.round(0 + (179 - 0) * intensity); // 0 para 179
+      gradients.push(
+        <linearGradient key={`gradient-orange-yellow-${i}`} id={`gradient-orange-yellow-${i}`} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#ffa500" />
+          <stop offset="100%" stopColor={`rgb(${red}, ${green}, ${blue})`} />
+        </linearGradient>
+      );
+    }
+
+    // Gradientes amarelo para verde (76-99%)
+    for (let i = 0; i <= 10; i++) {
+      const intensity = i / 10;
+      const red = Math.round(255 + (16 - 255) * intensity); // 255 (amarelo) para 16 (verde)
+      const green = Math.round(234 + (185 - 234) * intensity); // 234 para 185
+      const blue = Math.round(179 + (129 - 179) * intensity); // 179 para 129
+      gradients.push(
+        <linearGradient key={`gradient-yellow-green-${i}`} id={`gradient-yellow-green-${i}`} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#eab308" />
+          <stop offset="100%" stopColor={`rgb(${red}, ${green}, ${blue})`} />
+        </linearGradient>
+      );
+    }
+
+    return gradients;
+  };
+
+  // Componente Progress Ring para Leads
+  const ProgressRing = ({ type, realizado, meta, gap }) => {
+    let percentage = 0;
+    let strokeColor = '#3b82f6';
+
+    if (type === 'meta') {
+      percentage = 100;
+      strokeColor = '#6b7280'; // cinza para meta
+    } else if (type === 'realizado') {
+      percentage = calculatePercentage(realizado, meta);
+      strokeColor = getProgressColor(percentage);
+    } else if (type === 'gap') {
+      const gapValue = extractGapValue(gap);
+      percentage = Math.min(calculateGapPercentage(gapValue, meta), 100);
+      strokeColor = gapValue > 0 ? '#10b981' : '#ef4444';
+    }
+
+    const radius = 14;
+    const strokeWidth = 3;
+    const normalizedRadius = radius - strokeWidth * 0.5;
+    const circumference = normalizedRadius * 2 * Math.PI;
+    const strokeDasharray = `${circumference} ${circumference}`;
+    const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+    return (
+      <div className="progress-ring-container">
+        <svg width="32" height="32" className="progress-ring">
+          <defs>
+            {generateGradients()}
+          </defs>
+          {/* Círculo de fundo */}
+          <circle
+            stroke="rgba(255,255,255,0.1)"
+            fill="transparent"
+            strokeWidth={strokeWidth}
+            r={normalizedRadius}
+            cx="16"
+            cy="16"
+          />
+          {/* Círculo de progresso */}
+          <circle
+            stroke={strokeColor}
+            fill="transparent"
+            strokeWidth={strokeWidth}
+            strokeDasharray={strokeDasharray}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+            r={normalizedRadius}
+            cx="16"
+            cy="16"
+            style={{
+              transition: 'stroke-dashoffset 0.5s ease-in-out'
+            }}
+          />
+        </svg>
+      </div>
+    );
+  };
+
+  // Componente Gauge/Velocímetro para Vendas
+  const GaugeChart = ({ type, realizado, meta, gap }) => {
+    let percentage = 0;
+    let needleColor = '#3b82f6';
+
+    if (type === 'meta') {
+      percentage = 100;
+      needleColor = '#6b7280';
+    } else if (type === 'realizado') {
+      percentage = Math.min(calculatePercentage(realizado, meta), 150); // Máximo 150%
+      needleColor = percentage >= 100 ? '#10b981' : percentage >= 75 ? '#f59e0b' : '#3b82f6';
+    } else if (type === 'gap') {
+      const gapValue = extractGapValue(gap);
+      percentage = Math.min(calculateGapPercentage(gapValue, meta), 150);
+      needleColor = gapValue > 0 ? '#10b981' : '#ef4444';
+    }
+
+    // Cálculo do ângulo do ponteiro (semicírculo de 180 graus)
+    const angle = (percentage / 100) * 180 - 90; // -90 para começar na esquerda
+
+    return (
+      <div className="gauge-container">
+        <svg width="32" height="20" className="gauge-chart">
+          {/* Arco de fundo */}
+          <path
+            d="M 4 16 A 12 12 0 0 1 28 16"
+            stroke="rgba(255,255,255,0.1)"
+            strokeWidth="3"
+            fill="none"
+          />
+          {/* Arco colorido baseado na performance */}
+          <path
+            d="M 4 16 A 12 12 0 0 1 28 16"
+            stroke={percentage >= 100 ? '#10b981' : percentage >= 75 ? '#f59e0b' : '#ef4444'}
+            strokeWidth="3"
+            fill="none"
+            strokeDasharray={`${(percentage / 100) * 37.7} 37.7`}
+            style={{ transition: 'stroke-dasharray 0.5s ease-in-out' }}
+          />
+          {/* Ponteiro */}
+          <line
+            x1="16"
+            y1="16"
+            x2={16 + Math.cos((angle * Math.PI) / 180) * 10}
+            y2={16 + Math.sin((angle * Math.PI) / 180) * 10}
+            stroke={needleColor}
+            strokeWidth="2"
+            strokeLinecap="round"
+            style={{ transition: 'all 0.5s ease-in-out' }}
+          />
+          {/* Centro do ponteiro */}
+          <circle cx="16" cy="16" r="1.5" fill={needleColor} />
+        </svg>
+      </div>
+    );
+  };
+
+  // Componente para barra vertical de métrica (mantido para outras colunas)
   const VerticalBar = ({ type, realizado, meta, gap }) => {
     let percentage = 0;
     let barColor = '#3b82f6'; // azul padrão
@@ -577,93 +763,63 @@ const DailyPerformanceTable = ({
                 </td>
                 <td className="metric-cell">
                   <div className="metric-cell-content">
-                    <VerticalBar type="realizado" realizado={summaryData.leads.realizado} meta={summaryData.leads.meta} />
+                    <ProgressRing type="realizado" realizado={summaryData.leads.realizado} meta={summaryData.leads.meta} />
                     {summaryData.leads.realizado}
                   </div>
                 </td>
                 <td className="metric-cell">
-                  <div className="metric-cell-content">
-                    <VerticalBar type="meta" realizado={summaryData.leads.realizado} meta={summaryData.leads.meta} />
-                    {summaryData.leads.meta}
-                  </div>
+                  {summaryData.leads.meta}
                 </td>
                 <td className={`metric-cell gap-cell ${getGapClass(summaryData.leads.gap)}`}>
-                  <div className="metric-cell-content">
-                    <VerticalBar type="gap" realizado={summaryData.leads.realizado} meta={summaryData.leads.meta} gap={summaryData.leads.gap} />
-                    {summaryData.leads.gap}
-                  </div>
+                  {summaryData.leads.gap}
                 </td>
                 <td className="metric-cell">
                   <div className="metric-cell-content">
-                    <VerticalBar type="realizado" realizado={summaryData.vendas.realizado} meta={summaryData.vendas.meta} />
+                    <ProgressRing type="realizado" realizado={summaryData.vendas.realizado} meta={summaryData.vendas.meta} />
                     {summaryData.vendas.realizado}
                   </div>
                 </td>
                 <td className="metric-cell">
-                  <div className="metric-cell-content">
-                    <VerticalBar type="meta" realizado={summaryData.vendas.realizado} meta={summaryData.vendas.meta} />
-                    {summaryData.vendas.meta}
-                  </div>
+                  {summaryData.vendas.meta}
                 </td>
                 <td className={`metric-cell gap-cell ${getGapClass(summaryData.vendas.gap)}`}>
-                  <div className="metric-cell-content">
-                    <VerticalBar type="gap" realizado={summaryData.vendas.realizado} meta={summaryData.vendas.meta} gap={summaryData.vendas.gap} />
-                    {summaryData.vendas.gap}
-                  </div>
+                  {summaryData.vendas.gap}
                 </td>
                 <td className="metric-cell">
                   <div className="metric-cell-content">
-                    <VerticalBar type="realizado" realizado={summaryData.faturamento.realizado} meta={summaryData.faturamento.meta} />
+                    <ProgressRing type="realizado" realizado={summaryData.faturamento.realizado} meta={summaryData.faturamento.meta} />
                     {formatCurrency(summaryData.faturamento.realizado)}
                   </div>
                 </td>
                 <td className="metric-cell">
-                  <div className="metric-cell-content">
-                    <VerticalBar type="meta" realizado={summaryData.faturamento.realizado} meta={summaryData.faturamento.meta} />
-                    {formatCurrency(summaryData.faturamento.meta)}
-                  </div>
+                  {formatCurrency(summaryData.faturamento.meta)}
                 </td>
                 <td className={`metric-cell gap-cell ${getGapClass(summaryData.faturamento.gap)}`}>
-                  <div className="metric-cell-content">
-                    <VerticalBar type="gap" realizado={summaryData.faturamento.realizado} meta={summaryData.faturamento.meta} gap={summaryData.faturamento.gap} />
-                    {summaryData.faturamento.gap}
-                  </div>
+                  {summaryData.faturamento.gap}
                 </td>
                 <td className="metric-cell">
                   <div className="metric-cell-content">
-                    <VerticalBar type="realizado" realizado={summaryData.conversao.realizado} meta={summaryData.conversao.meta} />
+                    <ProgressRing type="realizado" realizado={summaryData.conversao.realizado} meta={summaryData.conversao.meta} />
                     {formatPercentage(summaryData.conversao.realizado)}
                   </div>
                 </td>
                 <td className="metric-cell">
-                  <div className="metric-cell-content">
-                    <VerticalBar type="meta" realizado={summaryData.conversao.realizado} meta={summaryData.conversao.meta} />
-                    {formatPercentage(summaryData.conversao.meta)}
-                  </div>
+                  {formatPercentage(summaryData.conversao.meta)}
                 </td>
                 <td className={`metric-cell gap-cell ${getGapClass(summaryData.conversao.gap)}`}>
-                  <div className="metric-cell-content">
-                    <VerticalBar type="gap" realizado={summaryData.conversao.realizado} meta={summaryData.conversao.meta} gap={summaryData.conversao.gap} />
-                    {summaryData.conversao.gap > 0 ? '+' : ''}{formatPercentage(summaryData.conversao.gap)}
-                  </div>
+                  {summaryData.conversao.gap > 0 ? '+' : ''}{formatPercentage(summaryData.conversao.gap)}
                 </td>
                 <td className="metric-cell">
                   <div className="metric-cell-content">
-                    <VerticalBar type="realizado" realizado={summaryData.ticketMedio.realizado} meta={summaryData.ticketMedio.meta} />
+                    <ProgressRing type="realizado" realizado={summaryData.ticketMedio.realizado} meta={summaryData.ticketMedio.meta} />
                     {formatCurrency(summaryData.ticketMedio.realizado)}
                   </div>
                 </td>
                 <td className="metric-cell">
-                  <div className="metric-cell-content">
-                    <VerticalBar type="meta" realizado={summaryData.ticketMedio.realizado} meta={summaryData.ticketMedio.meta} />
-                    {formatCurrency(summaryData.ticketMedio.meta)}
-                  </div>
+                  {formatCurrency(summaryData.ticketMedio.meta)}
                 </td>
                 <td className={`metric-cell gap-cell ${getGapClass(summaryData.ticketMedio.gap)}`}>
-                  <div className="metric-cell-content">
-                    <VerticalBar type="gap" realizado={summaryData.ticketMedio.realizado} meta={summaryData.ticketMedio.meta} gap={summaryData.ticketMedio.gap} />
-                    {summaryData.ticketMedio.gap}
-                  </div>
+                  {summaryData.ticketMedio.gap}
                 </td>
               </tr>
             )}
@@ -702,35 +858,60 @@ const DailyPerformanceTable = ({
                   </td>
                   
                   {/* Leads */}
-                  <td className="metric-cell">{dayData.leads.realizado}</td>
+                  <td className="metric-cell">
+                    <div className="metric-cell-content">
+                      <ProgressRing type="realizado" realizado={dayData.leads.realizado} meta={dayData.leads.meta} />
+                      {dayData.leads.realizado}
+                    </div>
+                  </td>
                   <td className="metric-cell">{dayData.leads.meta}</td>
                   <td className={`metric-cell gap-cell ${getGapClass(dayData.leads.gap)}`}>
                     {dayData.leads.gap}
                   </td>
-                  
+
                   {/* Vendas */}
-                  <td className="metric-cell">{dayData.vendas.realizado}</td>
+                  <td className="metric-cell">
+                    <div className="metric-cell-content">
+                      <ProgressRing type="realizado" realizado={dayData.vendas.realizado} meta={dayData.vendas.meta} />
+                      {dayData.vendas.realizado}
+                    </div>
+                  </td>
                   <td className="metric-cell">{dayData.vendas.meta}</td>
                   <td className={`metric-cell gap-cell ${getGapClass(dayData.vendas.gap)}`}>
                     {dayData.vendas.gap}
                   </td>
                   
                   {/* Faturamento */}
-                  <td className="metric-cell">{formatCurrency(dayData.faturamento.realizado)}</td>
+                  <td className="metric-cell">
+                    <div className="metric-cell-content">
+                      <ProgressRing type="realizado" realizado={dayData.faturamento.realizado} meta={dayData.faturamento.meta} />
+                      {formatCurrency(dayData.faturamento.realizado)}
+                    </div>
+                  </td>
                   <td className="metric-cell">{formatCurrency(dayData.faturamento.meta)}</td>
                   <td className={`metric-cell gap-cell ${getGapClass(dayData.faturamento.gap)}`}>
                     {dayData.faturamento.gap}
                   </td>
-                  
+
                   {/* Taxa Conversão */}
-                  <td className="metric-cell">{formatPercentage(dayData.conversao.realizado)}</td>
+                  <td className="metric-cell">
+                    <div className="metric-cell-content">
+                      <ProgressRing type="realizado" realizado={dayData.conversao.realizado} meta={dayData.conversao.meta} />
+                      {formatPercentage(dayData.conversao.realizado)}
+                    </div>
+                  </td>
                   <td className="metric-cell">{formatPercentage(dayData.conversao.meta)}</td>
                   <td className={`metric-cell gap-cell ${getGapClass(dayData.conversao.gap)}`}>
                     {dayData.conversao.gap > 0 ? '+' : ''}{formatPercentage(dayData.conversao.gap)}
                   </td>
-                  
+
                   {/* Ticket Médio */}
-                  <td className="metric-cell">{formatCurrency(dayData.ticketMedio.realizado)}</td>
+                  <td className="metric-cell">
+                    <div className="metric-cell-content">
+                      <ProgressRing type="realizado" realizado={dayData.ticketMedio.realizado} meta={dayData.ticketMedio.meta} />
+                      {formatCurrency(dayData.ticketMedio.realizado)}
+                    </div>
+                  </td>
                   <td className="metric-cell">{formatCurrency(dayData.ticketMedio.meta)}</td>
                   <td className={`metric-cell gap-cell ${getGapClass(dayData.ticketMedio.gap)}`}>
                     {dayData.ticketMedio.gap}

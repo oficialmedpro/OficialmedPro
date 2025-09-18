@@ -226,7 +226,7 @@ export const getTicketRankingData = async (
     console.log('  - filtrosCombinados:', filtrosCombinados);
 
     // 🎯 URL para buscar oportunidades ganhas - incluindo campos do lead, funil_id e lead_id para os links
-    const ticketRankingUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,gain_date,lead_firstname,lead_city,funil_id,lead_id&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicio}&gain_date=lte.${dataFim}${filtrosCombinados}&order=value.desc`;
+    const ticketRankingUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,gain_date,lead_firstname,lead_city,lead_whatsapp,funil_id,lead_id&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicio}&gain_date=lte.${dataFim}${filtrosCombinados}&order=value.desc`;
 
     // URL simplificada para debug - incluindo campos do lead
     const debugUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,gain_date,status,lead_firstname,lead_city&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicio}&gain_date=lte.${dataFim}&order=value.desc&limit=10`;
@@ -322,7 +322,8 @@ export const getTicketRankingData = async (
         progress: index === 0 ? 100 : Math.max(1, Math.round((valor / allOpportunities[0].value) * 100)), // Progresso relativo ao maior valor
         gainDate: opp.gain_date,
         funnelId: opp.funil_id, // Para construir o link do CRM
-        leadId: opp.lead_id // Para construir o link do perfil do lead
+        leadId: opp.lead_id, // Para construir o link do perfil do lead
+        leadWhatsapp: opp.lead_whatsapp // WhatsApp do lead
       };
     });
 

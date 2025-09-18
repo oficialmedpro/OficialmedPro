@@ -1,4 +1,7 @@
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from './supabaseConfig';
+// Configurações do Supabase
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api'
 
 /**
  * 🎯 DDD RANKING SERVICE
@@ -130,12 +133,12 @@ export async function getDDDRankingData(startDate, endDate, selectedFunnel, sele
     
     // Filtro de funil
     if (selectedFunnel && selectedFunnel !== 'all') {
-      filters.push(`funnel_id.eq.${selectedFunnel}`);
+      filters.push(`funil_id.eq.${selectedFunnel}`);
     }
     
     // Filtro de unidade
     if (selectedUnit && selectedUnit !== 'all') {
-      filters.push(`unit_id.eq.${selectedUnit}`);
+      filters.push(`unidade_id.eq.${selectedUnit}`);
     }
     
     // Filtro de vendedor
@@ -145,18 +148,18 @@ export async function getDDDRankingData(startDate, endDate, selectedFunnel, sele
     
     // Filtro de origem
     if (selectedOrigin && selectedOrigin !== 'all') {
-      filters.push(`origem.eq.${selectedOrigin}`);
+      filters.push(`origem_oportunidade.eq.${selectedOrigin}`);
     }
     
     // Filtro de status (apenas ganhas)
     filters.push(`status.eq.gain`);
     
     // Filtro de WhatsApp não nulo
-    filters.push(`whatsapp.not.is.null`);
+    filters.push(`lead_whatsapp.not.is.null`);
 
     // Construir URL
     const baseUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint`;
-    const selectFields = 'id,whatsapp,value,lead_name,lead_city,lead_state,funnel_id,unit_id,user_id,origem,gain_date';
+    const selectFields = 'id,lead_whatsapp,value,lead_firstname,lead_city,funil_id,unidade_id,user_id,origem_oportunidade,gain_date';
     const filterString = filters.join('&');
     const orderBy = 'gain_date.desc';
     const limit = 1000; // Buscar muitos dados para agrupar
@@ -171,6 +174,8 @@ export async function getDDDRankingData(startDate, endDate, selectedFunnel, sele
         'apikey': supabaseServiceKey,
         'Authorization': `Bearer ${supabaseServiceKey}`,
         'Content-Type': 'application/json',
+        'Accept-Profile': supabaseSchema,
+        'Content-Profile': supabaseSchema,
         'Prefer': 'return=minimal'
       }
     });
@@ -188,7 +193,7 @@ export async function getDDDRankingData(startDate, endDate, selectedFunnel, sele
     const dddGroups = {};
     
     data.forEach(opportunity => {
-      const ddd = extractDDD(opportunity.whatsapp);
+      const ddd = extractDDD(opportunity.lead_whatsapp);
       if (!ddd) return;
       
       if (!dddGroups[ddd]) {
@@ -269,38 +274,44 @@ export async function getDDDRankingFilterNames(selectedFunnel, selectedUnit, sel
     
     // Buscar nome do funil
     if (selectedFunnel && selectedFunnel !== 'all') {
-      const funnelResponse = await fetch(`${supabaseUrl}/rest/v1/api.funis?select=nome&id.eq.${selectedFunnel}`, {
+      const funnelResponse = await fetch(`${supabaseUrl}/rest/v1/funis?select=nome_funil&id_funil_sprint.eq.${selectedFunnel}`, {
         headers: {
           'apikey': supabaseServiceKey,
-          'Authorization': `Bearer ${supabaseServiceKey}`
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Accept-Profile': supabaseSchema,
+          'Content-Profile': supabaseSchema
         }
       });
       if (funnelResponse.ok) {
         const funnelData = await funnelResponse.json();
-        names.funnelName = funnelData[0]?.nome || '';
+        names.funnelName = funnelData[0]?.nome_funil || '';
       }
     }
     
     // Buscar nome da unidade
     if (selectedUnit && selectedUnit !== 'all') {
-      const unitResponse = await fetch(`${supabaseUrl}/rest/v1/api.unidades?select=nome&id.eq.${selectedUnit}`, {
+      const unitResponse = await fetch(`${supabaseUrl}/rest/v1/unidades?select=unidade&codigo_sprint.eq.${selectedUnit}`, {
         headers: {
           'apikey': supabaseServiceKey,
-          'Authorization': `Bearer ${supabaseServiceKey}`
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Accept-Profile': supabaseSchema,
+          'Content-Profile': supabaseSchema
         }
       });
       if (unitResponse.ok) {
         const unitData = await unitResponse.json();
-        names.unitName = unitData[0]?.nome || '';
+        names.unitName = unitData[0]?.unidade || '';
       }
     }
     
     // Buscar nome do vendedor
     if (selectedSeller && selectedSeller !== 'all') {
-      const sellerResponse = await fetch(`${supabaseUrl}/rest/v1/api.vendedores?select=nome&id_sprint.eq.${selectedSeller}`, {
+      const sellerResponse = await fetch(`${supabaseUrl}/rest/v1/vendedores?select=nome&id_sprint.eq.${selectedSeller}`, {
         headers: {
           'apikey': supabaseServiceKey,
-          'Authorization': `Bearer ${supabaseServiceKey}`
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Accept-Profile': supabaseSchema,
+          'Content-Profile': supabaseSchema
         }
       });
       if (sellerResponse.ok) {

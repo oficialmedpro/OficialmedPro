@@ -325,6 +325,31 @@
   height: 100%;
 }
 
+/* Progress Ring - para Leads */
+.progress-ring-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.progress-ring {
+  transform: rotate(-90deg); /* Começa do topo */
+}
+
+/* Gauge Chart - para Vendas */
+.gauge-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.gauge-chart {
+  overflow: visible;
+}
+
+/* Vertical Bar - mantido para outras colunas */
 .vertical-bar-container {
   display: flex;
   align-items: flex-end;

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './TicketRankingCard.css';
 import { getTicketRankingData, getTicketRankingFilterNames } from '../service/ticketRankingService';
+import { getDDDRankingData, getDDDRankingFilterNames } from '../service/dddRankingService';
 
 /**
  * 🎯 TICKET RANKING CARD
@@ -22,6 +23,7 @@ const TicketRankingCard = ({
   const [activeTab, setActiveTab] = useState('ticket-maior');
   const [ticketData, setTicketData] = useState([]);
   const [purchaseCountData, setPurchaseCountData] = useState([]);
+  const [dddData, setDddData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -42,7 +44,47 @@ const TicketRankingCard = ({
     originName: ''
   });
 
-  const clientsPerPage = 20;
+  const clientsPerPage = 10;
+
+  // Função para buscar dados agrupados por DDD
+  const fetchDDDRanking = async (page = 1) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('🎯 TicketRankingCard: Buscando dados de DDD...', {
+        startDate,
+        endDate,
+        selectedFunnel,
+        selectedUnit,
+        selectedSeller,
+        selectedOrigin,
+        page
+      });
+
+      const result = await getDDDRankingData(
+        startDate,
+        endDate,
+        selectedFunnel,
+        selectedUnit,
+        selectedSeller,
+        selectedOrigin,
+        page,
+        clientsPerPage
+      );
+
+      setDddData(result.data);
+      setPagination(result.pagination);
+      console.log('✅ TicketRankingCard: Dados de DDD carregados:', result);
+
+    } catch (error) {
+      console.error('❌ TicketRankingCard: Erro ao carregar dados de DDD:', error);
+      setError(error.message);
+      setDddData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Função para buscar dados agrupados por lead_id (número de compras)
   const fetchPurchaseCountRanking = async (page = 1) => {
@@ -106,6 +148,7 @@ const TicketRankingCard = ({
               leadId: opportunity.leadId,
               leadName: opportunity.name.split(' | ')[1] || 'Lead sem nome',
               leadCity: opportunity.name.split(' | ')[2] || '',
+              leadWhatsapp: opportunity.leadWhatsapp || '',
               totalValue: 0,
               opportunityCount: 0,
               opportunities: []
@@ -254,8 +297,10 @@ const TicketRankingCard = ({
     setCurrentPage(1); // Reset para primeira página
     if (activeTab === 'ticket-maior') {
       fetchTicketRanking(1);
-    } else {
+    } else if (activeTab === 'numero-compras') {
       fetchPurchaseCountRanking(1);
+    } else if (activeTab === 'por-ddd') {
+      fetchDDDRanking(1);
     }
     fetchFilterNames();
   }, [startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin, activeTab]);
@@ -265,8 +310,10 @@ const TicketRankingCard = ({
     console.log('🔄 TicketRankingCard: Página alterada para', currentPage);
     if (activeTab === 'ticket-maior') {
       fetchTicketRanking(currentPage);
-    } else {
+    } else if (activeTab === 'numero-compras') {
       fetchPurchaseCountRanking(currentPage);
+    } else if (activeTab === 'por-ddd') {
+      fetchDDDRanking(currentPage);
     }
   }, [currentPage, activeTab]);
 
@@ -320,36 +367,43 @@ const TicketRankingCard = ({
     const leadProfileLink = client.leadId ? generateLeadProfileLink(client.leadId) : null;
 
     return (
-      <span className="ticket-name">
-        <a
-          href={crmLink}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="opportunity-link"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {opportunityId}
-        </a>
-        {leadName && (
-          <>
-            {' | '}
-            {leadProfileLink ? (
-              <a
-                href={leadProfileLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="lead-link"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {leadName}
-              </a>
-            ) : (
-              leadName
-            )}
-          </>
+      <div className="ticket-name-container">
+        <span className="ticket-name">
+          <a
+            href={crmLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="opportunity-link"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {opportunityId}
+          </a>
+          {leadName && (
+            <>
+              {' | '}
+              {leadProfileLink ? (
+                <a
+                  href={leadProfileLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="lead-link"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {leadName}
+                </a>
+              ) : (
+                leadName
+              )}
+            </>
+          )}
+          {leadCity && ` | ${leadCity}`}
+        </span>
+        {client.leadWhatsapp && (
+          <span className="ticket-whatsapp">
+            📱 {client.leadWhatsapp}
+          </span>
         )}
-        {leadCity && ` | ${leadCity}`}
-      </span>
+      </div>
     );
   };
 
@@ -358,21 +412,39 @@ const TicketRankingCard = ({
     const leadProfileLink = lead.leadId ? generateLeadProfileLink(lead.leadId) : null;
 
     return (
-      <span className="ticket-name">
-        {leadProfileLink ? (
-          <a
-            href={leadProfileLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="lead-link"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {lead.leadName}
-          </a>
-        ) : (
-          lead.leadName
+      <div className="ticket-name-container">
+        <span className="ticket-name">
+          {leadProfileLink ? (
+            <a
+              href={leadProfileLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="lead-link"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {lead.leadName}
+            </a>
+          ) : (
+            lead.leadName
+          )}
+          {lead.leadCity && ` | ${lead.leadCity}`}
+        </span>
+        {lead.leadWhatsapp && (
+          <span className="ticket-whatsapp">
+            📱 {lead.leadWhatsapp}
+          </span>
         )}
-        {lead.leadCity && ` | ${lead.leadCity}`}
+      </div>
+    );
+  };
+
+  // Função para renderizar o nome da região DDD
+  const renderDDDName = (ddd) => {
+    return (
+      <span className="ticket-name">
+        <span className="ddd-code">DDD {ddd.ddd}</span>
+        <span className="ddd-location"> | {ddd.cidade} - {ddd.estado}</span>
+        <span className="ddd-region"> | {ddd.regiao}</span>
       </span>
     );
   };
@@ -455,6 +527,12 @@ const TicketRankingCard = ({
         >
           Número de Compras
         </button>
+        <button 
+          className={`ticket-tab ${activeTab === 'por-ddd' ? 'active' : ''}`}
+          onClick={() => setActiveTab('por-ddd')}
+        >
+          Por DDD
+        </button>
       </div>
 
       <div className="ticket-list">
@@ -479,7 +557,7 @@ const TicketRankingCard = ({
               </div>
             ))
           )
-        ) : (
+        ) : activeTab === 'numero-compras' ? (
           purchaseCountData.length === 0 ? (
             <div className="ticket-empty">
               <p>Nenhum lead encontrado para os filtros selecionados.</p>
@@ -499,6 +577,31 @@ const TicketRankingCard = ({
                   </div>
                 </div>
                 <div className="ticket-color-bar" style={{background: '#10b981', width: `${lead.progress}%`}}></div>
+              </div>
+            ))
+          )
+        ) : (
+          dddData.length === 0 ? (
+            <div className="ticket-empty">
+              <p>Nenhuma região encontrada para os filtros selecionados.</p>
+            </div>
+          ) : (
+            dddData.map((ddd) => (
+              <div key={ddd.ddd} className="ticket-line">
+                <div className="ticket-content">
+                  <div className="ticket-info">
+                    {renderDDDName(ddd)}
+                    <div className="ticket-metrics">
+                      <span className="ticket-value">{formatCurrency(ddd.totalValue)}</span>
+                      <span className="ticket-count">{ddd.opportunityCount} oportunidades</span>
+                      <span className="ticket-ticket">Ticket médio: {formatCurrency(ddd.ticketMedio)}</span>
+                    </div>
+                  </div>
+                  <div className="ticket-rank">
+                    <span className="ticket-percent">{ddd.rank}º</span>
+                  </div>
+                </div>
+                <div className="ticket-color-bar" style={{background: '#10b981', width: `${ddd.progress}%`}}></div>
               </div>
             ))
           )
