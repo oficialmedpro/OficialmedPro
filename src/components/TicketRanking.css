@@ -94,6 +94,11 @@
   font-weight: 600;
 }
 
+/* Modo light para ticket-name */
+.dashboard-container.light-theme .ticket-name {
+  color: #1e293b;
+}
+
 .ticket-value {
   color: var(--text-primary);
   font-weight: 700;

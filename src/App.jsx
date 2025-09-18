@@ -6,6 +6,7 @@ import DashboardGoogleAds from './pages/DashboardGoogleAds'
 import DailyPerformanceDebugPage from './pages/DailyPerformanceDebugPage'
 import LossReasonsDebugPage from './pages/LossReasonsDebugPage'
 import DebugRankingPage from './pages/DebugRankingPage'
+import DebugSellerRankingPage from './pages/DebugSellerRankingPage'
 import Login from './components/Login'
 import autoSyncService from './service/autoSyncService'
 
@@ -93,11 +94,13 @@ function App() {
       <Routes>
         <Route path="/" element={<DashboardPage onLogout={handleLogout} />} />
         <Route path="/dashboard" element={<DashboardPage onLogout={handleLogout} />} />
+        <Route path="/analise-funil" element={<DashboardPage onLogout={handleLogout} />} />
         <Route path="/meta-ads" element={<DashboardMetaAds onLogout={handleLogout} />} />
         <Route path="/google-ads" element={<DashboardGoogleAds onLogout={handleLogout} />} />
         <Route path="/debug-daily-performance" element={<DailyPerformanceDebugPage onLogout={handleLogout} />} />
         <Route path="/debug-loss-reasons" element={<LossReasonsDebugPage onLogout={handleLogout} />} />
         <Route path="/debug-ranking" element={<DebugRankingPage onLogout={handleLogout} />} />
+        <Route path="/debug-seller-ranking" element={<DebugSellerRankingPage onLogout={handleLogout} />} />
       </Routes>
     </Router>
   )

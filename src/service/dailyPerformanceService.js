@@ -226,20 +226,36 @@ const fetchLeadsDataByDay = async (startDate, endDate, filters) => {
 
 /**
  * 🎯 BUSCAR META DE LEADS POR DIA
- * 
+ *
  * @param {string} selectedUnit - ID da unidade selecionada
  * @param {string} selectedFunnel - ID do funil selecionado
  * @param {number} totalDays - Total de dias no período
+ * @param {Date} currentDate - Data atual para verificar dia da semana
  * @returns {number} Meta diária de leads
  */
-const fetchLeadsMeta = async (selectedUnit, selectedFunnel, selectedSeller, totalDays) => {
+const fetchLeadsMeta = async (selectedUnit, selectedFunnel, selectedSeller, totalDays, currentDate = null) => {
   try {
     console.log('📊 DailyPerformanceService: Buscando meta de leads...');
     
     const unidadeParaMeta = selectedUnit && selectedUnit !== 'all' ? selectedUnit : null;
     
+    // Verificar dia da semana para aplicar regras específicas
+    const dayOfWeek = currentDate ? currentDate.getDay() : null;
+
+    // Se for domingo (0), meta = 0
+    if (dayOfWeek === 0) {
+      console.log('🟡 DailyPerformanceService: Domingo detectado - meta de leads = 0');
+      return 0;
+    }
+
     // Dashboard específico para metas diárias de oportunidades
-    const dashboard = 'oportunidades_diaria';
+    let dashboard = 'oportunidades_diaria';
+
+    // Se for sábado (6), usar dashboard específico
+    if (dayOfWeek === 6) {
+      dashboard = 'oportunidades_sabado';
+      console.log('🟡 DailyPerformanceService: Sábado detectado - usando dashboard específico:', dashboard);
+    }
     
     // Montar filtros
     const unidadeFilter = unidadeParaMeta ? `&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}` : '';
@@ -360,21 +376,37 @@ const fetchVendasDataByDay = async (startDate, endDate, filters) => {
 
 /**
  * 🎯 BUSCAR META DE VENDAS POR DIA
- * 
+ *
  * @param {string} selectedUnit - ID da unidade selecionada
  * @param {string} selectedFunnel - ID do funil selecionado
  * @param {string} selectedSeller - ID do vendedor selecionado
  * @param {number} totalDays - Total de dias no período
+ * @param {Date} currentDate - Data atual para verificar dia da semana
  * @returns {number} Meta diária de vendas
  */
-const fetchVendasMeta = async (selectedUnit, selectedFunnel, selectedSeller, totalDays) => {
+const fetchVendasMeta = async (selectedUnit, selectedFunnel, selectedSeller, totalDays, currentDate = null) => {
   try {
     console.log('📊 DailyPerformanceService: Buscando meta de vendas...');
     
     const unidadeParaMeta = selectedUnit && selectedUnit !== 'all' ? selectedUnit : null;
     
+    // Verificar dia da semana para aplicar regras específicas
+    const dayOfWeek = currentDate ? currentDate.getDay() : null;
+
+    // Se for domingo (0), meta = 0
+    if (dayOfWeek === 0) {
+      console.log('🟡 DailyPerformanceService: Domingo detectado - meta de vendas = 0');
+      return 0;
+    }
+
     // Dashboard específico para metas diárias de vendas/ganhas
-    const dashboard = 'oportunidades_diaria_ganhas';
+    let dashboard = 'oportunidades_diaria_ganhas';
+
+    // Se for sábado (6), usar dashboard específico
+    if (dayOfWeek === 6) {
+      dashboard = 'oportunidades_aabado_ganhas'; // Como especificado pelo usuário
+      console.log('🟡 DailyPerformanceService: Sábado detectado - usando dashboard específico:', dashboard);
+    }
     
     // Montar filtros
     const unidadeFilter = unidadeParaMeta ? `&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}` : '';
@@ -422,21 +454,37 @@ const fetchVendasMeta = async (selectedUnit, selectedFunnel, selectedSeller, tot
 
 /**
  * 🎯 BUSCAR META DE FATURAMENTO POR DIA
- * 
+ *
  * @param {string} selectedUnit - ID da unidade selecionada
  * @param {string} selectedFunnel - ID do funil selecionado
  * @param {string} selectedSeller - ID do vendedor selecionado
  * @param {number} totalDays - Total de dias no período
+ * @param {Date} currentDate - Data atual para verificar dia da semana
  * @returns {number} Meta diária de faturamento
  */
-const fetchFaturamentoMeta = async (selectedUnit, selectedFunnel, selectedSeller, totalDays) => {
+const fetchFaturamentoMeta = async (selectedUnit, selectedFunnel, selectedSeller, totalDays, currentDate = null) => {
   try {
     console.log('📊 DailyPerformanceService: Buscando meta de faturamento...');
     
     const unidadeParaMeta = selectedUnit && selectedUnit !== 'all' ? selectedUnit : null;
     
+    // Verificar dia da semana para aplicar regras específicas
+    const dayOfWeek = currentDate ? currentDate.getDay() : null;
+
+    // Se for domingo (0), meta = 0
+    if (dayOfWeek === 0) {
+      console.log('🟡 DailyPerformanceService: Domingo detectado - meta de faturamento = 0');
+      return 0;
+    }
+
     // Dashboard específico para metas de faturamento
-    const dashboard = 'oportunidades_faturamento';
+    let dashboard = 'oportunidades_faturamento';
+
+    // Se for sábado (6), usar dashboard específico
+    if (dayOfWeek === 6) {
+      dashboard = 'oportunidades_faturamento_sabado';
+      console.log('🟡 DailyPerformanceService: Sábado detectado - usando dashboard específico:', dashboard);
+    }
     
     // Montar filtros
     const unidadeFilter = unidadeParaMeta ? `&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}` : '';
@@ -488,16 +536,32 @@ const fetchFaturamentoMeta = async (selectedUnit, selectedFunnel, selectedSeller
  * @param {string} selectedUnit - ID da unidade selecionada
  * @param {string} selectedFunnel - ID do funil selecionado
  * @param {string} selectedSeller - ID do vendedor selecionado
+ * @param {Date} currentDate - Data atual para verificar dia da semana
  * @returns {number} Meta diária de taxa de conversão em %
  */
-const fetchTaxaConversaoMeta = async (selectedUnit, selectedFunnel, selectedSeller) => {
+const fetchTaxaConversaoMeta = async (selectedUnit, selectedFunnel, selectedSeller, currentDate = null) => {
   try {
     console.log('📊 DailyPerformanceService: Buscando meta de taxa de conversão...');
 
     const unidadeParaMeta = selectedUnit && selectedUnit !== 'all' ? selectedUnit : null;
 
+    // Verificar dia da semana para aplicar regras específicas
+    const dayOfWeek = currentDate ? currentDate.getDay() : null;
+
+    // Se for domingo (0), meta = 0
+    if (dayOfWeek === 0) {
+      console.log('🟡 DailyPerformanceService: Domingo detectado - meta de taxa de conversão = 0');
+      return 0;
+    }
+
     // Dashboard específico para metas de taxa de conversão diária
-    const dashboard = 'taxa_conversao_diaria';
+    let dashboard = 'taxa_conversao_diaria';
+
+    // Se for sábado (6), usar dashboard específico
+    if (dayOfWeek === 6) {
+      dashboard = 'taxa_conversao_sabado';
+      console.log('🟡 DailyPerformanceService: Sábado detectado - usando dashboard específico:', dashboard);
+    }
 
     // Montar filtros
     const unidadeFilter = unidadeParaMeta ? `&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}` : '';
@@ -549,16 +613,32 @@ const fetchTaxaConversaoMeta = async (selectedUnit, selectedFunnel, selectedSell
  * @param {string} selectedUnit - ID da unidade selecionada
  * @param {string} selectedFunnel - ID do funil selecionado
  * @param {string} selectedSeller - ID do vendedor selecionado
+ * @param {Date} currentDate - Data atual para verificar dia da semana
  * @returns {number} Meta de ticket médio em R$
  */
-const fetchTicketMedioMeta = async (selectedUnit, selectedFunnel, selectedSeller) => {
+const fetchTicketMedioMeta = async (selectedUnit, selectedFunnel, selectedSeller, currentDate = null) => {
   try {
     console.log('📊 DailyPerformanceService: Buscando meta de ticket médio...');
 
     const unidadeParaMeta = selectedUnit && selectedUnit !== 'all' ? selectedUnit : null;
 
+    // Verificar dia da semana para aplicar regras específicas
+    const dayOfWeek = currentDate ? currentDate.getDay() : null;
+
+    // Se for domingo (0), meta = 0
+    if (dayOfWeek === 0) {
+      console.log('🟡 DailyPerformanceService: Domingo detectado - meta de ticket médio = 0');
+      return 0;
+    }
+
     // Dashboard específico para metas de ticket médio diário
-    const dashboard = 'ticket_medio_diario';
+    let dashboard = 'ticket_medio_diario';
+
+    // Se for sábado (6), usar dashboard específico
+    if (dayOfWeek === 6) {
+      dashboard = 'ticket_medio_sabado';
+      console.log('🟡 DailyPerformanceService: Sábado detectado - usando dashboard específico:', dashboard);
+    }
 
     // Montar filtros
     const unidadeFilter = unidadeParaMeta ? `&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}` : '';
@@ -611,14 +691,13 @@ const fetchTicketMedioMeta = async (selectedUnit, selectedFunnel, selectedSeller
  * @param {string} endDate - Data final
  * @param {Object} dailyLeads - Dados de leads por dia
  * @param {Object} dailyVendas - Dados de vendas por dia
- * @param {number} metaDiariaLeads - Meta diária de leads
- * @param {number} metaDiariaVendas - Meta diária de vendas
- * @param {number} metaDiariaFaturamento - Meta diária de faturamento
- * @param {number} metaTaxaConversao - Meta de taxa de conversão em %
- * @param {number} metaTicketMedio - Meta de ticket médio em R$
+ * @param {string} selectedUnit - ID da unidade selecionada
+ * @param {string} selectedFunnel - ID do funil selecionado
+ * @param {string} selectedSeller - ID do vendedor selecionado
+ * @param {number} totalDays - Total de dias no período
  * @returns {Array} Array com dados estruturados por dia
  */
-const generateDailyData = (startDate, endDate, dailyLeads, dailyVendas, metaDiariaLeads, metaDiariaVendas, metaDiariaFaturamento, metaTaxaConversao, metaTicketMedio) => {
+const generateDailyData = async (startDate, endDate, dailyLeads, dailyVendas, selectedUnit, selectedFunnel, selectedSeller, totalDays) => {
   const start = new Date(startDate + 'T00:00:00');
   const end = new Date(endDate + 'T23:59:59');
   // Tratar "hoje" usando timezone local e incluindo todo o dia atual
@@ -643,15 +722,30 @@ const generateDailyData = (startDate, endDate, dailyLeads, dailyVendas, metaDiar
     const dateKey = current.toLocaleDateString('sv-SE');
     const leadsData = dailyLeads[dateKey] || { count: 0, totalValue: 0 };
     const vendasData = dailyVendas[dateKey] || { count: 0, totalValue: 0 };
-    
+
+    // Buscar metas específicas para esta data (considerando domingo e sábado)
+    const metaDiariaLeads = await fetchLeadsMeta(selectedUnit, selectedFunnel, selectedSeller, totalDays, current);
+    const metaDiariaVendas = await fetchVendasMeta(selectedUnit, selectedFunnel, selectedSeller, totalDays, current);
+    const metaDiariaFaturamento = await fetchFaturamentoMeta(selectedUnit, selectedFunnel, selectedSeller, totalDays, current);
+    const metaTaxaConversao = await fetchTaxaConversaoMeta(selectedUnit, selectedFunnel, selectedSeller, current);
+    const metaTicketMedio = await fetchTicketMedioMeta(selectedUnit, selectedFunnel, selectedSeller, current);
+
     console.log(`🔍 Processando dia ${dateKey}:`, {
       hasLeadsData: !!dailyLeads[dateKey],
       leadsCount: leadsData.count,
       hasVendasData: !!dailyVendas[dateKey],
       vendasCount: vendasData.count,
-      currentDate: current.toISOString()
+      currentDate: current.toISOString(),
+      dayOfWeek: current.getDay(),
+      isDomingo: current.getDay() === 0,
+      isSabado: current.getDay() === 6,
+      metaDiariaLeads,
+      metaDiariaVendas,
+      metaDiariaFaturamento,
+      metaTaxaConversao,
+      metaTicketMedio
     });
-    
+
     // Cálculos de leads
     const leadsGap = leadsData.count - metaDiariaLeads;
     const leadsGapPercentual = metaDiariaLeads > 0 ? (leadsGap / metaDiariaLeads) * 100 : 0;
@@ -749,7 +843,7 @@ const generateDailyData = (startDate, endDate, dailyLeads, dailyVendas, metaDiar
 
 /**
  * 🎯 CALCULAR DADOS DE RESUMO DO PERÍODO
- * 
+ *
  * @param {Array} dailyData - Dados diários
  * @returns {Object} Dados de resumo
  */
@@ -761,18 +855,37 @@ const calculateSummaryData = (dailyData) => {
     conversao: { realizado: 0, meta: 0, gap: '' },
     ticketMedio: { realizado: 0, meta: 0, gap: '' }
   };
-  
-  dailyData.forEach(day => {
+
+  let daysWithMeta = 0; // Para cálculo de médias corretas
+
+  dailyData.forEach((day, index) => {
+    // Sempre somar o realizado
     summary.leads.realizado += day.leads.realizado;
-    summary.leads.meta += day.leads.meta;
     summary.vendas.realizado += day.vendas.realizado;
-    summary.vendas.meta += day.vendas.meta;
     summary.faturamento.realizado += day.faturamento.realizado;
-    summary.faturamento.meta += day.faturamento.meta;
     summary.conversao.realizado += day.conversao.realizado;
-    summary.conversao.meta += day.conversao.meta;
     summary.ticketMedio.realizado += day.ticketMedio.realizado;
-    summary.ticketMedio.meta += day.ticketMedio.meta;
+
+    // Verificar se é domingo (meta = 0) para não somar na meta total
+    const isDomingo = day.leads.meta === 0 && day.vendas.meta === 0 &&
+                      day.faturamento.meta === 0 && day.conversao.meta === 0 &&
+                      day.ticketMedio.meta === 0;
+
+    if (!isDomingo) {
+      summary.leads.meta += day.leads.meta;
+      summary.vendas.meta += day.vendas.meta;
+      summary.faturamento.meta += day.faturamento.meta;
+      summary.conversao.meta += day.conversao.meta;
+      summary.ticketMedio.meta += day.ticketMedio.meta;
+      daysWithMeta++;
+    }
+
+    console.log(`🟡 Resumo - Dia ${index + 1}:`, {
+      isDomingo,
+      leadsMeta: day.leads.meta,
+      vendasMeta: day.vendas.meta,
+      daysWithMeta
+    });
   });
   
   // Formatar gaps para valores inteiros (leads, vendas)
@@ -827,17 +940,27 @@ const calculateSummaryData = (dailyData) => {
   if (dailyData.length > 0) {
     // Para conversão: calcular taxa total (vendas totais / leads totais * 100)
     summary.conversao.realizado = summary.leads.realizado > 0 ? (summary.vendas.realizado / summary.leads.realizado) * 100 : 0;
-    summary.conversao.meta = summary.conversao.meta / dailyData.length; // Meta média
+    // Usar apenas dias com meta para cálculo da meta média (excluindo domingos)
+    summary.conversao.meta = daysWithMeta > 0 ? summary.conversao.meta / daysWithMeta : 0;
     const conversaoGap = summary.conversao.realizado - summary.conversao.meta;
     summary.conversao.gap = conversaoGap;
 
     // Para ticket médio: calcular ticket total (faturamento total / vendas totais)
     summary.ticketMedio.realizado = (summary.vendas.realizado && summary.vendas.realizado > 0) ? (summary.faturamento.realizado || 0) / summary.vendas.realizado : 0;
-    summary.ticketMedio.meta = (summary.ticketMedio.meta || 0) / dailyData.length; // Meta média
+    // Usar apenas dias com meta para cálculo da meta média (excluindo domingos)
+    summary.ticketMedio.meta = daysWithMeta > 0 ? (summary.ticketMedio.meta || 0) / daysWithMeta : 0;
     const ticketMedioGap = (summary.ticketMedio.realizado || 0) - (summary.ticketMedio.meta || 0);
     const ticketMedioGapPercentual = (summary.ticketMedio.meta && summary.ticketMedio.meta > 0) ? (ticketMedioGap / summary.ticketMedio.meta) * 100 : 0;
     summary.ticketMedio.gap = formatGapMonetary(ticketMedioGap, ticketMedioGapPercentual);
   }
+
+  console.log('🟡 Resumo final calculado:', {
+    totalDays: dailyData.length,
+    daysWithMeta,
+    leadsMetaTotal: summary.leads.meta,
+    vendasMetaTotal: summary.vendas.meta,
+    faturamentoMetaTotal: summary.faturamento.meta
+  });
   
   return summary;
 };
@@ -904,32 +1027,16 @@ export const getDailyPerformanceData = async (
     
     // Buscar dados de vendas por dia (mês corrente)
     const dailyVendas = await fetchVendasDataByDay(dataInicioMes, dataFimMes, filters);
-    
-    // Buscar meta de leads
-    const metaDiariaLeads = await fetchLeadsMeta(selectedUnit, selectedFunnel, selectedSeller, totalDays);
-    
-    // Buscar meta de vendas
-    const metaDiariaVendas = await fetchVendasMeta(selectedUnit, selectedFunnel, selectedSeller, totalDays);
-    
-    // Buscar meta de faturamento
-    const metaDiariaFaturamento = await fetchFaturamentoMeta(selectedUnit, selectedFunnel, selectedSeller, totalDays);
 
-    // Buscar meta de taxa de conversão
-    const metaTaxaConversao = await fetchTaxaConversaoMeta(selectedUnit, selectedFunnel, selectedSeller);
-
-    // Buscar meta de ticket médio
-    const metaTicketMedio = await fetchTicketMedioMeta(selectedUnit, selectedFunnel, selectedSeller);
-
-    // Gerar dados diários estruturados
-    const dailyData = generateDailyData(dataInicioMes, dataFimMes, dailyLeads, dailyVendas, metaDiariaLeads, metaDiariaVendas, metaDiariaFaturamento, metaTaxaConversao, metaTicketMedio);
+    // Gerar dados diários estruturados (as metas são buscadas individualmente por dia)
+    const dailyData = await generateDailyData(dataInicioMes, dataFimMes, dailyLeads, dailyVendas, selectedUnit, selectedFunnel, selectedSeller, totalDays);
     
     // Calcular dados de resumo
     const summaryData = calculateSummaryData(dailyData);
     
     console.log('✅ DailyPerformanceService: Dados processados:');
     console.log('  - Total de dias:', dailyData.length);
-    console.log('  - Meta diária de leads:', metaDiariaLeads);
-    console.log('  - Meta diária de vendas:', metaDiariaVendas);
+    console.log('  - Metas calculadas dinamicamente por dia (considerando domingo e sábado)');
     console.log('  - Dados de resumo:', summaryData);
     console.log('🔍 DEBUG: Estrutura dos dados diários:');
     console.log('  - Primeiros 3 dias:', dailyData.slice(0, 3));

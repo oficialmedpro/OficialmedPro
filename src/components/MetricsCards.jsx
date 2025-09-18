@@ -4,6 +4,7 @@ import OpportunitySources from './OpportunitySources';
 import LossReasonsHeader from './LossReasonsHeader';
 import TicketRankingCard from './TicketRankingCard';
 import SellerRanking from './SellerRanking';
+import SellerRankingReal from './SellerRankingReal';
 
 const MetricsCards = ({ 
   formatCurrency, 
@@ -46,7 +47,16 @@ const MetricsCards = ({
         />
 
         {/* Card 4: Ranking de vendedores (componente separado com paginação) */}
-        <SellerRanking formatCurrency={formatCurrency} t={t} />
+        <SellerRankingReal 
+          formatCurrency={formatCurrency} 
+          t={t}
+          startDate={startDate}
+          endDate={endDate}
+          selectedFunnel={selectedFunnel}
+          selectedUnit={selectedUnit}
+          selectedSeller={selectedSeller}
+          selectedOrigin={selectedOrigin}
+        />
       </div>
     </div>
   );

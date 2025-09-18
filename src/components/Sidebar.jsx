@@ -96,7 +96,8 @@ const Sidebar = ({
       label: translations.funilsAdm,
       icon: 'funil-compra',
       subItems: [
-        { icon: 'funil-compra', label: translations.funilCompra, active: true },
+        { icon: 'funil-compra', label: 'Análise de Funil', path: '/analise-funil', active: true },
+        { icon: 'funil-compra', label: translations.funilCompra, active: false },
         { icon: 'funil-recompra', label: translations.funilRecompra, active: false },
         { icon: 'dashboard-meta', label: 'Dashboard MetaAds', active: false },
         { icon: 'dashboard-google', label: 'Dashboard GoogleAds', active: false }
@@ -189,7 +190,9 @@ const Sidebar = ({
                       className="sidebar-component-collapsed-submenu-item"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (subItem.label === 'Dashboard MetaAds') {
+                        if (subItem.path) {
+                          navigate(subItem.path);
+                        } else if (subItem.label === 'Dashboard MetaAds') {
                           navigate('/meta-ads');
                         } else if (subItem.label === 'Dashboard GoogleAds') {
                           navigate('/google-ads');
@@ -213,7 +216,9 @@ const Sidebar = ({
                     key={subIndex} 
                     className={`sidebar-component-nav-item sidebar-component-submenu-item ${subItem.active ? 'active' : ''}`}
                     onClick={() => {
-                      if (subItem.label === 'Dashboard MetaAds') {
+                      if (subItem.path) {
+                        navigate(subItem.path);
+                      } else if (subItem.label === 'Dashboard MetaAds') {
                         navigate('/meta-ads');
                       } else if (subItem.label === 'Dashboard GoogleAds') {
                         navigate('/google-ads');

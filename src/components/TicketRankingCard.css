@@ -50,6 +50,67 @@
   flex: 1;
 }
 
+/* Sistema de Abas */
+.ticket-tabs {
+  display: flex;
+  gap: 8px;
+  background: rgb(15 23 42);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+/* Modo light para ticket-tabs */
+.dashboard-container.light-theme .ticket-tabs {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+.ticket-tab {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  flex: 1;
+  text-align: center;
+}
+
+/* Modo light para ticket-tab */
+.dashboard-container.light-theme .ticket-tab {
+  color: #64748b;
+}
+
+.ticket-tab:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+.ticket-tab.active {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Modo light para ticket-tab hover e active */
+.dashboard-container.light-theme .ticket-tab:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1e293b;
+}
+
+.dashboard-container.light-theme .ticket-tab.active {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
 /* =================== SEÇÃO DE FILTROS APLICADOS =================== */
 .ticket-applied-filters {
   background: linear-gradient(135deg, rgb(15 23 42), rgb(15 23 42));
@@ -149,15 +210,24 @@
 
 /* Link da oportunidade */
 .opportunity-link {
-  color: #3b82f6;
+  color: #ffffff;
   text-decoration: none;
   font-weight: 600;
   transition: color 0.2s ease;
 }
 
 .opportunity-link:hover {
-  color: #1d4ed8;
+  color: #e5e7eb;
   text-decoration: underline;
+}
+
+/* Modo light para opportunity-link */
+.dashboard-container.light-theme .opportunity-link {
+  color: #1e293b;
+}
+
+.dashboard-container.light-theme .opportunity-link:hover {
+  color: #475569;
 }
 
 /* Link do perfil do lead */
@@ -171,6 +241,15 @@
 .lead-link:hover {
   color: #059669;
   text-decoration: underline;
+}
+
+/* Modo light para lead-link */
+.dashboard-container.light-theme .lead-link {
+  color: #059669;
+}
+
+.dashboard-container.light-theme .lead-link:hover {
+  color: #047857;
 }
 
 .ticket-value {
@@ -189,13 +268,13 @@
 
 .ticket-percent {
   font-weight: 600;
-  background: var(--bg-tertiary);
+  background: #4285f4;
   padding: 2px 6px;
   border-radius: 8px;
   min-width: 24px;
   text-align: center;
   font-size: 11px;
-  color: var(--text-secondary);
+  color: #ffffff;
 }
 
 .ticket-color-bar {
@@ -353,6 +432,16 @@
     gap: 12px;
   }
 
+  .ticket-tabs {
+    gap: 6px;
+    padding: 3px;
+  }
+
+  .ticket-tab {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
   .ticket-applied-filters-content {
     gap: 8px;
   }
@@ -380,6 +469,16 @@
     width: 28px;
     height: 28px;
     font-size: 14px;
+  }
+
+  .ticket-tabs {
+    gap: 4px;
+    padding: 2px;
+  }
+
+  .ticket-tab {
+    padding: 8px 12px;
+    font-size: 11px;
   }
 
   .ticket-name {
@@ -437,6 +536,16 @@
 @media (max-width: 480px) {
   .ticket-ranking-card {
     padding: 12px;
+  }
+
+  .ticket-tabs {
+    gap: 2px;
+    padding: 1px;
+  }
+
+  .ticket-tab {
+    padding: 6px 8px;
+    font-size: 10px;
   }
 
   .ticket-name {

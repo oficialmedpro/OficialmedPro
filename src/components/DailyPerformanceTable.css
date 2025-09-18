@@ -32,6 +32,11 @@
   text-align: center;
 }
 
+/* Modo light para daily-performance-header */
+.dashboard-container.light-theme .daily-performance-header h2 {
+  color: #1e293b;
+}
+
 .daily-performance-table-wrapper {
   overflow-x: auto;
   overflow-y: auto;
@@ -40,6 +45,11 @@
   /* Scrollbar cores (Firefox) */
   scrollbar-width: thin;
   scrollbar-color: var(--accent-blue, #3b82f6) var(--bg-primary, #0b1220);
+}
+
+/* Modo light para daily-performance-table-wrapper */
+.dashboard-container.light-theme .daily-performance-table-wrapper {
+  scrollbar-color: var(--accent-blue, #3b82f6) var(--bg-primary, #f8fafc);
 }
 .header-row-groups th,
 .header-row-sub th {
@@ -85,6 +95,22 @@
   color: #9aa4b2;
 }
 
+/* Modo light para daily-performance-pager */
+.dashboard-container.light-theme .pager-btn {
+  background: #f8fafc;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+}
+
+.dashboard-container.light-theme .pager-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+}
+
+.dashboard-container.light-theme .pager-info {
+  color: #64748b;
+}
+
 /* Scrollbar cores (WebKit: Chrome, Edge, Safari) */
 .daily-performance-table-wrapper::-webkit-scrollbar {
   height: 10px; /* horizontal */
@@ -112,6 +138,12 @@
   border: 1px solid #333;
 }
 
+/* Modo light para daily-performance-table */
+.dashboard-container.light-theme .daily-performance-table {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+}
+
 /* Header da tabela */
 .header-row-groups th {
   background: #0f172a;
@@ -131,11 +163,31 @@
   padding: 8px 6px;
 }
 
+/* Modo light para headers da tabela */
+.dashboard-container.light-theme .header-row-groups th {
+  background: #f8fafc;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+}
+
+.dashboard-container.light-theme .header-row-sub th {
+  background: #e2e8f0;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
 .sub-leads { background: #263355 !important; }
 .sub-vendas { background: #254a36 !important; }
 .sub-faturamento { background: #275033 !important; }
 .sub-conversao { background: #5a3623 !important; }
 .sub-ticket { background: #17515c !important; }
+
+/* Modo light para subheaders */
+.dashboard-container.light-theme .sub-leads { background: #dbeafe !important; }
+.dashboard-container.light-theme .sub-vendas { background: #dcfce7 !important; }
+.dashboard-container.light-theme .sub-faturamento { background: #dcfce7 !important; }
+.dashboard-container.light-theme .sub-conversao { background: #fed7aa !important; }
+.dashboard-container.light-theme .sub-ticket { background: #cffafe !important; }
 
 .indicators-column {
   width: 160px;
@@ -147,15 +199,30 @@
   border: 1px solid #334155;
 }
 
+/* Modo light para indicators-column */
+.dashboard-container.light-theme .indicators-column {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
 .metric-group { background: #2a2a2a; }
 
 .subheader { background: #3a3a3a; }
+
+/* Modo light para metric-group e subheader */
+.dashboard-container.light-theme .metric-group { background: #f1f5f9; }
+.dashboard-container.light-theme .subheader { background: #e2e8f0; }
 
 .metric-group-header {
   font-size: 0.9rem;
   font-weight: 700;
   margin-bottom: 4px;
   color: #ffffff;
+}
+
+/* Modo light para metric-group-header */
+.dashboard-container.light-theme .metric-group-header {
+  color: #1e293b;
 }
 
 .metric-subheaders {
@@ -165,6 +232,11 @@
   font-weight: 500;
   color: #cccccc;
   margin-top: 4px;
+}
+
+/* Modo light para metric-subheaders */
+.dashboard-container.light-theme .metric-subheaders {
+  color: #64748b;
 }
 
 .metric-subheaders span {
@@ -182,6 +254,13 @@
   padding: 12px 8px 12px 12px;
   border: 1px solid #334155;
   vertical-align: middle;
+}
+
+/* Modo light para indicators-cell */
+.dashboard-container.light-theme .indicators-cell {
+  background: #f8fafc;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
 }
 
 .summary-indicator {
@@ -231,6 +310,13 @@
   font-weight: 500;
 }
 
+/* Modo light para metric-cell */
+.dashboard-container.light-theme .metric-cell {
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+}
+
 .metric-cell-content {
   display: flex;
   align-items: center;
@@ -271,6 +357,19 @@
   font-weight: 600;
 }
 
+/* Modo light para summary-row */
+.dashboard-container.light-theme .summary-row {
+  background: #f1f5f9;
+}
+
+.dashboard-container.light-theme .summary-row .indicators-cell {
+  background: #f8fafc !important;
+}
+
+.dashboard-container.light-theme .summary-row .metric-cell {
+  background: #f8fafc !important;
+}
+
 .day-row {
   background: #1a1a1a;
 }
@@ -285,6 +384,23 @@
 
 .day-row:nth-child(even) .metric-cell {
   background: #0f172a !important;
+}
+
+/* Modo light para day-row */
+.dashboard-container.light-theme .day-row {
+  background: #ffffff;
+}
+
+.dashboard-container.light-theme .day-row:nth-child(even) {
+  background: #f8fafc;
+}
+
+.dashboard-container.light-theme .day-row:nth-child(even) .indicators-cell {
+  background: #f8fafc !important;
+}
+
+.dashboard-container.light-theme .day-row:nth-child(even) .metric-cell {
+  background: #f8fafc !important;
 }
 
 .today-row {
@@ -303,6 +419,22 @@
   font-weight: 600;
 }
 
+/* Modo light para today-row */
+.dashboard-container.light-theme .today-row {
+  background: #dbeafe !important;
+  border: 2px solid #3b82f6 !important;
+}
+
+.dashboard-container.light-theme .today-row .indicators-cell {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
+.dashboard-container.light-theme .today-row .metric-cell {
+  background: #dbeafe !important;
+  color: #1e293b !important;
+}
+
 .weekend-row {
   background: transparent !important;
 }
@@ -313,6 +445,19 @@
 
 .weekend-row .metric-cell {
   background: #171e31 !important;
+}
+
+/* Modo light para weekend-row */
+.dashboard-container.light-theme .weekend-row {
+  background: transparent !important;
+}
+
+.dashboard-container.light-theme .weekend-row .indicators-cell {
+  background: #f8fafc !important;
+}
+
+.dashboard-container.light-theme .weekend-row .metric-cell {
+  background: #ffffff !important;
 }
 
 /* Gap cells com cores - com maior especificidade para sobrescrever outras regras */
@@ -330,6 +475,17 @@
   background: rgba(16, 185, 129, 0.1) !important;
 }
 
+/* Modo light para gap-positive */
+.dashboard-container.light-theme .metric-cell.gap-cell.gap-positive,
+.dashboard-container.light-theme .day-row .metric-cell.gap-cell.gap-positive,
+.dashboard-container.light-theme .day-row:nth-child(even) .metric-cell.gap-cell.gap-positive,
+.dashboard-container.light-theme .today-row .metric-cell.gap-cell.gap-positive,
+.dashboard-container.light-theme .weekend-row .metric-cell.gap-cell.gap-positive,
+.dashboard-container.light-theme .summary-row .metric-cell.gap-cell.gap-positive {
+  color: #059669 !important;
+  background: rgba(16, 185, 129, 0.15) !important;
+}
+
 .metric-cell.gap-cell.gap-negative,
 .day-row .metric-cell.gap-cell.gap-negative,
 .day-row:nth-child(even) .metric-cell.gap-cell.gap-negative,
@@ -340,6 +496,17 @@
   background: rgba(239, 68, 68, 0.1) !important;
 }
 
+/* Modo light para gap-negative */
+.dashboard-container.light-theme .metric-cell.gap-cell.gap-negative,
+.dashboard-container.light-theme .day-row .metric-cell.gap-cell.gap-negative,
+.dashboard-container.light-theme .day-row:nth-child(even) .metric-cell.gap-cell.gap-negative,
+.dashboard-container.light-theme .today-row .metric-cell.gap-cell.gap-negative,
+.dashboard-container.light-theme .weekend-row .metric-cell.gap-cell.gap-negative,
+.dashboard-container.light-theme .summary-row .metric-cell.gap-cell.gap-negative {
+  color: #dc2626 !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
 .metric-cell.gap-cell.gap-neutral,
 .day-row .metric-cell.gap-cell.gap-neutral,
 .day-row:nth-child(even) .metric-cell.gap-cell.gap-neutral,
@@ -347,6 +514,16 @@
 .weekend-row .metric-cell.gap-cell.gap-neutral,
 .summary-row .metric-cell.gap-cell.gap-neutral {
   color: #cccccc !important;
+}
+
+/* Modo light para gap-neutral */
+.dashboard-container.light-theme .metric-cell.gap-cell.gap-neutral,
+.dashboard-container.light-theme .day-row .metric-cell.gap-cell.gap-neutral,
+.dashboard-container.light-theme .day-row:nth-child(even) .metric-cell.gap-cell.gap-neutral,
+.dashboard-container.light-theme .today-row .metric-cell.gap-cell.gap-neutral,
+.dashboard-container.light-theme .weekend-row .metric-cell.gap-cell.gap-neutral,
+.dashboard-container.light-theme .summary-row .metric-cell.gap-cell.gap-neutral {
+  color: #64748b !important;
 }
 
 /* =================== SEÇÃO DE FILTROS APLICADOS =================== */

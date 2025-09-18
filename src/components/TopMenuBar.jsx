@@ -3179,6 +3179,20 @@ const TopMenuBar = ({
               📊 RANKING
             </button>
 
+            <button
+              className="tmb-sync-btn"
+              onClick={() => navigate('/debug-seller-ranking')}
+              title="🏆 DEBUG SELLER RANKING - Abrir página dedicada para testar o serviço de ranking de vendedores"
+              style={{
+                marginLeft: '8px',
+                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                fontSize: '12px',
+                padding: '8px 12px'
+              }}
+            >
+              🏆 SELLER
+            </button>
+
           </>
         )}
       </div>

@@ -11,6 +11,13 @@
   flex-direction: column;
 }
 
+/* Modo light para loss-reasons-header */
+.dashboard-container.light-theme .loss-reasons-header {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  border: 1px solid #cbd5e1;
+}
+
 .loss-reasons-header-content {
   display: flex;
   flex-direction: column;
@@ -27,6 +34,11 @@
   align-items: center;
   gap: 12px;
   justify-content: flex-start;
+}
+
+/* Modo light para loss-reasons-title */
+.dashboard-container.light-theme .loss-reasons-title h3 {
+  color: #1e293b;
 }
 
 .loss-reasons-icon {
@@ -49,6 +61,11 @@
   font-weight: 400;
 }
 
+/* Modo light para loss-reasons-subtitle */
+.dashboard-container.light-theme .loss-reasons-subtitle {
+  color: #64748b;
+}
+
 .loss-reasons-tabs {
   display: flex;
   gap: 8px;
@@ -57,6 +74,12 @@
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   width: 100%;
+}
+
+/* Modo light para loss-reasons-tabs */
+.dashboard-container.light-theme .loss-reasons-tabs {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
 }
 
 .loss-reasons-tab {
@@ -74,12 +97,30 @@
   text-align: center;
 }
 
+/* Modo light para loss-reasons-tab */
+.dashboard-container.light-theme .loss-reasons-tab {
+  color: #64748b;
+}
+
 .loss-reasons-tab:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #f8fafc;
 }
 
+/* Modo light para loss-reasons-tab hover */
+.dashboard-container.light-theme .loss-reasons-tab:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: #1e293b;
+}
+
 .loss-reasons-tab.active {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Modo light para loss-reasons-tab active - manter texto branco */
+.dashboard-container.light-theme .loss-reasons-tab.active {
   background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
@@ -107,6 +148,12 @@
   border-radius: 12px;
   border: 1px solid rgb(51 65 85);
   transition: all 0.3s ease;
+}
+
+/* Modo light para loss-reason-item */
+.dashboard-container.light-theme .loss-reason-item {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
 }
 
 .loss-reason-item:hover {
@@ -146,11 +193,21 @@
   text-overflow: ellipsis;
 }
 
+/* Modo light para loss-reason-name */
+.dashboard-container.light-theme .loss-reason-name {
+  color: #1e293b;
+}
+
 .loss-reason-stats {
   display: flex;
   gap: 8px;
   font-size: 12px;
   color: #94a3b8;
+}
+
+/* Modo light para loss-reason-stats */
+.dashboard-container.light-theme .loss-reason-stats {
+  color: #64748b;
 }
 
 .loss-reason-count {
@@ -228,6 +285,29 @@
   border-radius: 4px;
 }
 
+/* Modo light para stage ranking */
+.dashboard-container.light-theme .loss-stage-group {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+}
+
+.dashboard-container.light-theme .loss-stage-group:hover {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.dashboard-container.light-theme .loss-stage-header {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dashboard-container.light-theme .loss-stage-header h4 {
+  color: #1e293b;
+}
+
+.dashboard-container.light-theme .loss-stage-total {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+}
+
 /* Pagination Styles */
 .loss-reasons-pagination {
   display: flex;
@@ -270,6 +350,26 @@
   text-align: center;
 }
 
+/* Modo light para pagination */
+.dashboard-container.light-theme .loss-reasons-pagination {
+  border-top: 1px solid #e2e8f0;
+}
+
+.dashboard-container.light-theme .loss-pagination-btn {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+}
+
+.dashboard-container.light-theme .loss-pagination-btn:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+}
+
+.dashboard-container.light-theme .loss-pagination-info {
+  color: #64748b;
+}
+
 /* Loading and Error States */
 .loss-reasons-loading,
 .loss-reasons-error,
@@ -289,6 +389,16 @@
 
 .loss-reasons-empty {
   color: #64748b;
+}
+
+/* Modo light para loading e error states */
+.dashboard-container.light-theme .loss-reasons-loading,
+.dashboard-container.light-theme .loss-reasons-empty {
+  color: #64748b;
+}
+
+.dashboard-container.light-theme .loss-reasons-error {
+  color: #dc2626;
 }
 
 /* Responsive Design */
