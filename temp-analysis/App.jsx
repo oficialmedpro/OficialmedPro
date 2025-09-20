@@ -1,0 +1,115 @@
+import React, { useState, useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import DashboardPage from './pages/DashboardPage'
+import PerformancePorHoraPage from './pages/PerformancePorHoraPage'
+import MatrizRFVPage from './pages/MatrizRFVPage'
+import DashboardMetaAds from './pages/DashboardMetaAds'
+import DashboardGoogleAds from './pages/DashboardGoogleAds'
+import DailyPerformanceDebugPage from './pages/DailyPerformanceDebugPage'
+import LossReasonsDebugPage from './pages/LossReasonsDebugPage'
+import DebugRankingPage from './pages/DebugRankingPage'
+import DebugSellerRankingPage from './pages/DebugSellerRankingPage'
+import DebugTicketRankingPage from './pages/DebugTicketRankingPage'
+import Login from './components/Login'
+import autoSyncService from './service/autoSyncService'
+
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Verificar se usuário já está logado
+  useEffect(() => {
+    const checkAuth = () => {
+      const authStatus = localStorage.getItem('isAuthenticated');
+      const loginTime = localStorage.getItem('loginTime');
+      
+      if (authStatus === 'true' && loginTime) {
+        // Verificar se login não expirou (24 horas)
+        const loginDate = new Date(loginTime);
+        const now = new Date();
+        const hoursElapsed = (now - loginDate) / (1000 * 60 * 60);
+        
+        if (hoursElapsed < 24) {
+          setIsAuthenticated(true);
+          console.log('✅ Usuário autenticado - sessão válida');
+        } else {
+          // Limpar sessão expirada
+          localStorage.removeItem('isAuthenticated');
+          localStorage.removeItem('loginTime');
+          console.log('⏰ Sessão expirada - redirecionando para login');
+        }
+      }
+      setLoading(false);
+    };
+
+    checkAuth();
+  }, []);
+  
+  // Inicializar serviço de sincronização automática quando usuário estiver autenticado
+  useEffect(() => {
+    if (isAuthenticated) {
+      // O serviço já inicia automaticamente, mas garantir que está rodando
+      const status = autoSyncService.getStatus();
+      if (!status.isRunning) {
+        autoSyncService.start();
+      }
+      console.log('🔄 Serviço de sincronização automática ativo');
+    }
+  }, [isAuthenticated]);
+
+  const handleLogin = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    // Parar serviço de sincronização ao fazer logout
+    autoSyncService.stop();
+    
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('loginTime');
+    setIsAuthenticated(false);
+    console.log('🚪 Logout realizado');
+  };
+
+  // Loading screen
+  if (loading) {
+    return (
+      <div style={{
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#f8f9fa'
+      }}>
+        <div>Carregando...</div>
+      </div>
+    );
+  }
+
+  // Se não autenticado, mostrar login
+  if (!isAuthenticated) {
+    return <Login onLogin={handleLogin} />;
+  }
+
+  // Se autenticado, mostrar dashboard
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<DashboardPage onLogout={handleLogout} />} />
+        <Route path="/dashboard" element={<DashboardPage onLogout={handleLogout} />} />
+        <Route path="/analise-funil" element={<DashboardPage onLogout={handleLogout} />} />
+        <Route path="/matriz-rfv" element={<MatrizRFVPage onLogout={handleLogout} />} />
+        <Route path="/performance-por-hora" element={<PerformancePorHoraPage onLogout={handleLogout} />} />
+        <Route path="/meta-ads" element={<DashboardMetaAds onLogout={handleLogout} />} />
+        <Route path="/google-ads" element={<DashboardGoogleAds onLogout={handleLogout} />} />
+        <Route path="/debug-daily-performance" element={<DailyPerformanceDebugPage onLogout={handleLogout} />} />
+        <Route path="/debug-loss-reasons" element={<LossReasonsDebugPage onLogout={handleLogout} />} />
+        <Route path="/debug-ranking" element={<DebugRankingPage onLogout={handleLogout} />} />
+        <Route path="/debug-seller-ranking" element={<DebugSellerRankingPage onLogout={handleLogout} />} />
+        <Route path="/debug-ticket-ranking" element={<DebugTicketRankingPage onLogout={handleLogout} />} />
+      </Routes>
+    </Router>
+  )
+}
+
+export default App

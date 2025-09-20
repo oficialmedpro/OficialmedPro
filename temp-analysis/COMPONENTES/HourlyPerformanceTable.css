@@ -1,0 +1,228 @@
+/* ========================================
+   HOURLY PERFORMANCE TABLE - SIMPLIFIED
+   ======================================== */
+
+.hourly-performance-container {
+  width: 100%;
+  background: #0f172a;
+  color: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.hourly-performance-table-container {
+  padding: 20px;
+}
+
+.hourly-performance-header h2 {
+  margin: 0 0 16px 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.hourly-performance-table-wrapper {
+  overflow: auto;
+  background: #0f172a;
+}
+
+.hourly-performance-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 14px;
+  table-layout: fixed;
+}
+
+.hourly-performance-table th,
+.hourly-performance-table td {
+  border: 1px solid #334155;
+  padding: 12px 8px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.hourly-performance-table th {
+  background: #171e31;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+/* ========================================
+   COLUMN WIDTHS
+   ======================================== */
+
+.indicators-column {
+  width: 120px;
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 8px;
+}
+
+.metric-group {
+  width: 100px;
+  background: #171e31;
+  color: #ffffff;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* ========================================
+   METRIC CELLS
+   ======================================== */
+
+.hourly-performance-table .metric-cell {
+  background: #0f172a;
+  color: #ffffff;
+  text-align: center;
+  padding: 12px 8px;
+  vertical-align: top;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.hourly-performance-table .metric-realizado {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 700;
+  font-size: 16px;
+  color: #ffffff;
+}
+
+.hourly-performance-table .metric-meta {
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #94a3b8;
+  text-align: center;
+}
+
+.hourly-performance-table .metric-gap {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 12px;
+  text-align: center;
+  display: inline-block;
+  margin: 0 auto;
+}
+
+.hourly-performance-table .gap-positive {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.hourly-performance-table .gap-negative {
+  background: #ef4444;
+  color: #ffffff;
+}
+
+/* ========================================
+   METRIC TITLES
+   ======================================== */
+
+.metric-leads {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  text-align: center !important;
+}
+
+.metric-vendas {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  text-align: center !important;
+}
+
+.metric-faturamento {
+  background: #22c55e !important;
+  color: #ffffff !important;
+  text-align: center !important;
+}
+
+.metric-conversao {
+  background: #f59e0b !important;
+  color: #ffffff !important;
+  text-align: center !important;
+}
+
+.metric-ticket {
+  background: #06b6d4 !important;
+  color: #ffffff !important;
+  text-align: center !important;
+}
+
+/* ========================================
+   PROGRESS RING
+   ======================================== */
+
+.progress-ring-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.progress-ring {
+  transform: rotate(-90deg);
+}
+
+/* ========================================
+   CLOSING COLUMN
+   ======================================== */
+
+.sub-closing {
+  background: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+/* ========================================
+   LOADING AND ERROR STATES
+   ======================================== */
+
+.hourly-performance-loading,
+.hourly-performance-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #334155;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-icon {
+  font-size: 2rem;
+  margin-bottom: 16px;
+}
+
+.error-message h3 {
+  margin: 0 0 8px 0;
+  color: #ef4444;
+}
+
+.error-message p {
+  margin: 0;
+  color: #ffffff;
+}

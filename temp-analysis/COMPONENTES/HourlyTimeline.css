@@ -1,0 +1,378 @@
+/* 🎯 HOURLY TIMELINE STYLES */
+
+.hourly-timeline-container {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.timeline-header h3 {
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.timeline-time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.current-time-label {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.current-time-value {
+  color: var(--accent-blue);
+  font-size: 1rem;
+  font-weight: 700;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* Modo light para timeline-header */
+.dashboard-container.light-theme .timeline-header h3 {
+  color: var(--text-primary);
+}
+
+.dashboard-container.light-theme .current-time-label {
+  color: var(--text-secondary);
+}
+
+.dashboard-container.light-theme .current-time-value {
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.timeline-track {
+  position: relative;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+}
+
+/* Barra de progresso do dia */
+.timeline-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+}
+
+.timeline-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #3b82f6);
+  border-radius: 8px 8px 0 0;
+  transition: width 0.5s ease;
+  position: relative;
+}
+
+.timeline-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 2px;
+  height: 100%;
+  background: #ffffff;
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.5);
+}
+
+/* Seções da timeline */
+.timeline-section {
+  margin-bottom: 20px;
+}
+
+.timeline-section:last-child {
+  margin-bottom: 0;
+}
+
+.timeline-section-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.timeline-hours {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Separador entre seções */
+.timeline-separator {
+  height: 1px;
+  background: var(--border-color);
+  margin: 16px 0;
+  opacity: 0.5;
+}
+
+/* Horas individuais */
+.timeline-hour {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  min-width: 80px;
+}
+
+.timeline-hour-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.timeline-hour-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  position: relative;
+}
+
+/* Estados das horas */
+.timeline-hour.past {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: #10b981;
+}
+
+.timeline-hour.past .timeline-hour-indicator {
+  background: #10b981;
+}
+
+.timeline-hour.current {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+  transform: scale(1.05);
+}
+
+.timeline-hour.current .timeline-hour-indicator {
+  background: #3b82f6;
+}
+
+.timeline-hour.future {
+  background: rgba(107, 114, 128, 0.1);
+  border-color: #6b7280;
+}
+
+.timeline-hour.future .timeline-hour-indicator {
+  background: #6b7280;
+}
+
+/* Cores específicas por tipo de hora */
+.timeline-round-hour.past {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: #10b981;
+}
+
+.timeline-round-hour.current {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+}
+
+.timeline-post-round-hour.past {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: #f59e0b;
+}
+
+.timeline-post-round-hour.current {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: #f59e0b;
+}
+
+.timeline-closing-hour.past {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #ef4444;
+}
+
+.timeline-closing-hour.current {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: #ef4444;
+}
+
+/* Animação de pulso para hora atual */
+.timeline-hour.pulse {
+  animation: timelinePulse 2s infinite;
+}
+
+@keyframes timelinePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+.timeline-current-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.3);
+  animation: currentPulse 1.5s infinite;
+}
+
+@keyframes currentPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0;
+  }
+}
+
+/* Hover effects */
+.timeline-hour:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.timeline-hour.current:hover {
+  transform: scale(1.05) translateY(-2px);
+}
+
+/* Legenda */
+.timeline-legend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.legend-past {
+  background: #10b981;
+}
+
+.legend-current {
+  background: #3b82f6;
+}
+
+.legend-future {
+  background: #6b7280;
+}
+
+/* Modo light para timeline */
+.dashboard-container.light-theme .timeline-track {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+}
+
+.dashboard-container.light-theme .timeline-hour.past {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: #10b981;
+}
+
+.dashboard-container.light-theme .timeline-hour.current {
+  background: rgba(59, 130, 246, 0.1);
+  border-color: #3b82f6;
+}
+
+.dashboard-container.light-theme .timeline-hour.future {
+  background: rgba(107, 114, 128, 0.1);
+  border-color: #6b7280;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .timeline-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  
+  .timeline-hours {
+    gap: 8px;
+  }
+  
+  .timeline-hour {
+    min-width: 60px;
+    padding: 8px 12px;
+  }
+  
+  .timeline-hour-label {
+    font-size: 0.75rem;
+  }
+  
+  .timeline-legend {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .timeline-track {
+    padding: 12px;
+  }
+  
+  .timeline-hours {
+    gap: 6px;
+  }
+  
+  .timeline-hour {
+    min-width: 50px;
+    padding: 6px 8px;
+  }
+  
+  .timeline-hour-label {
+    font-size: 0.7rem;
+  }
+}
+
