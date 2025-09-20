@@ -4,24 +4,20 @@ import './DashboardPageFunnel.css';
 import FilterBar from '../components/FilterBar';
 import TopMenuBar from '../components/TopMenuBar';
 import Sidebar from '../components/Sidebar';
-import FunnelChart from '../components/FunnelChart';
-import StatsSection from '../components/StatsSection';
-import MetricsSidebar from '../components/MetricsSidebar';
+import DailyPerformanceTable from '../components/DailyPerformanceTable';
 import { translations } from '../data/translations';
-import { getStatsCards, getMenuItems } from '../data/statsData';
 import {
   formatCurrency,
   updateMarketData,
   fetchUsdRate,
   handleDatePreset
 } from '../utils/utils';
-import { getFunilCompraPorUnidade } from '../service/FilterBarService';
 
 // Importar bandeiras
 import BandeiraEUA from '../../icones/eua.svg';
 import BandeiraBrasil from '../../icones/brasil.svg';
 
-const DashboardPage = ({ onLogout }) => {
+const PerformanceDiariaPage = ({ onLogout }) => {
   // Estados para o dashboard
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -37,7 +33,7 @@ const DashboardPage = ({ onLogout }) => {
   const [selectedSellerName, setSelectedSellerName] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState('today');
   const [selectedFunnel, setSelectedFunnel] = useState('all');
-  const [selectedUnit, setSelectedUnit] = useState('all');
+  const [selectedUnit, setSelectedUnit] = useState('1');
   const [selectedOrigin, setSelectedOrigin] = useState('all');
   const [unitFilterValue, setUnitFilterValue] = useState(null); // Novo estado para o valor do filtro
   const [statusFilterValue, setStatusFilterValue] = useState(null); // Novo estado para o filtro de status
@@ -57,7 +53,7 @@ const DashboardPage = ({ onLogout }) => {
       const data = await updateMarketData();
       if (data) setMarketData(data);
     };
-    
+
     updateData();
     const interval = setInterval(updateData, 30000);
     return () => clearInterval(interval);
@@ -68,9 +64,9 @@ const DashboardPage = ({ onLogout }) => {
     const updateTime = () => {
       const timeElement = document.getElementById('current-time');
       if (timeElement) {
-        timeElement.textContent = new Date().toLocaleTimeString('pt-BR', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
+        timeElement.textContent = new Date().toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit'
         });
       }
     };
@@ -113,55 +109,13 @@ const DashboardPage = ({ onLogout }) => {
     }
   }, [selectedPeriod]);
 
-  // 🎯 Auto-configurar página de análise de funil
-  useEffect(() => {
-    const currentPath = window.location.pathname;
-
-    console.log('🔍 DashboardPage useEffect - URL atual:', currentPath);
-    console.log('🔍 DashboardPage useEffect - selectedUnit:', selectedUnit);
-
-    if (currentPath === '/analise-funil') {
-      console.log('🎯 Detectada página de análise de funil - configurando automaticamente');
-
-      // Se já temos uma unidade selecionada, buscar funil de compra
-      if (selectedUnit && selectedUnit !== 'all') {
-        console.log('🎯 Unidade já selecionada:', selectedUnit, '- Buscando funil de compra');
-        handleAutoSelectFunnelForAnalysis(selectedUnit);
-      } else {
-        // Se não há unidade, forçar exibição de funil assim que uma for selecionada
-        console.log('💡 Aguardando seleção de unidade para mostrar funil de compra. Unidade atual:', selectedUnit);
-      }
-    } else {
-      console.log('📄 Não é página de análise de funil. URL atual:', currentPath);
-    }
-  }, [selectedUnit]); // Reexecutar quando selectedUnit mudar
-
-  // 🎯 Função para auto-selecionar funil de compra na análise de funil
-  const handleAutoSelectFunnelForAnalysis = async (unitId) => {
-    if (!unitId || unitId === 'all') return;
-
-    try {
-      console.log('🔍 Página Análise Funil: Buscando funil de compra para unidade:', unitId);
-      const funilCompra = await getFunilCompraPorUnidade(unitId);
-
-      if (funilCompra) {
-        console.log('✅ Página Análise Funil: Funil de compra encontrado:', funilCompra.nome_funil, 'ID:', funilCompra.id_funil_sprint);
-        setSelectedFunnel(funilCompra.id_funil_sprint.toString());
-      } else {
-        console.log('⚠️ Página Análise Funil: Nenhum funil de compra encontrado para unidade:', unitId);
-      }
-    } catch (error) {
-      console.error('❌ Página Análise Funil: Erro ao buscar funil de compra:', error);
-    }
-  };
-
   // Funções de controle
-  
+
   // 🎯 Função para lidar com mudanças no filtro de unidade
   const handleUnitFilterChange = (filterValue) => {
     setUnitFilterValue(filterValue);
     console.log(`🎯 Dashboard: Filtro de unidade alterado para:`, filterValue);
-    
+
     // Aqui você pode implementar a lógica para filtrar as oportunidades
     // baseado no unidade_id usando o valor do codigo_sprint
     if (filterValue) {
@@ -178,12 +132,12 @@ const DashboardPage = ({ onLogout }) => {
   const handleStatusFilterChange = (filterData) => {
     setStatusFilterValue(filterData);
     console.log(`🎯 Dashboard: Filtro de status alterado para:`, filterData);
-    
+
     // Aqui você pode implementar a lógica para filtrar as oportunidades
     // baseado no status selecionado
     console.log(`🔍 Filtrando oportunidades com ${filterData.field} = "${filterData.value}"`);
     console.log(`📝 Descrição: ${filterData.description}`);
-    
+
     // TODO: Implementar filtro nas oportunidades
     // Exemplo: filtrar oportunidades onde filterData.field = filterData.value
   };
@@ -191,7 +145,7 @@ const DashboardPage = ({ onLogout }) => {
   // 🎯 Função para lidar com mudanças no filtro de vendedor
   const handleSellerFilterChange = (filterValue) => {
     console.log(`🎯 Dashboard: Filtro de vendedor alterado para:`, filterValue);
-    
+
     // Aqui você pode implementar a lógica para filtrar as oportunidades
     // baseado no vendedor selecionado
     if (filterValue) {
@@ -204,7 +158,7 @@ const DashboardPage = ({ onLogout }) => {
   // 🎯 Função para lidar com mudanças no filtro de origem
   const handleOriginFilterChange = (filterValue) => {
     console.log(`🎯 Dashboard: Filtro de origem alterado para:`, filterValue);
-    
+
     // Aqui você pode implementar a lógica para filtrar as oportunidades
     // baseado na origem selecionada
     if (filterValue) {
@@ -212,7 +166,7 @@ const DashboardPage = ({ onLogout }) => {
     } else {
       console.log(`🌐 Mostrando todas as origens (sem filtro de origem)`);
     }
-    
+
     // CORREÇÃO: O filtro estava sendo aplicado mas não passado para os componentes
     // Isso acontece porque o selectedOrigin já é atualizado pelo FilterBar via setSelectedOrigin
     // e os componentes já recebem selectedOrigin como prop
@@ -227,9 +181,9 @@ const DashboardPage = ({ onLogout }) => {
       setSidebarExpanded(!sidebarExpanded);
     }
   };
-  
+
   const closeMobileMenu = () => setMobileMenuOpen(false);
-  
+
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
@@ -267,9 +221,7 @@ const DashboardPage = ({ onLogout }) => {
     }
   };
 
-  // Dados
-  const statsCards = getStatsCards(t);
-  const menuItems = getMenuItems(t);
+  // Dados - removido statsCards e menuItems pois não são mais utilizados
 
   // Função formatCurrency local que usa o estado
   const formatCurrencyLocal = (value, originalCurrency = 'BRL') => {
@@ -290,8 +242,8 @@ const DashboardPage = ({ onLogout }) => {
   return (
     <div className="dashboard-container">
       {/* Sidebar Desktop */}
-      <Sidebar 
-        sidebarExpanded={sidebarExpanded} 
+      <Sidebar
+        sidebarExpanded={sidebarExpanded}
         isDarkMode={isDarkMode}
         currentLanguage={currentLanguage}
         translations={t}
@@ -302,7 +254,7 @@ const DashboardPage = ({ onLogout }) => {
         <div className="mobile-menu-overlay" onClick={closeMobileMenu}>
           <div className="mobile-menu-content" onClick={(e) => e.stopPropagation()}>
                          {/* Usar o mesmo componente Sidebar para manter consistência */}
-             <Sidebar 
+             <Sidebar
                sidebarExpanded={true}
                isDarkMode={isDarkMode}
                currentLanguage={currentLanguage}
@@ -318,7 +270,7 @@ const DashboardPage = ({ onLogout }) => {
       )}
 
       {/* Top Menu Bar */}
-      <TopMenuBar 
+      <TopMenuBar
         sidebarExpanded={sidebarExpanded}
         toggleSidebar={toggleSidebar}
         toggleFullscreen={toggleFullscreen}
@@ -330,7 +282,7 @@ const DashboardPage = ({ onLogout }) => {
       />
 
       {/* FilterBar Fixo */}
-      <FilterBar 
+      <FilterBar
         t={t}
         selectedStatus={selectedStatus}
         setSelectedStatus={setSelectedStatus}
@@ -358,97 +310,26 @@ const DashboardPage = ({ onLogout }) => {
 
       {/* Main Content */}
       <main className="main-content">
-          {/* Stats Section - Mostra dados de todas as unidades por padrão, filtra quando unidade selecionada */}
-          <>
-            {/* Debug: Verificar valores antes de passar para StatsSection */}
-            {console.log('🎨 DashboardPage: Passando para StatsSection:', {
-              startDate,
-              endDate,
-              selectedFunnel,
-              selectedUnit,
-              selectedSeller,
-              selectedOrigin
-            })}
-            <StatsSection 
-                statsCards={statsCards} 
-                startDate={startDate}
-                endDate={endDate}
-                selectedFunnel={selectedFunnel}
-                selectedUnit={selectedUnit}
-                selectedSeller={selectedSeller}
-                selectedOrigin={selectedOrigin}
-              />
-          </>
-
-          {/* Chart Section - lógica especial para página de análise de funil */}
-          {(() => {
-            const currentPath = window.location.pathname;
-            const isAnalisisFunilPage = currentPath === '/analise-funil';
-
-            // Na página de análise de funil, mostrar quando tiver unidade selecionada
-            const shouldShowChart = isAnalisisFunilPage
-              ? (selectedUnit && selectedUnit !== 'all')
-              : (selectedUnit && selectedUnit !== 'all' && selectedFunnel && selectedFunnel !== 'all');
-
-            console.log('🎨 CHART-SECTION: Verificando condições para mostrar funil:', {
-              currentPath,
-              isAnalisisFunilPage,
-              selectedUnit,
-              selectedUnitType: typeof selectedUnit,
-              selectedUnitNotAll: selectedUnit !== 'all',
-              selectedFunnel,
-              selectedFunnelType: typeof selectedFunnel,
-              selectedFunnelNotAll: selectedFunnel !== 'all',
-              shouldShowChart,
-              decision: shouldShowChart ? 'MOSTRAR CHART' : 'NÃO MOSTRAR CHART'
-            });
-
-            return shouldShowChart;
-          })() && (
-            <section className="chart-section">
-              {console.log('🔍 DashboardPage: Props sendo passadas para FunnelChart:', {
-                selectedFunnel,
-                selectedUnit,
-                selectedSeller,
-                selectedOrigin,
-                selectedOriginType: typeof selectedOrigin
-              })}
-              <FunnelChart 
-                t={t} 
-                selectedFunnel={selectedFunnel}
-                selectedUnit={selectedUnit}
-                selectedSeller={selectedSeller}
-                selectedOrigin={selectedOrigin}
-                startDate={startDate}
-                endDate={endDate}
-                selectedPeriod={selectedPeriod}
-              />
-            </section>
-          )}
-
-          {/* Metrics Sidebar - Componente que contém GoogleInvestimentoCard e MetaInvestimentoCard */}
-          <section className="metrics-sidebar-section">
-            <MetricsSidebar
-              formatCurrency={formatCurrencyLocal}
-              t={t}
-              selectedPeriod={selectedPeriod}
-              startDate={startDate}
-              endDate={endDate}
-              selectedUnit={selectedUnit}
-              selectedFunnel={selectedFunnel}
-              selectedSeller={selectedSeller}
-            />
-          </section>
-
+          {/* Daily Performance Table - sempre visível com unidade 1 por padrão */}
+          <DailyPerformanceTable
+            t={t}
+            startDate={startDate}
+            endDate={endDate}
+            selectedFunnel={selectedFunnel}
+            selectedUnit="1"
+            selectedSeller={selectedSeller}
+            selectedSellerName={selectedSellerName}
+            selectedOrigin={selectedOrigin}
+          />
       </main>
 
       {/* Mobile Bottom Navigation */}
       <nav className="mobile-bottom-nav">
         {/* Seletor de idioma - estilo TopMenuBar */}
         <button className="mobile-nav-btn mobile-language-btn" onClick={() => changeLanguage(currentLanguage === 'pt-BR' ? 'en-US' : 'pt-BR')}>
-          <img 
-            src={currentLanguage === 'pt-BR' ? BandeiraBrasil : BandeiraEUA} 
-            alt={currentLanguage === 'pt-BR' ? 'Brasil' : 'United States'} 
+          <img
+            src={currentLanguage === 'pt-BR' ? BandeiraBrasil : BandeiraEUA}
+            alt={currentLanguage === 'pt-BR' ? 'Brasil' : 'United States'}
             className="flag-img"
           />
         </button>
@@ -477,6 +358,4 @@ const DashboardPage = ({ onLogout }) => {
   );
 };
 
-export default DashboardPage;
-
-
+export default PerformanceDiariaPage;

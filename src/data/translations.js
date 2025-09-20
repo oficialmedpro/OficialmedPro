@@ -58,7 +58,7 @@ export const translations = {
     // Menu
     funilCompra: 'Funil Compra',
     funilRecompra: 'Funil Recompra',
-    funilsAdm: 'Análise de Funil',
+    funilsAdm: 'Análises de Performance',
     funilComercial: 'Funil Comercial',
     
     // Busca
@@ -142,7 +142,7 @@ export const translations = {
     // Menu
     funilCompra: 'Purchase Funnel',
     funilRecompra: 'Repurchase Funnel',
-    funilsAdm: 'Funnel Analysis',
+    funilsAdm: 'Performance Analysis',
     funilComercial: 'Commercial Funnel',
     
     // Search

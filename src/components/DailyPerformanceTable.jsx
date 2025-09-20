@@ -79,7 +79,7 @@ const DailyPerformanceTable = ({
       const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
       const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
-      const response = await fetch(`${supabaseUrl}/rest/v1/unidades?select=unidade&codigo_sprint=eq.${encodeURIComponent(unitId)}`, {
+      const response = await fetch(`${supabaseUrl}/rest/v1/unidades?select=unidade&id=eq.${encodeURIComponent(unitId)}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',

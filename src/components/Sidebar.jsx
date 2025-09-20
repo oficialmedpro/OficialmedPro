@@ -96,9 +96,10 @@ const Sidebar = ({
       label: translations.funilsAdm,
       icon: 'funil-compra',
       subItems: [
-        { icon: 'funil-compra', label: 'Análise de Funil', path: '/analise-funil', active: true },
-        { icon: 'funil-compra', label: translations.funilCompra, active: false },
-        { icon: 'funil-recompra', label: translations.funilRecompra, active: false },
+        { icon: 'funil-compra', label: 'Análise de Funil', path: '/analise-funil', active: false },
+        { icon: 'funil-compra', label: 'Performance Diária', path: '/performance-diaria', active: false },
+        { icon: 'funil-compra', label: 'Ranking de Performance', path: '/ranking-de-performance', active: false },
+        { icon: 'funil-compra', label: 'Matriz RFV', path: '/matriz-rfv', active: false },
         { icon: 'dashboard-meta', label: 'Dashboard MetaAds', active: false },
         { icon: 'dashboard-google', label: 'Dashboard GoogleAds', active: false }
       ]
@@ -108,8 +109,7 @@ const Sidebar = ({
       label: translations.funilComercial,
       icon: 'funil-recompra',
       subItems: [
-        { icon: 'funil-compra', label: translations.funilCompra, active: false },
-        { icon: 'funil-recompra', label: translations.funilRecompra, active: true }
+        // Itens removidos conforme solicitado
       ]
     }
   ];

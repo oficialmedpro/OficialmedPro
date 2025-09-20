@@ -1,0 +1,498 @@
+/* MatrizRFVComponent - Replicando exatamente a imagem */
+
+.matriz-rfv-component {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Header */
+.rfv-header {
+  margin-bottom: 20px;
+}
+
+.rfv-section-title {
+  color: var(--text-primary);
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+}
+
+.rfv-section-subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Top Cards */
+.rfv-top-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.rfv-card {
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid var(--border-color);
+  position: relative;
+  min-height: 280px;
+}
+
+.rfv-card-header {
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  text-transform: uppercase;
+}
+
+.rfv-card-value {
+  color: var(--text-primary);
+  font-size: 48px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.rfv-card-divider {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  border-radius: 0 0 12px 12px;
+}
+
+.rfv-card-divider.orange {
+  background: linear-gradient(90deg, #f59e0b, #f97316);
+}
+
+.rfv-card-divider.pink {
+  background: linear-gradient(90deg, #ec4899, #be185d);
+}
+
+.rfv-card-divider.cyan {
+  background: linear-gradient(90deg, #06b6d4, #0891b2);
+}
+
+/* Chart Bars */
+.rfv-chart-bars {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 180px;
+  margin-bottom: 20px;
+  padding: 0 10px;
+}
+
+.bar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.bar {
+  width: 40px;
+  min-height: 20px;
+  border-radius: 4px 4px 0 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+
+.bar span {
+  display: block;
+}
+
+.bar-label {
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* RFV Matrix Grid */
+.rfv-matrix-grid {
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 30px;
+  border: 1px solid var(--border-color);
+  position: relative;
+  margin-bottom: 10px;
+}
+
+.rfv-matrix-row {
+  display: flex;
+  margin-bottom: 2px;
+}
+
+.rfv-matrix-row:last-child {
+  margin-bottom: 0;
+}
+
+.rfv-matrix-cell {
+  flex: 1;
+  height: 140px;
+  margin-right: 2px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.rfv-matrix-cell:last-child {
+  margin-right: 0;
+}
+
+.rfv-matrix-cell:hover {
+  transform: scale(1.02);
+  z-index: 10;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.rfv-cell-percentage {
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.rfv-cell-name {
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Axis Labels */
+.rfv-axis-labels {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.rfv-y-axis {
+  position: absolute;
+  left: -30px;
+  top: 20px;
+  bottom: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rfv-y-axis span {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.rfv-x-axis {
+  position: absolute;
+  bottom: -30px;
+  left: 20px;
+  right: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rfv-x-axis span {
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.rfv-axis-description {
+  position: absolute;
+  bottom: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+}
+
+
+/* Treemap Section */
+.rfv-treemap-section {
+  margin-top: 40px;
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 30px;
+  border: 1px solid var(--border-color);
+}
+
+.rfv-treemap-title {
+  color: var(--text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.rfv-treemap {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(4, 100px);
+  gap: 6px;
+  height: 420px;
+}
+
+/* Treemap Items */
+.treemap-item {
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.treemap-item:hover {
+  transform: scale(1.02);
+  z-index: 10;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.treemap-item.large {
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.treemap-item.medium {
+  grid-column: span 2;
+  grid-row: span 1;
+}
+
+.treemap-item.small {
+  grid-column: span 1;
+  grid-row: span 2;
+}
+
+.treemap-item.xsmall {
+  grid-column: span 1;
+  grid-row: span 1;
+}
+
+.treemap-percentage {
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+.treemap-name {
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  margin-bottom: 2px;
+}
+
+.treemap-count {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 10px;
+  font-weight: 500;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
+/* Ajustes para large items */
+.treemap-item.large .treemap-percentage {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.treemap-item.large .treemap-name {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.treemap-item.large .treemap-count {
+  font-size: 12px;
+}
+
+/* Ajustes para medium items */
+.treemap-item.medium .treemap-percentage {
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.treemap-item.medium .treemap-name {
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+.treemap-item.medium .treemap-count {
+  font-size: 11px;
+}
+
+/* Ajustes para small items */
+.treemap-item.small .treemap-percentage {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.treemap-item.small .treemap-name {
+  font-size: 11px;
+  margin-bottom: 2px;
+}
+
+.treemap-item.small .treemap-count {
+  font-size: 9px;
+}
+
+/* Ajustes para xsmall items */
+.treemap-item.xsmall .treemap-percentage {
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.treemap-item.xsmall .treemap-name {
+  font-size: 10px;
+  line-height: 1.1;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .rfv-top-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .rfv-matrix-cell {
+    height: 100px;
+  }
+
+  .rfv-cell-percentage {
+    font-size: 16px;
+  }
+
+  .rfv-cell-name {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 768px) {
+  .rfv-top-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .rfv-matrix-cell {
+    height: 80px;
+  }
+
+  .rfv-cell-percentage {
+    font-size: 14px;
+  }
+
+  .rfv-cell-name {
+    font-size: 10px;
+  }
+
+  .rfv-chart-bars {
+    height: 160px;
+  }
+
+  .bar {
+    width: 30px;
+  }
+
+  .rfv-card-value {
+    font-size: 36px;
+  }
+
+  .rfv-treemap {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(5, 70px);
+    height: 370px;
+  }
+}
+
+@media (max-width: 480px) {
+  .rfv-matrix-cell {
+    height: 60px;
+  }
+
+  .rfv-cell-percentage {
+    font-size: 12px;
+  }
+
+  .rfv-cell-name {
+    font-size: 9px;
+  }
+
+  .rfv-chart-bars {
+    height: 120px;
+  }
+
+  .bar {
+    width: 24px;
+  }
+
+  .rfv-card-value {
+    font-size: 28px;
+  }
+
+  .rfv-treemap {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(8, 60px);
+    height: 500px;
+  }
+
+  .treemap-item.large,
+  .treemap-item.medium,
+  .treemap-item.small {
+    grid-column: span 1;
+    grid-row: span 1;
+  }
+
+  .rfv-treemap-section {
+    margin-top: 20px;
+    padding: 16px;
+  }
+}
+
+/* Dark Mode Support */
+.rfv-metric-card.dark {
+    --card-background: #171e31;
+    --text-color: #ffffff;
+    --text-secondary: #b0b0b0;
+    --border-color: #334155;
+}
+
+/* Metric Value Styling */
+.rfv-metric-value {
+    font-size: 1.2em;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 5px;
+    line-height: 1.2;
+}

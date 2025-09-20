@@ -192,9 +192,14 @@ const getOrigemRankingFaturamento = async (startDate, endDate, selectedFunnel, s
     // Construir filtros
     const filters = buildFilters(selectedFunnel, selectedUnit, selectedSeller);
 
+    // Tratamento de datas vazias - usar hoje se não fornecidas
+    const hoje = new Date().toISOString().split('T')[0];
+    const dataInicioFinal = startDate || hoje;
+    const dataFimFinal = endDate || hoje;
+
     // Formatar datas
-    const dataInicio = `${startDate}T00:00:00-03:00`;
-    const dataFim = `${endDate}T23:59:59-03:00`;
+    const dataInicio = `${dataInicioFinal}T00:00:00-03:00`;
+    const dataFim = `${dataFimFinal}T23:59:59-03:00`;
 
     // Buscar oportunidades ganhas no período com valor
     const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=origem_oportunidade,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${filters}`;
@@ -235,9 +240,14 @@ const getOrigemRankingQuantidade = async (startDate, endDate, selectedFunnel, se
     // Construir filtros
     const filters = buildFilters(selectedFunnel, selectedUnit, selectedSeller);
 
+    // Tratamento de datas vazias - usar hoje se não fornecidas
+    const hoje = new Date().toISOString().split('T')[0];
+    const dataInicioFinal = startDate || hoje;
+    const dataFimFinal = endDate || hoje;
+
     // Formatar datas
-    const dataInicio = `${startDate}T00:00:00-03:00`;
-    const dataFim = `${endDate}T23:59:59-03:00`;
+    const dataInicio = `${dataInicioFinal}T00:00:00-03:00`;
+    const dataFim = `${dataFimFinal}T23:59:59-03:00`;
 
     // Buscar oportunidades criadas no período
     const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=origem_oportunidade,value&archived=eq.0&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${filters}`;
@@ -278,9 +288,14 @@ const getOrigemRankingPerdas = async (startDate, endDate, selectedFunnel, select
     // Construir filtros
     const filters = buildFilters(selectedFunnel, selectedUnit, selectedSeller);
 
+    // Tratamento de datas vazias - usar hoje se não fornecidas
+    const hoje = new Date().toISOString().split('T')[0];
+    const dataInicioFinal = startDate || hoje;
+    const dataFimFinal = endDate || hoje;
+
     // Formatar datas
-    const dataInicio = `${startDate}T00:00:00-03:00`;
-    const dataFim = `${endDate}T23:59:59-03:00`;
+    const dataInicio = `${dataInicioFinal}T00:00:00-03:00`;
+    const dataFim = `${dataFimFinal}T23:59:59-03:00`;
 
     // Buscar oportunidades perdidas no período
     const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=origem_oportunidade,value&archived=eq.0&status=eq.lost&create_date=gte.${dataInicio}&create_date=lte.${dataFim}${filters}`;

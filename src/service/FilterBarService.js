@@ -66,7 +66,7 @@ export const getFunisPorUnidade = async (unidadeId = null) => {
   try {
     console.log('🔍 Buscando funis para unidade:', unidadeId)
     
-    let url = `${supabaseUrl}/rest/v1/funis?select=id_funil_sprint,nome_funil,unidade&order=nome_funil.asc`
+    let url = `${supabaseUrl}/rest/v1/funis?select=id_funil_sprint,nome_funil,unidade,tipo_funil&order=nome_funil.asc`
     
     // Se uma unidade específica foi selecionada, filtrar por ela
     if (unidadeId && unidadeId !== 'all') {
@@ -188,5 +188,40 @@ export const getOrigens = async () => {
   } catch (error) {
     console.error('❌ Erro ao buscar origens:', error)
     return [{ id: 'all', name: 'Todas as origens', origem: 'all' }]
+  }
+}
+
+// 🎯 Função para buscar funil de compra de uma unidade específica
+export const getFunilCompraPorUnidade = async (unidadeId) => {
+  try {
+    console.log('🔍 Buscando funil de compra para unidade:', unidadeId)
+
+    const url = `${supabaseUrl}/rest/v1/funis?select=id_funil_sprint,nome_funil,unidade,tipo_funil&unidade=eq.${unidadeId}&tipo_funil=eq.compra`
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+        'Content-Profile': supabaseSchema
+      }
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ Erro HTTP:', response.status, errorText)
+      throw new Error(`Erro HTTP ${response.status}: ${errorText}`)
+    }
+
+    const data = await response.json()
+
+    console.log('✅ Funil de compra encontrado:', data?.[0] || 'nenhum')
+
+    return data?.[0] || null
+  } catch (error) {
+    console.error('❌ Erro ao buscar funil de compra:', error)
+    return null
   }
 }

@@ -1126,9 +1126,10 @@
 
 .chart-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   margin-bottom: 24px;
+  gap: 16px; /* Espaço entre o título e período */
 }
 
 .chart-header h3 {

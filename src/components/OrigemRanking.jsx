@@ -68,6 +68,40 @@ const OrigemRanking = ({
         perdas: perdasResult.data?.length || 0
       });
 
+      // Se não encontrou dados, tentar com período expandido (últimos 30 dias)
+      const hasData = (faturamentoResult.data?.length || 0) > 0 ||
+                     (quantidadeResult.data?.length || 0) > 0 ||
+                     (perdasResult.data?.length || 0) > 0;
+
+      if (!hasData) {
+        console.log('⚠️ OrigemRanking: Nenhum dado encontrado, expandindo período para 30 dias...');
+
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const expandedStartDate = thirtyDaysAgo.toISOString().split('T')[0];
+        const expandedEndDate = today.toISOString().split('T')[0];
+
+        const [expandedFaturamentoResult, expandedQuantidadeResult, expandedPerdasResult] = await Promise.all([
+          origemRankingService.getOrigemRankingFaturamento(expandedStartDate, expandedEndDate, selectedFunnel, selectedUnit, selectedSeller),
+          origemRankingService.getOrigemRankingQuantidade(expandedStartDate, expandedEndDate, selectedFunnel, selectedUnit, selectedSeller),
+          origemRankingService.getOrigemRankingPerdas(expandedStartDate, expandedEndDate, selectedFunnel, selectedUnit, selectedSeller)
+        ]);
+
+        console.log('🔄 OrigemRanking: Tentativa com período expandido:', {
+          faturamento: expandedFaturamentoResult.data?.length || 0,
+          quantidade: expandedQuantidadeResult.data?.length || 0,
+          perdas: expandedPerdasResult.data?.length || 0
+        });
+
+        setData({
+          faturamento: expandedFaturamentoResult.success ? expandedFaturamentoResult.data : [],
+          quantidade: expandedQuantidadeResult.success ? expandedQuantidadeResult.data : [],
+          perdas: expandedPerdasResult.success ? expandedPerdasResult.data : []
+        });
+      }
+
     } catch (err) {
       console.error('❌ Erro ao carregar dados do OrigemRanking:', err);
       setError(err.message || 'Erro ao carregar dados');

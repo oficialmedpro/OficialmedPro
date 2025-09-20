@@ -12,7 +12,7 @@ const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
  */
 
 // 🎯 FUNÇÃO PARA BUSCAR DADOS DAS MÉTRICAS PRINCIPAIS
-export const getThermometerMetrics = async (startDate = null, endDate = null, selectedFunnel = null, selectedUnit = null, selectedSeller = null) => {
+export const getThermometerMetrics = async (startDate = null, endDate = null, selectedFunnel = null, selectedUnit = null, selectedSeller = null, selectedOrigin = null) => {
   try {
     console.log('='.repeat(80));
     console.log('🌡️ ThermometerService: INICIANDO BUSCA DE MÉTRICAS');

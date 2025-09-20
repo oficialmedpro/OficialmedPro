@@ -1,7 +1,7 @@
 /* MetricsSidebar Component Styles */
 
 .ms-users-sidebar {
-  width: 320px;
+  width: 100%; /* Ocupar toda a largura disponível */
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -15,6 +15,7 @@
 
 .ms-users-header {
   margin-bottom: 20px;
+  text-align: center; /* Centralizar o header */
 }
 
 .ms-users-header h3 {
@@ -22,15 +23,18 @@
   font-size: 18px;
   font-weight: 600;
   margin: 0;
+  text-align: center; /* Centralizar o texto do h3 */
 }
 
 .ms-financial-metrics-new {
   display: flex;
-  flex-direction: column;
+  flex-direction: row; /* Lado a lado */
   gap: 16px;
+  width: 100%;
 }
 
 .ms-metric-card {
+  flex: 1; /* Cada card ocupa 50% da largura */
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -408,47 +412,21 @@
     border-top: 1px solid var(--border-color);
     border-radius: 12px;
   }
-  
+
   .ms-financial-metrics-new {
-    flex-direction: row;
-    overflow-x: auto;
+    flex-direction: column; /* Em mobile, voltar para coluna */
+    overflow-x: visible;
     padding-bottom: 16px;
   }
-  
+
   .ms-metric-card {
-    min-width: 280px;
-    flex-shrink: 0;
+    flex: none; /* Remover flex em mobile */
+    min-width: auto;
+    width: 100%;
   }
 }
 
-@media (max-width: 768px) {
-  .ms-users-sidebar {
-    padding: 16px;
-  }
-  
-  .ms-metric-card {
-    padding: 12px;
-  }
-  
-  .ms-platform-icon {
-    width: 28px;
-    height: 28px;
-    font-size: 14px;
-  }
-  
-  .ms-metric-value {
-    font-size: 14px;
-  }
-  
-  .ms-financial-metrics-new {
-    flex-direction: column;
-    overflow-x: visible;
-  }
-  
-  .ms-metric-card {
-    min-width: auto;
-  }
-}
+/* Media queries já definido acima, removendo duplicata */
 
 @media (max-width: 768px) {
   .ms-meta-filters {

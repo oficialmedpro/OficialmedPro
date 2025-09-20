@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './FilterBar.css';
-import { getUnidades, getFunisPorUnidade, getVendedores, getOrigens } from '../service/FilterBarService.js';
+import { getUnidades, getFunisPorUnidade, getVendedores, getOrigens, getFunilCompraPorUnidade } from '../service/FilterBarService.js';
 import { handleDatePreset } from '../utils/utils.js';
 
 const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSelectedPeriod, selectedFunnel, setSelectedFunnel, selectedUnit, setSelectedUnit, selectedOrigin, setSelectedOrigin, startDate, setStartDate, endDate, setEndDate, onUnitFilterChange, onSellerFilterChange, onOriginFilterChange, marketData, onSellerNameChange }) => {
@@ -226,6 +226,26 @@ const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSe
         // Chama o callback do componente pai para aplicar o filtro
         onUnitFilterChange(filterValue);
       }
+    }
+
+    // 🎯 Seleção automática do funil de compra quando uma unidade específica é selecionada
+    if (unitId && unitId !== 'all') {
+      try {
+        console.log('🔍 FilterBar: Buscando funil de compra para unidade:', unitId);
+        const funilCompra = await getFunilCompraPorUnidade(unitId);
+
+        if (funilCompra) {
+          console.log('✅ FilterBar: Funil de compra encontrado:', funilCompra.nome_funil, 'ID:', funilCompra.id_funil_sprint);
+          setSelectedFunnel(funilCompra.id_funil_sprint.toString());
+        } else {
+          console.log('⚠️ FilterBar: Nenhum funil de compra encontrado para unidade:', unitId);
+        }
+      } catch (error) {
+        console.error('❌ FilterBar: Erro ao buscar funil de compra:', error);
+      }
+    } else if (unitId === 'all') {
+      // Se selecionar "Todas as Unidades", voltar para "Todos os Funis"
+      setSelectedFunnel('all');
     }
 
     // 🎯 ATUALIZAR FUNIS BASEADO NA UNIDADE SELECIONADA

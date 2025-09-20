@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import DashboardPage from './pages/DashboardPage'
+import PerformanceDiariaPage from './pages/PerformanceDiariaPage'
+import RankingDePerformancePage from './pages/RankingDePerformancePage'
+import MatrizRFVPage from './pages/MatrizRFVPage'
 import DashboardMetaAds from './pages/DashboardMetaAds'
 import DashboardGoogleAds from './pages/DashboardGoogleAds'
 import DailyPerformanceDebugPage from './pages/DailyPerformanceDebugPage'
@@ -96,6 +99,9 @@ function App() {
         <Route path="/" element={<DashboardPage onLogout={handleLogout} />} />
         <Route path="/dashboard" element={<DashboardPage onLogout={handleLogout} />} />
         <Route path="/analise-funil" element={<DashboardPage onLogout={handleLogout} />} />
+        <Route path="/performance-diaria" element={<PerformanceDiariaPage onLogout={handleLogout} />} />
+        <Route path="/ranking-de-performance" element={<RankingDePerformancePage onLogout={handleLogout} />} />
+        <Route path="/matriz-rfv" element={<MatrizRFVPage onLogout={handleLogout} />} />
         <Route path="/meta-ads" element={<DashboardMetaAds onLogout={handleLogout} />} />
         <Route path="/google-ads" element={<DashboardGoogleAds onLogout={handleLogout} />} />
         <Route path="/debug-daily-performance" element={<DailyPerformanceDebugPage onLogout={handleLogout} />} />

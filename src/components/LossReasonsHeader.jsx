@@ -64,6 +64,40 @@ const LossReasonsHeader = ({
         byStage: stageResult.data?.length || 0
       });
 
+      // Se não encontrou dados, tentar com período expandido (últimos 30 dias)
+      const hasData = (generalResult.data?.length || 0) > 0 ||
+                     (funnelResult.data?.length || 0) > 0 ||
+                     (stageResult.data?.length || 0) > 0;
+
+      if (!hasData) {
+        console.log('⚠️ LossReasonsHeader: Nenhum dado encontrado, expandindo período para 30 dias...');
+
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const expandedStartDate = thirtyDaysAgo.toISOString().split('T')[0];
+        const expandedEndDate = today.toISOString().split('T')[0];
+
+        const [expandedGeneralResult, expandedFunnelResult, expandedStageResult] = await Promise.all([
+          lossReasonsService.getLossReasonsGeneral(expandedStartDate, expandedEndDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin),
+          lossReasonsService.getLossReasonsByFunnel(expandedStartDate, expandedEndDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin),
+          lossReasonsService.getLossReasonsByStage(expandedStartDate, expandedEndDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin)
+        ]);
+
+        console.log('🔄 LossReasonsHeader: Tentativa com período expandido:', {
+          general: expandedGeneralResult.data?.length || 0,
+          byFunnel: expandedFunnelResult.data?.length || 0,
+          byStage: expandedStageResult.data?.length || 0
+        });
+
+        setData({
+          general: expandedGeneralResult.success ? expandedGeneralResult.data : [],
+          byFunnel: expandedFunnelResult.success ? expandedFunnelResult.data : [],
+          byStage: expandedStageResult.success ? expandedStageResult.data : []
+        });
+      }
+
     } catch (err) {
       console.error('❌ Erro ao carregar dados do LossReasonsHeader:', err);
       setError(err.message || 'Erro ao carregar dados');
