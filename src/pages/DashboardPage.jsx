@@ -426,19 +426,31 @@ const DashboardPage = ({ onLogout }) => {
             </section>
           )}
 
-          {/* Metrics Sidebar - Componente que contém GoogleInvestimentoCard e MetaInvestimentoCard */}
-          <section className="metrics-sidebar-section">
-            <MetricsSidebar
-              formatCurrency={formatCurrencyLocal}
-              t={t}
-              selectedPeriod={selectedPeriod}
-              startDate={startDate}
-              endDate={endDate}
-              selectedUnit={selectedUnit}
-              selectedFunnel={selectedFunnel}
-              selectedSeller={selectedSeller}
-            />
-          </section>
+          {/* Metrics Sidebar - Aparece apenas quando chart-section estiver visível */}
+          {(() => {
+            const currentPath = window.location.pathname;
+            const isAnalisisFunilPage = currentPath === '/analise-funil';
+
+            // Mesma lógica que determina se chart-section aparece
+            const shouldShowMetrics = isAnalisisFunilPage
+              ? (selectedUnit && selectedUnit !== 'all')
+              : (selectedUnit && selectedUnit !== 'all' && selectedFunnel && selectedFunnel !== 'all');
+
+            return shouldShowMetrics;
+          })() && (
+            <section className="metrics-sidebar-section">
+              <MetricsSidebar
+                formatCurrency={formatCurrencyLocal}
+                t={t}
+                selectedPeriod={selectedPeriod}
+                startDate={startDate}
+                endDate={endDate}
+                selectedUnit={selectedUnit}
+                selectedFunnel={selectedFunnel}
+                selectedSeller={selectedSeller}
+              />
+            </section>
+          )}
 
       </main>
 
