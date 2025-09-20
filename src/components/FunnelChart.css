@@ -12,8 +12,8 @@
 /* =================== SOURCES BAR =================== */
 .fc-sources-bar {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  flex-wrap: nowrap; /* Não quebrar linha */
+  justify-content: stretch; /* Esticar itens */
   gap: 5px;
   margin-bottom: 24px;
   width: 100%;
@@ -29,6 +29,7 @@
   align-items: center;
   gap: 4px;
   min-width: 80px;
+  flex: 1; /* Cada item ocupa espaço igual disponível */
 }
 
 .fc-source-item.total {
@@ -805,6 +806,17 @@
   
   .fc-conversao-item {
     font-size: 12px;
+  }
+
+  /* Sources bar responsivo em mobile */
+  .fc-sources-bar {
+    flex-wrap: wrap; /* Permitir quebra de linha em mobile */
+    justify-content: center;
+  }
+
+  .fc-source-item {
+    flex: none; /* Remover flex em mobile */
+    min-width: 45%; /* Cada item ocupa quase metade em mobile */
   }
 }
 

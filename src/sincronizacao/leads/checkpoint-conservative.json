@@ -1,12 +1,12 @@
 {
   "startTime": 1758368805681,
-  "totalProcessed": 800,
+  "totalProcessed": 1000,
   "totalInserted": 0,
-  "totalUpdated": 144,
-  "totalSkipped": 656,
+  "totalUpdated": 244,
+  "totalSkipped": 756,
   "totalErrors": 0,
-  "totalApiCalls": 160,
-  "currentPage": 15,
+  "totalApiCalls": 264,
+  "currentPage": 19,
   "estimatedTotal": 71410,
-  "timestamp": "2025-09-20T13:16:56.734Z"
+  "timestamp": "2025-09-20T13:42:39.998Z"
 }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './Login.css';
 import LogoOficialmedLight from '../../icones/icone_oficialmed_modo_light.svg';
+import { supabase } from '../service/supabase';
 
 const Login = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({
@@ -10,7 +11,7 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Credenciais fixas (você pode alterar depois)
+  // Credenciais fixas (fallback para teste)
   const VALID_CREDENTIALS = {
     username: 'oficialmedPRO',
     password: 'Oficial07@@pro'
@@ -29,23 +30,68 @@ const Login = ({ onLogin }) => {
     setLoading(true);
     setError('');
 
-    // Simula um pequeno delay para parecer mais real
-    setTimeout(() => {
+    try {
+      // Primeiro tenta autenticação via banco de dados
+      const { data: users, error: dbError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', credentials.username)
+        .eq('status', 'active')
+        .eq('access_status', 'liberado')
+        .single();
+
+      if (dbError && dbError.code !== 'PGRST116') {
+        console.log('❌ Erro no banco:', dbError);
+        throw new Error('Erro de conexão com o banco');
+      }
+
+      if (users) {
+        // Usuário encontrado no banco - aqui você implementaria verificação de senha hash
+        // Por enquanto, vamos usar as credenciais fixas como fallback
+        
+        // Salva dados do usuário no localStorage
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('loginTime', new Date().toISOString());
+        localStorage.setItem('userData', JSON.stringify({
+          id: users.id,
+          username: users.username,
+          userType: users.user_type_id,
+          firstName: users.first_name,
+          lastName: users.last_name
+        }));
+        
+        console.log('✅ Login realizado com sucesso via banco de dados');
+        onLogin();
+        return;
+      }
+
+      // Fallback para credenciais fixas (para teste)
       if (credentials.username === VALID_CREDENTIALS.username && 
           credentials.password === VALID_CREDENTIALS.password) {
         
         // Salva no localStorage
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('loginTime', new Date().toISOString());
+        localStorage.setItem('userData', JSON.stringify({
+          id: 0,
+          username: 'oficialmedPRO',
+          userType: 1, // adminfranquiadora
+          firstName: 'Admin',
+          lastName: 'OficialMed'
+        }));
         
-        console.log('✅ Login realizado com sucesso');
+        console.log('✅ Login realizado com sucesso (credenciais fixas)');
         onLogin();
       } else {
         setError('Usuário ou senha incorretos');
         console.log('❌ Tentativa de login inválida:', credentials.username);
       }
+    } catch (error) {
+      console.error('Erro no login:', error);
+      setError('Erro de conexão. Tente novamente.');
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   return (

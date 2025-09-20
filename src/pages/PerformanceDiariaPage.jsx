@@ -33,7 +33,7 @@ const PerformanceDiariaPage = ({ onLogout }) => {
   const [selectedSellerName, setSelectedSellerName] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState('today');
   const [selectedFunnel, setSelectedFunnel] = useState('all');
-  const [selectedUnit, setSelectedUnit] = useState('1');
+  const [selectedUnit, setSelectedUnit] = useState('[1]');
   const [selectedOrigin, setSelectedOrigin] = useState('all');
   const [unitFilterValue, setUnitFilterValue] = useState(null); // Novo estado para o valor do filtro
   const [statusFilterValue, setStatusFilterValue] = useState(null); // Novo estado para o filtro de status
@@ -316,7 +316,7 @@ const PerformanceDiariaPage = ({ onLogout }) => {
             startDate={startDate}
             endDate={endDate}
             selectedFunnel={selectedFunnel}
-            selectedUnit="1"
+            selectedUnit="[1]"
             selectedSeller={selectedSeller}
             selectedSellerName={selectedSellerName}
             selectedOrigin={selectedOrigin}
