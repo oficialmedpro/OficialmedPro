@@ -98,6 +98,7 @@ const Sidebar = ({
       subItems: [
         { icon: 'funil-compra', label: 'Análise de Funil', path: '/analise-funil', active: false },
         { icon: 'funil-compra', label: 'Performance Diária', path: '/performance-diaria', active: false },
+        { icon: 'funil-compra', label: 'Performance por Ronda', path: '/performance-ronda', active: false },
         { icon: 'funil-compra', label: 'Ranking de Performance', path: '/ranking-de-performance', active: false },
         { icon: 'funil-compra', label: 'Matriz RFV', path: '/matriz-rfv', active: false },
         { icon: 'dashboard-meta', label: 'Dashboard MetaAds', active: false },
