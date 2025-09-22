@@ -197,172 +197,107 @@ export const getPerformanceDataByRondaHorario = async (params) => {
         data: startDate
       });
 
-      // AGORA A BUSCA REAL COM FILTRO DE HORÁRIO
-      let query = `oportunidade_sprint?select=id,value,create_date,status,gain_date&archived=eq.0`;
+      // BUSCA 1: LEADS - Filtrar por create_date
+      console.log(`🎯 LEADS REALIZADO: Buscando oportunidades por create_date para ronda ${nome}`);
 
-      console.log(`🎯 LEADS REALIZADO: Buscando oportunidades para ronda ${nome}`);
-      console.log(`🎯 DADOS DA RONDA:`, { nome, hora_inicio, hora_fim });
-      console.log(`🎯 PARÂMETROS:`, { startDate, endDate });
+      let leadsQuery = `oportunidade_sprint?select=id,create_date&archived=eq.0`;
 
-      // USAR FORMATO EXATO QUE FUNCIONOU NO TESTE MANUAL
+      // Aplicar filtro de horário baseado em create_date
       if (hora_inicio && hora_fim && startDate) {
-        // Formato EXATO do teste que funcionou: '2025-09-22T08:00:00'
         const dataInicio = `${startDate}T${hora_inicio}`;
         const dataFim = `${startDate}T${hora_fim}`;
-
-        query += `&create_date=gte.${dataInicio}&create_date=lt.${dataFim}`;
-
-        console.log(`🎯 FORMATO EXATO DO TESTE MANUAL:`);
-        console.log(`   - Início: ${dataInicio}`);
-        console.log(`   - Fim: ${dataFim}`);
-        console.log(`   - Query: ${query}`);
-
-        // Adicionar ao debug
-        debugInfo[debugInfo.length - 1].formatoUsado = `${dataInicio} a ${dataFim}`;
-        debugInfo[debugInfo.length - 1].problemaResolvido = "Formato exato do teste manual!";
-
-        // TESTE ADICIONAL: Ver se há dados em uma faixa maior
-        if (nome === '10') {
-          // Para a ronda 10 (8h-10h), testar uma busca mais ampla
-          let queryTeste = `oportunidade_sprint?select=create_date&archived=eq.0&create_date=gte.${startDate}T07:00:00&create_date=lt.${startDate}T11:00:00`;
-
-          const responseTeste = await fetch(`${supabaseUrl}/rest/v1/${queryTeste}`, {
-            method: 'GET',
-            headers: {
-              'Accept': 'application/json',
-              'Authorization': `Bearer ${supabaseServiceKey}`,
-              'apikey': supabaseServiceKey,
-              'Accept-Profile': 'api',
-              'Content-Profile': 'api'
-            }
-          });
-
-          if (responseTeste.ok) {
-            const dataTeste = await responseTeste.json();
-            console.log(`🧪 TESTE FAIXA AMPLA (7h-11h): ${dataTeste.length} registros`);
-            if (dataTeste.length > 0) {
-              const exemplos = dataTeste.slice(0, 5).map(d => d.create_date);
-              console.log(`📅 Primeiros horários encontrados:`, exemplos);
-
-              // Contar quantos estão na faixa de 8h-10h EXATA
-              const na8a10 = dataTeste.filter(d => {
-                const hora = new Date(d.create_date).getHours();
-                return hora >= 8 && hora < 10;
-              }).length;
-
-              console.log(`🎯 Na faixa 8h-10h (JavaScript): ${na8a10} registros`);
-              debugInfo[debugInfo.length - 1].na8a10JS = na8a10;
-              debugInfo[debugInfo.length - 1].exemploHorarios = exemplos;
-            }
-            debugInfo[debugInfo.length - 1].testeFaixaAmpla = dataTeste.length;
-          }
-        }
-      } else {
-        // Fallback: apenas filtro de data
-        if (startDate && endDate) {
-          query += `&create_date=gte.${startDate}T00:00:00&create_date=lte.${endDate}T23:59:59`;
-          console.log(`🎯 FILTRO DE DATA APLICADO: ${startDate} a ${endDate}`);
-        }
+        leadsQuery += `&create_date=gte.${dataInicio}&create_date=lt.${dataFim}`;
+      } else if (startDate && endDate) {
+        leadsQuery += `&create_date=gte.${startDate}T00:00:00&create_date=lte.${endDate}T23:59:59`;
       }
 
-      // FILTROS CORRIGIDOS
-      console.log(`🎯 APLICANDO FILTROS CORRIGIDOS`);
-      console.log(`   selectedFunnel: ${selectedFunnel}`);
-      console.log(`   selectedUnit: ${selectedUnit}`);
-      console.log(`   selectedSeller: ${selectedSeller}`);
-      console.log(`   selectedOrigin: ${selectedOrigin}`);
-
+      // Aplicar filtros gerais para leads
       if (selectedFunnel && selectedFunnel !== 'all') {
-        query += `&funil_id=eq.${selectedFunnel}`;
+        leadsQuery += `&funil_id=eq.${selectedFunnel}`;
       }
-
       if (selectedUnit && selectedUnit !== 'all') {
-        // CORREÇÃO: Manter o formato [1] como string, não remover os colchetes
-        query += `&unidade_id=eq.${selectedUnit}`;
-        console.log(`🔧 Filtro unidade corrigido: unidade_id = "${selectedUnit}"`);
+        leadsQuery += `&unidade_id=eq.${selectedUnit}`;
       }
-
       if (selectedSeller && selectedSeller !== 'all') {
-        query += `&user_id=eq.${selectedSeller}`;
+        leadsQuery += `&user_id=eq.${selectedSeller}`;
       }
-
       if (selectedOrigin && selectedOrigin !== 'all') {
-        query += `&origem_oportunidade=eq.${selectedOrigin}`;
+        leadsQuery += `&origem_oportunidade=eq.${selectedOrigin}`;
       }
 
-      console.log(`🎯 QUERY FINAL PARA RONDA ${nome}:`);
-      console.log(`   URL: ${supabaseUrl}/rest/v1/${query}`);
-      console.log(`   Schema: ${supabaseSchema}`);
-
-      // CONVERTER PARA SQL PARA TESTE NO SUPABASE
-      const sqlParaTeste = query
-        .replace('oportunidade_sprint?select=id,value,create_date,status,gain_date&', 'SELECT id, value, create_date, status, gain_date FROM api.oportunidade_sprint WHERE ')
-        .replace('archived=eq.0', 'archived = 0')
-        .replace(/&create_date=gte\.([^&]+)/g, ' AND create_date >= \'$1\'')
-        .replace(/&create_date=lt\.([^&]+)/g, ' AND create_date < \'$1\'')
-        .replace(/&funil_id=eq\.([^&]+)/g, ' AND funil_id = \'$1\'')
-        .replace(/&unidade_id=eq\.([^&]+)/g, ' AND unidade_id = \'$1\'')
-        .replace(/&user_id=eq\.([^&]+)/g, ' AND user_id = \'$1\'')
-        .replace(/&origem_oportunidade=eq\.([^&]+)/g, ' AND origem_oportunidade = \'$1\'')
-        + ' ORDER BY create_date;';
-
-      console.log(`🎯 SQL GERADO PELO CÓDIGO:`);
-      console.log(sqlParaTeste);
-
-      // Adicionar ao debug para mostrar na tela
-      debugInfo[debugInfo.length - 1].sqlGerado = sqlParaTeste;
-
-      const response = await fetch(`${supabaseUrl}/rest/v1/${query}`, {
+      const leadsResponse = await fetch(`${supabaseUrl}/rest/v1/${leadsQuery}`, {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
           'Authorization': `Bearer ${supabaseServiceKey}`,
           'apikey': supabaseServiceKey,
-          'Accept-Profile': 'api',  // FORÇAR schema api
-          'Content-Profile': 'api'  // FORÇAR schema api
+          'Accept-Profile': 'api',
+          'Content-Profile': 'api'
         }
       });
 
-      console.log(`🎯 STATUS RESPOSTA RONDA ${nome}:`, response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ ERRO na ronda ${nome}:`, response.status, errorText);
-        performanceData[nome] = {
-          leads: { realizado: 0, meta: 0, gap: 0 },
-          vendas: { realizado: 0, meta: 0, gap: 0 },
-          faturamento: { realizado: 0, meta: 0, gap: 0 },
-          conversao: { realizado: 0, meta: 0, gap: 0 },
-          ticketMedio: { realizado: 0, meta: 0, gap: 0 }
-        };
-        continue;
+      let leadsCount = 0;
+      if (leadsResponse.ok) {
+        const leadsData = await leadsResponse.json();
+        leadsCount = leadsData.length;
+        console.log(`🎯 LEADS ENCONTRADOS (create_date): ${leadsCount}`);
       }
 
-      const data = await response.json();
-      console.log(`🎯 DADOS RETORNADOS RONDA ${nome}:`, {
-        totalOportunidades: data.length,
-        primeiroRegistro: data[0] || 'nenhum',
-        ultimoRegistro: data[data.length - 1] || 'nenhum'
+      // BUSCA 2: VENDAS/FATURAMENTO - Filtrar por gain_date
+      console.log(`🎯 VENDAS/FATURAMENTO: Buscando oportunidades por gain_date para ronda ${nome}`);
+
+      let vendasQuery = `oportunidade_sprint?select=id,value,gain_date&archived=eq.0&status=eq.gain`;
+
+      // Aplicar filtro de horário baseado em gain_date
+      if (hora_inicio && hora_fim && startDate) {
+        const dataInicio = `${startDate}T${hora_inicio}`;
+        const dataFim = `${startDate}T${hora_fim}`;
+        vendasQuery += `&gain_date=gte.${dataInicio}&gain_date=lt.${dataFim}`;
+      } else if (startDate && endDate) {
+        vendasQuery += `&gain_date=gte.${startDate}T00:00:00&gain_date=lte.${endDate}T23:59:59`;
+      }
+
+      // Aplicar filtros gerais para vendas
+      if (selectedFunnel && selectedFunnel !== 'all') {
+        vendasQuery += `&funil_id=eq.${selectedFunnel}`;
+      }
+      if (selectedUnit && selectedUnit !== 'all') {
+        vendasQuery += `&unidade_id=eq.${selectedUnit}`;
+      }
+      if (selectedSeller && selectedSeller !== 'all') {
+        vendasQuery += `&user_id=eq.${selectedSeller}`;
+      }
+      if (selectedOrigin && selectedOrigin !== 'all') {
+        vendasQuery += `&origem_oportunidade=eq.${selectedOrigin}`;
+      }
+
+      const vendasResponse = await fetch(`${supabaseUrl}/rest/v1/${vendasQuery}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': 'api',
+          'Content-Profile': 'api'
+        }
       });
 
-      // CÁLCULO DO LEADS REALIZADO (LINHA 3, SEGUNDA COLUNA)
-      const leadsCount = data.length;
-      console.log(`🎯 LEADS REALIZADO CALCULADO: ${leadsCount} oportunidades`);
+      let vendasCount = 0;
+      let faturamentoTotal = 0;
 
-      // Atualizar debug info com resultado da query de horário
-      debugInfo[debugInfo.length - 1].resultadoHorario = leadsCount;
-
-      if (leadsCount !== 27 && nome === '10') {  // Se for a ronda 10 (8h às 10h)
-        console.log(`❌ PROBLEMA: Esperado 27 registros, mas retornou ${leadsCount}`);
-        console.log(`❌ Verificar se a query está sendo executada corretamente`);
-      } else if (leadsCount === 27 && nome === '10') {
-        console.log(`✅ SUCESSO: ${leadsCount} registros retornados conforme esperado!`);
+      if (vendasResponse.ok) {
+        const vendasData = await vendasResponse.json();
+        vendasCount = vendasData.length;
+        faturamentoTotal = vendasData.reduce((sum, opp) => sum + (parseFloat(opp.value) || 0), 0);
+        console.log(`🎯 VENDAS ENCONTRADAS (gain_date): ${vendasCount}`);
+        console.log(`🎯 FATURAMENTO CALCULADO: ${faturamentoTotal}`);
       }
 
-      const vendasCount = data.filter(opp => opp.status === 'gain').length;
-      const faturamentoTotal = data
-        .filter(opp => opp.status === 'gain')
-        .reduce((sum, opp) => sum + (parseFloat(opp.value) || 0), 0);
+      // Adicionar debug info
+      debugInfo[debugInfo.length - 1].leadsQuery = leadsQuery;
+      debugInfo[debugInfo.length - 1].vendasQuery = vendasQuery;
+      debugInfo[debugInfo.length - 1].leadsCount = leadsCount;
+      debugInfo[debugInfo.length - 1].vendasCount = vendasCount;
 
       const conversaoRate = leadsCount > 0 ? (vendasCount / leadsCount) * 100 : 0;
       const ticketMedio = vendasCount > 0 ? faturamentoTotal / vendasCount : 0;
@@ -426,9 +361,155 @@ export const getPerformanceDataByRondaHorario = async (params) => {
 
     console.log('✅ Dados de performance por ronda processados:', performanceData);
 
+    // BUSCAR DADOS TOTAIS DO DIA (mesma lógica da DailyPerformanceTable mas simplificada)
+    console.log('🎯 TOTAL DO DIA: Buscando dados totais do dia...');
+
+    // BUSCA TOTAL LEADS (usando create_date como DailyPerformanceTable)
+    let totalLeadsQuery = `oportunidade_sprint?select=id&archived=eq.0`;
+    if (startDate && endDate) {
+      totalLeadsQuery += `&create_date=gte.${startDate}T00:00:00&create_date=lte.${endDate}T23:59:59`;
+    }
+
+    // Aplicar filtros como no DailyPerformanceService
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      totalLeadsQuery += `&funil_id=eq.${selectedFunnel}`;
+    } else {
+      totalLeadsQuery += `&funil_id=in.(6,14)`;
+    }
+
+    if (selectedUnit && selectedUnit !== 'all' && selectedUnit !== '' && selectedUnit !== 'undefined') {
+      totalLeadsQuery += `&unidade_id=eq.${encodeURIComponent(selectedUnit)}`;
+    }
+
+    if (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined') {
+      totalLeadsQuery += `&user_id=eq.${selectedSeller}`;
+    }
+
+    if (selectedOrigin && selectedOrigin !== 'all' && selectedOrigin !== '' && selectedOrigin !== 'undefined') {
+      totalLeadsQuery += `&origem_oportunidade=eq.${selectedOrigin}`;
+    }
+
+    console.log('🎯 TOTAL LEADS Query:', totalLeadsQuery);
+
+    const totalLeadsResponse = await fetch(`${supabaseUrl}/rest/v1/${totalLeadsQuery}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    });
+
+    let totalLeadsCount = 0;
+    if (totalLeadsResponse.ok) {
+      const totalLeadsData = await totalLeadsResponse.json();
+      totalLeadsCount = totalLeadsData.length;
+      console.log(`🎯 TOTAL LEADS DIA: ${totalLeadsCount}`);
+    } else {
+      console.error('❌ Erro ao buscar total leads:', totalLeadsResponse.status);
+    }
+
+    // BUSCA TOTAL VENDAS/FATURAMENTO (usando gain_date como DailyPerformanceTable)
+    let totalVendasQuery = `oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain`;
+    if (startDate && endDate) {
+      totalVendasQuery += `&gain_date=gte.${startDate}T00:00:00&gain_date=lte.${endDate}T23:59:59`;
+    }
+
+    // Aplicar mesmos filtros
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      totalVendasQuery += `&funil_id=eq.${selectedFunnel}`;
+    } else {
+      totalVendasQuery += `&funil_id=in.(6,14)`;
+    }
+
+    if (selectedUnit && selectedUnit !== 'all' && selectedUnit !== '' && selectedUnit !== 'undefined') {
+      totalVendasQuery += `&unidade_id=eq.${encodeURIComponent(selectedUnit)}`;
+    }
+
+    if (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined') {
+      totalVendasQuery += `&user_id=eq.${selectedSeller}`;
+    }
+
+    if (selectedOrigin && selectedOrigin !== 'all' && selectedOrigin !== '' && selectedOrigin !== 'undefined') {
+      totalVendasQuery += `&origem_oportunidade=eq.${selectedOrigin}`;
+    }
+
+    console.log('🎯 TOTAL VENDAS Query:', totalVendasQuery);
+
+    const totalVendasResponse = await fetch(`${supabaseUrl}/rest/v1/${totalVendasQuery}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    });
+
+    let totalVendasCount = 0;
+    let totalFaturamentoTotal = 0;
+
+    if (totalVendasResponse.ok) {
+      const totalVendasData = await totalVendasResponse.json();
+      totalVendasCount = totalVendasData.length;
+      totalFaturamentoTotal = totalVendasData.reduce((sum, opp) => sum + (parseFloat(opp.value) || 0), 0);
+      console.log(`🎯 TOTAL VENDAS DIA: ${totalVendasCount}`);
+      console.log(`🎯 TOTAL FATURAMENTO DIA: ${totalFaturamentoTotal}`);
+    } else {
+      console.error('❌ Erro ao buscar total vendas:', totalVendasResponse.status);
+    }
+
+    // Calcular métricas totais
+    const totalConversaoRate = totalLeadsCount > 0 ? (totalVendasCount / totalLeadsCount) * 100 : 0;
+    const totalTicketMedio = totalVendasCount > 0 ? totalFaturamentoTotal / totalVendasCount : 0;
+
+    console.log(`🎯 MÉTRICAS TOTAIS DO DIA:`, {
+      'TOTAL LEADS': totalLeadsCount,
+      'TOTAL VENDAS': totalVendasCount,
+      'TOTAL FATURAMENTO': totalFaturamentoTotal,
+      'TOTAL CONVERSÃO': totalConversaoRate.toFixed(1) + '%',
+      'TOTAL TICKET MÉDIO': totalTicketMedio.toFixed(0)
+    });
+
+    // As metas da coluna Total devem ser iguais às do Fechamento
+    // Calcular dados de fechamento primeiro para usar as metas
+    const fechamento = calculateFechamentoData(performanceData);
+
+    const totalData = {
+      leads: {
+        realizado: totalLeadsCount,
+        meta: fechamento.leads.meta,
+        gap: totalLeadsCount - fechamento.leads.meta
+      },
+      vendas: {
+        realizado: totalVendasCount,
+        meta: fechamento.vendas.meta,
+        gap: totalVendasCount - fechamento.vendas.meta
+      },
+      faturamento: {
+        realizado: totalFaturamentoTotal,
+        meta: fechamento.faturamento.meta,
+        gap: totalFaturamentoTotal - fechamento.faturamento.meta
+      },
+      conversao: {
+        realizado: parseFloat(totalConversaoRate.toFixed(1)),
+        meta: fechamento.conversao.meta,
+        gap: parseFloat((totalConversaoRate - fechamento.conversao.meta).toFixed(1))
+      },
+      ticketMedio: {
+        realizado: parseFloat(totalTicketMedio.toFixed(0)),
+        meta: fechamento.ticketMedio.meta,
+        gap: parseFloat((totalTicketMedio - fechamento.ticketMedio.meta).toFixed(0))
+      }
+    };
+
     return {
       rondas: rondas,
       performanceData: performanceData,
+      totalData: totalData,  // Dados totais do dia
       debugInfo: debugInfo,  // Adicionar info de debug
       metasDebugInfo: metasDebugInfo  // Debug das metas
     };

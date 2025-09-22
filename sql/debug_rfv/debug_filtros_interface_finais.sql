@@ -126,11 +126,11 @@ WHERE archived = 0
     AND user_id IS NOT NULL
     AND user_id > 0;
 
--- 4. 📊 TESTAR COM FILTROS DE ORIGEM
--- Interface pode estar aplicando filtro de origem específica
+-- 4. 📊 VERIFICAR COLUNAS DISPONÍVEIS NA TABELA
+-- Vamos ver quais colunas realmente existem
 SELECT 
-    'Filtros de Origem' as tipo,
-    'Sem filtro origem' as filtro,
+    'Colunas Disponíveis' as tipo,
+    'Verificar estrutura' as filtro,
     COUNT(*) as total_oportunidades,
     COUNT(DISTINCT lead_id) as leads_unicos,
     SUM(value) as faturamento_total
@@ -141,32 +141,13 @@ WHERE archived = 0
     AND lead_id > 0
     AND gain_date >= '2025-01-01'
     AND gain_date <= '2025-12-31'
-    AND funil_id IN (6, 14)
-
-UNION ALL
-
-SELECT 
-    'Filtros de Origem' as tipo,
-    'Origem específica' as filtro,
-    COUNT(*) as total_oportunidades,
-    COUNT(DISTINCT lead_id) as leads_unicos,
-    SUM(value) as faturamento_total
-FROM api.oportunidade_sprint
-WHERE archived = 0
-    AND status = 'gain'
-    AND lead_id IS NOT NULL
-    AND lead_id > 0
-    AND gain_date >= '2025-01-01'
-    AND gain_date <= '2025-12-31'
-    AND funil_id IN (6, 14)
-    AND origin_id IS NOT NULL
-    AND origin_id > 0;
+    AND funil_id IN (6, 14);
 
 -- 5. 📊 TESTAR COM COMBINAÇÃO DE FILTROS
 -- Interface pode estar usando combinação de filtros
 SELECT 
     'Combinação de Filtros' as tipo,
-    'Funil 6,14 + Unidade + Vendedor + Origem' as filtro,
+    'Funil 6,14 + Unidade + Vendedor' as filtro,
     COUNT(*) as total_oportunidades,
     COUNT(DISTINCT lead_id) as leads_unicos,
     SUM(value) as faturamento_total
@@ -181,6 +162,4 @@ WHERE archived = 0
     AND unidade_id IS NOT NULL
     AND unidade_id != ''
     AND user_id IS NOT NULL
-    AND user_id > 0
-    AND origin_id IS NOT NULL
-    AND origin_id > 0;
+    AND user_id > 0;

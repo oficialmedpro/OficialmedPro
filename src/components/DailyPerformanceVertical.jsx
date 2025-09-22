@@ -21,6 +21,7 @@ const DailyPerformanceVertical = ({
   const [rondas, setRondas] = useState([]);
   const [performanceData, setPerformanceData] = useState({});
   const [fechamentoData, setFechamentoData] = useState({});
+  const [totalData, setTotalData] = useState({});
   const [loading, setLoading] = useState(true);
   const [debugInfo, setDebugInfo] = useState([]);
   const [metasDebugInfo, setMetasDebugInfo] = useState({});
@@ -44,10 +45,11 @@ const DailyPerformanceVertical = ({
         const data = await getPerformanceDataByRondaHorario(params);
         setRondas(data.rondas);
         setPerformanceData(data.performanceData);
+        setTotalData(data.totalData || {});  // Capturar dados totais do dia
         setDebugInfo(data.debugInfo || []);  // Capturar info de debug
         setMetasDebugInfo(data.metasDebugInfo || {});  // Capturar debug das metas
 
-        // Calcular dados de fechamento
+        // Calcular dados de fechamento (já calculado no service, mas precisa recalcular aqui por questões de sequência)
         const fechamento = calculateFechamentoData(data.performanceData);
         setFechamentoData(fechamento);
 
@@ -92,6 +94,34 @@ const DailyPerformanceVertical = ({
     const blue = 0;
 
     return `rgb(${red}, ${green}, ${blue})`;
+  };
+
+  // Função para obter classe CSS do gap (igual ao DailyPerformanceTable)
+  const getGapClass = (gap) => {
+    // Para gaps já formatados como string (faturamento, ticket médio, leads, vendas)
+    if (typeof gap === 'string') {
+      const trimmedGap = gap.trim();
+      if (trimmedGap.startsWith('+')) {
+        return 'gap-positive';
+      }
+      if (trimmedGap.startsWith('-') || trimmedGap.startsWith('−')) {
+        return 'gap-negative';
+      }
+      return 'gap-neutral';
+    }
+
+    // Para gaps numéricos (conversão)
+    if (typeof gap === 'number') {
+      if (gap > 0) {
+        return 'gap-positive';
+      }
+      if (gap < 0) {
+        return 'gap-negative';
+      }
+      return 'gap-neutral';
+    }
+
+    return 'gap-neutral';
   };
 
   // Função para calcular porcentagem do realizado em relação à meta
@@ -265,7 +295,41 @@ const DailyPerformanceVertical = ({
 
     const valor = performanceData[rondaNome][metrica][tipo];
 
-    // Formatação baseada na métrica
+    // Formatação especial para gaps
+    if (tipo === 'gap') {
+      if (metrica === 'faturamento' || metrica === 'ticketMedio') {
+        // Para faturamento e ticket médio, formatar como moeda com sinal
+        if (valor >= 0) {
+          return `+${new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 0
+          }).format(valor)}`;
+        } else {
+          return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 0
+          }).format(valor);
+        }
+      } else if (metrica === 'conversao') {
+        // Para conversão, formatar como percentual com sinal
+        if (valor >= 0) {
+          return `+${valor}%`;
+        } else {
+          return `${valor}%`;
+        }
+      } else {
+        // Para leads e vendas, formatar como número inteiro com sinal
+        if (valor >= 0) {
+          return `+${valor}`;
+        } else {
+          return `${valor}`;
+        }
+      }
+    }
+
+    // Formatação baseada na métrica (para realizado e meta)
     if (metrica === 'faturamento') {
       return new Intl.NumberFormat('pt-BR', {
         style: 'currency',
@@ -293,7 +357,103 @@ const DailyPerformanceVertical = ({
 
     const valor = fechamentoData[metrica][tipo];
 
-    // Formatação baseada na métrica
+    // Formatação especial para gaps
+    if (tipo === 'gap') {
+      if (metrica === 'faturamento' || metrica === 'ticketMedio') {
+        // Para faturamento e ticket médio, formatar como moeda com sinal
+        if (valor >= 0) {
+          return `+${new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 0
+          }).format(valor)}`;
+        } else {
+          return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 0
+          }).format(valor);
+        }
+      } else if (metrica === 'conversao') {
+        // Para conversão, formatar como percentual com sinal
+        if (valor >= 0) {
+          return `+${valor}%`;
+        } else {
+          return `${valor}%`;
+        }
+      } else {
+        // Para leads e vendas, formatar como número inteiro com sinal
+        if (valor >= 0) {
+          return `+${valor}`;
+        } else {
+          return `${valor}`;
+        }
+      }
+    }
+
+    // Formatação baseada na métrica (para realizado e meta)
+    if (metrica === 'faturamento') {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: 0
+      }).format(valor);
+    } else if (metrica === 'conversao') {
+      return `${valor}%`;
+    } else if (metrica === 'ticketMedio') {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL',
+        minimumFractionDigits: 0
+      }).format(valor);
+    }
+
+    return valor.toString();
+  };
+
+  // Função para obter valor da coluna Total
+  const getTotalValue = (metrica, tipo) => {
+    if (!totalData[metrica]) {
+      return '';
+    }
+
+    const valor = totalData[metrica][tipo];
+
+    // Formatação especial para gaps
+    if (tipo === 'gap') {
+      if (metrica === 'faturamento' || metrica === 'ticketMedio') {
+        // Para faturamento e ticket médio, formatar como moeda com sinal
+        if (valor >= 0) {
+          return `+${new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 0
+          }).format(valor)}`;
+        } else {
+          return new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL',
+            minimumFractionDigits: 0
+          }).format(valor);
+        }
+      } else if (metrica === 'conversao') {
+        // Para conversão, formatar como percentual com sinal
+        if (valor >= 0) {
+          return `+${valor}%`;
+        } else {
+          return `${valor}%`;
+        }
+      } else {
+        // Para leads e vendas, formatar como número inteiro com sinal
+        if (valor >= 0) {
+          return `+${valor}`;
+        } else {
+          return `${valor}`;
+        }
+      }
+    }
+
+    // Formatação baseada na métrica (para realizado e meta)
     if (metrica === 'faturamento') {
       return new Intl.NumberFormat('pt-BR', {
         style: 'currency',
@@ -366,6 +526,18 @@ const DailyPerformanceVertical = ({
                 >
                   Fechamento
                 </th>
+
+                {/* Coluna fixa: Total (azul) */}
+                <th
+                  className="total-column"
+                  style={{
+                    backgroundColor: '#007bff',
+                    color: '#ffffff',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Total
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -378,7 +550,10 @@ const DailyPerformanceVertical = ({
                   <td key={index} className="leads-cell" style={{background: '#263355', padding: '2px'}}></td>
                 ))}
 
-                {/* Coluna fixa: vazia */}
+                {/* Coluna fixa: Fechamento - vazia */}
+                <td className="leads-cell" style={{background: '#263355', padding: '2px'}}></td>
+
+                {/* Coluna fixa: Total - vazia */}
                 <td className="leads-cell" style={{background: '#263355', padding: '2px'}}></td>
               </tr>
 
@@ -419,6 +594,19 @@ const DailyPerformanceVertical = ({
                     <span>{getFechamentoValue('leads', 'realizado')}</span>
                   </div>
                 </td>
+
+                {/* Coluna fixa: Total */}
+                <td className="total-column">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <ProgressRing
+                      type="realizado"
+                      realizado={totalData.leads?.realizado || 0}
+                      meta={totalData.leads?.meta || 0}
+                      gap={totalData.leads?.gap || 0}
+                    />
+                    <span>{getTotalValue('leads', 'realizado')}</span>
+                  </div>
+                </td>
               </tr>
 
               <tr className="header-row">
@@ -436,6 +624,11 @@ const DailyPerformanceVertical = ({
                 <td className="fechamento-column">
                   {getFechamentoValue('leads', 'meta')}
                 </td>
+
+                {/* Coluna fixa: Total */}
+                <td className="total-column">
+                  {getTotalValue('leads', 'meta')}
+                </td>
               </tr>
 
               <tr className="header-row">
@@ -443,15 +636,23 @@ const DailyPerformanceVertical = ({
                 <th className="metrics-column" style={{background: 'rgb(38, 51, 85)', fontWeight: 400}}>Gap</th>
 
                 {/* Colunas dinâmicas: Rondas */}
-                {rondas.map((ronda, index) => (
-                  <td key={index} className="ronda-column">
-                    {getMetricValue(ronda.nome, 'leads', 'gap')}
-                  </td>
-                ))}
+                {rondas.map((ronda, index) => {
+                  const gapValue = getMetricValue(ronda.nome, 'leads', 'gap');
+                  return (
+                    <td key={index} className={`ronda-column gap-cell ${getGapClass(gapValue)}`}>
+                      {gapValue}
+                    </td>
+                  );
+                })}
 
                 {/* Coluna fixa: Fechamento */}
-                <td className="fechamento-column">
+                <td className={`fechamento-column gap-cell ${getGapClass(getFechamentoValue('leads', 'gap'))}`}>
                   {getFechamentoValue('leads', 'gap')}
+                </td>
+
+                {/* Coluna fixa: Total */}
+                <td className={`total-column gap-cell ${getGapClass(getTotalValue('leads', 'gap'))}`}>
+                  {getTotalValue('leads', 'gap')}
                 </td>
               </tr>
 
@@ -461,6 +662,7 @@ const DailyPerformanceVertical = ({
                 {rondas.map((ronda, index) => (
                   <td key={index} className="leads-cell" style={{background: '#254a36', padding: '2px'}}></td>
                 ))}
+                <td className="leads-cell" style={{background: '#254a36', padding: '2px'}}></td>
                 <td className="leads-cell" style={{background: '#254a36', padding: '2px'}}></td>
               </tr>
 
@@ -496,6 +698,18 @@ const DailyPerformanceVertical = ({
                     <span>{getFechamentoValue('vendas', 'realizado')}</span>
                   </div>
                 </td>
+
+                <td className="total-column">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <ProgressRing
+                      type="realizado"
+                      realizado={totalData.vendas?.realizado || 0}
+                      meta={totalData.vendas?.meta || 0}
+                      gap={totalData.vendas?.gap || 0}
+                    />
+                    <span>{getTotalValue('vendas', 'realizado')}</span>
+                  </div>
+                </td>
               </tr>
 
               <tr className="header-row">
@@ -508,17 +722,28 @@ const DailyPerformanceVertical = ({
                 <td className="fechamento-column">
                   {getFechamentoValue('vendas', 'meta')}
                 </td>
+
+                <td className="total-column">
+                  {getTotalValue('vendas', 'meta')}
+                </td>
               </tr>
 
               <tr className="header-row">
                 <th className="metrics-column" style={{background: '#254a36', fontWeight: 400}}>Gap</th>
-                {rondas.map((ronda, index) => (
-                  <td key={index} className="ronda-column">
-                    {getMetricValue(ronda.nome, 'vendas', 'gap')}
-                  </td>
-                ))}
-                <td className="fechamento-column">
+                {rondas.map((ronda, index) => {
+                  const gapValue = getMetricValue(ronda.nome, 'vendas', 'gap');
+                  return (
+                    <td key={index} className={`ronda-column gap-cell ${getGapClass(gapValue)}`}>
+                      {gapValue}
+                    </td>
+                  );
+                })}
+                <td className={`fechamento-column gap-cell ${getGapClass(getFechamentoValue('vendas', 'gap'))}`}>
                   {getFechamentoValue('vendas', 'gap')}
+                </td>
+
+                <td className={`total-column gap-cell ${getGapClass(getTotalValue('vendas', 'gap'))}`}>
+                  {getTotalValue('vendas', 'gap')}
                 </td>
               </tr>
 
@@ -528,6 +753,7 @@ const DailyPerformanceVertical = ({
                 {rondas.map((ronda, index) => (
                   <td key={index} className="leads-cell" style={{background: '#2d673e', padding: '2px'}}></td>
                 ))}
+                <td className="leads-cell" style={{background: '#2d673e', padding: '2px'}}></td>
                 <td className="leads-cell" style={{background: '#2d673e', padding: '2px'}}></td>
               </tr>
 
@@ -563,6 +789,18 @@ const DailyPerformanceVertical = ({
                     <span>{getFechamentoValue('faturamento', 'realizado')}</span>
                   </div>
                 </td>
+
+                <td className="total-column">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <ProgressRing
+                      type="realizado"
+                      realizado={totalData.faturamento?.realizado || 0}
+                      meta={totalData.faturamento?.meta || 0}
+                      gap={totalData.faturamento?.gap || 0}
+                    />
+                    <span>{getTotalValue('faturamento', 'realizado')}</span>
+                  </div>
+                </td>
               </tr>
 
               <tr className="header-row">
@@ -575,17 +813,28 @@ const DailyPerformanceVertical = ({
                 <td className="fechamento-column">
                   {getFechamentoValue('faturamento', 'meta')}
                 </td>
+
+                <td className="total-column">
+                  {getTotalValue('faturamento', 'meta')}
+                </td>
               </tr>
 
               <tr className="header-row">
                 <th className="metrics-column" style={{background: '#2d673e', fontWeight: 400}}>Gap</th>
-                {rondas.map((ronda, index) => (
-                  <td key={index} className="ronda-column">
-                    {getMetricValue(ronda.nome, 'faturamento', 'gap')}
-                  </td>
-                ))}
-                <td className="fechamento-column">
+                {rondas.map((ronda, index) => {
+                  const gapValue = getMetricValue(ronda.nome, 'faturamento', 'gap');
+                  return (
+                    <td key={index} className={`ronda-column gap-cell ${getGapClass(gapValue)}`}>
+                      {gapValue}
+                    </td>
+                  );
+                })}
+                <td className={`fechamento-column gap-cell ${getGapClass(getFechamentoValue('faturamento', 'gap'))}`}>
                   {getFechamentoValue('faturamento', 'gap')}
+                </td>
+
+                <td className={`total-column gap-cell ${getGapClass(getTotalValue('faturamento', 'gap'))}`}>
+                  {getTotalValue('faturamento', 'gap')}
                 </td>
               </tr>
 
@@ -595,6 +844,7 @@ const DailyPerformanceVertical = ({
                 {rondas.map((ronda, index) => (
                   <td key={index} className="leads-cell" style={{background: '#5a3623', padding: '2px'}}></td>
                 ))}
+                <td className="leads-cell" style={{background: '#5a3623', padding: '2px'}}></td>
                 <td className="leads-cell" style={{background: '#5a3623', padding: '2px'}}></td>
               </tr>
 
@@ -630,6 +880,18 @@ const DailyPerformanceVertical = ({
                     <span>{getFechamentoValue('conversao', 'realizado')}</span>
                   </div>
                 </td>
+
+                <td className="total-column">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <ProgressRing
+                      type="realizado"
+                      realizado={totalData.conversao?.realizado || 0}
+                      meta={totalData.conversao?.meta || 0}
+                      gap={totalData.conversao?.gap || 0}
+                    />
+                    <span>{getTotalValue('conversao', 'realizado')}</span>
+                  </div>
+                </td>
               </tr>
 
               <tr className="header-row">
@@ -642,17 +904,28 @@ const DailyPerformanceVertical = ({
                 <td className="fechamento-column">
                   {getFechamentoValue('conversao', 'meta')}
                 </td>
+
+                <td className="total-column">
+                  {getTotalValue('conversao', 'meta')}
+                </td>
               </tr>
 
               <tr className="header-row">
                 <th className="metrics-column" style={{background: '#5a3623', fontWeight: 400}}>Gap</th>
-                {rondas.map((ronda, index) => (
-                  <td key={index} className="ronda-column">
-                    {getMetricValue(ronda.nome, 'conversao', 'gap')}
-                  </td>
-                ))}
-                <td className="fechamento-column">
+                {rondas.map((ronda, index) => {
+                  const gapValue = getMetricValue(ronda.nome, 'conversao', 'gap');
+                  return (
+                    <td key={index} className={`ronda-column gap-cell ${getGapClass(gapValue)}`}>
+                      {gapValue}
+                    </td>
+                  );
+                })}
+                <td className={`fechamento-column gap-cell ${getGapClass(getFechamentoValue('conversao', 'gap'))}`}>
                   {getFechamentoValue('conversao', 'gap')}
+                </td>
+
+                <td className={`total-column gap-cell ${getGapClass(getTotalValue('conversao', 'gap'))}`}>
+                  {getTotalValue('conversao', 'gap')}
                 </td>
               </tr>
 
@@ -662,6 +935,7 @@ const DailyPerformanceVertical = ({
                 {rondas.map((ronda, index) => (
                   <td key={index} className="leads-cell" style={{background: '#17515c', padding: '2px'}}></td>
                 ))}
+                <td className="leads-cell" style={{background: '#17515c', padding: '2px'}}></td>
                 <td className="leads-cell" style={{background: '#17515c', padding: '2px'}}></td>
               </tr>
 
@@ -697,6 +971,18 @@ const DailyPerformanceVertical = ({
                     <span>{getFechamentoValue('ticketMedio', 'realizado')}</span>
                   </div>
                 </td>
+
+                <td className="total-column">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                    <ProgressRing
+                      type="realizado"
+                      realizado={totalData.ticketMedio?.realizado || 0}
+                      meta={totalData.ticketMedio?.meta || 0}
+                      gap={totalData.ticketMedio?.gap || 0}
+                    />
+                    <span>{getTotalValue('ticketMedio', 'realizado')}</span>
+                  </div>
+                </td>
               </tr>
 
               <tr className="header-row">
@@ -709,17 +995,28 @@ const DailyPerformanceVertical = ({
                 <td className="fechamento-column">
                   {getFechamentoValue('ticketMedio', 'meta')}
                 </td>
+
+                <td className="total-column">
+                  {getTotalValue('ticketMedio', 'meta')}
+                </td>
               </tr>
 
               <tr className="header-row">
                 <th className="metrics-column" style={{background: '#17515c', fontWeight: 400}}>Gap</th>
-                {rondas.map((ronda, index) => (
-                  <td key={index} className="ronda-column">
-                    {getMetricValue(ronda.nome, 'ticketMedio', 'gap')}
-                  </td>
-                ))}
-                <td className="fechamento-column">
+                {rondas.map((ronda, index) => {
+                  const gapValue = getMetricValue(ronda.nome, 'ticketMedio', 'gap');
+                  return (
+                    <td key={index} className={`ronda-column gap-cell ${getGapClass(gapValue)}`}>
+                      {gapValue}
+                    </td>
+                  );
+                })}
+                <td className={`fechamento-column gap-cell ${getGapClass(getFechamentoValue('ticketMedio', 'gap'))}`}>
                   {getFechamentoValue('ticketMedio', 'gap')}
+                </td>
+
+                <td className={`total-column gap-cell ${getGapClass(getTotalValue('ticketMedio', 'gap'))}`}>
+                  {getTotalValue('ticketMedio', 'gap')}
                 </td>
               </tr>
             </tbody>
