@@ -24,12 +24,18 @@ const MatrizRFVComponent = ({
   const getNomeSegmento = (segmento) => {
     const nomes = {
       'campeoes': 'Campeões',
-      'leais': 'Clientes fiéis',
+      'clientes_fieis': 'Clientes fiéis',
+      'potenciais_fieis': 'Potenciais fiéis',
+      'promissores': 'Promissores',
+      'clientes_recentes': 'Clientes recentes',
       'em_risco': 'Em risco',
-      'novos': 'Novos',
-      'perdidos': 'Perdidos',
+      'precisam_atencao': 'Precisam de atenção',
+      'prestes_hibernar': 'Prestes a hibernar',
       'hibernando': 'Hibernando',
-      'potenciais': 'Potenciais',
+      'perdidos': 'Perdidos',
+      'nao_posso_perder': 'Não posso perder',
+      'novos_valiosos': 'Novos valiosos',
+      'recencia_alta_valor_alto': 'Recência alta, valor alto',
       'outros': 'Outros'
     };
     return nomes[segmento] || 'Outros';
@@ -37,14 +43,20 @@ const MatrizRFVComponent = ({
 
   const getCorSegmento = (segmento) => {
     const cores = {
-      'campeoes': '#9333EA',
-      'leais': '#7C2D12',
-      'em_risco': '#DC2626',
-      'novos': '#3B82F6',
-      'perdidos': '#374151',
-      'hibernando': '#6B7280',
-      'potenciais': '#6366F1',
-      'outros': '#6B7280'
+      'campeoes': '#9333EA', // Roxo
+      'clientes_fieis': '#7C2D12', // Marrom
+      'potenciais_fieis': '#8B5CF6', // Roxo claro
+      'promissores': '#06B6D4', // Ciano
+      'clientes_recentes': '#10B981', // Verde
+      'em_risco': '#DC2626', // Vermelho
+      'precisam_atencao': '#F59E0B', // Amarelo
+      'prestes_hibernar': '#1E40AF', // Azul escuro
+      'hibernando': '#6B7280', // Cinza
+      'perdidos': '#374151', // Cinza escuro
+      'nao_posso_perder': '#B91C1C', // Vermelho escuro
+      'novos_valiosos': '#059669', // Verde escuro
+      'recencia_alta_valor_alto': '#7C3AED', // Roxo médio
+      'outros': '#6B7280' // Cinza
     };
     return cores[segmento] || '#6B7280';
   };

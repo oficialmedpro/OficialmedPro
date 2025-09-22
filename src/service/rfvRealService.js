@@ -79,37 +79,41 @@ export const rfvRealService = {
       console.log('🔍 rfvRealService: Iniciando análise RFV com dados reais...');
       console.log('🔍 rfvRealService: Filtros recebidos:', { startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin });
 
+      // 🔧 CORREÇÃO: Aplicar filtros exatos que a interface usa
       let queryParams = `select=id,value,user_id,lead_id,create_date,gain_date,status&archived=eq.0&status=eq.gain`;
 
-    // Aplicar filtro de data para análise RFV (mesma lógica dos cartões)
-    if (startDate && endDate) {
-      const dataInicio = startDate + 'T00:00:00';
-      const dataFim = endDate + 'T23:59:59';
-      queryParams += `&gain_date=gte.${dataInicio}&gain_date=lte.${dataFim}`;
-      console.log('📅 RFV: Filtro de data aplicado para treemap:', dataInicio, 'até', dataFim);
-    } else {
-      console.log('📅 RFV: Sem filtro de data - buscando base histórica completa');
-    }
+      // Aplicar filtro de data para análise RFV (mesma lógica dos cartões)
+      if (startDate && endDate) {
+        const dataInicio = startDate + 'T00:00:00';
+        const dataFim = endDate + 'T23:59:59';
+        queryParams += `&gain_date=gte.${dataInicio}&gain_date=lte.${dataFim}`;
+        console.log('📅 RFV: Filtro de data aplicado para treemap:', dataInicio, 'até', dataFim);
+      } else {
+        console.log('📅 RFV: Sem filtro de data - buscando base histórica completa');
+      }
 
       let filtrosCombinados = '';
-      // Aplicar filtro de funil
-      if (selectedFunnel && selectedFunnel !== 'all') {
+      
+      // 🔧 FILTRO FIXO: Funil 6 e 14 (identificado via SQL)
+      filtrosCombinados += `&funil_id=in.(6,14)`;
+      
+      // 🔧 FILTRO FIXO: Unidade não nula e não vazia
+      filtrosCombinados += `&unidade_id=not.is.null&unidade_id=neq.`;
+      
+      // 🔧 FILTRO FIXO: Vendedor não nulo e maior que zero
+      filtrosCombinados += `&user_id=not.is.null&user_id=gt.0`;
+
+      // Aplicar filtros adicionais se especificados
+      if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '6,14') {
         filtrosCombinados += `&funil_id=eq.${selectedFunnel}`;
       }
 
-      // Aplicar filtro de unidade
       if (selectedUnit && selectedUnit !== 'all') {
         filtrosCombinados += `&unidade_id=eq.${selectedUnit}`;
       }
 
-      // Aplicar filtro de vendedor
       if (selectedSeller && selectedSeller !== 'all') {
         filtrosCombinados += `&user_id=eq.${selectedSeller}`;
-      }
-
-      // Aplicar filtro de origem
-      if (selectedOrigin && selectedOrigin !== 'all') {
-        filtrosCombinados += `&origin_id=eq.${selectedOrigin}`;
       }
 
       const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?${queryParams}${filtrosCombinados}`;
@@ -237,6 +241,7 @@ export const rfvRealService = {
         startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin
       });
       
+      // 🔧 CORREÇÃO: Aplicar filtros exatos que a interface usa
       let queryParams = `select=id,value,user_id,lead_id,create_date,gain_date,status&archived=eq.0&status=eq.gain`;
 
       // Aplicar filtro de data para métricas do período
@@ -248,7 +253,18 @@ export const rfvRealService = {
       }
 
       let filtrosCombinados = '';
-      if (selectedFunnel && selectedFunnel !== 'all') {
+      
+      // 🔧 FILTRO FIXO: Funil 6 e 14 (identificado via SQL)
+      filtrosCombinados += `&funil_id=in.(6,14)`;
+      
+      // 🔧 FILTRO FIXO: Unidade não nula e não vazia
+      filtrosCombinados += `&unidade_id=not.is.null&unidade_id=neq.`;
+      
+      // 🔧 FILTRO FIXO: Vendedor não nulo e maior que zero
+      filtrosCombinados += `&user_id=not.is.null&user_id=gt.0`;
+
+      // Aplicar filtros adicionais se especificados
+      if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '6,14') {
         filtrosCombinados += `&funil_id=eq.${selectedFunnel}`;
       }
       if (selectedUnit && selectedUnit !== 'all') {
@@ -256,9 +272,6 @@ export const rfvRealService = {
       }
       if (selectedSeller && selectedSeller !== 'all') {
         filtrosCombinados += `&user_id=eq.${selectedSeller}`;
-      }
-      if (selectedOrigin && selectedOrigin !== 'all') {
-        filtrosCombinados += `&origin_id=eq.${selectedOrigin}`;
       }
 
       const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?${queryParams}${filtrosCombinados}`;
@@ -397,14 +410,52 @@ export const rfvRealService = {
 
   // Classificar cliente em segmento baseado nos scores RFV
   classificarSegmento({r, f, v}) {
-    // Lógica baseada nos segmentos da imagem
-    if (r >= 4 && f >= 4 && v >= 4) return 'campeoes';
-    if (r >= 4 && f >= 3 && v >= 3) return 'leais';
-    if (r <= 2 && f >= 3 && v >= 3) return 'em_risco';
-    if (r >= 4 && f <= 2 && v <= 3) return 'novos';
-    if (r <= 2 && f <= 2) return 'perdidos';
-    if (r <= 3 && f <= 2) return 'hibernando';
-    if (r >= 3 && f >= 3 && v >= 2) return 'potenciais';
+    // 🔧 LÓGICA ULTRA FLEXÍVEL baseada no exemplo fornecido
+    
+    // Campeões - R4-5, F4-5, V4-5 (clientes mais valiosos)
+    if ((r === 4 || r === 5) && (f === 4 || f === 5) && (v === 4 || v === 5)) return 'campeoes';
+    
+    // Clientes fiéis - R3-5, F3-5, V3-5 (clientes leais e valiosos)
+    if ((r === 3 || r === 4 || r === 5) && (f === 3 || f === 4 || f === 5) && (v === 3 || v === 4 || v === 5)) return 'clientes_fieis';
+    
+    // Potenciais fiéis - R2-5, F2-5, V2-5 (clientes promissores) - ULTRA FLEXÍVEL
+    if ((r === 2 || r === 3 || r === 4 || r === 5) && (f === 2 || f === 3 || f === 4 || f === 5) && (v === 2 || v === 3 || v === 4 || v === 5)) return 'potenciais_fieis';
+    
+    // Promissores - R3-5, F1-3, V1-3 (clientes novos com potencial) - MAIS FLEXÍVEL
+    if ((r === 3 || r === 4 || r === 5) && (f === 1 || f === 2 || f === 3) && (v === 1 || v === 2 || v === 3)) return 'promissores';
+    
+    // Clientes recentes - R4-5, F1, V1-2 (clientes novos)
+    if ((r === 4 || r === 5) && f === 1 && (v === 1 || v === 2)) return 'clientes_recentes';
+    
+    // Em risco - R1-2, F2-5, V2-5 (clientes valiosos que podem sair) - MAIS FLEXÍVEL
+    if ((r === 1 || r === 2) && (f === 2 || f === 3 || f === 4 || f === 5) && (v === 2 || v === 3 || v === 4 || v === 5)) return 'em_risco';
+    
+    // Precisam de atenção - R2-4, F2-4, V2-4 (clientes que precisam de cuidado) - ULTRA FLEXÍVEL
+    if ((r === 2 || r === 3 || r === 4) && (f === 2 || f === 3 || f === 4) && (v === 2 || v === 3 || v === 4)) return 'precisam_atencao';
+    
+    // Prestes a hibernar - R2-3, F1-2, V1-2 (clientes quase inativos)
+    if ((r === 2 || r === 3) && (f === 1 || f === 2) && (v === 1 || v === 2)) return 'prestes_hibernar';
+    
+    // Hibernando - R2-4, F1-2, V1-2 (clientes inativos) - ULTRA FLEXÍVEL
+    if ((r === 2 || r === 3 || r === 4) && (f === 1 || f === 2) && (v === 1 || v === 2)) return 'hibernando';
+    
+    // Hibernando - R3-5, F1-2, V1-2 (clientes inativos) - ADICIONAL PARA CAPTURAR MAIS
+    if ((r === 3 || r === 4 || r === 5) && (f === 1 || f === 2) && (v === 1 || v === 2)) return 'hibernando';
+    
+    // Precisam de atenção - R3-5, F2-3, V2-3 (clientes que precisam de cuidado) - ADICIONAL
+    if ((r === 3 || r === 4 || r === 5) && (f === 2 || f === 3) && (v === 2 || v === 3)) return 'precisam_atencao';
+    
+    // Perdidos - R1-2, F1-2, V1-2 (clientes perdidos)
+    if ((r === 1 || r === 2) && (f === 1 || f === 2) && (v === 1 || v === 2)) return 'perdidos';
+    
+    // Não posso perder - R1, F4-5, V4-5 (clientes críticos) - MAIS FLEXÍVEL
+    if (r === 1 && (f === 4 || f === 5) && (v === 4 || v === 5)) return 'nao_posso_perder';
+    
+    // Casos especiais - MAIS FLEXÍVEIS
+    if ((r === 1 || r === 2) && f === 1 && (v === 3 || v === 4 || v === 5)) return 'novos_valiosos';
+    if ((r === 4 || r === 5) && (f === 1 || f === 2) && (v === 3 || v === 4 || v === 5)) return 'recencia_alta_valor_alto';
+    
+    // Default para outros casos
     return 'outros';
   }
 };
