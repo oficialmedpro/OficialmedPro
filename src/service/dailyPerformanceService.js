@@ -817,41 +817,58 @@ const fetchAllMetasOptimized = async (selectedUnit, selectedFunnel, selectedSell
     allMetas.forEach(meta => {
       const valor = parseFloat(meta.valor_da_meta) || 0;
       
+      // 🔧 CORREÇÃO: Usar chave única que combina funil + vendedor_id para evitar sobrescrita
+      const chaveUnica = `${meta.funil}_${meta.vendedor_id || 'default'}`;
+      
       switch (meta.dashboard) {
         case 'oportunidades_diaria':
-          metasOrganizadas.leads.diaria[meta.funil] = valor;
+          metasOrganizadas.leads.diaria[chaveUnica] = valor;
           break;
         case 'oportunidades_sabado':
-          metasOrganizadas.leads.sabado[meta.funil] = valor;
+          metasOrganizadas.leads.sabado[chaveUnica] = valor;
           break;
         case 'oportunidades_diaria_ganhas':
-          metasOrganizadas.vendas.diaria[meta.funil] = valor;
+          metasOrganizadas.vendas.diaria[chaveUnica] = valor;
           break;
         case 'oportunidades_aabado_ganhas':
-          metasOrganizadas.vendas.sabado[meta.funil] = valor;
+          metasOrganizadas.vendas.sabado[chaveUnica] = valor;
           break;
         case 'oportunidades_faturamento':
-          metasOrganizadas.faturamento.diaria[meta.funil] = valor;
+          metasOrganizadas.faturamento.diaria[chaveUnica] = valor;
           break;
         case 'oportunidades_faturamento_sabado':
-          metasOrganizadas.faturamento.sabado[meta.funil] = valor;
+          metasOrganizadas.faturamento.sabado[chaveUnica] = valor;
           break;
         case 'taxa_conversao_diaria':
-          metasOrganizadas.conversao.diaria[meta.funil] = valor;
+          metasOrganizadas.conversao.diaria[chaveUnica] = valor;
           break;
         case 'taxa_conversao_sabado':
-          metasOrganizadas.conversao.sabado[meta.funil] = valor;
+          metasOrganizadas.conversao.sabado[chaveUnica] = valor;
           break;
         case 'ticket_medio_diario':
-          metasOrganizadas.ticketMedio.diaria[meta.funil] = valor;
+          metasOrganizadas.ticketMedio.diaria[chaveUnica] = valor;
           break;
         case 'ticket_medio_sabado':
-          metasOrganizadas.ticketMedio.sabado[meta.funil] = valor;
+          metasOrganizadas.ticketMedio.sabado[chaveUnica] = valor;
           break;
       }
     });
 
     console.log('⚡ DailyPerformanceService: Metas organizadas:', metasOrganizadas);
+    
+    // 🔧 DEBUG: Mostrar detalhes da soma das metas
+    console.log('🔧 DEBUG - Detalhes das metas por tipo:');
+    Object.keys(metasOrganizadas).forEach(tipo => {
+      const diaria = Object.keys(metasOrganizadas[tipo].diaria).length;
+      const sabado = Object.keys(metasOrganizadas[tipo].sabado).length;
+      const totalDiaria = Object.values(metasOrganizadas[tipo].diaria).reduce((sum, val) => sum + val, 0);
+      const totalSabado = Object.values(metasOrganizadas[tipo].sabado).reduce((sum, val) => sum + val, 0);
+      
+      console.log(`  ${tipo}:`);
+      console.log(`    - Diária: ${diaria} registros, total: ${totalDiaria}`);
+      console.log(`    - Sábado: ${sabado} registros, total: ${totalSabado}`);
+    });
+    
     return metasOrganizadas;
     
   } catch (error) {
