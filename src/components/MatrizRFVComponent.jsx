@@ -361,6 +361,125 @@ const MatrizRFVComponent = ({
         </div>
       </div>
 
+      {/* Legenda Explicativa */}
+      <div className="rfv-legend-section">
+        <h3 className="rfv-legend-title">📋 Legenda RFV - Como Interpretar os Dados</h3>
+        
+        <div className="rfv-legend-grid">
+          {/* Recência */}
+          <div className="rfv-legend-card">
+            <div className="rfv-legend-header">
+              <div className="rfv-legend-color orange"></div>
+              <h4>RECÊNCIA (R)</h4>
+            </div>
+            <div className="rfv-legend-content">
+              <div className="rfv-legend-item">
+                <span className="legend-label">R1:</span>
+                <span className="legend-desc">Clientes que compraram muito recentemente (0-30 dias)</span>
+              </div>
+              <div className="rfv-legend-item">
+                <span className="legend-label">R2:</span>
+                <span className="legend-desc">Clientes que compraram recentemente (31-60 dias)</span>
+              </div>
+              <div className="rfv-legend-item">
+                <span className="legend-label">R3:</span>
+                <span className="legend-desc">Clientes que compraram há um tempo (61-90 dias)</span>
+              </div>
+              <div className="rfv-legend-item">
+                <span className="legend-label">R4:</span>
+                <span className="legend-desc">Clientes que compraram há bastante tempo (91-120 dias)</span>
+              </div>
+              <div className="rfv-legend-item">
+                <span className="legend-label">R5:</span>
+                <span className="legend-desc">Clientes que compraram há muito tempo (120+ dias)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Frequência */}
+          <div className="rfv-legend-card">
+            <div className="rfv-legend-header">
+              <div className="rfv-legend-color pink"></div>
+              <h4>FREQUÊNCIA (F)</h4>
+            </div>
+            <div className="rfv-legend-content">
+              <div className="rfv-legend-item">
+                <span className="legend-label">F1:</span>
+                <span className="legend-desc">Clientes que compraram apenas 1 vez (novos/esporádicos)</span>
+              </div>
+              <div className="rfv-legend-item">
+                <span className="legend-label">F2:</span>
+                <span className="legend-desc">Clientes que compraram 2 vezes</span>
+              </div>
+              <div className="rfv-legend-item">
+                <span className="legend-label">F3:</span>
+                <span className="legend-desc">Clientes que compraram 3 vezes</span>
+              </div>
+              <div className="rfv-legend-item">
+                <span className="legend-label">F4:</span>
+                <span className="legend-desc">Clientes que compraram 4 vezes</span>
+              </div>
+              <div className="rfv-legend-item">
+                <span className="legend-label">F5:</span>
+                <span className="legend-desc">Clientes que compraram 5+ vezes (fiéis)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Valor */}
+          <div className="rfv-legend-card">
+            <div className="rfv-legend-header">
+              <div className="rfv-legend-color cyan"></div>
+              <h4>VALOR (V)</h4>
+            </div>
+            <div className="rfv-legend-content">
+              <div className="rfv-legend-item">
+                <span className="legend-label">V1:</span>
+                <span className="legend-desc">Clientes de baixo valor (menores gastos)</span>
+              </div>
+              <div className="rfv-legend-item">
+                <span className="legend-label">V2:</span>
+                <span className="legend-desc">Clientes de valor baixo-médio</span>
+              </div>
+              <div className="rfv-legend-item">
+                <span className="legend-label">V3:</span>
+                <span className="legend-desc">Clientes de valor médio</span>
+              </div>
+              <div className="rfv-legend-item">
+                <span className="legend-label">V4:</span>
+                <span className="legend-desc">Clientes de valor alto</span>
+              </div>
+              <div className="rfv-legend-item">
+                <span className="legend-label">V5:</span>
+                <span className="legend-desc">Clientes de muito alto valor</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Dicas de Interpretação */}
+        <div className="rfv-tips-section">
+          <h4>💡 Dicas de Interpretação:</h4>
+          <div className="rfv-tips-grid">
+            <div className="rfv-tip">
+              <span className="tip-icon">⚠️</span>
+              <span className="tip-text">Muitos F1 indicam necessidade de programa de fidelização</span>
+            </div>
+            <div className="rfv-tip">
+              <span className="tip-icon">🚨</span>
+              <span className="tip-text">R4 e R5 precisam de campanhas de reativação</span>
+            </div>
+            <div className="rfv-tip">
+              <span className="tip-icon">📈</span>
+              <span className="tip-text">V1-V3 são oportunidades de upselling</span>
+            </div>
+            <div className="rfv-tip">
+              <span className="tip-icon">🎯</span>
+              <span className="tip-text">F5 são seus clientes mais valiosos - mantenha-os!</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Treemap dos Segmentos Principais */}
       <div className="rfv-treemap-section">

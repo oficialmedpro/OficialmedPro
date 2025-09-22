@@ -238,6 +238,164 @@
 }
 
 
+/* Legend Section */
+.rfv-legend-section {
+  margin-top: 40px;
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 30px;
+  border: 1px solid var(--border-color);
+}
+
+.rfv-legend-title {
+  color: var(--text-primary);
+  font-size: 1.4em;
+  font-weight: 700;
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.rfv-legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 25px;
+  margin-bottom: 30px;
+}
+
+.rfv-legend-card {
+  background-color: var(--bg-primary);
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rfv-legend-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.rfv-legend-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.rfv-legend-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.rfv-legend-color.orange {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+}
+
+.rfv-legend-color.pink {
+  background: linear-gradient(135deg, #ec4899, #be185d);
+}
+
+.rfv-legend-color.cyan {
+  background: linear-gradient(135deg, #06b6d4, #0891b2);
+}
+
+.rfv-legend-header h4 {
+  color: var(--text-primary);
+  font-size: 1.1em;
+  font-weight: 700;
+  margin: 0;
+}
+
+.rfv-legend-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rfv-legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+.legend-label {
+  color: var(--accent-color);
+  font-weight: 700;
+  font-size: 0.95em;
+  min-width: 35px;
+  flex-shrink: 0;
+}
+
+.legend-desc {
+  color: var(--text-secondary);
+  font-size: 0.9em;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.rfv-tips-section {
+  background-color: var(--bg-primary);
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--accent-color);
+}
+
+.rfv-tips-section h4 {
+  color: var(--text-primary);
+  font-size: 1.1em;
+  font-weight: 700;
+  margin-bottom: 15px;
+}
+
+.rfv-tips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.rfv-tip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background-color: var(--bg-secondary);
+  border-radius: 6px;
+  border-left: 3px solid var(--accent-color);
+}
+
+.tip-icon {
+  font-size: 1.2em;
+  flex-shrink: 0;
+}
+
+.tip-text {
+  color: var(--text-secondary);
+  font-size: 0.9em;
+  line-height: 1.3;
+}
+
+/* Responsive Design for Legend */
+@media (max-width: 768px) {
+  .rfv-legend-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .rfv-tips-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .rfv-legend-title {
+    font-size: 1.2em;
+  }
+}
+
 /* Treemap Section */
 .rfv-treemap-section {
   margin-top: 40px;

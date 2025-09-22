@@ -12,27 +12,27 @@ const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 /**
  * Buscar metas da tabela metas para uma ronda específica
  */
-const buscarMetasRonda = async (nomeRonda, params) => {
+const buscarMetasRonda = async (nomeRonda, params, metasDebugInfo = {}) => {
   try {
     const { selectedFunnel, selectedUnit, selectedSeller } = params;
 
-    console.log(`🎯 Buscando metas para ronda ${nomeRonda}...`);
-
     const metas = {};
-
-    // BUSCAR TODAS AS METAS NECESSÁRIAS
-    console.log(`🎯 BUSCANDO TODAS AS METAS: oportunidades_ronda + ganhas_ronda + outras`);
 
     const tiposMeta = ['oportunidades_ronda', 'ganhas_ronda', 'faturamento_ronda', 'conversao_ronda', 'ticketmedio_ronda'];
 
     for (const tipoMeta of tiposMeta) {
-      // BUSCA SIMPLES SEM FILTROS DE VENDEDOR/UNIDADE/FUNIL
-      let query = `metas?select=id,nome_meta,valor_da_meta,dashboard&dashboard=eq.${tipoMeta}`;
-      console.log(`🔍 Buscando ${tipoMeta} SEM FILTROS:`, `${supabaseUrl}/rest/v1/${query}`);
+      // Aplicar filtros como no DailyPerformanceService
+      const funilFilter = (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined')
+        ? `&funil=eq.${selectedFunnel}`
+        : `&funil=in.(6,14)`;
+      const vendedorFilter = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
+        ? `&vendedor_id=eq.${selectedSeller}`
+        : '';
+      const unidadeFilter = selectedUnit && selectedUnit !== 'all'
+        ? `&unidade_franquia=eq.${encodeURIComponent(selectedUnit)}`
+        : '';
 
-      // Salvar SQL para mostrar na página
-      if (!metasDebugInfo[tipoMeta]) metasDebugInfo[tipoMeta] = {};
-      metasDebugInfo[tipoMeta].sql = `SELECT id, nome_meta, valor_da_meta, dashboard FROM api.metas WHERE dashboard = '${tipoMeta}';`;
+      let query = `metas?select=id,nome_meta,valor_da_meta,dashboard&dashboard=eq.${tipoMeta}${funilFilter}${vendedorFilter}${unidadeFilter}`;
 
       const response = await fetch(`${supabaseUrl}/rest/v1/${query}`, {
         method: 'GET',
@@ -47,60 +47,38 @@ const buscarMetasRonda = async (nomeRonda, params) => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log(`🔍 ${tipoMeta} - ${data.length} registros encontrados`);
-
-        // Salvar info de debug para mostrar na tela
-        if (!metasDebugInfo[tipoMeta]) metasDebugInfo[tipoMeta] = {};
-        metasDebugInfo[tipoMeta].encontrados = data.length;
 
         if (data.length > 0) {
-          const registro = data[0];
-          const valorMeta = parseFloat(registro.valor_da_meta) || 0;
+          // Somar todas as metas (pode haver múltiplos vendedores)
+          const totalMeta = data.reduce((total, registro) => {
+            return total + (parseFloat(registro.valor_da_meta) || 0);
+          }, 0);
 
-          // Salvar detalhes para debug
-          metasDebugInfo[tipoMeta].registro = registro;
-          metasDebugInfo[tipoMeta].valor = valorMeta;
+          // Para conversão e ticket médio, calcular média se houver múltiplos valores
+          let valorFinal = totalMeta;
+          const chave = tipoMeta.replace('_ronda', '');
+
+          if ((chave === 'conversao' || chave === 'ticketmedio') && data.length > 1) {
+            // Se há múltiplos vendedores, usar média para conversão e ticket médio
+            valorFinal = totalMeta / data.length;
+          }
 
           // Mapear para nomes corretos
-          const chave = tipoMeta.replace('_ronda', '');
           if (chave === 'oportunidades') {
-            metas.oportunidades = valorMeta;
+            metas.oportunidades = valorFinal;
           } else if (chave === 'ganhas') {
-            metas.ganhas = valorMeta;
+            metas.ganhas = valorFinal;
           } else if (chave === 'faturamento') {
-            metas.faturamento = valorMeta;
+            metas.faturamento = valorFinal;
           } else if (chave === 'conversao') {
-            metas.conversao = valorMeta;
+            metas.conversao = valorFinal;
           } else if (chave === 'ticketmedio') {
-            metas.ticketmedio = valorMeta;
+            metas.ticketmedio = valorFinal;
           }
-
-          metasDebugInfo[tipoMeta].chave = chave;
-          metasDebugInfo[tipoMeta].metaFinal = metas[chave];
-
-          console.log(`✅ Meta ${chave}: ${valorMeta}`);
-
-          // DEBUG ESPECÍFICO PARA GANHAS_RONDA
-          if (tipoMeta === 'ganhas_ronda') {
-            console.log(`🎯 DEBUG GANHAS_RONDA:`);
-            console.log(`   - Registro completo:`, registro);
-            console.log(`   - Valor parseado:`, valorMeta);
-            console.log(`   - Chave mapeada:`, chave);
-            console.log(`   - metas.ganhas definido como:`, metas.ganhas);
-          }
-        } else {
-          console.warn(`⚠️ Nenhuma meta encontrada para ${tipoMeta}`);
-          metasDebugInfo[tipoMeta].problema = "Nenhum registro encontrado";
         }
-      } else {
-        console.error(`❌ Erro ao buscar ${tipoMeta}:`, response.status);
-        if (!metasDebugInfo[tipoMeta]) metasDebugInfo[tipoMeta] = {};
-        metasDebugInfo[tipoMeta].erro = response.status;
       }
     }
 
-    console.log(`✅ Metas carregadas para ronda ${nomeRonda}:`, metas);
-    console.log(`🔍 VERIFICAÇÃO FINAL metas.ganhas:`, metas.ganhas);
     return metas;
 
   } catch (error) {
@@ -398,7 +376,7 @@ export const getPerformanceDataByRondaHorario = async (params) => {
       });
 
       // Buscar metas das tabelas específicas para a ronda
-      const metasRonda = await buscarMetasRonda(nome, params);
+      const metasRonda = await buscarMetasRonda(nome, params, metasDebugInfo);
 
       // Adicionar debug das metas ao debugInfo da ronda
       debugInfo[debugInfo.length - 1].metasDebug = metasDebugInfo;
@@ -480,7 +458,12 @@ export const calculateFechamentoData = (performanceData) => {
   const rondas = Object.keys(performanceData);
   if (rondas.length === 0) return fechamento;
 
-  // Somar totais
+  let totalConversaoMeta = 0;
+  let totalTicketMedioMeta = 0;
+  let rondasComMeta = 0;
+
+  // Somar totais (leads, vendas, faturamento = soma simples)
+  // Para conversão e ticket médio = calcular média das metas
   rondas.forEach(ronda => {
     const data = performanceData[ronda];
     fechamento.leads.realizado += data.leads.realizado;
@@ -489,31 +472,40 @@ export const calculateFechamentoData = (performanceData) => {
     fechamento.vendas.meta += data.vendas.meta;
     fechamento.faturamento.realizado += data.faturamento.realizado;
     fechamento.faturamento.meta += data.faturamento.meta;
+
+    // Para conversão e ticket médio: somar as metas para depois calcular média
+    if (data.conversao.meta > 0 || data.ticketMedio.meta > 0) {
+      totalConversaoMeta += data.conversao.meta;
+      totalTicketMedioMeta += data.ticketMedio.meta;
+      rondasComMeta++;
+    }
   });
 
-  // Calcular gaps
+  // Calcular gaps para leads, vendas e faturamento (soma simples)
   fechamento.leads.gap = fechamento.leads.realizado - fechamento.leads.meta;
   fechamento.vendas.gap = fechamento.vendas.realizado - fechamento.vendas.meta;
   fechamento.faturamento.gap = fechamento.faturamento.realizado - fechamento.faturamento.meta;
 
-  // Calcular conversão média
+  // Calcular conversão realizada (total de vendas / total de leads * 100)
   fechamento.conversao.realizado = fechamento.leads.realizado > 0
     ? parseFloat(((fechamento.vendas.realizado / fechamento.leads.realizado) * 100).toFixed(1))
     : 0;
 
-  fechamento.conversao.meta = fechamento.leads.meta > 0
-    ? parseFloat(((fechamento.vendas.meta / fechamento.leads.meta) * 100).toFixed(1))
+  // Calcular conversão meta (MÉDIA das metas das rondas)
+  fechamento.conversao.meta = rondasComMeta > 0
+    ? parseFloat((totalConversaoMeta / rondasComMeta).toFixed(1))
     : 0;
 
   fechamento.conversao.gap = parseFloat((fechamento.conversao.realizado - fechamento.conversao.meta).toFixed(1));
 
-  // Calcular ticket médio
+  // Calcular ticket médio realizado (total faturamento / total vendas)
   fechamento.ticketMedio.realizado = fechamento.vendas.realizado > 0
     ? parseFloat((fechamento.faturamento.realizado / fechamento.vendas.realizado).toFixed(0))
     : 0;
 
-  fechamento.ticketMedio.meta = fechamento.vendas.meta > 0
-    ? parseFloat((fechamento.faturamento.meta / fechamento.vendas.meta).toFixed(0))
+  // Calcular ticket médio meta (MÉDIA das metas das rondas)
+  fechamento.ticketMedio.meta = rondasComMeta > 0
+    ? parseFloat((totalTicketMedioMeta / rondasComMeta).toFixed(0))
     : 0;
 
   fechamento.ticketMedio.gap = parseFloat((fechamento.ticketMedio.realizado - fechamento.ticketMedio.meta).toFixed(0));

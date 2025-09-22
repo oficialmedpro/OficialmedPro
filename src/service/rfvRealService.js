@@ -190,6 +190,22 @@ export const rfvRealService = {
           { score: 5, count: clientes.filter(c => c.v === 5).length, label: 'V5' }
         ]
       };
+
+      // 🔧 DEBUG: Verificar distribuição de frequência corrigida
+      console.log('🔧 DEBUG - Distribuição de frequência corrigida:');
+      console.log('  F1:', distributionData.frequencia[0].count, 'clientes');
+      console.log('  F2:', distributionData.frequencia[1].count, 'clientes');
+      console.log('  F3:', distributionData.frequencia[2].count, 'clientes');
+      console.log('  F4:', distributionData.frequencia[3].count, 'clientes');
+      console.log('  F5:', distributionData.frequencia[4].count, 'clientes');
+      
+      // 🔧 DEBUG: Verificar frequências reais dos clientes
+      const frequenciasReais = clientes.map(c => c.frequencia);
+      const contagemFrequencias = {};
+      frequenciasReais.forEach(f => {
+        contagemFrequencias[f] = (contagemFrequencias[f] || 0) + 1;
+      });
+      console.log('🔧 DEBUG - Frequências reais dos clientes:', contagemFrequencias);
       
       const matrixData = {};
 
@@ -358,14 +374,13 @@ export const rfvRealService = {
   },
 
   calcularScore(valor, array) {
-    const sorted = [...array].sort((a, b) => a - b);
-    const percentil = sorted.findIndex(v => v >= valor) / sorted.length;
-
-    if (percentil <= 0.2) return 1;
-    if (percentil <= 0.4) return 2;
-    if (percentil <= 0.6) return 3;
-    if (percentil <= 0.8) return 4;
-    return 5;
+    // 🔧 CORREÇÃO: Usar a frequência real em vez de percentis
+    // Para frequência: usar o valor exato (1, 2, 3, 4, 5+)
+    if (valor <= 1) return 1;
+    if (valor <= 2) return 2;
+    if (valor <= 3) return 3;
+    if (valor <= 4) return 4;
+    return 5; // 5 ou mais
   },
 
   calcularScoreRecencia(recencia, array) {
