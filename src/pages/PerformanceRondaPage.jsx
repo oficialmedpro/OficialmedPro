@@ -5,6 +5,7 @@ import FilterBar from '../components/FilterBar';
 import TopMenuBar from '../components/TopMenuBar';
 import Sidebar from '../components/Sidebar';
 import DailyPerformanceTable from '../components/DailyPerformanceTable';
+import DailyPerformanceVertical from '../components/DailyPerformanceVertical';
 import { translations } from '../data/translations';
 import {
   formatCurrency,
@@ -310,15 +311,14 @@ const PerformanceRondaPage = ({ onLogout }) => {
 
       {/* Main Content */}
       <main className="main-content">
-          {/* Performance Ronda Table - sempre visível com unidade 1 por padrão */}
-          <DailyPerformanceTable
+          {/* Performance Vertical Table - Nova tabela com layout vertical */}
+          <DailyPerformanceVertical
             t={t}
             startDate={startDate}
             endDate={endDate}
             selectedFunnel={selectedFunnel}
             selectedUnit="[1]"
             selectedSeller={selectedSeller}
-            selectedSellerName={selectedSellerName}
             selectedOrigin={selectedOrigin}
           />
       </main>

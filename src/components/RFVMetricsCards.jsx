@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './RFVMetricsCards.css';
-import { rfvService } from '../service/rfvService';
+// Não alterar serviço existente. Usar serviço NOVO baseado nos padrões de consulta reais
+import { rfvRealService } from '../service/rfvRealService';
 
 const RFVMetricsCards = ({
   startDate,
@@ -17,6 +18,7 @@ const RFVMetricsCards = ({
     faturamento: 0,
     ticketMedio: 0,
     clientesAtivos: 0,
+    clientesEmAtencao: 0,
     clientesNovos: 0,
     clientesEmRisco: 0
   });
@@ -29,8 +31,16 @@ const RFVMetricsCards = ({
       setIsLoading(true);
 
       try {
-        // Buscar métricas RFV reais
-        const rfvMetrics = await rfvService.getRFVMetrics({
+        console.log('🔄 RFVMetricsCards: Carregando métricas com parâmetros:', {
+          startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin
+        });
+
+        // Forçar nova requisição adicionando timestamp
+        const timestamp = Date.now();
+        console.log('⏰ RFVMetricsCards: Timestamp da requisição:', timestamp);
+
+        // Buscar métricas RFV reais usando o novo service
+        const rfvMetrics = await rfvRealService.getRFVMetrics({
           startDate,
           endDate,
           selectedFunnel,
@@ -39,6 +49,7 @@ const RFVMetricsCards = ({
           selectedOrigin
         });
 
+        console.log('✅ RFVMetricsCards: Métricas recebidas:', rfvMetrics);
         setMetrics(rfvMetrics);
       } catch (error) {
         console.error('Erro ao carregar métricas RFV:', error);
@@ -99,9 +110,15 @@ const RFVMetricsCards = ({
       description: 'Clientes com atividade recente'
     },
     {
+      title: 'Clientes em Atenção',
+      value: formatNumber(metrics.clientesEmAtencao),
+      color: 'orange',
+      description: '31-35 dias sem recompra (lembrete)'
+    },
+    {
       title: 'Clientes Novos',
       value: formatNumber(metrics.clientesNovos),
-      color: 'orange',
+      color: 'green',
       description: 'Novos clientes no período'
     },
     {

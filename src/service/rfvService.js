@@ -52,36 +52,76 @@ export const rfvService = {
       let error = null;
       let tabelaUsada = '';
 
-      // Lista de possíveis nomes de tabela
-      const possiveisTabelasOportunidade = [
-        'oportunidade',
-        'oportunidades',
-        'opportunities',
-        'opportunity',
-        'oportunidade_sprint',
-        'deals',
-        'vendas'
-      ];
+      // 1) Tentativa PRIORITÁRIA: tabela padronizada "oportunidade_sprint" com filtros reais
+      try {
+        const start = filters.startDate ? `${filters.startDate}T00:00:00` : null;
+        const end = filters.endDate ? `${filters.endDate}T23:59:59` : null;
 
-      // Tentar cada possível nome de tabela
-      for (const nomeTabela of possiveisTabelasOportunidade) {
-        try {
-          console.log(`🔍 Testando tabela: ${nomeTabela}`);
+        let query = supabase
+          .from('oportunidade_sprint')
+          .select('id,value,user_id,create_date,origem_oportunidade,utm_source,status,archived')
+          .eq('archived', 0)
+          .eq('status', 'won');
 
-          const { data, error: testError } = await supabase
-            .from(nomeTabela)
-            .select('*')
-            .limit(10);
+        if (start) query = query.gte('create_date', start);
+        if (end) query = query.lte('create_date', end);
 
-          if (!testError && data) {
-            console.log(`✅ Tabela encontrada: ${nomeTabela} com ${data.length} registros`);
-            console.log('📋 Estrutura da primeira linha:', data[0]);
-            oportunidades = data;
-            tabelaUsada = nomeTabela;
-            break;
+        // Filtros opcionais
+        if (filters.selectedFunnel && filters.selectedFunnel !== 'all') {
+          query = query.eq('funil_id', filters.selectedFunnel);
+        }
+        if (filters.selectedSeller && filters.selectedSeller !== 'all') {
+          query = query.eq('user_id', filters.selectedSeller);
+        }
+
+        const { data: sprintData, error: sprintError } = await query.limit(2000);
+
+        if (!sprintError && Array.isArray(sprintData)) {
+          tabelaUsada = 'oportunidade_sprint';
+          // Normalizar campos esperados pelo cálculo RFV
+          oportunidades = sprintData.map(op => ({
+            id: op.id,
+            lead_id: op.user_id || op.id, // aproximar cliente pelo usuário responsável
+            valor: Number(op.value) || 0,
+            data_fechamento: op.create_date,
+            status: op.status
+          }));
+          console.log(`✅ Tabela usada: ${tabelaUsada} | Registros: ${oportunidades.length}`);
+        }
+      } catch (e) {
+        console.log('❌ Falha ao consultar oportunidade_sprint:', e.message);
+      }
+
+      // 2) Se não encontrou, tentar descoberta automática em outras tabelas
+      if (!oportunidades) {
+        const possiveisTabelasOportunidade = [
+          'oportunidade',
+          'oportunidades',
+          'opportunities',
+          'opportunity',
+          'deals',
+          'vendas'
+        ];
+
+        for (const nomeTabela of possiveisTabelasOportunidade) {
+          try {
+            console.log(`🔍 Testando tabela: ${nomeTabela}`);
+
+            const { data, error: testError } = await supabase
+              .from(nomeTabela)
+              .select('*')
+              .limit(10);
+
+            if (!testError && data) {
+              console.log(`✅ Tabela encontrada: ${nomeTabela} com ${data.length} registros`);
+              console.log('📋 Estrutura da primeira linha:', data[0]);
+              oportunidades = data;
+              tabelaUsada = nomeTabela;
+              break;
+            }
+          } catch (e) {
+            console.log(`❌ Tabela ${nomeTabela} não funciona:`, e.message);
           }
-        } catch (e) {
-          console.log(`❌ Tabela ${nomeTabela} não funciona:`, e.message);
         }
       }
 

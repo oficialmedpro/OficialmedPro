@@ -1,0 +1,461 @@
+/* 🎯 DAILY PERFORMANCE VERTICAL STYLES */
+
+.daily-performance-vertical-container {
+  margin: 12px 0 0 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.daily-performance-vertical-header {
+  padding: 0 0 20px 0;
+  border-bottom: none;
+  margin-bottom: 20px;
+}
+
+.daily-performance-vertical-header h2 {
+  color: #ffffff;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  text-align: center;
+}
+
+/* Modo light para header */
+.dashboard-container.light-theme .daily-performance-vertical-header h2 {
+  color: #1e293b;
+}
+
+.daily-performance-vertical-table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  /* Scrollbar cores (Firefox) */
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-blue, #3b82f6) var(--bg-primary, #0b1220);
+}
+
+/* Modo light para wrapper */
+.dashboard-container.light-theme .daily-performance-vertical-table-wrapper {
+  scrollbar-color: var(--accent-blue, #3b82f6) var(--bg-primary, #f8fafc);
+}
+
+/* Scrollbar cores (WebKit: Chrome, Edge, Safari) */
+.daily-performance-vertical-table-wrapper::-webkit-scrollbar {
+  height: 10px; /* horizontal */
+  width: 10px;  /* vertical */
+}
+
+.daily-performance-vertical-table-wrapper::-webkit-scrollbar-track {
+  background: var(--bg-primary, #0b1220);
+  border-radius: 8px;
+}
+
+.daily-performance-vertical-table-wrapper::-webkit-scrollbar-thumb {
+  background-color: var(--accent-blue, #3b82f6);
+  border-radius: 8px;
+  border: 2px solid var(--bg-primary, #0b1220);
+}
+
+.daily-performance-vertical-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.875rem;
+  background: #1a1a1a;
+  min-width: 1000px;
+  border: 1px solid #333;
+}
+
+/* Modo light para tabela */
+.dashboard-container.light-theme .daily-performance-vertical-table {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+}
+
+/* Header da tabela */
+.header-row th {
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 700;
+  text-align: center;
+  border: 1px solid #334155;
+  padding: 12px 8px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+/* Modo light para header */
+.dashboard-container.light-theme .header-row th {
+  background: #f8fafc;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+}
+
+/* Coluna de métricas (primeira coluna) */
+.metrics-column {
+  width: 120px;
+  min-width: 120px;
+  background: #0f172a;
+  font-weight: 700;
+  text-align: left !important;
+  padding-left: 12px !important;
+  border: 1px solid #334155;
+}
+
+/* Modo light para metrics-column */
+.dashboard-container.light-theme .metrics-column {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+/* Colunas das rondas */
+.ronda-column {
+  width: 120px;
+  min-width: 120px;
+  background: #0f172a;
+  font-weight: 700;
+  text-align: center;
+  border: 1px solid #334155;
+}
+
+/* Modo light para ronda-column */
+.dashboard-container.light-theme .ronda-column {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+/* Coluna de fechamento */
+.fechamento-column {
+  width: 120px;
+  min-width: 120px;
+  background: #0f172a;
+  font-weight: 700;
+  text-align: center;
+  border: 1px solid #334155;
+}
+
+/* Modo light para fechamento-column */
+.dashboard-container.light-theme .fechamento-column {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+}
+
+/* Linhas das métricas */
+.metric-row {
+  background: #1a1a1a;
+}
+
+.metric-row:nth-child(even) {
+  background: #222222;
+}
+
+/* Modo light para metric-row */
+.dashboard-container.light-theme .metric-row {
+  background: #ffffff;
+}
+
+.dashboard-container.light-theme .metric-row:nth-child(even) {
+  background: #f8fafc;
+}
+
+/* Labels das métricas */
+.metric-label {
+  background: #171e31;
+  color: #ffffff;
+  font-weight: 600;
+  text-align: left;
+  padding: 16px 12px;
+  border: 1px solid #334155;
+  vertical-align: middle;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  width: 120px;
+  min-width: 120px;
+}
+
+/* Modo light para metric-label */
+.dashboard-container.light-theme .metric-label {
+  background: #f8fafc;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+}
+
+/* Células das métricas */
+.metric-cell {
+  background: #171e31;
+  color: #ffffff;
+  text-align: center;
+  padding: 8px;
+  border: 1px solid #334155;
+  vertical-align: middle;
+  font-weight: 500;
+  width: 120px;
+  min-width: 120px;
+}
+
+/* Modo light para metric-cell */
+.dashboard-container.light-theme .metric-cell {
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+}
+
+/* Alternância de cores nas linhas */
+.metric-row:nth-child(even) .metric-label {
+  background: #0f172a !important;
+}
+
+.metric-row:nth-child(even) .metric-cell {
+  background: #0f172a !important;
+}
+
+/* Modo light para alternância */
+.dashboard-container.light-theme .metric-row:nth-child(even) .metric-label {
+  background: #f8fafc !important;
+}
+
+.dashboard-container.light-theme .metric-row:nth-child(even) .metric-cell {
+  background: #f8fafc !important;
+}
+
+/* Cards das métricas */
+.metric-card {
+  background: #171e31;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #334155;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Modo light para metric-card */
+.dashboard-container.light-theme .metric-card {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+}
+
+.metric-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.metric-values {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.metric-realizado {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.metric-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+/* Modo light para metric-value */
+.dashboard-container.light-theme .metric-value {
+  color: #1e293b;
+}
+
+.metric-meta {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #94a3b8;
+  text-align: center;
+}
+
+/* Modo light para metric-meta */
+.dashboard-container.light-theme .metric-meta {
+  color: #64748b;
+}
+
+.metric-gap {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* Cores dos gaps */
+.gap-positive {
+  color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.1) !important;
+}
+
+.gap-negative {
+  color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+.gap-neutral {
+  color: #94a3b8 !important;
+}
+
+/* Modo light para gaps */
+.dashboard-container.light-theme .gap-positive {
+  color: #059669 !important;
+  background: rgba(16, 185, 129, 0.15) !important;
+}
+
+.dashboard-container.light-theme .gap-negative {
+  color: #dc2626 !important;
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+.dashboard-container.light-theme .gap-neutral {
+  color: #64748b !important;
+}
+
+/* Progress Ring */
+.progress-ring-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.progress-ring {
+  transform: rotate(-90deg); /* Começa do topo */
+}
+
+/* Estados de loading e erro */
+.daily-performance-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #cccccc;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #333;
+  border-top: 4px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.daily-performance-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #ef4444;
+}
+
+.error-icon {
+  font-size: 2rem;
+  margin-right: 16px;
+}
+
+.error-message h3 {
+  margin: 0 0 8px 0;
+  color: #ef4444;
+}
+
+.error-message p {
+  margin: 0;
+  color: #cccccc;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .daily-performance-vertical-container {
+    margin: 10px 0;
+    padding: 0 10px;
+  }
+  
+  .daily-performance-vertical-table {
+    font-size: 0.75rem;
+    min-width: 800px;
+  }
+  
+  .metrics-column,
+  .ronda-column,
+  .fechamento-column,
+  .metric-label,
+  .metric-cell {
+    width: 100px;
+    min-width: 100px;
+  }
+  
+  .metric-card {
+    padding: 8px;
+    min-height: 100px;
+  }
+  
+  .metric-value {
+    font-size: 1rem;
+  }
+  
+  .metric-meta {
+    font-size: 0.8rem;
+  }
+  
+  .metric-gap {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .daily-performance-vertical-table {
+    font-size: 0.7rem;
+    min-width: 700px;
+  }
+  
+  .metrics-column,
+  .ronda-column,
+  .fechamento-column,
+  .metric-label,
+  .metric-cell {
+    width: 80px;
+    min-width: 80px;
+  }
+  
+  .metric-card {
+    padding: 6px;
+    min-height: 80px;
+  }
+  
+  .metric-value {
+    font-size: 0.9rem;
+  }
+  
+  .metric-meta {
+    font-size: 0.75rem;
+  }
+  
+  .metric-gap {
+    font-size: 0.7rem;
+  }
+}
+

@@ -8,10 +8,20 @@ const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
 const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api'
 
 // Cliente Supabase com service role key (permite acesso a todos os schemas)
+// Já configura o schema e os headers necessários para evitar erro 406 no PostgREST
 export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
+  },
+  db: {
+    schema: supabaseSchema || 'api'
+  },
+  global: {
+    headers: {
+      'Accept-Profile': supabaseSchema || 'api',
+      'Content-Profile': supabaseSchema || 'api'
+    }
   }
 })
 

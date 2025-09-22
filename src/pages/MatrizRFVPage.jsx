@@ -73,6 +73,13 @@ const MatrizRFVPage = ({ onLogout }) => {
     setEndDate(today.toISOString().split('T')[0]);
   }, []);
 
+  // Debug: Log quando os filtros mudam
+  useEffect(() => {
+    console.log('🔄 MatrizRFVPage: Filtros atualizados:', {
+      startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin
+    });
+  }, [startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin]);
+
   // Funções do dashboard
   const toggleSidebar = () => setSidebarExpanded(!sidebarExpanded);
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
@@ -129,6 +136,25 @@ const MatrizRFVPage = ({ onLogout }) => {
       default:
         console.log('Tipo de filtro não reconhecido:', filterType);
     }
+  };
+
+  // Callbacks específicos esperados pelo FilterBar (sem alterar o FilterBar)
+  const onUnitFilterChange = (codigoSprintOrNull) => {
+    // Quando vier null = todas as unidades
+    setSelectedUnit(codigoSprintOrNull || 'all');
+    setUnitFilterValue(null);
+  };
+
+  const onSellerFilterChange = (sellerIdOrNull) => {
+    setSelectedSeller(sellerIdOrNull || 'all');
+  };
+
+  const onOriginFilterChange = (originOrNull) => {
+    setSelectedOrigin(originOrNull || 'all');
+  };
+
+  const onSellerNameChange = (nameOrNull) => {
+    setSelectedSellerName(nameOrNull || null);
   };
 
   const handleDatePresetClick = (preset) => {
@@ -189,21 +215,29 @@ const MatrizRFVPage = ({ onLogout }) => {
 
       {/* FilterBar Fixo */}
       <FilterBar
-        startDate={startDate}
-        endDate={endDate}
-        selectedStatus={selectedStatus}
+        t={t}
+        // Estados atuais
         selectedSeller={selectedSeller}
-        selectedSellerName={selectedSellerName}
         selectedPeriod={selectedPeriod}
         selectedFunnel={selectedFunnel}
         selectedUnit={selectedUnit}
         selectedOrigin={selectedOrigin}
-        onFilterChange={handleFilterChange}
-        onDatePresetClick={handleDatePresetClick}
-        showCalendar={showCalendar}
-        setShowCalendar={setShowCalendar}
-        unitFilterValue={unitFilterValue}
-        statusFilterValue={statusFilterValue}
+        startDate={startDate}
+        endDate={endDate}
+        // Setters que o FilterBar espera
+        setSelectedSeller={setSelectedSeller}
+        setSelectedPeriod={setSelectedPeriod}
+        setSelectedFunnel={setSelectedFunnel}
+        setSelectedUnit={setSelectedUnit}
+        setSelectedOrigin={setSelectedOrigin}
+        setStartDate={setStartDate}
+        setEndDate={setEndDate}
+        // Callbacks de filtro específicos
+        onUnitFilterChange={onUnitFilterChange}
+        onSellerFilterChange={onSellerFilterChange}
+        onOriginFilterChange={onOriginFilterChange}
+        onSellerNameChange={onSellerNameChange}
+        // Indicadores de mercado
         marketData={marketData}
       />
 

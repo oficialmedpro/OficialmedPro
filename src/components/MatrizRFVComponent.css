@@ -3,7 +3,10 @@
 .matriz-rfv-component {
   width: 100%;
   margin: 0;
-  padding: 0;
+  padding: 20px;
+  min-height: 400px;
+  background-color: var(--bg-secondary, #1e293b);
+  border-radius: 12px;
 }
 
 /* Header */
@@ -46,7 +49,7 @@
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 16px;
+  margin-bottom: 50px;
   text-transform: uppercase;
 }
 
@@ -480,12 +483,57 @@
   }
 }
 
-/* Dark Mode Support */
 .rfv-metric-card.dark {
     --card-background: #171e31;
     --text-color: #ffffff;
     --text-secondary: #b0b0b0;
     --border-color: #334155;
+}
+
+.rfv-metric-card {
+    animation: rfv-fadeInUp 0.6s ease-out;
+}
+
+.rfv-metric-card-blue {
+    --accent-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.rfv-metric-card {
+    background: var(--card-background);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.rfv-metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--accent-color);
+}
+
+@keyframes rfv-fadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Metric Value Styling */

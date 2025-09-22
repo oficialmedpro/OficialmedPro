@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import './Login.css';
 import LogoOficialmedLight from '../../icones/icone_oficialmed_modo_light.svg';
 import { supabase } from '../service/supabase';
+import bcrypt from 'bcryptjs';
+import { SignJWT } from 'jose';
 
 const Login = ({ onLogin }) => {
   const [credentials, setCredentials] = useState({
@@ -31,8 +33,8 @@ const Login = ({ onLogin }) => {
     setError('');
 
     try {
-      // Primeiro tenta autenticação via banco de dados
-      const { data: users, error: dbError } = await supabase
+      // 1. Buscar usuário no banco de dados
+      const { data: user, error: dbError } = await supabase
         .from('users')
         .select('*')
         .eq('username', credentials.username)
@@ -45,19 +47,69 @@ const Login = ({ onLogin }) => {
         throw new Error('Erro de conexão com o banco');
       }
 
-      if (users) {
-        // Usuário encontrado no banco - aqui você implementaria verificação de senha hash
-        // Por enquanto, vamos usar as credenciais fixas como fallback
+      if (user) {
+        // 2. Validar senha com bcrypt
+        const isValidPassword = await bcrypt.compare(credentials.password, user.password_hash);
         
-        // Salva dados do usuário no localStorage
+        if (!isValidPassword) {
+          setError('Senha incorreta');
+          console.log('❌ Senha incorreta para usuário:', credentials.username);
+          return;
+        }
+
+        // 3. Gerar JWT token
+        const JWT_SECRET = import.meta.env.VITE_JWT_SECRET || 'oficialmed_pro_secret_key_2025';
+        const secret = new TextEncoder().encode(JWT_SECRET);
+        const token = await new SignJWT({ 
+          userId: user.id, 
+          username: user.username,
+          userType: user.user_type_id 
+        })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('24h')
+        .sign(secret);
+
+        // 4. Criar sessão no banco (opcional)
+        try {
+          const sessionId = crypto.randomUUID();
+          await supabase
+            .from('user_sessions')
+            .insert({
+              id: sessionId,
+              user_id: user.id,
+              token_hash: await bcrypt.hash(token, 10),
+              ip_address: '127.0.0.1', // Em produção, pegar IP real
+              user_agent: navigator.userAgent,
+              expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
+            });
+
+          // 5. Log de acesso
+          await supabase
+            .from('access_logs')
+            .insert({
+              user_id: user.id,
+              action: 'login',
+              ip_address: '127.0.0.1',
+              user_agent: navigator.userAgent,
+              details: { sessionId, loginMethod: 'password' }
+            });
+        } catch (sessionError) {
+          console.warn('⚠️ Erro ao criar sessão (continuando):', sessionError);
+        }
+
+        // 6. Salvar dados no localStorage
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('loginTime', new Date().toISOString());
+        localStorage.setItem('token', token);
         localStorage.setItem('userData', JSON.stringify({
-          id: users.id,
-          username: users.username,
-          userType: users.user_type_id,
-          firstName: users.first_name,
-          lastName: users.last_name
+          id: user.id,
+          username: user.username,
+          userType: user.user_type_id,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          email: user.email,
+          allowedUnits: user.allowed_units || []
         }));
         
         console.log('✅ Login realizado com sucesso via banco de dados');
@@ -65,19 +117,35 @@ const Login = ({ onLogin }) => {
         return;
       }
 
-      // Fallback para credenciais fixas (para teste)
+      // 7. Fallback para credenciais fixas (para teste)
       if (credentials.username === VALID_CREDENTIALS.username && 
           credentials.password === VALID_CREDENTIALS.password) {
+        
+        // Gerar token para usuário fixo também
+        const JWT_SECRET = import.meta.env.VITE_JWT_SECRET || 'oficialmed_pro_secret_key_2025';
+        const secret = new TextEncoder().encode(JWT_SECRET);
+        const token = await new SignJWT({ 
+          userId: 0, 
+          username: 'oficialmedPRO',
+          userType: 1 
+        })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('24h')
+        .sign(secret);
         
         // Salva no localStorage
         localStorage.setItem('isAuthenticated', 'true');
         localStorage.setItem('loginTime', new Date().toISOString());
+        localStorage.setItem('token', token);
         localStorage.setItem('userData', JSON.stringify({
           id: 0,
           username: 'oficialmedPRO',
           userType: 1, // adminfranquiadora
           firstName: 'Admin',
-          lastName: 'OficialMed'
+          lastName: 'OficialMed',
+          email: 'admin@oficialmed.com.br',
+          allowedUnits: []
         }));
         
         console.log('✅ Login realizado com sucesso (credenciais fixas)');

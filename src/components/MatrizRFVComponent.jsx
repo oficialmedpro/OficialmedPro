@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './MatrizRFVComponent.css';
+// Usar service novo para dados reais, mantendo o antigo como fallback interno
+import { rfvRealService } from '../service/rfvRealService';
 import { rfvService } from '../service/rfvService';
 
 const MatrizRFVComponent = ({
@@ -17,6 +19,35 @@ const MatrizRFVComponent = ({
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSegment, setSelectedSegment] = useState('all');
   const [dataSource, setDataSource] = useState(null);
+
+  // Funções auxiliares para mapear segmentos
+  const getNomeSegmento = (segmento) => {
+    const nomes = {
+      'campeoes': 'Campeões',
+      'leais': 'Clientes fiéis',
+      'em_risco': 'Em risco',
+      'novos': 'Novos',
+      'perdidos': 'Perdidos',
+      'hibernando': 'Hibernando',
+      'potenciais': 'Potenciais',
+      'outros': 'Outros'
+    };
+    return nomes[segmento] || 'Outros';
+  };
+
+  const getCorSegmento = (segmento) => {
+    const cores = {
+      'campeoes': '#9333EA',
+      'leais': '#7C2D12',
+      'em_risco': '#DC2626',
+      'novos': '#3B82F6',
+      'perdidos': '#374151',
+      'hibernando': '#6B7280',
+      'potenciais': '#6366F1',
+      'outros': '#6B7280'
+    };
+    return cores[segmento] || '#6B7280';
+  };
 
   // Matriz RFV 5x5 com dados realistas e únicos
   const rfvMatrix = [
@@ -66,24 +97,63 @@ const MatrizRFVComponent = ({
   useEffect(() => {
     const loadRFVData = async () => {
       setIsLoading(true);
+      console.log('🔄 MatrizRFVComponent: Carregando dados reais...');
 
       try {
-        // Buscar análise RFV completa
-        const analysis = await rfvService.getRFVAnalysis({
-          startDate,
-          endDate,
-          selectedFunnel,
-          selectedUnit,
-          selectedSeller,
-          selectedOrigin
+        // Tentar dados reais primeiro
+        let analysis;
+        try {
+          analysis = await rfvRealService.getRFVAnalysis({
+            startDate,
+            endDate,
+            selectedFunnel,
+            selectedUnit,
+            selectedSeller,
+            selectedOrigin
+          });
+        } catch (e) {
+          console.warn('⚠️ RFV real falhou, usando fallback simulado:', e.message);
+          analysis = await rfvService.getRFVAnalysis({
+            startDate,
+            endDate,
+            selectedFunnel,
+            selectedUnit,
+            selectedSeller,
+            selectedOrigin
+          });
+        }
+
+        // Processar dados para o treemap
+        const segmentosMap = new Map();
+        
+        // Agrupar clientes por segmento
+        analysis.clientes.forEach(cliente => {
+          const segmento = cliente.segmento || 'outros';
+          if (!segmentosMap.has(segmento)) {
+            segmentosMap.set(segmento, {
+              id: segmento,
+              nome: getNomeSegmento(segmento),
+              clientes: 0,
+              percentual: 0,
+              cor: getCorSegmento(segmento)
+            });
+          }
+          segmentosMap.get(segmento).clientes += 1;
         });
 
-        setRfvData(analysis.clientes);
+        // Calcular percentuais
+        const totalClientes = analysis.clientes.length;
+        const segmentosData = Array.from(segmentosMap.values()).map(seg => ({
+          ...seg,
+          percentual: totalClientes > 0 ? (seg.clientes / totalClientes * 100).toFixed(2) : 0
+        }));
+
+        setRfvData(segmentosData);
         setDistributionData(analysis.distributionData);
         setMatrixData(analysis.matrixData);
         setDataSource(analysis.dataSource);
 
-        console.log('📊 Dados RFV carregados:', analysis);
+        console.log('📊 Dados RFV reais carregados:', segmentosData);
         console.log('📋 Fonte dos dados:', analysis.dataSource?.message);
       } catch (error) {
         console.error('Erro ao carregar dados RFV:', error);
@@ -173,8 +243,8 @@ const MatrizRFVComponent = ({
     return recommendations[segment.id] || 'Desenvolva estratégia específica para este segmento.';
   };
 
-  const totalCustomers = rfvData.reduce((sum, segment) => sum + segment.customers, 0);
-  const totalRevenue = rfvData.reduce((sum, segment) => sum + segment.revenue, 0);
+  const totalCustomers = rfvData.reduce((sum, segment) => sum + (segment.clientes || 0), 0);
+  const totalRevenue = rfvData.reduce((sum, segment) => sum + (segment.faturamento || 0), 0);
 
   const filteredData = selectedSegment === 'all'
     ? rfvData
@@ -198,9 +268,9 @@ const MatrizRFVComponent = ({
                 borderRadius: '12px',
                 fontSize: '12px',
                 fontWeight: '500',
-                backgroundColor: dataSource.isReal ? '#dcfce7' : '#fef3c7',
-                color: dataSource.isReal ? '#166534' : '#92400e',
-                border: dataSource.isReal ? '1px solid #bbf7d0' : '1px solid #fde68a',
+                backgroundColor: 'rgb(15 23 42)',
+                color: 'rgb(176 176 176)',
+                border: '1px solid rgb(15 23 42)',
                 display: 'inline-block'
               }}
             >
@@ -299,10 +369,10 @@ const MatrizRFVComponent = ({
           <div className="loading-message">Carregando segmentos RFV...</div>
         ) : (
           <div className="rfv-treemap">
-            {Object.entries(matrixData)
-              .sort((a, b) => parseFloat(b[1].percentual) - parseFloat(a[1].percentual))
+            {rfvData
+              .sort((a, b) => parseFloat(b.percentual) - parseFloat(a.percentual))
               // Mostrar todos os segmentos
-              .map(([nome, dados], index) => {
+              .map((dados, index) => {
                 const getSegmentColor = (segmento) => {
                   const colors = {
                     'Campeões': '#9333EA',
@@ -335,12 +405,12 @@ const MatrizRFVComponent = ({
 
                 return (
                   <div
-                    key={nome}
+                    key={dados.id}
                     className={`treemap-item ${itemSize}`}
-                    style={{backgroundColor: getSegmentColor(nome)}}
+                    style={{backgroundColor: dados.cor}}
                   >
                     <div className="treemap-percentage">{dados.percentual}%</div>
-                    <div className="treemap-name">{nome}</div>
+                    <div className="treemap-name">{dados.nome}</div>
                     {itemSize !== 'xsmall' && (
                       <div className="treemap-count">{dados.clientes} clientes</div>
                     )}
