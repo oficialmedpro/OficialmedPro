@@ -29,14 +29,26 @@ const DailyPerformanceTable = ({
   const [sellerName, setSellerName] = useState('');
   const [originName, setOriginName] = useState('');
 
-  // Função para buscar nome do funil
+  // ⚡ OTIMIZAÇÃO: Cache para nomes dos filtros
+  const filterNamesCache = React.useRef(new Map());
+
+  // ⚡ OTIMIZAÇÃO: Função para buscar nome do funil com cache
   const fetchFunnelName = async (funnelId) => {
     if (!funnelId || funnelId === 'all') {
       setFunnelName('');
       return;
     }
 
+    // Verificar cache primeiro
+    const cacheKey = `funil_${funnelId}`;
+    if (filterNamesCache.current.has(cacheKey)) {
+      console.log('⚡ Cache HIT para funil:', funnelId);
+      setFunnelName(filterNamesCache.current.get(cacheKey));
+      return;
+    }
+
     try {
+      console.log('⚡ Cache MISS para funil:', funnelId, '- buscando...');
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
       const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
@@ -54,7 +66,10 @@ const DailyPerformanceTable = ({
       if (response.ok) {
         const data = await response.json();
         if (data && data.length > 0) {
-          setFunnelName(data[0].nome_funil);
+          const nomeFunil = data[0].nome_funil;
+          // Salvar no cache
+          filterNamesCache.current.set(cacheKey, nomeFunil);
+          setFunnelName(nomeFunil);
         } else {
           setFunnelName('');
         }
@@ -67,14 +82,23 @@ const DailyPerformanceTable = ({
     }
   };
 
-  // Função para buscar nome da unidade
+  // ⚡ OTIMIZAÇÃO: Função para buscar nome da unidade com cache
   const fetchUnitName = async (unitId) => {
     if (!unitId || unitId === 'all') {
       setUnitName('');
       return;
     }
 
+    // Verificar cache primeiro
+    const cacheKey = `unidade_${unitId}`;
+    if (filterNamesCache.current.has(cacheKey)) {
+      console.log('⚡ Cache HIT para unidade:', unitId);
+      setUnitName(filterNamesCache.current.get(cacheKey));
+      return;
+    }
+
     try {
+      console.log('⚡ Cache MISS para unidade:', unitId, '- buscando...');
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
       const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
@@ -92,7 +116,10 @@ const DailyPerformanceTable = ({
       if (response.ok) {
         const data = await response.json();
         if (data && data.length > 0) {
-          setUnitName(data[0].unidade);
+          const nomeUnidade = data[0].unidade;
+          // Salvar no cache
+          filterNamesCache.current.set(cacheKey, nomeUnidade);
+          setUnitName(nomeUnidade);
         } else {
           setUnitName('');
         }

@@ -26,8 +26,9 @@ const buscarMetasRonda = async (nomeRonda, params) => {
     const tiposMeta = ['oportunidades_ronda', 'ganhas_ronda', 'faturamento_ronda', 'conversao_ronda', 'ticketmedio_ronda'];
 
     for (const tipoMeta of tiposMeta) {
+      // BUSCA SIMPLES SEM FILTROS DE VENDEDOR/UNIDADE/FUNIL
       let query = `metas?select=id,nome_meta,valor_da_meta,dashboard&dashboard=eq.${tipoMeta}`;
-      console.log(`🔍 Buscando ${tipoMeta}:`, `${supabaseUrl}/rest/v1/${query}`);
+      console.log(`🔍 Buscando ${tipoMeta} SEM FILTROS:`, `${supabaseUrl}/rest/v1/${query}`);
 
       // Salvar SQL para mostrar na página
       if (!metasDebugInfo[tipoMeta]) metasDebugInfo[tipoMeta] = {};

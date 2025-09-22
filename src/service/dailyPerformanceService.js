@@ -169,12 +169,13 @@ const fetchLeadsDataByDay = async (startDate, endDate, filters) => {
       'Prefer': 'count=exact'
     };
 
-    // EXATAMENTE igual ao TotalOportunidadesService
-    const leadsUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,create_date&archived=eq.0&create_date=gte.${startDate}&create_date=lte.${endDate}T23:59:59${filters.combined}`;
+    // ⚡ OTIMIZAÇÃO: Limitar busca para reduzir paginação desnecessária
+    const leadsUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,create_date&archived=eq.0&create_date=gte.${startDate}&create_date=lte.${endDate}T23:59:59${filters.combined}&limit=10000`;
     
-    console.log('🔍 DailyPerformanceService: URL leads (IGUAL ao TotalOportunidadesService):', leadsUrl);
-    console.log('🔍 DailyPerformanceService: Parâmetros:', { startDate, endDate, filtersCombined: filters.combined });
+    console.log('⚡ DailyPerformanceService: URL leads OTIMIZADA (limit=10000):', leadsUrl);
+    console.log('⚡ DailyPerformanceService: Parâmetros:', { startDate, endDate, filtersCombined: filters.combined });
     
+    // ⚡ OTIMIZAÇÃO: Usar fetchAllRecords apenas se necessário
     const leadsData = await fetchAllRecords(leadsUrl, baseHeaders);
     
     console.log('📊 DailyPerformanceService: Total de registros retornados:', leadsData?.length || 0);
@@ -329,11 +330,11 @@ const fetchVendasDataByDay = async (startDate, endDate, filters) => {
       'Prefer': 'count=exact'
     };
 
-    // EXATAMENTE igual ao fetchLeadsDataByDay, mas com status=eq.gain e gain_date
-    const vendasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,gain_date&archived=eq.0&status=eq.gain&gain_date=gte.${startDate}&gain_date=lte.${endDate}T23:59:59${filters.combined}`;
+    // ⚡ OTIMIZAÇÃO: Limitar busca para vendas também
+    const vendasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value,gain_date&archived=eq.0&status=eq.gain&gain_date=gte.${startDate}&gain_date=lte.${endDate}T23:59:59${filters.combined}&limit=10000`;
     
-    console.log('🔍 DailyPerformanceService: URL vendas (IGUAL ao fetchLeadsDataByDay mas com status=gain e gain_date):', vendasUrl);
-    console.log('🔍 DailyPerformanceService: Parâmetros:', { startDate, endDate, filtersCombined: filters.combined });
+    console.log('⚡ DailyPerformanceService: URL vendas OTIMIZADA (limit=10000):', vendasUrl);
+    console.log('⚡ DailyPerformanceService: Parâmetros:', { startDate, endDate, filtersCombined: filters.combined });
     
     const vendasData = await fetchAllRecords(vendasUrl, baseHeaders);
     
@@ -743,7 +744,169 @@ const fetchTicketMedioMeta = async (selectedUnit, selectedFunnel, selectedSeller
 };
 
 /**
- * 🎯 GERAR DADOS DIÁRIOS COM ESTRUTURA PADRONIZADA
+ * 🎯 BUSCAR TODAS AS METAS DE UMA VEZ (OTIMIZAÇÃO DE PERFORMANCE)
+ *
+ * @param {string} selectedUnit - ID da unidade selecionada
+ * @param {string} selectedFunnel - ID do funil selecionado
+ * @param {string} selectedSeller - ID do vendedor selecionado
+ * @returns {Object} Objeto com todas as metas organizadas por dashboard
+ */
+const fetchAllMetasOptimized = async (selectedUnit, selectedFunnel, selectedSeller) => {
+  try {
+    console.log('⚡ DailyPerformanceService: Buscando TODAS as metas de uma vez (OTIMIZADO)...');
+    
+    const unidadeParaMeta = selectedUnit && selectedUnit !== 'all' ? selectedUnit : null;
+    
+    // Montar filtros
+    const unidadeFilter = unidadeParaMeta ? `&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}` : '';
+    const funilFilter = (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined')
+      ? `&funil=eq.${selectedFunnel}`
+      : `&funil=in.(6,14)`;
+    const vendedorFilter = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
+      ? `&vendedor_id=eq.${selectedSeller}`
+      : '';
+    
+    // Buscar TODAS as metas em uma única requisição
+    const metasUrl = `${supabaseUrl}/rest/v1/metas?select=*&dashboard=in.(oportunidades_diaria,oportunidades_sabado,oportunidades_diaria_ganhas,oportunidades_aabado_ganhas,oportunidades_faturamento,oportunidades_faturamento_sabado,taxa_conversao_diaria,taxa_conversao_sabado,ticket_medio_diario,ticket_medio_sabado)${funilFilter}${vendedorFilter}${unidadeFilter}`;
+    
+    console.log('⚡ DailyPerformanceService: URL otimizada para todas as metas:', metasUrl);
+    
+    const response = await fetch(metasUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+      }
+    });
+
+    if (!response.ok) {
+      console.error('❌ Erro ao buscar metas otimizadas:', response.status);
+      return {};
+    }
+
+    const allMetas = await response.json();
+    console.log('⚡ DailyPerformanceService: Total de metas encontradas:', allMetas.length);
+    
+    // Organizar metas por dashboard e tipo
+    const metasOrganizadas = {
+      leads: {
+        diaria: {},
+        sabado: {}
+      },
+      vendas: {
+        diaria: {},
+        sabado: {}
+      },
+      faturamento: {
+        diaria: {},
+        sabado: {}
+      },
+      conversao: {
+        diaria: {},
+        sabado: {}
+      },
+      ticketMedio: {
+        diaria: {},
+        sabado: {}
+      }
+    };
+
+    // Processar e organizar as metas
+    allMetas.forEach(meta => {
+      const valor = parseFloat(meta.valor_da_meta) || 0;
+      
+      switch (meta.dashboard) {
+        case 'oportunidades_diaria':
+          metasOrganizadas.leads.diaria[meta.funil] = valor;
+          break;
+        case 'oportunidades_sabado':
+          metasOrganizadas.leads.sabado[meta.funil] = valor;
+          break;
+        case 'oportunidades_diaria_ganhas':
+          metasOrganizadas.vendas.diaria[meta.funil] = valor;
+          break;
+        case 'oportunidades_aabado_ganhas':
+          metasOrganizadas.vendas.sabado[meta.funil] = valor;
+          break;
+        case 'oportunidades_faturamento':
+          metasOrganizadas.faturamento.diaria[meta.funil] = valor;
+          break;
+        case 'oportunidades_faturamento_sabado':
+          metasOrganizadas.faturamento.sabado[meta.funil] = valor;
+          break;
+        case 'taxa_conversao_diaria':
+          metasOrganizadas.conversao.diaria[meta.funil] = valor;
+          break;
+        case 'taxa_conversao_sabado':
+          metasOrganizadas.conversao.sabado[meta.funil] = valor;
+          break;
+        case 'ticket_medio_diario':
+          metasOrganizadas.ticketMedio.diaria[meta.funil] = valor;
+          break;
+        case 'ticket_medio_sabado':
+          metasOrganizadas.ticketMedio.sabado[meta.funil] = valor;
+          break;
+      }
+    });
+
+    console.log('⚡ DailyPerformanceService: Metas organizadas:', metasOrganizadas);
+    return metasOrganizadas;
+    
+  } catch (error) {
+    console.error('❌ DailyPerformanceService: Erro ao buscar metas otimizadas:', error);
+    return {};
+  }
+};
+
+/**
+ * 🎯 OBTER META ESPECÍFICA DAS METAS ORGANIZADAS
+ *
+ * @param {Object} metasOrganizadas - Metas organizadas por dashboard
+ * @param {string} tipo - Tipo da meta (leads, vendas, faturamento, conversao, ticketMedio)
+ * @param {Date} currentDate - Data atual para verificar dia da semana
+ * @returns {number} Meta específica
+ */
+const getMetaFromOrganized = (metasOrganizadas, tipo, currentDate) => {
+  const dayOfWeek = currentDate ? currentDate.getDay() : null;
+  
+  // Domingo = 0, meta = 0
+  if (dayOfWeek === 0) {
+    return 0;
+  }
+  
+  // Sábado = 6, usar metas de sábado
+  const isSabado = dayOfWeek === 6;
+  const tipoMetas = metasOrganizadas[tipo] || {};
+  const metasEspecificas = isSabado ? tipoMetas.sabado : tipoMetas.diaria;
+  
+  if (!metasEspecificas || Object.keys(metasEspecificas).length === 0) {
+    // Fallback para metas padrão
+    const metasPadrao = {
+      leads: 80,
+      vendas: 20,
+      faturamento: 6000,
+      conversao: 30,
+      ticketMedio: 250
+    };
+    return metasPadrao[tipo] || 0;
+  }
+  
+  // Somar todas as metas do tipo (pode haver múltiplos funis/vendedores)
+  const totalMeta = Object.values(metasEspecificas).reduce((total, meta) => total + meta, 0);
+  
+  // Para conversão e ticket médio, calcular média se houver múltiplos valores
+  if (tipo === 'conversao' || tipo === 'ticketMedio') {
+    const valoresValidos = Object.values(metasEspecificas).filter(v => v > 0);
+    return valoresValidos.length > 0 ? totalMeta / valoresValidos.length : 0;
+  }
+  
+  return Math.round(totalMeta);
+};
+
+/**
+ * 🎯 GERAR DADOS DIÁRIOS COM ESTRUTURA PADRONIZADA (OTIMIZADO)
  *
  * @param {string} startDate - Data inicial
  * @param {string} endDate - Data final
@@ -762,7 +925,7 @@ const generateDailyData = async (startDate, endDate, dailyLeads, dailyVendas, se
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
   
-  console.log('🔍 DEBUG generateDailyData:', {
+  console.log('🔍 DEBUG generateDailyData OTIMIZADO:', {
     startDate,
     endDate,
     start: start.toISOString(),
@@ -771,6 +934,10 @@ const generateDailyData = async (startDate, endDate, dailyLeads, dailyVendas, se
     totalKeysInDailyLeads: Object.keys(dailyLeads).length,
     dailyLeadsKeys: Object.keys(dailyLeads).sort()
   });
+  
+  // ⚡ OTIMIZAÇÃO: Buscar TODAS as metas de uma vez
+  console.log('⚡ OTIMIZAÇÃO: Buscando todas as metas de uma vez...');
+  const metasOrganizadas = await fetchAllMetasOptimized(selectedUnit, selectedFunnel, selectedSeller);
   
   const dailyData = [];
   const current = new Date(start);
@@ -781,12 +948,12 @@ const generateDailyData = async (startDate, endDate, dailyLeads, dailyVendas, se
     const leadsData = dailyLeads[dateKey] || { count: 0, totalValue: 0 };
     const vendasData = dailyVendas[dateKey] || { count: 0, totalValue: 0 };
 
-    // Buscar metas específicas para esta data (considerando domingo e sábado)
-    const metaDiariaLeads = await fetchLeadsMeta(selectedUnit, selectedFunnel, selectedSeller, totalDays, current);
-    const metaDiariaVendas = await fetchVendasMeta(selectedUnit, selectedFunnel, selectedSeller, totalDays, current);
-    const metaDiariaFaturamento = await fetchFaturamentoMeta(selectedUnit, selectedFunnel, selectedSeller, totalDays, current);
-    const metaTaxaConversao = await fetchTaxaConversaoMeta(selectedUnit, selectedFunnel, selectedSeller, current);
-    const metaTicketMedio = await fetchTicketMedioMeta(selectedUnit, selectedFunnel, selectedSeller, current);
+    // ⚡ OTIMIZAÇÃO: Obter metas das organizadas (sem requisições adicionais)
+    const metaDiariaLeads = getMetaFromOrganized(metasOrganizadas, 'leads', current);
+    const metaDiariaVendas = getMetaFromOrganized(metasOrganizadas, 'vendas', current);
+    const metaDiariaFaturamento = getMetaFromOrganized(metasOrganizadas, 'faturamento', current);
+    const metaTaxaConversao = getMetaFromOrganized(metasOrganizadas, 'conversao', current);
+    const metaTicketMedio = getMetaFromOrganized(metasOrganizadas, 'ticketMedio', current);
 
     console.log(`🔍 Processando dia ${dateKey}:`, {
       hasLeadsData: !!dailyLeads[dateKey],
