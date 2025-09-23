@@ -187,11 +187,36 @@ export const rfvRealService = {
           { score: 5, count: clientes.filter(c => c.f === 5).length, label: 'F5' }
         ],
         valor: [
-          { score: 1, count: clientes.filter(c => c.v === 1).length, label: 'V1' },
-          { score: 2, count: clientes.filter(c => c.v === 2).length, label: 'V2' },
-          { score: 3, count: clientes.filter(c => c.v === 3).length, label: 'V3' },
-          { score: 4, count: clientes.filter(c => c.v === 4).length, label: 'V4' },
-          { score: 5, count: clientes.filter(c => c.v === 5).length, label: 'V5' }
+          { 
+            score: 1, 
+            count: clientes.filter(c => c.v === 1).length, 
+            label: 'V1',
+            valorTotal: clientes.filter(c => c.v === 1).reduce((sum, c) => sum + c.totalValor, 0)
+          },
+          { 
+            score: 2, 
+            count: clientes.filter(c => c.v === 2).length, 
+            label: 'V2',
+            valorTotal: clientes.filter(c => c.v === 2).reduce((sum, c) => sum + c.totalValor, 0)
+          },
+          { 
+            score: 3, 
+            count: clientes.filter(c => c.v === 3).length, 
+            label: 'V3',
+            valorTotal: clientes.filter(c => c.v === 3).reduce((sum, c) => sum + c.totalValor, 0)
+          },
+          { 
+            score: 4, 
+            count: clientes.filter(c => c.v === 4).length, 
+            label: 'V4',
+            valorTotal: clientes.filter(c => c.v === 4).reduce((sum, c) => sum + c.totalValor, 0)
+          },
+          { 
+            score: 5, 
+            count: clientes.filter(c => c.v === 5).length, 
+            label: 'V5',
+            valorTotal: clientes.filter(c => c.v === 5).reduce((sum, c) => sum + c.totalValor, 0)
+          }
         ]
       };
 
@@ -203,6 +228,14 @@ export const rfvRealService = {
       console.log('  F4:', distributionData.frequencia[3].count, 'clientes');
       console.log('  F5:', distributionData.frequencia[4].count, 'clientes');
       
+      // 🔧 DEBUG: Verificar distribuição de VALOR corrigida
+      console.log('🔧 DEBUG - Distribuição de VALOR corrigida:');
+      console.log('  V1:', distributionData.valor[0].count, 'clientes | R$', distributionData.valor[0].valorTotal.toFixed(2));
+      console.log('  V2:', distributionData.valor[1].count, 'clientes | R$', distributionData.valor[1].valorTotal.toFixed(2));
+      console.log('  V3:', distributionData.valor[2].count, 'clientes | R$', distributionData.valor[2].valorTotal.toFixed(2));
+      console.log('  V4:', distributionData.valor[3].count, 'clientes | R$', distributionData.valor[3].valorTotal.toFixed(2));
+      console.log('  V5:', distributionData.valor[4].count, 'clientes | R$', distributionData.valor[4].valorTotal.toFixed(2));
+      
       // 🔧 DEBUG: Verificar frequências reais dos clientes
       const frequenciasReais = clientes.map(c => c.frequencia);
       const contagemFrequencias = {};
@@ -210,6 +243,43 @@ export const rfvRealService = {
         contagemFrequencias[f] = (contagemFrequencias[f] || 0) + 1;
       });
       console.log('🔧 DEBUG - Frequências reais dos clientes:', contagemFrequencias);
+      
+      // 🔧 DEBUG: Verificar valores reais dos clientes
+      const valoresReais = clientes.map(c => c.totalValor);
+      const valoresOrdenados = [...valoresReais].sort((a, b) => a - b);
+      const valoresUnicos = [...new Set(valoresReais)].sort((a, b) => a - b);
+      
+      console.log('🔧 DEBUG - Estatísticas dos valores:');
+      console.log('  - Total de clientes:', valoresReais.length);
+      console.log('  - Valores únicos:', valoresUnicos.length);
+      console.log('  - Valor mínimo:', Math.min(...valoresReais));
+      console.log('  - Valor máximo:', Math.max(...valoresReais));
+      console.log('  - Valor médio:', (valoresReais.reduce((a, b) => a + b, 0) / valoresReais.length).toFixed(2));
+      console.log('  - Valores menores (10 primeiros):', valoresOrdenados.slice(0, 10));
+      console.log('  - Valores maiores (10 últimos):', valoresOrdenados.slice(-10));
+      
+      // Verificar distribuição real
+      const distribuicaoValores = {};
+      valoresReais.forEach(v => {
+        const faixa = Math.floor(v / 1000) * 1000; // Agrupar por milhares
+        distribuicaoValores[faixa] = (distribuicaoValores[faixa] || 0) + 1;
+      });
+      console.log('🔧 DEBUG - Distribuição por faixas de valor:', distribuicaoValores);
+      
+      // Mostrar as faixas de valor aplicadas
+      console.log('🔧 DEBUG - Faixas de valor aplicadas:');
+      console.log('  - V1 (0-100):', valoresReais.filter(v => v <= 100).length, 'clientes');
+      console.log('  - V2 (100-300):', valoresReais.filter(v => v > 100 && v <= 300).length, 'clientes');
+      console.log('  - V3 (300-600):', valoresReais.filter(v => v > 300 && v <= 600).length, 'clientes');
+      console.log('  - V4 (600-1500):', valoresReais.filter(v => v > 600 && v <= 1500).length, 'clientes');
+      console.log('  - V5 (1500+):', valoresReais.filter(v => v > 1500).length, 'clientes');
+      
+      console.log('🔧 DEBUG - Amostra de scores V:', clientes.slice(0, 10).map(c => ({ 
+        lead_id: c.lead_id, 
+        valor: c.totalValor, 
+        v: c.v,
+        percentil: ((valoresOrdenados.findIndex(v => v >= c.totalValor) / valoresOrdenados.length) * 100).toFixed(1) + '%'
+      })));
       
       const matrixData = {};
 
@@ -375,8 +445,8 @@ export const rfvRealService = {
     const recencias = todosClientes.map(c => c.recencia);
 
     // Scores baseados em percentis
-    const valorScore = this.calcularScore(valor, valores);
-    const frequenciaScore = this.calcularScore(frequencia, frequencias);
+    const valorScore = this.calcularScoreValor(valor, valores); // 🔧 CORREÇÃO: Função específica para valor
+    const frequenciaScore = this.calcularScoreFrequencia(frequencia, frequencias); // 🔧 CORREÇÃO: Função específica para frequência
     const recenciaScore = this.calcularScoreRecencia(recencia, recencias); // Invertido: menor recência = score maior
 
     return {
@@ -386,8 +456,30 @@ export const rfvRealService = {
     };
   },
 
+  // 🔧 NOVA FUNÇÃO: Calcular score de valor baseado em faixas realistas
+  calcularScoreValor(valor, array) {
+    // 🔧 CORREÇÃO: Usar faixas de valor mais realistas para o negócio
+    // Baseado nos dados reais: min=0, max=24.741, médio=482
+    
+    if (valor <= 100) return 1; // V1: Valores muito baixos (0-100)
+    if (valor <= 300) return 2; // V2: Valores baixos (100-300)
+    if (valor <= 600) return 3; // V3: Valores médios (300-600)
+    if (valor <= 1500) return 4; // V4: Valores altos (600-1500)
+    return 5; // V5: Valores muito altos (1500+)
+  },
+
+  // 🔧 NOVA FUNÇÃO: Calcular score de frequência baseado em valores exatos
+  calcularScoreFrequencia(frequencia, array) {
+    // Para frequência: usar o valor exato (1, 2, 3, 4, 5+)
+    if (frequencia <= 1) return 1;
+    if (frequencia <= 2) return 2;
+    if (frequencia <= 3) return 3;
+    if (frequencia <= 4) return 4;
+    return 5; // 5 ou mais
+  },
+
   calcularScore(valor, array) {
-    // 🔧 CORREÇÃO: Usar a frequência real em vez de percentis
+    // 🔧 FUNÇÃO MANTIDA PARA COMPATIBILIDADE (não usada mais)
     // Para frequência: usar o valor exato (1, 2, 3, 4, 5+)
     if (valor <= 1) return 1;
     if (valor <= 2) return 2;
@@ -410,7 +502,7 @@ export const rfvRealService = {
 
   // Classificar cliente em segmento baseado nos scores RFV
   classificarSegmento({r, f, v}) {
-    // 🔧 LÓGICA ULTRA FLEXÍVEL baseada no exemplo fornecido
+    // 🔧 LÓGICA CORRIGIDA para segmentação mais precisa
     
     // Campeões - R4-5, F4-5, V4-5 (clientes mais valiosos)
     if ((r === 4 || r === 5) && (f === 4 || f === 5) && (v === 4 || v === 5)) return 'campeoes';
@@ -418,11 +510,11 @@ export const rfvRealService = {
     // Clientes fiéis - R3-5, F3-5, V3-5 (clientes leais e valiosos)
     if ((r === 3 || r === 4 || r === 5) && (f === 3 || f === 4 || f === 5) && (v === 3 || v === 4 || v === 5)) return 'clientes_fieis';
     
-    // Potenciais fiéis - R2-5, F2-5, V2-5 (clientes promissores) - ULTRA FLEXÍVEL
+    // Potenciais fiéis - R2-5, F2-5, V2-5 (clientes promissores)
     if ((r === 2 || r === 3 || r === 4 || r === 5) && (f === 2 || f === 3 || f === 4 || f === 5) && (v === 2 || v === 3 || v === 4 || v === 5)) return 'potenciais_fieis';
     
-    // Promissores - R3-5, F1-3, V1-3 (clientes novos com potencial) - MAIS FLEXÍVEL
-    if ((r === 3 || r === 4 || r === 5) && (f === 1 || f === 2 || f === 3) && (v === 1 || v === 2 || v === 3)) return 'promissores';
+    // Promissores - R4-5, F1-2, V1-3 (clientes novos com potencial, MAS com recência alta)
+    if ((r === 4 || r === 5) && (f === 1 || f === 2) && (v === 1 || v === 2 || v === 3)) return 'promissores';
     
     // Clientes recentes - R4-5, F1, V1-2 (clientes novos)
     if ((r === 4 || r === 5) && f === 1 && (v === 1 || v === 2)) return 'clientes_recentes';

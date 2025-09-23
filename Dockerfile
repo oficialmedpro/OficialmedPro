@@ -18,25 +18,18 @@ RUN npm run build
 # Production stage
 FROM nginx:alpine
 
+# Copy nginx config
+COPY nginx.conf /etc/nginx/nginx.conf
+
 # Copy built app from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
-
-# Create simple nginx config for SPA
-RUN echo 'server { \
-    listen 80; \
-    location / { \
-        root /usr/share/nginx/html; \
-        index index.html; \
-        try_files $uri $uri/ /index.html; \
-    } \
-}' > /etc/nginx/conf.d/default.conf
 
 # Expose port
 EXPOSE 80
 
-# Health check (using wget instead of curl which is available in alpine)
+# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost/health || exit 1
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]

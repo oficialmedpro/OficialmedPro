@@ -104,17 +104,33 @@
   min-height: 20px;
   border-radius: 4px 4px 0 0;
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
   color: white;
   font-size: 12px;
   font-weight: 600;
-  padding-bottom: 4px;
+  padding: 4px 2px;
   margin-bottom: 8px;
 }
 
 .bar span {
   display: block;
+  line-height: 1.1;
+  text-align: center;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.bar-count {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.bar-value {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.9;
 }
 
 .bar-label {
@@ -436,9 +452,43 @@
 }
 
 .treemap-item:hover {
-  transform: scale(1.02);
+  transform: scale(1.05);
   z-index: 10;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* Transições suaves para todos os textos */
+.treemap-percentage,
+.treemap-name,
+.treemap-count,
+.treemap-value {
+  transition: all 0.3s ease;
+}
+
+/* Efeitos hover para aumentar textos */
+.treemap-item:hover .treemap-percentage {
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8) !important;
+}
+
+.treemap-item:hover .treemap-name {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8) !important;
+}
+
+.treemap-item:hover .treemap-count {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8) !important;
+}
+
+.treemap-item:hover .treemap-value {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8) !important;
+  color: rgba(255, 255, 255, 1) !important;
 }
 
 .treemap-item.large {
@@ -486,6 +536,14 @@
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
 }
 
+.treemap-value {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 9px;
+  font-weight: 600;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+  margin-top: 2px;
+}
+
 /* Ajustes para large items */
 .treemap-item.large .treemap-percentage {
   font-size: 24px;
@@ -499,6 +557,10 @@
 
 .treemap-item.large .treemap-count {
   font-size: 12px;
+}
+
+.treemap-item.large .treemap-value {
+  font-size: 11px;
 }
 
 /* Ajustes para medium items */
@@ -516,6 +578,10 @@
   font-size: 11px;
 }
 
+.treemap-item.medium .treemap-value {
+  font-size: 10px;
+}
+
 /* Ajustes para small items */
 .treemap-item.small .treemap-percentage {
   font-size: 14px;
@@ -531,6 +597,10 @@
   font-size: 9px;
 }
 
+.treemap-item.small .treemap-value {
+  font-size: 8px;
+}
+
 /* Ajustes para xsmall items */
 .treemap-item.xsmall .treemap-percentage {
   font-size: 12px;
@@ -540,6 +610,17 @@
 .treemap-item.xsmall .treemap-name {
   font-size: 10px;
   line-height: 1.1;
+  margin-bottom: 1px;
+}
+
+.treemap-item.xsmall .treemap-count {
+  font-size: 8px;
+  margin-top: 1px;
+}
+
+.treemap-item.xsmall .treemap-value {
+  font-size: 7px;
+  margin-top: 1px;
 }
 
 /* Responsive */
@@ -639,6 +720,22 @@
     margin-top: 20px;
     padding: 16px;
   }
+}
+
+/* Estilos removidos - agora estão no RFVOpportunitiesCard.css */
+
+/* Estilos movidos para RFVOpportunitiesCard.css */
+
+/* Estilos antigos removidos */
+
+/* Todos os estilos de oportunidades foram movidos para RFVOpportunitiesCard.css */
+
+/* Estilos de paginação removidos - agora estão no RFVOpportunitiesCard.css */
+
+/* Item selecionado no treemap */
+.treemap-item.selected {
+  border: 3px solid var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
 }
 
 .rfv-metric-card.dark {

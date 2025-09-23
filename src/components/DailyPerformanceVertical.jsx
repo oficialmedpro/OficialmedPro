@@ -25,6 +25,7 @@ const DailyPerformanceVertical = ({
   const [loading, setLoading] = useState(true);
   const [debugInfo, setDebugInfo] = useState([]);
   const [metasDebugInfo, setMetasDebugInfo] = useState({});
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // Buscar dados das rondas e performance
   useEffect(() => {
@@ -81,6 +82,15 @@ const DailyPerformanceVertical = ({
     }
   }, [startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin]);
 
+  // Atualizar o tempo atual a cada minuto
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Atualiza a cada minuto
+
+    return () => clearInterval(timer);
+  }, []);
+
   // Função para calcular cor do gradiente (amarelo → vermelho)
   const getGradientColor = (index, totalRondas) => {
     if (totalRondas <= 1) return '#FFD700'; // Amarelo padrão se só tiver 1 ronda
@@ -94,6 +104,45 @@ const DailyPerformanceVertical = ({
     const blue = 0;
 
     return `rgb(${red}, ${green}, ${blue})`;
+  };
+
+  // Função para calcular a posição do ponteiro baseado no horário atual
+  const calculatePointerPosition = () => {
+    const now = currentTime;
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+
+    // Se for antes das 10h, ponteiro fica na primeira posição
+    if (currentHour < 10) {
+      return { rondaIndex: 0, quarterIndex: 0 };
+    }
+
+    // Se for depois das 20h, ponteiro fica na última posição
+    if (currentHour >= 20) {
+      return { rondaIndex: rondas.length - 1, quarterIndex: 3 };
+    }
+
+    // Calcular em qual ronda está (cada ronda = 2 horas: 10-12, 12-14, 14-16, 16-18, 18-20)
+    const rondaIndex = Math.min(Math.floor((currentHour - 10) / 2), rondas.length - 1);
+
+    // Calcular em qual quarto de hora está (cada quarto = 30 minutos)
+    const totalMinutesInRonda = ((currentHour - 10) % 2) * 60 + currentMinute;
+    const quarterIndex = Math.min(Math.floor(totalMinutesInRonda / 30), 3);
+
+    return { rondaIndex, quarterIndex };
+  };
+
+  // Função para calcular opacidade baseada na posição do ponteiro
+  const getTimelineOpacity = (rondaIndex, quarterIndex) => {
+    const pointer = calculatePointerPosition();
+
+    // Se é exatamente a posição atual do ponteiro, destacar
+    if (rondaIndex === pointer.rondaIndex && quarterIndex === pointer.quarterIndex) {
+      return 1;
+    }
+
+    // Todas as outras posições ficam bem apagadas
+    return 0.3;
   };
 
   // Função para obter classe CSS do gap (igual ao DailyPerformanceTable)
@@ -488,14 +537,109 @@ const DailyPerformanceVertical = ({
     <div className="main-chart">
       <div className="daily-performance-vertical-container">
         <div className="daily-performance-vertical-header">
-          <h2>Performance Vertical por Ronda</h2>
+          <h2>Performance por Ronda</h2>
 
         </div>
+
 
 
         <div className="daily-performance-vertical-table-wrapper">
           <table className="daily-performance-vertical-table">
             <thead>
+              {/* Header-row duplicado para timeline */}
+              <tr className="header-row">
+                {/* Coluna fixa: Métricas */}
+                <th className="metrics-column"></th>
+
+                {/* Colunas dinâmicas: Rondas com gradiente */}
+                {rondas.map((ronda, index) => (
+                  <th
+                    key={index}
+                    className="ronda-column"
+                    style={{
+                      color: '#000000',
+                      fontWeight: 'bold',
+                      padding: 0,
+                      margin: 0,
+                      position: 'relative'
+                    }}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      width: '100%',
+                      height: '40px',
+                      minHeight: '40px'
+                    }}>
+                      {[0, 1, 2, 3].map(quarterIndex => {
+                        return (
+                          <div
+                            key={quarterIndex}
+                            style={{
+                              width: '25%',
+                              height: '100%',
+                              backgroundColor: getGradientColor(index, rondas.length),
+                              borderRight: quarterIndex < 3 ? '1px solid white' : 'none',
+                              minHeight: '40px',
+                              position: 'relative',
+                              opacity: getTimelineOpacity(index, quarterIndex)
+                            }}
+                          >
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {/* Ponteiro fora do elemento com opacidade */}
+                    {(() => {
+                      const pointer = calculatePointerPosition();
+                      const isCurrentRonda = (index === pointer.rondaIndex);
+
+                      if (isCurrentRonda) {
+                        const leftPosition = (pointer.quarterIndex * 25) + 12.5; // Centro de cada quadrante
+                        return (
+                          <div style={{
+                            position: 'absolute',
+                            left: `${leftPosition}%`,
+                            top: '0px',
+                            transform: 'translateX(-50%)',
+                            width: '0',
+                            height: '0',
+                            borderTop: '8px solid white',
+                            borderLeft: '6px solid transparent',
+                            borderRight: '6px solid transparent',
+                            zIndex: 10,
+                            opacity: 1
+                          }}></div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </th>
+                ))}
+
+                {/* Coluna fixa: Fechamento (verde) */}
+                <th
+                  className="fechamento-column"
+                  style={{
+                    backgroundColor: '#0f172a',
+                    color: '#ffffff',
+                    fontWeight: 'bold'
+                  }}
+                >
+                </th>
+
+                {/* Coluna fixa: Total (azul) */}
+                <th
+                  className="total-column"
+                  style={{
+                    backgroundColor: '#0f172a',
+                    color: '#ffffff',
+                    fontWeight: 'bold'
+                  }}
+                >
+                </th>
+              </tr>
+
+              {/* Header-row original */}
               <tr className="header-row">
                 {/* Coluna fixa: Métricas */}
                 <th className="metrics-column">Métricas</th>

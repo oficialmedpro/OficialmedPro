@@ -7,7 +7,6 @@ yarn-error.log*
 # Build outputs
 dist
 build
-.vite
 
 # Environment files
 .env
@@ -21,7 +20,6 @@ build
 .idea
 *.swp
 *.swo
-*~
 
 # OS files
 .DS_Store
@@ -30,6 +28,19 @@ Thumbs.db
 # Git
 .git
 .gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# Documentation
+*.md
+docs/
+
+# Test files
+coverage/
+.nyc_output
 
 # Logs
 logs
@@ -41,27 +52,45 @@ pids
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
-coverage
+# Optional npm cache directory
+.npm
 
-# nyc test coverage
-.nyc_output
+# Optional eslint cache
+.eslintcache
 
-# Docker files (não precisamos no contexto)
-Dockerfile*
-docker-compose*
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
 
-# GitHub Actions
-.github
+# Optional REPL history
+.node_repl_history
 
-# Temporary files
-temp
-tmp
-*.tmp
+# Output of 'npm pack'
+*.tgz
 
-# Documentation
-README.md
-*.md
+# Yarn Integrity file
+.yarn-integrity
 
-# Screenshots/images for documentation
-tela/
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+
+# Gatsby files
+.cache/
+public
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/

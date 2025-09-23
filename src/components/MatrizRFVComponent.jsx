@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './MatrizRFVComponent.css';
 // Usar service novo para dados reais, mantendo o antigo como fallback interno
 import { rfvRealService } from '../service/rfvRealService';
+import RFVOpportunitiesCard from './RFVOpportunitiesCard';
 import { rfvService } from '../service/rfvService';
 
 const MatrizRFVComponent = ({
@@ -19,6 +20,7 @@ const MatrizRFVComponent = ({
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSegment, setSelectedSegment] = useState('all');
   const [dataSource, setDataSource] = useState(null);
+  const [selectedSegmentForDetails, setSelectedSegmentForDetails] = useState(null);
 
   // Funções auxiliares para mapear segmentos
   const getNomeSegmento = (segmento) => {
@@ -146,11 +148,14 @@ const MatrizRFVComponent = ({
               id: segmento,
               nome: getNomeSegmento(segmento),
               clientes: 0,
+              valorTotal: 0,
               percentual: 0,
               cor: getCorSegmento(segmento)
             });
           }
-          segmentosMap.get(segmento).clientes += 1;
+          const segmentoData = segmentosMap.get(segmento);
+          segmentoData.clientes += 1;
+          segmentoData.valorTotal += cliente.totalValor || 0;
         });
 
         // Calcular percentuais
@@ -221,6 +226,12 @@ const MatrizRFVComponent = ({
 
   const formatNumber = (value) => {
     return new Intl.NumberFormat('pt-BR').format(value);
+  };
+
+
+  // Função para lidar com clique no segmento
+  const handleSegmentClick = (segmento) => {
+    setSelectedSegmentForDetails(segmento);
   };
 
   const getSegmentDescription = (segment) => {
@@ -357,11 +368,13 @@ const MatrizRFVComponent = ({
               distributionData?.valor?.map((item, index) => {
                 const maxCount = Math.max(...(distributionData.valor.map(v => v.count) || [1]));
                 const height = Math.max(20, (item.count / maxCount) * 180);
+                const valorFormatado = formatCurrency(item.valorTotal || 0);
 
                 return (
                   <div key={index} className="bar-group">
                     <div className="bar" style={{height: `${height}px`, backgroundColor: '#06b6d4'}}>
-                      <span>{item.count || 0}</span>
+                      <span className="bar-count">{item.count || 0}</span>
+                      <span className="bar-value">{valorFormatado}</span>
                     </div>
                     <div className="bar-label">{item.label}</div>
                   </div>
@@ -447,23 +460,23 @@ const MatrizRFVComponent = ({
             <div className="rfv-legend-content">
               <div className="rfv-legend-item">
                 <span className="legend-label">V1:</span>
-                <span className="legend-desc">Clientes de baixo valor (menores gastos)</span>
+                <span className="legend-desc">Valores muito baixos (R$ 0 - R$ 100)</span>
               </div>
               <div className="rfv-legend-item">
                 <span className="legend-label">V2:</span>
-                <span className="legend-desc">Clientes de valor baixo-médio</span>
+                <span className="legend-desc">Valores baixos (R$ 100 - R$ 300)</span>
               </div>
               <div className="rfv-legend-item">
                 <span className="legend-label">V3:</span>
-                <span className="legend-desc">Clientes de valor médio</span>
+                <span className="legend-desc">Valores médios (R$ 300 - R$ 600)</span>
               </div>
               <div className="rfv-legend-item">
                 <span className="legend-label">V4:</span>
-                <span className="legend-desc">Clientes de valor alto</span>
+                <span className="legend-desc">Valores altos (R$ 600 - R$ 1.500)</span>
               </div>
               <div className="rfv-legend-item">
                 <span className="legend-label">V5:</span>
-                <span className="legend-desc">Clientes de muito alto valor</span>
+                <span className="legend-desc">Valores muito altos (R$ 1.500+)</span>
               </div>
             </div>
           </div>
@@ -537,20 +550,31 @@ const MatrizRFVComponent = ({
                 return (
                   <div
                     key={dados.id}
-                    className={`treemap-item ${itemSize}`}
+                    className={`treemap-item ${itemSize} ${selectedSegmentForDetails?.id === dados.id ? 'selected' : ''}`}
                     style={{backgroundColor: dados.cor}}
+                    onClick={() => handleSegmentClick(dados)}
                   >
                     <div className="treemap-percentage">{dados.percentual}%</div>
                     <div className="treemap-name">{dados.nome}</div>
-                    {itemSize !== 'xsmall' && (
-                      <div className="treemap-count">{dados.clientes} clientes</div>
-                    )}
+                    <div className="treemap-count">{dados.clientes} clientes</div>
+                    <div className="treemap-value">{formatCurrency(dados.valorTotal || 0)}</div>
                   </div>
                 );
               })}
           </div>
         )}
       </div>
+
+      {/* Componente de Oportunidades do RFV */}
+      <RFVOpportunitiesCard 
+        selectedSegment={selectedSegmentForDetails}
+        startDate={startDate}
+        endDate={endDate}
+        selectedFunnel={selectedFunnel}
+        selectedUnit={selectedUnit}
+        selectedSeller={selectedSeller}
+        selectedOrigin={selectedOrigin}
+      />
     </div>
   );
 };
