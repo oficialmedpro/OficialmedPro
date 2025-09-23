@@ -12,6 +12,14 @@ RUN npm ci
 # Copy source code
 COPY . .
 
+# Accept Vite environment variables at build-time and expose them to the build
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_SERVICE_ROLE_KEY
+ARG VITE_SUPABASE_SCHEMA
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
+    VITE_SUPABASE_SERVICE_ROLE_KEY=$VITE_SUPABASE_SERVICE_ROLE_KEY \
+    VITE_SUPABASE_SCHEMA=$VITE_SUPABASE_SCHEMA
+
 # Build the app
 RUN npm run build
 
