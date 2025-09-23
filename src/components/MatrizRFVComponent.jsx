@@ -3,6 +3,7 @@ import './MatrizRFVComponent.css';
 // Usar service novo para dados reais, mantendo o antigo como fallback interno
 import { rfvRealService } from '../service/rfvRealService';
 import RFVOpportunitiesCard from './RFVOpportunitiesCard';
+import RFMTreemapChart from './RFMTreemapChart';
 import { rfvService } from '../service/rfvService';
 
 const MatrizRFVComponent = ({
@@ -564,6 +565,17 @@ const MatrizRFVComponent = ({
           </div>
         )}
       </div>
+
+      {/* Novo Treemap RFM */}
+      <RFMTreemapChart 
+        startDate={startDate}
+        endDate={endDate}
+        selectedFunnel={selectedFunnel}
+        selectedUnit={selectedUnit}
+        selectedSeller={selectedSeller}
+        selectedOrigin={selectedOrigin}
+        isDarkMode={isDarkMode}
+      />
 
       {/* Componente de Oportunidades do RFV */}
       <RFVOpportunitiesCard 

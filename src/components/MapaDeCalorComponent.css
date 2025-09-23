@@ -1,0 +1,405 @@
+/* 🔥 MAPA DE CALOR COMPONENT STYLES */
+
+.mapa-calor-container {
+  padding: 20px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-radius: 12px;
+  margin: 20px 0;
+  color: white;
+}
+
+.mapa-calor-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.mapa-calor-header h2 {
+  color: #ffffff;
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.mapa-calor-subtitle {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.mapa-calor-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  color: #94a3b8;
+}
+
+.loading-spinner {
+  border: 3px solid #374151;
+  border-top: 3px solid #3b82f6;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.mapa-calor-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.mapa-calor-grid {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid #374151;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.mapa-calor-header-row {
+  display: flex;
+  background: #0f172a;
+  border-bottom: 2px solid #374151;
+}
+
+.mapa-calor-corner {
+  width: 100px;
+  height: 50px;
+  background: #0f172a;
+  border-right: 2px solid #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.mapa-calor-hour-header {
+  flex: 1;
+  min-width: 60px;
+  height: 50px;
+  background: #1e293b;
+  border-right: 1px solid #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+}
+
+.mapa-calor-hour-header:last-child {
+  border-right: none;
+}
+
+.mapa-calor-total-header {
+  min-width: 80px;
+  width: 80px;
+  height: 50px;
+  background: #1e293b;
+  border-right: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 0.95rem;
+  border-left: 2px solid #374151;
+  margin: 2px;
+  border-radius: 8px 8px 0 0;
+  flex: none;
+}
+
+.mapa-calor-day-row {
+  display: flex;
+  border-bottom: 1px solid #374151;
+  padding: 2px 0;
+}
+
+.mapa-calor-day-row:last-child {
+  border-bottom: none;
+}
+
+.mapa-calor-day-header {
+  width: 100px;
+  height: 60px;
+  background: #1e293b;
+  border-right: 2px solid #374151;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 0.95rem;
+  gap: 2px;
+}
+
+.day-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.day-date {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #94a3b8;
+  line-height: 1;
+}
+
+.mapa-calor-cell {
+  flex: 1;
+  min-width: 60px;
+  height: 60px;
+  border-right: 1px solid #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  border-radius: 8px;
+  margin: 2px;
+  border-right: none !important;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0.1) 100%);
+}
+
+.mapa-calor-cell:hover {
+  transform: scale(1.08);
+  z-index: 10;
+  border: 2px solid #ffffff;
+  border-radius: 8px;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.3),
+    inset 0 2px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.mapa-calor-value {
+  color: white;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+  font-weight: 700;
+}
+
+/* Classes de intensidade - Nova especificação com gradientes */
+.intensity-zero {
+  background: linear-gradient(135deg, #1e1b3a 0%, #2d2a4a 100%) !important;
+  color: #94a3b8;
+}
+
+.intensity-zero .mapa-calor-value {
+  color: #94a3b8;
+  text-shadow: none;
+}
+
+.intensity-baixa-vermelha {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #dc2626 100%) !important;
+  color: white;
+}
+
+.intensity-baixa-laranja {
+  background: linear-gradient(135deg, #f97316 0%, #fb923c 50%, #f97316 100%) !important;
+  color: white;
+}
+
+.intensity-media-amarela {
+  background: linear-gradient(135deg, #eab308 0%, #fbbf24 50%, #eab308 100%) !important;
+  color: white;
+}
+
+.intensity-alta-verde-amarela {
+  background: linear-gradient(135deg, #84cc16 0%, #a3e635 50%, #84cc16 100%) !important;
+  color: white;
+}
+
+.intensity-alta-verde {
+  background: linear-gradient(135deg, #22c55e 0%, #4ade80 50%, #22c55e 100%) !important;
+  color: white;
+}
+
+/* Estilo específico para células totais */
+.mapa-calor-total-cell {
+  min-width: 80px !important;
+  width: 80px !important;
+  border-left: 2px solid #374151 !important;
+  font-weight: 800 !important;
+  font-size: 1.1rem !important;
+  flex: none !important;
+}
+
+/* Legenda */
+.mapa-calor-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px;
+  background: #1e293b;
+  border-radius: 8px;
+  border: 1px solid #374151;
+}
+
+.legend-title {
+  font-weight: 600;
+  color: #e2e8f0;
+  margin-right: 10px;
+}
+
+.legend-items {
+  display: flex;
+  gap: 15px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.legend-color {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1px solid #374151;
+}
+
+.legend-colors-group {
+  display: flex;
+  gap: 3px;
+}
+
+.legend-color.intensity-zero {
+  background-color: #1e1b3a;
+}
+
+.legend-color.intensity-baixa-vermelha {
+  background-color: #dc2626;
+}
+
+.legend-color.intensity-baixa-laranja {
+  background-color: #f97316;
+}
+
+.legend-color.intensity-media-amarela {
+  background-color: #eab308;
+}
+
+.legend-color.intensity-alta-verde-amarela {
+  background-color: #84cc16;
+}
+
+.legend-color.intensity-alta-verde {
+  background-color: #22c55e;
+}
+
+/* Responsividade */
+@media (max-width: 1200px) {
+  .mapa-calor-hour-header,
+  .mapa-calor-cell {
+    min-width: 50px;
+    font-size: 0.8rem;
+  }
+
+  .mapa-calor-total-header,
+  .mapa-calor-total-cell {
+    min-width: 70px !important;
+    width: 70px !important;
+    font-size: 0.9rem !important;
+  }
+
+  .mapa-calor-day-header {
+    width: 80px;
+    font-size: 0.85rem;
+  }
+
+  .day-name {
+    font-size: 0.8rem;
+  }
+
+  .day-date {
+    font-size: 0.65rem;
+  }
+
+  .mapa-calor-corner {
+    width: 80px;
+  }
+}
+
+@media (max-width: 768px) {
+  .mapa-calor-container {
+    padding: 15px;
+    margin: 10px 0;
+  }
+
+  .mapa-calor-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .mapa-calor-hour-header,
+  .mapa-calor-cell {
+    min-width: 40px;
+    height: 50px;
+    font-size: 0.7rem;
+  }
+
+  .mapa-calor-total-header,
+  .mapa-calor-total-cell {
+    min-width: 60px !important;
+    width: 60px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .mapa-calor-day-header {
+    width: 70px;
+    height: 50px;
+    font-size: 0.8rem;
+  }
+
+  .day-name {
+    font-size: 0.7rem;
+  }
+
+  .day-date {
+    font-size: 0.6rem;
+  }
+
+  .mapa-calor-corner {
+    width: 70px;
+    height: 40px;
+  }
+
+  .mapa-calor-hour-header {
+    height: 40px;
+  }
+
+  .mapa-calor-total-header {
+    height: 40px;
+  }
+
+  .legend-items {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .legend-color {
+    width: 15px;
+    height: 15px;
+  }
+}

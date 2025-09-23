@@ -72,65 +72,132 @@
   font-family: 'Courier New', monospace;
 }
 
-/* Lista de oportunidades estilo TicketRanking */
+/* Lista de oportunidades em formato de tabela */
 .rfv-opportunities-list {
   display: flex;
   flex-direction: column;
   gap: 1px;
   flex: 1;
+  overflow-x: auto;
+}
+
+/* Cabeçalho da tabela */
+.rfv-table-header {
+  display: grid;
+  /* Distribuição mais equilibrada entre as colunas */
+  grid-template-columns: 80px 2fr 1.2fr 1.2fr 1.4fr 90px 1.2fr 70px 90px 100px 80px;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px 6px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.rfv-table-header > div {
+  text-align: left;
+}
+
+.rfv-table-header .rfv-header-value,
+.rfv-table-header .rfv-header-status {
+  text-align: right;
+}
+
+.rfv-table-header .rfv-header-whatsapp {
+  text-align: center;
 }
 
 .rfv-opportunity-line {
-  display: flex;
-  flex-direction: column;
-  padding: 2px 0;
-  position: relative;
+  display: grid;
+  /* Distribuição mais equilibrada entre as colunas */
+  grid-template-columns: 80px 2fr 1.2fr 1.2fr 1.4fr 90px 1.2fr 70px 90px 100px 80px;
+  gap: 12px;
+  padding: 8px 12px;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
   transition: all 0.2s ease;
   cursor: pointer;
+  font-size: 14px;
 }
 
-.rfv-opportunity-line:hover .rfv-opportunity-content {
-  padding: 4px 8px;
+.rfv-opportunity-line:hover {
   background: rgba(255, 255, 255, 0.02);
   border-radius: 6px;
 }
 
-.rfv-opportunity-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 2px 0;
-  transition: all 0.2s ease;
-  gap: 12px;
-}
-
-.rfv-opportunity-info {
-  flex: 1;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-}
-
 .rfv-opportunity-id {
   color: var(--text-primary);
-  font-size: 13px;
   font-weight: 600;
-  min-width: 60px;
-}
-
-.rfv-opportunity-name {
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 600;
-  flex: 1;
   text-align: left;
 }
 
-.rfv-opportunity-whatsapp {
+.rfv-opportunity-title {
+  color: var(--text-primary);
+  font-weight: 500;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rfv-opportunity-names {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.rfv-firstname {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.rfv-lastname {
   color: var(--text-secondary);
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.rfv-opportunity-phone {
+  color: var(--text-secondary);
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  text-align: left;
+}
+
+.rfv-opportunity-dates {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.rfv-date {
+  color: var(--text-muted);
   font-size: 12px;
-  min-width: 80px;
+}
+
+.rfv-opportunity-whatsapp {
+  text-align: center;
+}
+
+.rfv-opportunity-vendedor {
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: left;
+  font-weight: 500;
+}
+
+.rfv-opportunity-funil-id,
+.rfv-opportunity-crm-column {
+  color: var(--text-secondary);
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
   text-align: center;
 }
 
@@ -138,8 +205,6 @@
   color: var(--text-primary);
   font-weight: 700;
   font-family: 'Courier New', monospace;
-  font-size: 13px;
-  min-width: 100px;
   text-align: right;
 }
 
