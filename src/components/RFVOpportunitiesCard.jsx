@@ -90,6 +90,7 @@ const RFVOpportunitiesCard = ({
       const offset = (page - 1) * itemsPerPage;
       
       // Query simplificada para evitar erro 400
+      // Buscar oportunidades com dados do lead já incluídos na tabela
       const { data: oportunidades, error } = await supabase
         .from('oportunidade_sprint')
         .select(`
@@ -102,7 +103,10 @@ const RFVOpportunitiesCard = ({
           lead_id,
           user_id,
           funil_id,
-          unidade_id
+          unidade_id,
+          lead_firstname,
+          lead_lastname,
+          lead_whatsapp
         `)
         .in('lead_id', leadIds)
         .eq('archived', 0)
@@ -117,7 +121,6 @@ const RFVOpportunitiesCard = ({
       }
 
       console.log('✅ Oportunidades encontradas:', oportunidades?.length || 0);
-      console.log('✅ Amostra de oportunidades:', oportunidades?.slice(0, 2));
 
       setSegmentOpportunities(oportunidades || []);
       setCurrentPage(page);
@@ -139,6 +142,13 @@ const RFVOpportunitiesCard = ({
   if (!selectedSegment) {
     return null;
   }
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    const d = new Date(dateStr);
+    if (Number.isNaN(d.getTime())) return '-';
+    return d.toLocaleDateString('pt-BR');
+  };
 
   return (
     <div className="rfv-opportunities-card">
@@ -171,7 +181,11 @@ const RFVOpportunitiesCard = ({
             segmentOpportunities.map((oportunidade, index) => {
               const crmLink = generateCrmLink(oportunidade.id, oportunidade.funil_id);
               const leadProfileLink = generateLeadProfileLink(oportunidade.lead_id);
-              const whatsappLink = generateWhatsAppLink(oportunidade.leads?.whatsapp || oportunidade.leads?.phone);
+              const whatsappLink = generateWhatsAppLink(oportunidade.lead_whatsapp);
+              const nomeCompleto = [
+                oportunidade.lead_firstname,
+                oportunidade.lead_lastname
+              ].filter(Boolean).join(' ') || `Lead ${oportunidade.lead_id}`;
               
               return (
                 <div key={oportunidade.id} className="rfv-opportunity-line">
@@ -204,11 +218,17 @@ const RFVOpportunitiesCard = ({
                             className="lead-link"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {oportunidade.leads?.name || `Lead ${oportunidade.lead_id}`}
+                            {nomeCompleto}
                           </a>
                         ) : (
-                          oportunidade.leads?.name || `Lead ${oportunidade.lead_id}`
+                          nomeCompleto
                         )}
+                      </span>
+                      
+                      {/* Datas */}
+                      <span className="rfv-opportunity-dates">
+                        <span className="rfv-date">Criado: {formatDate(oportunidade.create_date)}</span>
+                        <span className="rfv-date">Última compra: {formatDate(oportunidade.gain_date)}</span>
                       </span>
                       
                       {/* WhatsApp - Link direto */}
