@@ -3,7 +3,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, content-profile, x-requested-with',
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
@@ -24,9 +24,9 @@ const statusMap: { [key: number]: string } = {
 }
 
 /**
- * Busca credenciais do Google Ads do Supabase
+ * Busca credenciais do Google Ads APENAS dos Secrets
  */
-async function getGoogleAdsCredentials() {
+async function getGoogleAdsCredentials(customCustomerId?: string) {
   try {
     // Verificar se o cache ainda é válido (5 minutos)
     if (cachedCredentials && credentialsExpiry && Date.now() < credentialsExpiry) {
@@ -34,70 +34,53 @@ async function getGoogleAdsCredentials() {
       return cachedCredentials
     }
 
-    console.log('🔍 Buscando credenciais do Supabase...')
+    console.log('🔍 Buscando TODAS as credenciais dos Secrets...')
     
-    // Debug: ver todas as unidades primeiro
-    const { data: allData, error: allError } = await supabase
-      .schema('api')
-      .from('unidades')
-      .select('id, unidade, codigo_sprint, google_customer_id')
-    
-    console.log('🔍 TODAS as unidades na tabela:')
-    console.log(JSON.stringify(allData, null, 2))
-    
-    const { data, error } = await supabase
-      .schema('api')
-      .from('unidades')
-      .select('*')
-      .eq('codigo_sprint', '[1]')
-      .single()
+    // Buscar TODAS as credenciais dos secrets
+    const customerId = Deno.env.get('VITE_GOOGLE_CUSTOMER_ID')
+    const loginCustomerId = Deno.env.get('VITE_GOOGLE_LOGIN_CUSTOMER_ID')
+    const developerToken = Deno.env.get('VITE_GOOGLE_DEVELOPER_TOKEN')
+    const clientId = Deno.env.get('VITE_GOOGLE_CLIENT_ID')
+    const clientSecret = Deno.env.get('VITE_GOOGLE_CLIENT_SECRET')
+    const refreshToken = Deno.env.get('VITE_GOOGLE_REFRESH_TOKEN')
 
-    console.log('🔍 Resultado da busca por codigo_sprint = "[1]":')
-    console.log('Data:', JSON.stringify(data, null, 2))
-    console.log('Error:', error)
+    console.log('🔍 Verificando secrets:')
+    console.log('🆔 Customer ID:', customerId ? '✅ Encontrado' : '❌ Não encontrado')
+    console.log('👔 Login Customer ID (Gerenciador):', loginCustomerId ? '✅ Encontrado' : '❌ Não encontrado')
+    console.log('🔑 Developer Token:', developerToken ? '✅ Encontrado' : '❌ Não encontrado')
+    console.log('🔑 Client ID:', clientId ? '✅ Encontrado' : '❌ Não encontrado')
+    console.log('🔑 Client Secret:', clientSecret ? '✅ Encontrado' : '❌ Não encontrado')
+    console.log('🔑 Refresh Token:', refreshToken ? '✅ Encontrado' : '❌ Não encontrado')
 
-    if (error || !data) {
-      // Tentar sem aspas
-      const { data: data2, error: error2 } = await supabase
-        .schema('api')
-        .from('unidades')
-        .select('*')
-        .eq('codigo_sprint', [1])
-        .single()
-        
-      console.log('🔍 Tentativa 2 - codigo_sprint = [1]:')
-      console.log('Data2:', JSON.stringify(data2, null, 2))
-      console.log('Error2:', error2)
+    // Validar se todas as credenciais estão presentes
+    if (!customerId || !developerToken || !clientId || !clientSecret || !refreshToken) {
+      const missing = []
+      if (!customerId) missing.push('VITE_GOOGLE_CUSTOMER_ID')
+      if (!developerToken) missing.push('VITE_GOOGLE_DEVELOPER_TOKEN')
+      if (!clientId) missing.push('VITE_GOOGLE_CLIENT_ID')
+      if (!clientSecret) missing.push('VITE_GOOGLE_CLIENT_SECRET')
+      if (!refreshToken) missing.push('VITE_GOOGLE_REFRESH_TOKEN')
       
-      if (data2) {
-        console.log('✅ Encontrou na segunda tentativa!')
-        throw new Error('Unidade Apucarana não encontrada')
-      }
-      
-      throw new Error('Unidade Apucarana não encontrada')
-    }
-
-    // Validar credenciais
-    if (!data.google_customer_id || !data.google_developer_token || 
-        !data.google_client_id || !data.google_client_secret || 
-        !data.google_refresh_token || !data.google_ads_active) {
-      throw new Error('Credenciais incompletas para unidade Apucarana')
+      throw new Error(`Credenciais faltando nos secrets: ${missing.join(', ')}`)
     }
 
     const credentials = {
-      customer_id: data.google_customer_id.replace(/-/g, ''), // Remover hífens
-      developer_token: data.google_developer_token,
-      client_id: data.google_client_id,
-      client_secret: data.google_client_secret,
-      refresh_token: data.google_refresh_token,
-      unidade_name: data.unidade
+      customer_id: customCustomerId || customerId.replace(/-/g, ''), // Usar custom ou padrão
+      developer_token: developerToken,
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      unidade_name: customCustomerId ? `Custom (${customCustomerId})` : 'Apucarana (via Secrets)'
     }
 
     // Cache por 5 minutos
     cachedCredentials = credentials
     credentialsExpiry = Date.now() + (5 * 60 * 1000)
 
-    console.log('✅ Credenciais carregadas para:', data.unidade)
+    console.log('✅ TODAS as credenciais carregadas dos secrets!')
+    console.log('🔑 Developer Token:', credentials.developer_token ? `${credentials.developer_token.substring(0, 10)}...` : '❌ Ausente')
+    console.log('🆔 Customer ID:', credentials.customer_id)
+    console.log('🔑 Client ID:', credentials.client_id ? `${credentials.client_id.substring(0, 15)}...` : '❌ Ausente')
     return credentials
 
   } catch (error) {
@@ -148,17 +131,30 @@ async function queryGoogleAds(credentials: any, query: string) {
   try {
     const accessToken = await getAccessToken(credentials)
     
+    // Usar a conta GERENCIADORA como login-customer-id
+    const managerCustomerId = Deno.env.get('VITE_GOOGLE_LOGIN_CUSTOMER_ID')?.replace(/-/g, '')
+    const headers: Record<string, string> = {
+      'Authorization': `Bearer ${accessToken}`,
+      'Developer-Token': credentials.developer_token,
+      'Content-Type': 'application/json',
+    }
+    
+    // SEMPRE adicionar login-customer-id (conta gerenciadora MCC)
+    if (managerCustomerId) {
+      headers['login-customer-id'] = managerCustomerId
+      console.log(`🔑 Usando conta GERENCIADORA: ${managerCustomerId} para acessar cliente: ${credentials.customer_id}`)
+    } else {
+      console.log(`⚠️ AVISO: VITE_GOOGLE_LOGIN_CUSTOMER_ID não configurado`)
+    }
+
     const response = await fetch(
-      `https://googleads.googleapis.com/v21/customers/${credentials.customer_id}/googleAds:searchStream`,
+      `https://googleads.googleapis.com/v21/customers/${credentials.customer_id}/googleAds:search`,
       {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Developer-Token': credentials.developer_token,
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: JSON.stringify({
           query: query
+          // ✅ Sem pageSize - o endpoint search tem tamanho fixo de 10.000 linhas
         })
       }
     )
@@ -169,32 +165,12 @@ async function queryGoogleAds(credentials: any, query: string) {
       throw new Error(`Google Ads API error: ${response.status} - ${errorText}`)
     }
 
-    const results = []
-    const reader = response.body?.getReader()
-    const decoder = new TextDecoder()
-
-    if (reader) {
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-        
-        const chunk = decoder.decode(value)
-        const lines = chunk.split('\n').filter(line => line.trim())
-        
-        for (const line of lines) {
-          try {
-            const data = JSON.parse(line)
-            if (data.results) {
-              results.push(...data.results)
-            }
-          } catch (parseError) {
-            // Ignorar linhas que não são JSON válido
-          }
-        }
-      }
-    }
-
-    return results
+    // ✅ Endpoint :search retorna JSON direto (não streaming)
+    const data = await response.json()
+    console.log('🔍 Resposta da API Google Ads:', JSON.stringify(data, null, 2))
+    
+    // Retornar os resultados diretamente
+    return data.results || []
   } catch (error) {
     console.error('❌ Erro na query Google Ads:', error)
     throw error
@@ -234,7 +210,8 @@ serve(async (req) => {
       
       case '/campaigns':
         const status = url.searchParams.get('status') || 'active'
-        return await handleGetCampaigns(status)
+        const customerId = url.searchParams.get('customer_id')
+        return await handleGetCampaigns(status, customerId)
       
       case '/stats':
         const startDate = url.searchParams.get('startDate')
@@ -337,9 +314,9 @@ async function handleTestConnection() {
 /**
  * Buscar campanhas
  */
-async function handleGetCampaigns(status: string) {
+async function handleGetCampaigns(status: string, customCustomerId?: string) {
   try {
-    const credentials = await getGoogleAdsCredentials()
+    const credentials = await getGoogleAdsCredentials(customCustomerId)
     
     console.log(`🔍 INÍCIO DEBUG CAMPANHAS`)
     console.log(`🔍 Filtro solicitado: ${status}`)
@@ -355,9 +332,9 @@ async function handleGetCampaigns(status: string) {
       whereClause = "WHERE campaign.status != 'REMOVED'"
     }
 
-    console.log(`📝 Query que será executada: SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type FROM campaign ${whereClause} ORDER BY campaign.name`)
+    console.log(`📝 Query que será executada: SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type FROM campaign ${whereClause} ORDER BY campaign.id LIMIT 50`)
 
-    // PRIMEIRA TENTATIVA: Query com filtro
+    // PRIMEIRA TENTATIVA: Query com filtro (conforme documentação oficial)
     console.log(`🚀 PRIMEIRA TENTATIVA: Query com filtro`)
     const results = await queryGoogleAds(credentials, `
       SELECT 
@@ -367,50 +344,15 @@ async function handleGetCampaigns(status: string) {
         campaign.advertising_channel_type
       FROM campaign
       ${whereClause}
-      ORDER BY campaign.name
+      ORDER BY campaign.id
+      LIMIT 50
     `)
 
-    console.log(`📊 RESULTADO PRIMEIRA TENTATIVA:`)
+    console.log(`📊 RESULTADO:`)
     console.log(`📊 Número de resultados: ${results.length}`)
     console.log(`📊 Dados brutos:`, JSON.stringify(results, null, 2))
 
-    // SEGUNDA TENTATIVA: Query sem filtros para diagnóstico
-    console.log(`🚀 SEGUNDA TENTATIVA: Query sem filtros (diagnóstico)`)
-    const allResults = await queryGoogleAds(credentials, `
-      SELECT 
-        campaign.id,
-        campaign.name,
-        campaign.status,
-        campaign.advertising_channel_type
-      FROM campaign
-      ORDER BY campaign.name
-      LIMIT 20
-    `)
-    
-    console.log(`📊 RESULTADO SEGUNDA TENTATIVA:`)
-    console.log(`📊 Número total de campanhas na conta: ${allResults.length}`)
-    console.log(`📊 Todas as campanhas:`, JSON.stringify(allResults, null, 2))
-
-    // TERCEIRA TENTATIVA: Query básica para teste
-    console.log(`🚀 TERCEIRA TENTATIVA: Query básica`)
-    const basicResults = await queryGoogleAds(credentials, `
-      SELECT campaign.id
-      FROM campaign
-      LIMIT 5
-    `)
-    
-    console.log(`📊 RESULTADO TERCEIRA TENTATIVA:`)
-    console.log(`📊 IDs básicos encontrados: ${basicResults.length}`)
-    console.log(`📊 IDs:`, JSON.stringify(basicResults, null, 2))
-
-    // Usar os resultados com filtro ou todos se não houver nenhum
-    const finalResults = results.length > 0 ? results : allResults
-    
-    console.log(`🎯 RESULTADO FINAL ESCOLHIDO:`)
-    console.log(`🎯 Usando resultados: ${results.length > 0 ? 'com filtro' : 'todos (sem filtro)'}`)
-    console.log(`🎯 Quantidade: ${finalResults.length}`)
-
-    const mappedCampaigns = finalResults.map((row: any) => {
+    const mappedCampaigns = results.map((row: any) => {
       console.log(`🔍 DEBUG - Processando campanha:`, JSON.stringify(row, null, 2))
       
       return {
@@ -430,13 +372,7 @@ async function handleGetCampaigns(status: string) {
       JSON.stringify({
         success: true,
         data: mappedCampaigns,
-        count: mappedCampaigns.length,
-        debug: {
-          filteredResults: results.length,
-          allResults: allResults.length,
-          basicResults: basicResults.length,
-          finalUsed: finalResults.length
-        }
+        count: mappedCampaigns.length
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
@@ -632,8 +568,9 @@ async function handleDebugUnidades() {
   try {
     console.log('🔍 DEBUG UNIDADES - Iniciando verificação...')
     
-    // Verificar todas as unidades
+    // Verificar todas as unidades no schema api
     const { data: allUnits, error: allError } = await supabase
+      .schema('api')
       .from('unidades')
       .select('*')
     

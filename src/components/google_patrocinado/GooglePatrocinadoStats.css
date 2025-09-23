@@ -1,0 +1,412 @@
+/* GooglePatrocinadoStats.css - Estilos exclusivos para as estatísticas do Google Patrocinado */
+
+/* =================== VARIÁVEIS CSS =================== */
+:root {
+  --google-patrocinado-stats-primary: #0f172a;
+  --google-patrocinado-stats-secondary: #171e31;
+  --google-patrocinado-stats-tertiary: #334155;
+  --google-patrocinado-stats-text-primary: #ffffff;
+  --google-patrocinado-stats-text-secondary: #94a3b8;
+  --google-patrocinado-stats-text-muted: #64748b;
+  --google-patrocinado-stats-border: #334155;
+  --google-patrocinado-stats-accent: #3b82f6;
+  --google-patrocinado-stats-success: #10b981;
+  --google-patrocinado-stats-warning: #f59e0b;
+  --google-patrocinado-stats-error: #ef4444;
+  --google-patrocinado-stats-purple: #8b5cf6;
+  --google-patrocinado-stats-cyan: #06b6d4;
+}
+
+/* Modo Light */
+.light-theme {
+  --google-patrocinado-stats-primary: #f8fafc;
+  --google-patrocinado-stats-secondary: #ffffff;
+  --google-patrocinado-stats-tertiary: #e2e8f0;
+  --google-patrocinado-stats-text-primary: #1e293b;
+  --google-patrocinado-stats-text-secondary: #475569;
+  --google-patrocinado-stats-text-muted: #64748b;
+  --google-patrocinado-stats-border: #cbd5e1;
+}
+
+/* =================== CONTAINER PRINCIPAL =================== */
+.google-patrocinado-stats {
+  background: var(--google-patrocinado-stats-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--google-patrocinado-stats-border);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+/* Header das Estatísticas */
+.google-patrocinado-stats-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--google-patrocinado-stats-border);
+}
+
+.google-patrocinado-stats-header h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--google-patrocinado-stats-text-primary);
+  margin: 0 0 4px 0;
+}
+
+.google-patrocinado-stats-period {
+  font-size: 14px;
+  color: var(--google-patrocinado-stats-text-secondary);
+  margin: 0;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 4px 12px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+/* =================== GRID PRINCIPAL DE ESTATÍSTICAS =================== */
+.google-patrocinado-stats-main-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+/* Card de Estatística */
+.google-patrocinado-stat-card {
+  background: var(--google-patrocinado-stats-tertiary);
+  border: 1px solid var(--google-patrocinado-stats-border);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.google-patrocinado-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  border-color: var(--google-patrocinado-stats-accent);
+}
+
+.google-patrocinado-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    var(--google-patrocinado-stats-success), 
+    var(--google-patrocinado-stats-accent), 
+    var(--google-patrocinado-stats-purple)
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.google-patrocinado-stat-card:hover::before {
+  opacity: 1;
+}
+
+.google-patrocinado-stat-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.google-patrocinado-stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+}
+
+.google-patrocinado-stat-trend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.google-patrocinado-stat-trend-value {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.google-patrocinado-stat-content {
+  text-align: left;
+}
+
+.google-patrocinado-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--google-patrocinado-stats-text-primary);
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+}
+
+.google-patrocinado-stat-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--google-patrocinado-stats-text-secondary);
+  margin: 0 0 4px 0;
+}
+
+.google-patrocinado-stat-description {
+  font-size: 12px;
+  color: var(--google-patrocinado-stats-text-muted);
+  margin: 0;
+}
+
+/* =================== SEÇÕES DE ESTATÍSTICAS =================== */
+.google-patrocinado-stats-section {
+  margin-bottom: 32px;
+}
+
+.google-patrocinado-stats-section:last-child {
+  margin-bottom: 0;
+}
+
+.google-patrocinado-stats-section h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--google-patrocinado-stats-text-primary);
+  margin: 0 0 16px 0;
+}
+
+/* =================== MÉTRICAS CALCULADAS =================== */
+.google-patrocinado-stats-calculated-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.google-patrocinado-calculated-card {
+  background: var(--google-patrocinado-stats-tertiary);
+  border: 1px solid var(--google-patrocinado-stats-border);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.google-patrocinado-calculated-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--google-patrocinado-stats-accent);
+}
+
+.google-patrocinado-calculated-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+
+.google-patrocinado-calculated-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.google-patrocinado-calculated-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--google-patrocinado-stats-text-primary);
+}
+
+.google-patrocinado-calculated-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--google-patrocinado-stats-text-secondary);
+}
+
+.google-patrocinado-calculated-description {
+  font-size: 11px;
+  color: var(--google-patrocinado-stats-text-muted);
+}
+
+/* =================== RESUMO DAS CAMPANHAS =================== */
+.google-patrocinado-campaign-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.google-patrocinado-campaign-item {
+  background: var(--google-patrocinado-stats-tertiary);
+  border: 1px solid var(--google-patrocinado-stats-border);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.google-patrocinado-campaign-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.google-patrocinado-campaign-label {
+  font-size: 12px;
+  color: var(--google-patrocinado-stats-text-secondary);
+  font-weight: 500;
+}
+
+.google-patrocinado-campaign-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--google-patrocinado-stats-text-primary);
+}
+
+/* Status específicos */
+.google-patrocinado-status-active {
+  color: var(--google-patrocinado-stats-success) !important;
+}
+
+.google-patrocinado-status-paused {
+  color: var(--google-patrocinado-stats-warning) !important;
+}
+
+.google-patrocinado-status-removed {
+  color: var(--google-patrocinado-stats-error) !important;
+}
+
+/* =================== COMPARAÇÃO DE CONVERSÕES =================== */
+.google-patrocinado-conversion-comparison {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.google-patrocinado-conversion-item {
+  background: var(--google-patrocinado-stats-tertiary);
+  border: 1px solid var(--google-patrocinado-stats-border);
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.google-patrocinado-conversion-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.google-patrocinado-conversion-label {
+  font-size: 12px;
+  color: var(--google-patrocinado-stats-text-secondary);
+  font-weight: 500;
+}
+
+.google-patrocinado-conversion-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--google-patrocinado-stats-text-primary);
+}
+
+/* =================== LOADING STATE =================== */
+.google-patrocinado-stats-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  background: var(--google-patrocinado-stats-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--google-patrocinado-stats-border);
+}
+
+.google-patrocinado-stats-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--google-patrocinado-stats-border);
+  border-top: 3px solid var(--google-patrocinado-stats-accent);
+  border-radius: 50%;
+  animation: google-patrocinado-stats-spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes google-patrocinado-stats-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.google-patrocinado-stats-loading p {
+  color: var(--google-patrocinado-stats-text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* =================== RESPONSIVIDADE =================== */
+@media (max-width: 768px) {
+  .google-patrocinado-stats {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .google-patrocinado-stats-main-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .google-patrocinado-stat-card {
+    padding: 16px;
+  }
+  
+  .google-patrocinado-stat-value {
+    font-size: 20px;
+  }
+  
+  .google-patrocinado-stats-calculated-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .google-patrocinado-campaign-summary {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  
+  .google-patrocinado-conversion-comparison {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .google-patrocinado-stats {
+    padding: 12px;
+  }
+  
+  .google-patrocinado-stat-card {
+    padding: 12px;
+  }
+  
+  .google-patrocinado-stat-value {
+    font-size: 18px;
+  }
+  
+  .google-patrocinado-calculated-card,
+  .google-patrocinado-campaign-item,
+  .google-patrocinado-conversion-item {
+    padding: 12px;
+  }
+  
+  .google-patrocinado-campaign-summary {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}

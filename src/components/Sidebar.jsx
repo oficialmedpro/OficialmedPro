@@ -103,7 +103,8 @@ const Sidebar = ({
         { icon: 'funil-compra', label: 'Matriz RFV', path: '/matriz-rfv', active: false },
         { icon: 'funil-compra', label: 'Mapa de Calor', path: '/mapa-de-calor', active: false },
         { icon: 'dashboard-meta', label: 'Dashboard MetaAds', active: false },
-        { icon: 'dashboard-google', label: 'Dashboard GoogleAds', active: false }
+        { icon: 'dashboard-google', label: 'Dashboard GoogleAds', active: false },
+        { icon: 'dashboard-google-patrocinado', label: 'Google Patrocinado', path: '/google-patrocinado', active: false }
       ]
     },
     {
@@ -198,6 +199,8 @@ const Sidebar = ({
                           navigate('/meta-ads');
                         } else if (subItem.label === 'Dashboard GoogleAds') {
                           navigate('/google-ads');
+                        } else if (subItem.label === 'Google Patrocinado') {
+                          navigate('/google-patrocinado');
                         } else {
                           console.log(`Clicked on ${subItem.label}`);
                         }
@@ -224,6 +227,8 @@ const Sidebar = ({
                         navigate('/meta-ads');
                       } else if (subItem.label === 'Dashboard GoogleAds') {
                         navigate('/google-ads');
+                      } else if (subItem.label === 'Google Patrocinado') {
+                        navigate('/google-patrocinado');
                       } else {
                         console.log(`Clicked on ${subItem.label}`);
                       }
