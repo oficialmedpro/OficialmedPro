@@ -104,6 +104,7 @@ const RFVOpportunitiesCard = ({
           user_id,
           funil_id,
           unidade_id,
+          crm_column,
           lead_firstname,
           lead_lastname,
           lead_whatsapp
@@ -208,21 +209,20 @@ const RFVOpportunitiesCard = ({
                         )}
                       </span>
                       
-                      {/* Nome do Cliente - Link para perfil */}
-                      <span className="rfv-opportunity-name">
-                        {leadProfileLink ? (
-                          <a
-                            href={leadProfileLink}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="lead-link"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {nomeCompleto}
-                          </a>
-                        ) : (
-                          nomeCompleto
-                        )}
+                      {/* Título da Oportunidade */}
+                      <span className="rfv-opportunity-title">
+                        {oportunidade.title || 'Sem título'}
+                      </span>
+                      
+                      {/* Nome e Sobrenome separados */}
+                      <span className="rfv-opportunity-names">
+                        <span className="rfv-firstname">{oportunidade.lead_firstname || '-'}</span>
+                        <span className="rfv-lastname">{oportunidade.lead_lastname || '-'}</span>
+                      </span>
+                      
+                      {/* Telefone/WhatsApp como texto */}
+                      <span className="rfv-opportunity-phone">
+                        {oportunidade.lead_whatsapp || '-'}
                       </span>
                       
                       {/* Datas */}
