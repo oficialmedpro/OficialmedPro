@@ -97,6 +97,7 @@ const Sidebar = ({
       icon: 'funil-compra',
       subItems: [
         { icon: 'funil-compra', label: 'Análise de Funil', path: '/analise-funil', active: false },
+        { icon: 'funil-compra', label: 'Dash GoogleAds', path: '/dashgooglepatrocinado', active: false },
         { icon: 'funil-compra', label: 'Performance Diária', path: '/performance-diaria', active: false },
         { icon: 'funil-compra', label: 'Performance por Ronda', path: '/performance-ronda', active: false },
         { icon: 'funil-compra', label: 'Ranking de Performance', path: '/ranking-de-performance', active: false },

@@ -348,15 +348,17 @@ async function handleGetCampaigns(status: string, customCustomerId?: string, sta
     }
 
     console.log(`📝 GAQL que será executada:`)
-    console.log(`SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, metrics.impressions, metrics.clicks, metrics.ctr, metrics.average_cpc, metrics.cost_micros, metrics.conversions, metrics.conversions_value FROM campaign ${whereClause} ${dateFilterClause} ORDER BY campaign.id LIMIT 1000`)
+    console.log(`SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, segments.date, metrics.impressions, metrics.clicks, metrics.ctr, metrics.average_cpc, metrics.cost_micros, metrics.conversions, metrics.conversions_value FROM campaign ${whereClause} ${dateFilterClause} ORDER BY campaign.id LIMIT 1000`)
 
     // Consulta GAQL conforme documentação googleAds:search
+    // IMPORTANTE: Para métricas de custo, precisamos usar segments.date
     const results = await queryGoogleAds(credentials, `
       SELECT 
         campaign.id,
         campaign.name,
         campaign.status,
         campaign.advertising_channel_type,
+        segments.date,
         metrics.impressions,
         metrics.clicks,
         metrics.ctr,
@@ -375,41 +377,66 @@ async function handleGetCampaigns(status: string, customCustomerId?: string, sta
     console.log(`📊 Número de resultados: ${results.length}`)
     console.log(`📊 Dados brutos:`, JSON.stringify(results, null, 2))
 
-    const mappedCampaigns = results.map((row: any) => {
-      console.log(`🔍 DEBUG - Processando campanha:`, JSON.stringify(row, null, 2))
+    // Agrupar resultados por campanha (quando usando segments.date)
+    const campaignMap = new Map()
+    
+    results.forEach((row: any) => {
+      const campaignId = row.campaign.id
       
-      // Determinar status correto (pode vir como número ou string)
-      let campaignStatus = row.campaign.status
-      if (typeof campaignStatus === 'number') {
-        campaignStatus = statusMap[campaignStatus] || 'ENABLED'
-      } else if (typeof campaignStatus === 'string') {
-        // Se já é string, usar diretamente
-        campaignStatus = campaignStatus.toUpperCase()
-      } else {
-        campaignStatus = 'ENABLED' // Fallback
+      if (!campaignMap.has(campaignId)) {
+        // Primeira vez vendo esta campanha
+        let campaignStatus = row.campaign.status
+        if (typeof campaignStatus === 'number') {
+          campaignStatus = statusMap[campaignStatus] || 'ENABLED'
+        } else if (typeof campaignStatus === 'string') {
+          campaignStatus = campaignStatus.toUpperCase()
+        } else {
+          campaignStatus = 'ENABLED'
+        }
+        
+        campaignMap.set(campaignId, {
+          id: row.campaign.id,
+          name: row.campaign.name,
+          status: campaignStatus,
+          channelType: row.campaign.advertising_channel_type,
+          advertising_channel_type: row.campaign.advertising_channel_type,
+          type: row.campaign.advertising_channel_type || 'SEARCH',
+          metrics: {
+            impressions: 0,
+            clicks: 0,
+            ctr: 0,
+            average_cpc: 0,
+            cost_micros: 0,
+            conversions: 0,
+            conversions_value: 0
+          }
+        })
       }
       
-      // Extrair métricas reais
+      // Somar métricas (agregar dados de todas as datas)
+      const existingCampaign = campaignMap.get(campaignId)
       const metrics = row.metrics || {}
       
-      return {
-        id: row.campaign.id,
-        name: row.campaign.name,
-        status: campaignStatus,
-        channelType: row.campaign.advertising_channel_type,
-        advertising_channel_type: row.campaign.advertising_channel_type,
-        type: row.campaign.advertising_channel_type || 'SEARCH',
-        // MÉTRICAS REAIS DOS ÚLTIMOS 30 DIAS
-        metrics: {
-          impressions: parseInt(metrics.impressions) || 0,
-          clicks: parseInt(metrics.clicks) || 0,
-          ctr: parseFloat(metrics.ctr) || 0,
-          average_cpc: parseFloat(metrics.average_cpc) || 0,
-          cost_micros: parseInt(metrics.cost_micros) || 0,
-          conversions: parseFloat(metrics.conversions) || 0,
-          conversions_value: parseFloat(metrics.conversions_value) || 0
-        }
+      existingCampaign.metrics.impressions += parseInt(metrics.impressions) || 0
+      existingCampaign.metrics.clicks += parseInt(metrics.clicks) || 0
+      existingCampaign.metrics.cost_micros += parseInt(metrics.cost_micros) || 0
+      existingCampaign.metrics.conversions += parseFloat(metrics.conversions) || 0
+      existingCampaign.metrics.conversions_value += parseFloat(metrics.conversions_value) || 0
+      
+      // Calcular médias
+      if (existingCampaign.metrics.impressions > 0) {
+        existingCampaign.metrics.ctr = existingCampaign.metrics.clicks / existingCampaign.metrics.impressions
       }
+      if (existingCampaign.metrics.clicks > 0) {
+        existingCampaign.metrics.average_cpc = existingCampaign.metrics.cost_micros / existingCampaign.metrics.clicks
+      }
+    })
+    
+    const mappedCampaigns = Array.from(campaignMap.values())
+    
+    console.log(`📊 CAMPANHAS AGREGADAS:`)
+    mappedCampaigns.forEach(campaign => {
+      console.log(`📋 ${campaign.name}: Cost=${campaign.metrics.cost_micros}, Impressions=${campaign.metrics.impressions}, Clicks=${campaign.metrics.clicks}`)
     })
 
     console.log(`✅ ${mappedCampaigns.length} campanhas encontradas e mapeadas`)

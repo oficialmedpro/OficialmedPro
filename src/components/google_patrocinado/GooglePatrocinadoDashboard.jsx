@@ -69,7 +69,16 @@ const GooglePatrocinadoDashboard = ({
     const stats = filteredCampaigns.reduce((acc, campaign) => {
       const metrics = campaign.metrics || {};
       
-      acc.totalSpent += googlePatrocinadoService.convertMicrosToReal(metrics.cost_micros || 0);
+      const costMicros = metrics.cost_micros || 0;
+      const costReal = googlePatrocinadoService.convertMicrosToReal(costMicros);
+      
+      console.log(`💰 DASHBOARD - ${campaign.name}:`, {
+        cost_micros: costMicros,
+        cost_real: costReal,
+        metrics: metrics
+      });
+      
+      acc.totalSpent += costReal;
       acc.totalImpressions += metrics.impressions || 0;
       acc.totalClicks += metrics.clicks || 0;
       acc.totalConversions += metrics.conversions || 0;
@@ -80,6 +89,14 @@ const GooglePatrocinadoDashboard = ({
       totalImpressions: 0,
       totalClicks: 0,
       totalConversions: 0
+    });
+
+    console.log('💰 DASHBOARD - Total calculado:', {
+      totalSpent: stats.totalSpent,
+      totalImpressions: stats.totalImpressions,
+      totalClicks: stats.totalClicks,
+      totalConversions: stats.totalConversions,
+      campanhasCount: filteredCampaigns.length
     });
 
     // Calcular médias
@@ -136,7 +153,7 @@ const GooglePatrocinadoDashboard = ({
   const metricCards = [
     {
       title: 'Gasto Total',
-      value: googlePatrocinadoService.formatCurrency(statistics.totalSpent),
+      value: googlePatrocinadoService.formatCurrency(statistics.totalSpent, 'BRL', 'pt-BR'),
       subtitle: `${statistics.totalCampaigns} campanhas`,
       icon: '💰',
       color: '#10b981',
@@ -172,7 +189,7 @@ const GooglePatrocinadoDashboard = ({
   const secondaryMetrics = [
     {
       title: 'CPC Médio',
-      value: googlePatrocinadoService.formatCurrency(statistics.averageCPC),
+      value: googlePatrocinadoService.formatCurrency(statistics.averageCPC, 'BRL', 'pt-BR'),
       icon: '🎯',
       color: '#06b6d4'
     },

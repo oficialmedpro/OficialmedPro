@@ -197,9 +197,19 @@ const GooglePatrocinadoPage = () => {
           console.log(`   - Cliques: ${campaign.metrics.clicks}`);
           console.log(`   - CTR: ${campaign.metrics.ctr}`);
           console.log(`   - CPC: ${campaign.metrics.average_cpc}`);
-          console.log(`   - Gasto: ${campaign.metrics.cost_micros}`);
+          console.log(`   - Gasto (micros): ${campaign.metrics.cost_micros}`);
+          console.log(`   - Gasto (reais): ${(campaign.metrics.cost_micros || 0) / 1000000}`);
           console.log(`   - Conversões: ${campaign.metrics.conversions}`);
           console.log(`   - Valor Conversões: ${campaign.metrics.conversions_value}`);
+          
+          // Debug específico para custos
+          console.log(`💰 DEBUG CUSTOS - ${campaign.name}:`, {
+            cost_micros: campaign.metrics.cost_micros,
+            cost_micros_type: typeof campaign.metrics.cost_micros,
+            cost_reais: (campaign.metrics.cost_micros || 0) / 1000000,
+            metrics_complete: campaign.metrics
+          });
+          console.log(`💰 DEBUG CUSTOS DETALHADO - ${campaign.name}:`, JSON.stringify(campaign.metrics, null, 2));
         }
       });
 
@@ -276,13 +286,20 @@ const GooglePatrocinadoPage = () => {
       const mappedStats = {
         totalClicks: statsData.data?.totalClicks || 0,
         totalImpressions: statsData.data?.totalImpressions || 0,
-        totalCost: statsData.data?.totalCost || 0,
+        totalCost: statsData.data?.totalCost || 0, // Já vem em reais da API
         totalConversions: statsData.data?.totalConversions || 0,
         ctr: statsData.data?.ctr || 0,
         cpc: statsData.data?.cpc || 0,
         conversionRate: statsData.data?.conversionRate || 0,
         period: statsData.data?.period || dateRange
       };
+
+      console.log('💰 DEBUG CUSTOS - Dados da API:', {
+        totalCost: statsData.data?.totalCost,
+        totalCostType: typeof statsData.data?.totalCost,
+        totalCostRaw: statsData.data
+      });
+      console.log('💰 DEBUG CUSTOS DETALHADO - Dados da API:', JSON.stringify(statsData.data, null, 2));
 
       setGooglePatrocinadoStats(mappedStats);
       console.log('✅ Estatísticas reais carregadas:', mappedStats);
@@ -628,7 +645,7 @@ const GooglePatrocinadoPage = () => {
                         <div className="google-patrocinado-metric-item">
                           <span className="google-patrocinado-metric-label">💰 Gasto</span>
                           <span className="google-patrocinado-metric-value">
-                            {formatCurrency((campaign.metrics.cost_micros || 0) / 1000000)}
+                            {formatCurrency((campaign.metrics.cost_micros || 0) / 1000000, 'BRL', 'pt-BR')}
                           </span>
                         </div>
                         <div className="google-patrocinado-metric-item">
@@ -658,7 +675,7 @@ const GooglePatrocinadoPage = () => {
                         <div className="google-patrocinado-metric-item">
                           <span className="google-patrocinado-metric-label">💵 CPC</span>
                           <span className="google-patrocinado-metric-value">
-                            {formatCurrency(campaign.metrics.average_cpc || 0)}
+                            {formatCurrency(campaign.metrics.average_cpc || 0, 'BRL', 'pt-BR')}
                           </span>
                         </div>
                       </div>

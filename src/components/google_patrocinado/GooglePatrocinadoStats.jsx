@@ -37,7 +37,7 @@ const GooglePatrocinadoStats = ({
   const mainStats = [
     {
       title: 'Gasto Total',
-      value: googlePatrocinadoService.formatCurrency(defaultStats.gastoTotal),
+      value: googlePatrocinadoService.formatCurrency(defaultStats.gastoTotal, 'BRL', 'pt-BR'),
       icon: '💰',
       color: '#10b981',
       trend: getTrend(defaultStats.gastoTotal),
@@ -81,7 +81,7 @@ const GooglePatrocinadoStats = ({
     {
       title: 'CPC Médio',
       value: googlePatrocinadoService.formatCurrency(
-        defaultStats.clicks > 0 ? defaultStats.gastoTotal / defaultStats.clicks : 0
+        defaultStats.clicks > 0 ? defaultStats.gastoTotal / defaultStats.clicks : 0, 'BRL', 'pt-BR'
       ),
       icon: '📊',
       color: '#ef4444',
@@ -89,7 +89,7 @@ const GooglePatrocinadoStats = ({
     },
     {
       title: 'Custo/Conversão',
-      value: googlePatrocinadoService.formatCurrency(defaultStats.custoMedioPorConversao),
+      value: googlePatrocinadoService.formatCurrency(defaultStats.custoMedioPorConversao, 'BRL', 'pt-BR'),
       icon: '📈',
       color: '#10b981',
       description: 'Custo por conversão'
@@ -229,7 +229,7 @@ const GooglePatrocinadoStats = ({
             <div className="google-patrocinado-conversion-item">
               <span className="google-patrocinado-conversion-label">Custo/Conversão Ajustado</span>
               <span className="google-patrocinado-conversion-value">
-                {googlePatrocinadoService.formatCurrency(defaultStats.custoMedioPorConversaoAjustado)}
+                {googlePatrocinadoService.formatCurrency(defaultStats.custoMedioPorConversaoAjustado, 'BRL', 'pt-BR')}
               </span>
             </div>
           </div>
