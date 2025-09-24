@@ -9,7 +9,6 @@ import MapaDeCalorPage from './pages/MapaDeCalorPage'
 import DashGooglePatrocinadoPage from './pages/DashGooglePatrocinadoPage'
 import DashboardMetaAds from './pages/DashboardMetaAds'
 import DashboardGoogleAds from './pages/DashboardGoogleAds'
-import GooglePatrocinadoPage from './pages/GooglePatrocinadoPage'
 import DailyPerformanceDebugPage from './pages/DailyPerformanceDebugPage'
 import LossReasonsDebugPage from './pages/LossReasonsDebugPage'
 import DebugRankingPage from './pages/DebugRankingPage'
@@ -111,7 +110,6 @@ function App() {
         <Route path="/dashgooglepatrocinado" element={<DashGooglePatrocinadoPage onLogout={handleLogout} />} />
         <Route path="/meta-ads" element={<DashboardMetaAds onLogout={handleLogout} />} />
         <Route path="/google-ads" element={<DashboardGoogleAds onLogout={handleLogout} />} />
-        <Route path="/google-patrocinado" element={<GooglePatrocinadoPage onLogout={handleLogout} />} />
         <Route path="/debug-daily-performance" element={<DailyPerformanceDebugPage onLogout={handleLogout} />} />
         <Route path="/debug-loss-reasons" element={<LossReasonsDebugPage onLogout={handleLogout} />} />
         <Route path="/debug-ranking" element={<DebugRankingPage onLogout={handleLogout} />} />

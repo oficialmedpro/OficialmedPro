@@ -36,6 +36,8 @@
   padding: 24px;
   margin-bottom: 24px;
   position: relative;
+  width: 100%;
+  flex: 1;
 }
 
 /* Header do Dashboard */
@@ -100,8 +102,8 @@
 
 /* Card de Métrica */
 .google-patrocinado-metric-card {
-  background: var(--google-patrocinado-tertiary);
-  border: 1px solid var(--google-patrocinado-border);
+  background: #0f172a;
+  border: 1px solid #334155;
   border-radius: 12px;
   padding: 20px;
   transition: all 0.3s ease;
@@ -201,8 +203,8 @@
 }
 
 .google-patrocinado-secondary-card {
-  background: var(--google-patrocinado-tertiary);
-  border: 1px solid var(--google-patrocinado-border);
+  background: #0f172a;
+  border: 1px solid #334155;
   border-radius: 8px;
   padding: 16px;
   display: flex;
@@ -262,8 +264,8 @@
 }
 
 .google-patrocinado-status-card {
-  background: var(--google-patrocinado-tertiary);
-  border: 1px solid var(--google-patrocinado-border);
+  background: #0f172a;
+  border: 1px solid #334155;
   border-radius: 8px;
   padding: 16px;
   display: flex;
