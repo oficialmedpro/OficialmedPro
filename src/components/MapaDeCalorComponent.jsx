@@ -455,6 +455,26 @@ const MapaDeCalorComponent = ({
     );
   }
 
+  // Função para determinar se um dia é da semana atual (só para weekOffset = 0)
+  const isCurrentWeekDay = (diaIndex) => {
+    if (weekOffset !== 0) return true; // Se não é semana atual, todos os dias têm opacidade normal
+
+    const today = new Date();
+    const todayWeekday = today.getDay(); // 0=domingo, 1=segunda, 2=terça, etc.
+
+    // Converter diaIndex para weekday: Segunda=1, Terça=2, Quarta=3, Quinta=4, Sexta=5, Sábado=6, Domingo=0
+    const dayWeekday = diaIndex === 6 ? 0 : diaIndex + 1;
+
+    console.log(`🎯 OPACIDADE: diaIndex=${diaIndex}, dayWeekday=${dayWeekday}, todayWeekday=${todayWeekday}`);
+
+    // Se o dia da semana já passou ou é hoje, é da semana atual
+    if (todayWeekday === 0) { // Se hoje é domingo
+      return dayWeekday === 0; // Só domingo é da semana atual
+    } else {
+      return dayWeekday >= 1 && dayWeekday <= todayWeekday; // Segunda até hoje
+    }
+  };
+
   return (
     <div className="main-chart">
       <div className="mapa-calor-container">
@@ -516,13 +536,17 @@ const MapaDeCalorComponent = ({
             </div>
 
             {/* Linhas dos dias da semana */}
-            {diasSemana.map((dia, diaIndex) => (
-              <div key={dia} className="mapa-calor-day-row">
-                {/* Cabeçalho do dia */}
-                <div className="mapa-calor-day-header">
-                  <div className="day-name">{dia}</div>
-                  <div className="day-date">{getRealDateForDay(dia, diaIndex)}</div>
-                </div>
+            {diasSemana.map((dia, diaIndex) => {
+              const isFromCurrentWeek = isCurrentWeekDay(diaIndex);
+              const rowOpacity = isFromCurrentWeek ? 1.0 : 0.3; // Mais apagado: 0.3 ao invés de 0.5
+
+              return (
+                <div key={dia} className="mapa-calor-day-row" style={{ opacity: rowOpacity }}>
+                  {/* Cabeçalho do dia */}
+                  <div className="mapa-calor-day-header">
+                    <div className="day-name">{dia}</div>
+                    <div className="day-date">{getRealDateForDay(dia, diaIndex)}</div>
+                  </div>
 
                 {/* Células de dados */}
                 {horarios.map((horario, horaIndex) => {
@@ -569,8 +593,9 @@ const MapaDeCalorComponent = ({
                     </div>
                   );
                 })()}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
 
           {/* Legenda dinâmica baseada nos percentis */}

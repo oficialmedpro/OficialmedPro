@@ -84,6 +84,27 @@
   margin: 15px 0 0 0;
 }
 
+/* 🎯 OPACIDADE PARA DIAS DA SEMANA PASSADA */
+.mapa-calor-day-row {
+  transition: opacity 0.3s ease;
+}
+
+.mapa-calor-day-row[style*="opacity: 0.3"] {
+  position: relative;
+}
+
+.mapa-calor-day-row[style*="opacity: 0.3"]::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 193, 7, 0.05) 50%, transparent 100%);
+  pointer-events: none;
+  border-radius: 4px;
+}
+
 .mapa-calor-loading {
   display: flex;
   flex-direction: column;
