@@ -169,6 +169,36 @@ async function queryGoogleAds(credentials: any, query: string) {
     const data = await response.json()
     console.log('🔍 Resposta da API Google Ads:', JSON.stringify(data, null, 2))
     
+    // Debug específico para custos
+    if (data.results && data.results.length > 0) {
+      console.log(`🔍 DEBUG API - Primeiro resultado da API:`)
+      const firstResult = data.results[0]
+      console.log(`🔍 Campaign: ${firstResult.campaign?.name} (${firstResult.campaign?.id})`)
+      console.log(`🔍 Date: ${firstResult.segments?.date}`)
+      console.log(`🔍 Cost Micros (API): ${firstResult.metrics?.cost_micros}`)
+      console.log(`🔍 Average CPC (API): ${firstResult.metrics?.average_cpc}`)
+      console.log(`🔍 Impressions (API): ${firstResult.metrics?.impressions}`)
+      console.log(`🔍 Clicks (API): ${firstResult.metrics?.clicks}`)
+      console.log(`🔍 Conversions (API): ${firstResult.metrics?.conversions}`)
+      
+      // Verificar se é conta de teste
+      const hasClicks = firstResult.metrics?.clicks > 0
+      const hasImpressions = firstResult.metrics?.impressions > 0
+      const hasConversions = firstResult.metrics?.conversions > 0
+      const hasCost = firstResult.metrics?.cost_micros > 0
+      
+      console.log(`🔍 ANÁLISE CONTA:`)
+      console.log(`🔍 - Tem cliques: ${hasClicks}`)
+      console.log(`🔍 - Tem impressões: ${hasImpressions}`)
+      console.log(`🔍 - Tem conversões: ${hasConversions}`)
+      console.log(`🔍 - Tem custos: ${hasCost}`)
+      
+      if (hasClicks && hasImpressions && hasConversions && !hasCost) {
+        console.log(`⚠️ POSSÍVEL CONTA DE TESTE: Tem tráfego mas sem custos!`)
+        console.log(`⚠️ Isso indica que a conta pode estar em modo sandbox/teste`)
+      }
+    }
+    
     // Retornar os resultados diretamente
     return data.results || []
   } catch (error) {
@@ -352,7 +382,7 @@ async function handleGetCampaigns(status: string, customCustomerId?: string, sta
 
     // Consulta GAQL conforme documentação googleAds:search
     // IMPORTANTE: Para métricas de custo, precisamos usar segments.date
-    const results = await queryGoogleAds(credentials, `
+    const gaqlQuery = `
       SELECT 
         campaign.id,
         campaign.name,
@@ -371,11 +401,30 @@ async function handleGetCampaigns(status: string, customCustomerId?: string, sta
       ${dateFilterClause}
       ORDER BY campaign.id
       LIMIT 1000
-    `)
+    `
+    
+    console.log(`🔍 EXECUTANDO CONSULTA GAQL:`)
+    console.log(gaqlQuery)
+    
+    const results = await queryGoogleAds(credentials, gaqlQuery)
 
     console.log(`📊 RESULTADO:`)
     console.log(`📊 Número de resultados: ${results.length}`)
     console.log(`📊 Dados brutos:`, JSON.stringify(results, null, 2))
+    
+    // Debug específico para custos
+    if (results.length > 0) {
+      console.log(`🔍 DEBUG CUSTOS - Primeiro resultado:`)
+      const firstResult = results[0]
+      console.log(`🔍 Campaign ID: ${firstResult.campaign?.id}`)
+      console.log(`🔍 Campaign Name: ${firstResult.campaign?.name}`)
+      console.log(`🔍 Date: ${firstResult.segments?.date}`)
+      console.log(`🔍 Cost Micros: ${firstResult.metrics?.cost_micros}`)
+      console.log(`🔍 Average CPC: ${firstResult.metrics?.average_cpc}`)
+      console.log(`🔍 Impressions: ${firstResult.metrics?.impressions}`)
+      console.log(`🔍 Clicks: ${firstResult.metrics?.clicks}`)
+      console.log(`🔍 Conversions: ${firstResult.metrics?.conversions}`)
+    }
 
     // Agrupar resultados por campanha (quando usando segments.date)
     const campaignMap = new Map()

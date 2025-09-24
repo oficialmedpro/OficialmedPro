@@ -120,7 +120,7 @@
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgb(8 16 35);
   border-radius: 10px;
   backdrop-filter: blur(10px);
 }
@@ -206,7 +206,7 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgb(8 16 35);
   border-radius: 8px;
 }
 

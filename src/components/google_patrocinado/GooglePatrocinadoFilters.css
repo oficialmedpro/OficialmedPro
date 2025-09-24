@@ -72,7 +72,7 @@
   padding: 8px 16px;
   border: 1px solid var(--google-patrocinado-filters-border);
   border-radius: 6px;
-  background: var(--google-patrocinado-filters-tertiary);
+  background: rgb(8 16 35);
   color: var(--google-patrocinado-filters-text-secondary);
   font-size: 14px;
   cursor: pointer;
@@ -121,7 +121,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: var(--google-patrocinado-filters-tertiary);
+  background: rgb(8 16 35);
   border: 1px solid var(--google-patrocinado-filters-border);
   border-radius: 8px;
   color: var(--google-patrocinado-filters-text-primary);
@@ -146,7 +146,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  background: var(--google-patrocinado-filters-tertiary);
+  background: rgb(8 16 35);
   border: 1px solid var(--google-patrocinado-filters-border);
   border-radius: 8px;
   padding: 0 12px;

@@ -563,13 +563,21 @@ const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSe
                       key={period.id}
                       className={`fb-dropdown-item ${selectedPeriod === period.id ? 'fb-selected' : ''}`}
                       onClick={() => {
-                        setSelectedPeriod(period.id);
-                        // Calcular datas corretas baseado no período selecionado
-                        const { start, end } = handleDatePreset(period.id);
-                        if (start && end) {
-                          setStartDate(start);
-                          setEndDate(end);
-                          console.log(`📅 Período ${period.name} aplicado:`, { start, end });
+                        console.log(`📅 FilterBar: Clicando em período ${period.name} (${period.id})`);
+                        // Usar o handler da página principal se disponível
+                        if (setSelectedPeriod) {
+                          console.log(`📅 FilterBar: Chamando setSelectedPeriod com ${period.id}`);
+                          setSelectedPeriod(period.id);
+                        } else {
+                          console.log(`📅 FilterBar: setSelectedPeriod não disponível, usando lógica local`);
+                          // Fallback para lógica local
+                          const { start, end } = handleDatePreset(period.id);
+                          console.log(`📅 FilterBar: Datas calculadas para ${period.name}:`, { start, end });
+                          if (start && end) {
+                            setStartDate(start);
+                            setEndDate(end);
+                            console.log(`📅 FilterBar: Período ${period.name} aplicado:`, { start, end });
+                          }
                         }
                         setOpenDropdown(null);
                       }}

@@ -1,5 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
-// Usando ícones Unicode/emoji seguindo o padrão do projeto
+import { 
+  DollarSign, 
+  Eye, 
+  MousePointer, 
+  CheckCircle, 
+  TrendingUp, 
+  TrendingDown,
+  Target,
+  BarChart3,
+  PieChart,
+  Activity,
+  Zap,
+  Pause
+} from 'lucide-react';
 import { googlePatrocinadoService } from '../../service/googlePatrocinadoService';
 import './GooglePatrocinadoDashboard.css';
 
@@ -155,7 +168,7 @@ const GooglePatrocinadoDashboard = ({
       title: 'Gasto Total',
       value: googlePatrocinadoService.formatCurrency(statistics.totalSpent, 'BRL', 'pt-BR'),
       subtitle: `${statistics.totalCampaigns} campanhas`,
-      icon: '💰',
+      icon: <DollarSign size={20} />,
       color: '#10b981',
       sparkline: [1, 2, 3, 2, 4, 3, 5]
     },
@@ -163,7 +176,7 @@ const GooglePatrocinadoDashboard = ({
       title: 'Impressões',
       value: googlePatrocinadoService.formatNumber(statistics.totalImpressions),
       subtitle: 'Total de visualizações',
-      icon: '👁️',
+      icon: <Eye size={20} />,
       color: '#3b82f6',
       sparkline: [2, 1, 4, 3, 2, 5, 4]
     },
@@ -171,7 +184,7 @@ const GooglePatrocinadoDashboard = ({
       title: 'Cliques',
       value: googlePatrocinadoService.formatNumber(statistics.totalClicks),
       subtitle: `CTR: ${statistics.averageCTR.toFixed(2)}%`,
-      icon: '👆',
+      icon: <MousePointer size={20} />,
       color: '#f59e0b',
       sparkline: [1, 3, 2, 4, 2, 3, 5]
     },
@@ -179,7 +192,7 @@ const GooglePatrocinadoDashboard = ({
       title: 'Conversões',
       value: googlePatrocinadoService.formatNumber(statistics.totalConversions),
       subtitle: `Taxa: ${statistics.averageConversionRate.toFixed(2)}%`,
-      icon: '✅',
+      icon: <CheckCircle size={20} />,
       color: '#8b5cf6',
       sparkline: [3, 2, 4, 1, 5, 3, 4]
     }
@@ -190,19 +203,19 @@ const GooglePatrocinadoDashboard = ({
     {
       title: 'CPC Médio',
       value: googlePatrocinadoService.formatCurrency(statistics.averageCPC, 'BRL', 'pt-BR'),
-      icon: '🎯',
+      icon: <Target size={20} />,
       color: '#06b6d4'
     },
     {
       title: 'Taxa de Conversão',
       value: `${statistics.averageConversionRate.toFixed(2)}%`,
-      icon: '📈',
+      icon: <TrendingUp size={20} />,
       color: '#10b981'
     },
     {
       title: 'CTR Médio',
       value: `${statistics.averageCTR.toFixed(2)}%`,
-      icon: '📊',
+      icon: <BarChart3 size={20} />,
       color: '#f59e0b'
     }
   ];
@@ -287,7 +300,7 @@ const GooglePatrocinadoDashboard = ({
         <div className="google-patrocinado-status-grid">
           <div className="google-patrocinado-status-card">
             <div className="google-patrocinado-status-icon">
-              <span style={{ fontSize: '24px', color: '#10b981' }}>✅</span>
+              <CheckCircle size={24} style={{ color: '#10b981' }} />
             </div>
             <div className="google-patrocinado-status-content">
               <span className="google-patrocinado-status-count">
@@ -299,7 +312,7 @@ const GooglePatrocinadoDashboard = ({
           
           <div className="google-patrocinado-status-card">
             <div className="google-patrocinado-status-icon">
-              <span style={{ fontSize: '24px', color: '#f59e0b' }}>⏸️</span>
+              <Pause size={24} style={{ color: '#f59e0b' }} />
             </div>
             <div className="google-patrocinado-status-content">
               <span className="google-patrocinado-status-count">
@@ -311,7 +324,7 @@ const GooglePatrocinadoDashboard = ({
           
           <div className="google-patrocinado-status-card">
             <div className="google-patrocinado-status-icon">
-              <span style={{ fontSize: '24px', color: '#3b82f6' }}>📊</span>
+              <BarChart3 size={24} style={{ color: '#3b82f6' }} />
             </div>
             <div className="google-patrocinado-status-content">
               <span className="google-patrocinado-status-count">{statistics.totalCampaigns}</span>

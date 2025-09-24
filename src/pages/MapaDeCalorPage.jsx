@@ -122,43 +122,22 @@ const MapaDeCalorPage = ({ onLogout }) => {
   const handleUnitFilterChange = (filterValue) => {
     setUnitFilterValue(filterValue);
     console.log(`🎯 Mapa de Calor: Filtro de unidade alterado para:`, filterValue);
-
-    if (filterValue) {
-      console.log(`🔍 Filtrando leads com unidade_id = "${filterValue}"`);
-    } else {
-      console.log(`🌐 Mostrando todos os leads (sem filtro de unidade)`);
-    }
   };
 
   // 🎯 Função para lidar com mudanças no filtro de status
   const handleStatusFilterChange = (filterData) => {
     setStatusFilterValue(filterData);
     console.log(`🎯 Mapa de Calor: Filtro de status alterado para:`, filterData);
-
-    console.log(`🔍 Filtrando leads com ${filterData.field} = "${filterData.value}"`);
-    console.log(`📝 Descrição: ${filterData.description}`);
   };
 
   // 🎯 Função para lidar com mudanças no filtro de vendedor
   const handleSellerFilterChange = (filterValue) => {
     console.log(`🎯 Mapa de Calor: Filtro de vendedor alterado para:`, filterValue);
-
-    if (filterValue) {
-      console.log(`🔍 Filtrando leads com user_id = "${filterValue}"`);
-    } else {
-      console.log(`🌐 Mostrando todos os vendedores (sem filtro de vendedor)`);
-    }
   };
 
   // 🎯 Função para lidar com mudanças no filtro de origem
   const handleOriginFilterChange = (filterValue) => {
     console.log(`🎯 Mapa de Calor: Filtro de origem alterado para:`, filterValue);
-
-    if (filterValue) {
-      console.log(`🔍 Filtrando leads com origem_oportunidade = "${filterValue}"`);
-    } else {
-      console.log(`🌐 Mostrando todas as origens (sem filtro de origem)`);
-    }
   };
 
   const toggleSidebar = () => {
@@ -268,7 +247,7 @@ const MapaDeCalorPage = ({ onLogout }) => {
         onLogout={onLogout}
       />
 
-      {/* FilterBar Fixo */}
+      {/* FilterBar */}
       <FilterBar
         t={t}
         selectedStatus={selectedStatus}

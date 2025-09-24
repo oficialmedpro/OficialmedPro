@@ -355,14 +355,35 @@ const DashGooglePatrocinadoPage = ({ onLogout }) => {
 
       // Mapear estatísticas para o formato esperado pelo frontend
       const mappedStats = {
-        totalClicks: statsData.data?.totalClicks || 0,
-        totalImpressions: statsData.data?.totalImpressions || 0,
-        totalCost: statsData.data?.totalCost || 0, // Já vem em reais da API
+        // Propriedades para GooglePatrocinadoStats
+        gastoTotal: statsData.data?.totalCost || 0, // Já vem em reais da API
+        impressions: statsData.data?.totalImpressions || 0,
+        clicks: statsData.data?.totalClicks || 0,
         totalConversions: statsData.data?.totalConversions || 0,
         ctr: statsData.data?.ctr || 0,
         cpc: statsData.data?.cpc || 0,
         conversionRate: statsData.data?.conversionRate || 0,
-        period: statsData.data?.period || dateRange
+        period: statsData.data?.period || dateRange,
+        
+        // Propriedades adicionais que podem estar faltando
+        totalConversionsAjustado: statsData.data?.totalConversions || 0,
+        custoMedioPorConversao: statsData.data?.totalCost > 0 && statsData.data?.totalConversions > 0 
+          ? statsData.data.totalCost / statsData.data.totalConversions 
+          : 0,
+        custoMedioPorConversaoAjustado: statsData.data?.totalCost > 0 && statsData.data?.totalConversions > 0 
+          ? statsData.data.totalCost / statsData.data.totalConversions 
+          : 0,
+        dadosCampanhas: { 
+          total: campaigns?.length || 0, 
+          filtradas: filteredCampaigns?.length || 0 
+        },
+        allConversions: statsData.data?.totalConversions || 0,
+        allConversionsValue: statsData.data?.totalConversions || 0,
+        
+        // Manter propriedades originais para compatibilidade
+        totalClicks: statsData.data?.totalClicks || 0,
+        totalImpressions: statsData.data?.totalImpressions || 0,
+        totalCost: statsData.data?.totalCost || 0,
       };
 
       console.log('💰 DEBUG CUSTOS - Dados da API:', {
@@ -462,10 +483,38 @@ const DashGooglePatrocinadoPage = ({ onLogout }) => {
     }
   }, [selectedPeriod]);
 
+  // Reagir às mudanças de período (igual à DashboardPage)
+  useEffect(() => {
+    if (selectedPeriod && selectedPeriod !== 'custom') {
+      console.log('📅 Dash Google Patrocinado: Período alterado para:', selectedPeriod);
+      const { start, end } = handleDatePreset(selectedPeriod);
+      if (start && end) {
+        console.log('📅 Dash Google Patrocinado: Aplicando datas:', { start, end });
+        setStartDate(start);
+        setEndDate(end);
+        
+        // Atualizar dateRange para o Google Ads
+        const newDateRange = {
+          since: start,
+          until: end
+        };
+        console.log('📅 Dash Google Patrocinado: Atualizando dateRange:', newDateRange);
+        setDateRange(newDateRange);
+        
+        // Recarregar dados com novo período
+        setTimeout(() => {
+          console.log('🔄 Dash Google Patrocinado: Recarregando campanhas com novo período...');
+          loadCampaignsWithMetrics();
+        }, 100);
+      }
+    }
+  }, [selectedPeriod]);
+
   // Debug das datas para o dashboard Google Patrocinado
   useEffect(() => {
     console.log('🔥 Dash Google Patrocinado - Estado das datas:', { startDate, endDate, selectedPeriod });
-  }, [startDate, endDate, selectedPeriod]);
+    console.log('🔥 Dash Google Patrocinado - dateRange atual:', dateRange);
+  }, [startDate, endDate, selectedPeriod, dateRange]);
 
   // Funções de controle
 
@@ -577,6 +626,12 @@ const DashGooglePatrocinadoPage = ({ onLogout }) => {
     } else {
       console.log('❌ Nenhuma campanha encontrada com os filtros aplicados');
     }
+
+    // Recarregar estatísticas quando as campanhas filtradas mudarem
+    setTimeout(() => {
+      console.log('🔄 Recarregando estatísticas devido a mudança nas campanhas filtradas...');
+      loadStatistics();
+    }, 200);
   }, [campaigns, searchTerm, selectedCampaignStatus, selectedCampaignType, selectedAccount, dateRange]);
 
   // Handlers para filtros
@@ -589,6 +644,7 @@ const DashGooglePatrocinadoPage = ({ onLogout }) => {
       loadCampaignsWithMetrics();
     }, 100);
   };
+
 
   const handleSearchChange = (newSearchTerm) => {
     console.log('🔍 Alterando termo de busca:', newSearchTerm);
@@ -618,6 +674,10 @@ const DashGooglePatrocinadoPage = ({ onLogout }) => {
   const handleRefresh = () => {
     console.log('🔄 Atualizando dados das campanhas...');
     loadCampaignsWithMetrics();
+    // Também recarregar estatísticas
+    setTimeout(() => {
+      loadStatistics();
+    }, 500);
   };
 
   const toggleSidebar = () => {
@@ -760,10 +820,8 @@ const DashGooglePatrocinadoPage = ({ onLogout }) => {
             </div>
           )}
 
-          {/* Filtros */}
+          {/* Filtros (sem filtro de data) */}
           <GooglePatrocinadoFilters
-            dateRange={dateRange}
-            onDateRangeChange={handleDateRangeChange}
             searchTerm={searchTerm}
             onSearchChange={handleSearchChange}
             selectedAccount={selectedAccount}
@@ -780,13 +838,11 @@ const DashGooglePatrocinadoPage = ({ onLogout }) => {
 
           {/* Stats Section */}
           <section className="stats-section">
-            {googlePatrocinadoStats && (
-              <GooglePatrocinadoStats
-                stats={googlePatrocinadoStats}
-                dateRange={dateRange}
-                isLoading={isLoading}
-              />
-            )}
+            <GooglePatrocinadoStats
+              stats={googlePatrocinadoStats}
+              dateRange={dateRange}
+              isLoading={isLoading}
+            />
           </section>
 
           {/* Chart Section */}

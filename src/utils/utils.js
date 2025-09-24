@@ -171,6 +171,16 @@ export const handleDatePreset = (preset) => {
       const quarterStart = new Date(spTime.getFullYear(), quarter * 3, 1);
       start = quarterStart.toISOString().split('T')[0];
       end = today;
+      
+      console.log(`📅 TRIMESTRE DEBUG:`, {
+        spDate: spDate.toISOString(),
+        spTime: spTime.toISOString(),
+        month: spTime.getMonth(),
+        quarter: quarter,
+        quarterStart: quarterStart.toISOString(),
+        start: start,
+        end: end
+      });
       break;
     case 'thisYear':
       const yearDate = new Date();

@@ -27,7 +27,7 @@ const Sidebar = ({
   
   // Estados para os submenus em sanfona
   const [openSubmenus, setOpenSubmenus] = useState({
-    funilsAdm: false,
+    funilsAdm: true, // Abrir por padrão quando sidebar estiver expandido
     funilComercial: false
   });
 
@@ -213,7 +213,7 @@ const Sidebar = ({
             
             {/* Submenu */}
             {sidebarExpanded && (
-              <div className={`sidebar-component-submenu ${openSubmenus[menu.id] ? 'open' : ''}`}>
+              <div className={`sidebar-component-submenu open`}>
                 {menu.subItems.map((subItem, subIndex) => (
                   <div 
                     key={subIndex} 

@@ -1,5 +1,15 @@
 import React from 'react';
-// Usando ícones Unicode/emoji seguindo o padrão do projeto
+import { 
+  DollarSign, 
+  Eye, 
+  MousePointer, 
+  CheckCircle, 
+  TrendingUp, 
+  TrendingDown,
+  Target,
+  BarChart3,
+  PieChart
+} from 'lucide-react';
 import { googlePatrocinadoService } from '../../service/googlePatrocinadoService';
 import './GooglePatrocinadoStats.css';
 
@@ -9,6 +19,9 @@ const GooglePatrocinadoStats = ({
   isLoading = false,
   className = ''
 }) => {
+  // Debug das datas recebidas
+  console.log('📊 GooglePatrocinadoStats - dateRange recebido:', dateRange);
+  console.log('📊 GooglePatrocinadoStats - stats recebido:', stats);
   // Dados padrão caso stats esteja vazio
   const defaultStats = {
     totalConversions: 0,
@@ -38,7 +51,7 @@ const GooglePatrocinadoStats = ({
     {
       title: 'Gasto Total',
       value: googlePatrocinadoService.formatCurrency(defaultStats.gastoTotal, 'BRL', 'pt-BR'),
-      icon: '💰',
+      icon: <DollarSign size={20} />,
       color: '#10b981',
       trend: getTrend(defaultStats.gastoTotal),
       description: 'Investimento total em campanhas'
@@ -46,7 +59,7 @@ const GooglePatrocinadoStats = ({
     {
       title: 'Impressões',
       value: googlePatrocinadoService.formatNumber(defaultStats.impressions),
-      icon: '👁️',
+      icon: <Eye size={20} />,
       color: '#3b82f6',
       trend: getTrend(defaultStats.impressions),
       description: 'Total de visualizações'
@@ -54,7 +67,7 @@ const GooglePatrocinadoStats = ({
     {
       title: 'Cliques',
       value: googlePatrocinadoService.formatNumber(defaultStats.clicks),
-      icon: '👆',
+      icon: <MousePointer size={20} />,
       color: '#f59e0b',
       trend: getTrend(defaultStats.clicks),
       description: 'Interações com anúncios'
@@ -62,7 +75,7 @@ const GooglePatrocinadoStats = ({
     {
       title: 'Conversões',
       value: googlePatrocinadoService.formatNumber(defaultStats.totalConversions),
-      icon: '✅',
+      icon: <CheckCircle size={20} />,
       color: '#8b5cf6',
       trend: getTrend(defaultStats.totalConversions),
       description: 'Ações concluídas'
@@ -74,7 +87,7 @@ const GooglePatrocinadoStats = ({
     {
       title: 'CTR Médio',
       value: `${defaultStats.ctr.toFixed(2)}%`,
-      icon: '🎯',
+      icon: <Target size={20} />,
       color: '#06b6d4',
       description: 'Taxa de cliques'
     },
@@ -83,14 +96,14 @@ const GooglePatrocinadoStats = ({
       value: googlePatrocinadoService.formatCurrency(
         defaultStats.clicks > 0 ? defaultStats.gastoTotal / defaultStats.clicks : 0, 'BRL', 'pt-BR'
       ),
-      icon: '📊',
+      icon: <BarChart3 size={20} />,
       color: '#ef4444',
       description: 'Custo por clique'
     },
     {
       title: 'Custo/Conversão',
       value: googlePatrocinadoService.formatCurrency(defaultStats.custoMedioPorConversao, 'BRL', 'pt-BR'),
-      icon: '📈',
+      icon: <PieChart size={20} />,
       color: '#10b981',
       description: 'Custo por conversão'
     }
@@ -121,7 +134,20 @@ const GooglePatrocinadoStats = ({
         <h3>Estatísticas do Período</h3>
         {dateRange && (
           <p className="google-patrocinado-stats-period">
-            {new Date(dateRange.since).toLocaleDateString('pt-BR')} - {new Date(dateRange.until).toLocaleDateString('pt-BR')}
+            {(() => {
+              // Corrigir problema de fuso horário - adicionar 'T00:00:00' para forçar horário local
+              const sinceDate = new Date(dateRange.since + 'T00:00:00');
+              const untilDate = new Date(dateRange.until + 'T00:00:00');
+              
+              console.log('📅 GooglePatrocinadoStats - Formatando datas:', {
+                since: dateRange.since,
+                until: dateRange.until,
+                sinceDate: sinceDate,
+                untilDate: untilDate
+              });
+              
+              return `${sinceDate.toLocaleDateString('pt-BR')} - ${untilDate.toLocaleDateString('pt-BR')}`;
+            })()}
           </p>
         )}
       </div>
@@ -136,9 +162,9 @@ const GooglePatrocinadoStats = ({
               </div>
               <div className="google-patrocinado-stat-trend">
                 {stat.trend.trend === 'up' ? (
-                  <span style={{ fontSize: '16px', color: '#10b981' }}>📈</span>
+                  <TrendingUp size={16} style={{ color: '#10b981' }} />
                 ) : (
-                  <span style={{ fontSize: '16px', color: '#ef4444' }}>📉</span>
+                  <TrendingDown size={16} style={{ color: '#ef4444' }} />
                 )}
                 <span 
                   className="google-patrocinado-stat-trend-value"
