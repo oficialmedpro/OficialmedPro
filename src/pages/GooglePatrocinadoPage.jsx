@@ -71,23 +71,30 @@ const GooglePatrocinadoPage = () => {
 
   const [dateRange, setDateRange] = useState(getDefaultDateRange());
 
-  // Carregar dados iniciais
+  // Carregar dados iniciais REAIS da Google Ads API
   useEffect(() => {
     const initializePage = async () => {
       try {
         setIsLoading(true);
         setError(null);
 
-        console.log('🚀 PÁGINA: Inicializando Google Patrocinado Page...');
+        console.log('🚀 INICIANDO TESTE AUTOMÁTICO DA CONTA GOOGLE ADS...');
+        console.log('🔗 URL da Edge Function:', 'https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api');
+        console.log('🔑 Service Key disponível:', import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY ? '✅ Sim' : '❌ Não');
 
-        // SEMPRE carregar campanhas, independente da configuração local
-        console.log('📊 PÁGINA: Carregando campanhas com métricas...');
+        // PASSO 1: Testar conexão
+        console.log('🔍 PASSO 1: Testando conexão...');
+        await testConnection();
+
+        // PASSO 2: Carregar campanhas reais
+        console.log('🔍 PASSO 2: Buscando campanhas da sua conta...');
         await loadCampaignsWithMetrics();
         
-        // Carregar contas disponíveis
+        // PASSO 3: Carregar contas disponíveis
+        console.log('🔍 PASSO 3: Carregando contas disponíveis...');
         await loadAccounts();
 
-        console.log('✅ PÁGINA: Google Patrocinado Page inicializada com sucesso');
+        console.log('✅ PÁGINA: Google Patrocinado Page inicializada com dados REAIS da API');
       } catch (error) {
         console.error('❌ PÁGINA: Erro ao inicializar Google Patrocinado Page:', error);
         setError(error.message || 'Erro ao carregar dados');
@@ -100,63 +107,204 @@ const GooglePatrocinadoPage = () => {
     setTimeout(initializePage, 1000);
   }, []);
 
-  // Carregar campanhas com métricas
-  const loadCampaignsWithMetrics = async () => {
+  // Testar conexão com a Google Ads API
+  const testConnection = async () => {
     try {
-      console.log('📊 Carregando campanhas com métricas...', dateRange);
-      
-      let campaignsData;
-      if (selectedAccount === 'all') {
-        campaignsData = await googlePatrocinadoService.getAllCampaignsWithMetrics(dateRange);
-      } else {
-        campaignsData = await googlePatrocinadoService.getCampaignsWithMetrics(dateRange, selectedAccount);
+      const connectionResponse = await fetch('https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api/test-connection', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json',
+        }
+      });
+
+      console.log('📡 Resposta do teste de conexão - Status:', connectionResponse.status);
+
+      if (!connectionResponse.ok) {
+        const errorText = await connectionResponse.text();
+        throw new Error(`Erro de conexão: ${connectionResponse.status} - ${errorText}`);
       }
 
-      console.log('🔍 DEBUG: Campanhas recebidas:', campaignsData);
-      setCampaigns(campaignsData);
-      console.log(`✅ ${campaignsData.length} campanhas carregadas na interface`);
+      const connectionData = await connectionResponse.json();
+      console.log('✅ RESPOSTA DE CONEXÃO RECEBIDA:', connectionData);
+      
+      if (!connectionData.success) {
+        throw new Error(`Falha na conexão: ${connectionData.error}`);
+      }
+
+      console.log('🎉 CONEXÃO ESTABELECIDA COM SUCESSO!');
+      console.log('👤 Informações da conta:', connectionData.customerInfo);
+      
+    } catch (error) {
+      console.error('❌ ERRO CRÍTICO NO TESTE AUTOMÁTICO:', error);
+      console.error('❌ Nome do erro:', error.name);
+      console.error('❌ Mensagem:', error.message);
+      console.error('❌ Stack completo:', error.stack);
+      throw error;
+    }
+  };
+
+  // Carregar campanhas com métricas REAIS da Edge Function
+  const loadCampaignsWithMetrics = async () => {
+    try {
+      console.log('🚀 CARREGANDO CAMPANHAS REAIS DA GOOGLE ADS API...');
+      console.log('📅 Período:', dateRange);
+      
+      // USAR A MESMA LÓGICA QUE FUNCIONOU NO CONSOLE
+      const params = new URLSearchParams({
+        status: 'all',
+        startDate: dateRange.since,
+        endDate: dateRange.until
+      });
+
+      console.log('🔗 URL da API:', `https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api/campaigns?${params.toString()}`);
+      
+      const campaignsResponse = await fetch(
+        `https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api/campaigns?${params.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      if (!campaignsResponse.ok) {
+        const errorText = await campaignsResponse.text();
+        throw new Error(`Erro ao buscar campanhas: ${campaignsResponse.status} - ${errorText}`);
+      }
+
+      const campaignsData = await campaignsResponse.json();
+      console.log('✅ RESPOSTA DA API GOOGLE ADS:', campaignsData);
+      
+      if (!campaignsData.success) {
+        throw new Error(`API retornou erro: ${campaignsData.error}`);
+      }
+
+      const campaigns = campaignsData.data || [];
+      console.log(`📊 TOTAL DE CAMPANHAS REAIS ENCONTRADAS: ${campaigns.length}`);
+      console.log('📊 Dados brutos:', JSON.stringify(campaigns, null, 2));
+      
+      // Log detalhado de cada campanha (igual ao console)
+      campaigns.forEach((campaign, index) => {
+        console.log(`📋 ${index + 1}. ${campaign.name}`);
+        console.log(`   - ID: ${campaign.id}`);
+        console.log(`   - Status: ${campaign.status}`);
+        console.log(`   - Tipo: ${campaign.type || campaign.channelType || campaign.advertising_channel_type || 'N/A'}`);
+        if (campaign.metrics) {
+          console.log(`   - Impressões: ${campaign.metrics.impressions}`);
+          console.log(`   - Cliques: ${campaign.metrics.clicks}`);
+          console.log(`   - CTR: ${campaign.metrics.ctr}`);
+          console.log(`   - CPC: ${campaign.metrics.average_cpc}`);
+          console.log(`   - Gasto: ${campaign.metrics.cost_micros}`);
+          console.log(`   - Conversões: ${campaign.metrics.conversions}`);
+          console.log(`   - Valor Conversões: ${campaign.metrics.conversions_value}`);
+        }
+      });
+
+      // Mapear campanhas para o formato esperado pelo frontend
+      const mappedCampaigns = campaigns.map((campaign, index) => ({
+        ...campaign,
+        uniqueId: `${campaign.id}-${index}`,
+        accountKey: 'ACCOUNT_1', // Conta configurada nos secrets
+        accountName: 'Apucarana (Google Ads)',
+        advertising_channel_type: campaign.type || campaign.channelType || campaign.advertising_channel_type || 'SEARCH',
+        channelType: campaign.type || campaign.channelType || campaign.advertising_channel_type || 'SEARCH'
+      }));
+
+      setCampaigns(mappedCampaigns);
+      console.log(`✅ ${mappedCampaigns.length} campanhas reais carregadas na interface`);
+      console.log('✅ Campanhas mapeadas:', JSON.stringify(mappedCampaigns, null, 2));
 
       // Extrair tipos de campanha únicos
-      const types = [...new Set(campaignsData.map(c => c.advertising_channel_type || c.channelType).filter(Boolean))];
+      const types = [...new Set(mappedCampaigns.map(c => c.advertising_channel_type || c.channelType).filter(Boolean))];
       setCampaignTypes(types);
       console.log('🏷️ Tipos de campanha encontrados:', types);
 
       // Carregar estatísticas
       await loadStatistics();
     } catch (error) {
-      console.error('❌ Erro ao carregar campanhas:', error);
+      console.error('❌ Erro ao carregar campanhas reais:', error);
+      console.error('❌ Detalhes completos:', error);
+      setError(error.message || 'Erro ao carregar campanhas');
       throw error;
     }
   };
 
-  // Carregar estatísticas
+  // Carregar estatísticas REAIS da Edge Function
   const loadStatistics = async () => {
     try {
-      console.log('📈 Carregando estatísticas...');
+      console.log('📈 CARREGANDO ESTATÍSTICAS REAIS DA GOOGLE ADS API...');
+      console.log('📅 Período:', dateRange);
       
-      let stats;
-      if (selectedAccount === 'all') {
-        stats = await googlePatrocinadoService.getAllGoogleAdsStats(dateRange, searchTerm);
-      } else {
-        stats = await googlePatrocinadoService.getGoogleAdsStats(dateRange, searchTerm, selectedAccount);
+      // USAR A MESMA LÓGICA QUE FUNCIONOU NO CONSOLE
+      const params = new URLSearchParams({
+        startDate: dateRange.since,
+        endDate: dateRange.until
+      });
+
+      console.log('🔗 URL da API Stats:', `https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api/stats?${params.toString()}`);
+      
+      const statsResponse = await fetch(
+        `https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api/stats?${params.toString()}`,
+        {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+          }
+        }
+      );
+
+      if (!statsResponse.ok) {
+        const errorText = await statsResponse.text();
+        console.warn(`⚠️ Erro ao buscar estatísticas: ${statsResponse.status} - ${errorText}`);
+        return;
       }
 
-      setGooglePatrocinadoStats(stats);
-      console.log('✅ Estatísticas carregadas');
+      const statsData = await statsResponse.json();
+      console.log('✅ RESPOSTA DAS ESTATÍSTICAS:', statsData);
+      console.log('📊 Dados brutos das estatísticas:', JSON.stringify(statsData, null, 2));
+      
+      if (!statsData.success) {
+        console.warn(`⚠️ API retornou erro nas estatísticas: ${statsData.error}`);
+        return;
+      }
+
+      // Mapear estatísticas para o formato esperado pelo frontend
+      const mappedStats = {
+        totalClicks: statsData.data?.totalClicks || 0,
+        totalImpressions: statsData.data?.totalImpressions || 0,
+        totalCost: statsData.data?.totalCost || 0,
+        totalConversions: statsData.data?.totalConversions || 0,
+        ctr: statsData.data?.ctr || 0,
+        cpc: statsData.data?.cpc || 0,
+        conversionRate: statsData.data?.conversionRate || 0,
+        period: statsData.data?.period || dateRange
+      };
+
+      setGooglePatrocinadoStats(mappedStats);
+      console.log('✅ Estatísticas reais carregadas:', mappedStats);
+      console.log('✅ Estatísticas mapeadas:', JSON.stringify(mappedStats, null, 2));
     } catch (error) {
-      console.error('❌ Erro ao carregar estatísticas:', error);
+      console.error('❌ Erro ao carregar estatísticas reais:', error);
+      console.error('❌ Detalhes completos:', error);
     }
   };
 
-  // Carregar contas disponíveis
+  // Carregar contas disponíveis (conta real configurada nos secrets)
   const loadAccounts = async () => {
     try {
-      // Simular contas disponíveis (baseado no serviço)
+      console.log('🏢 Carregando contas disponíveis...');
+      
+      // CONTA REAL CONFIGURADA NOS SECRETS DO SUPABASE
       const accountsData = [
-        { key: 'ACCOUNT_1', name: 'Conta Principal', active: true },
-        { key: 'ACCOUNT_2', name: 'Conta Secundária', active: true }
+        { key: 'ACCOUNT_1', name: 'Apucarana (Google Ads)', active: true }
       ];
+      
       setAccounts(accountsData);
+      console.log('✅ Contas carregadas:', accountsData);
     } catch (error) {
       console.error('❌ Erro ao carregar contas:', error);
     }
@@ -164,12 +312,13 @@ const GooglePatrocinadoPage = () => {
 
   // Filtrar campanhas baseado nos filtros ativos
   useEffect(() => {
-    console.log('🔍 INICIANDO FILTROS:');
+    console.log('🔍 INICIANDO FILTROS DE CAMPANHAS REAIS:');
     console.log('📋 Total de campanhas:', campaigns.length);
     console.log('🔍 Termo de busca:', searchTerm);
     console.log('📊 Status selecionado:', selectedCampaignStatus);
     console.log('🏷️ Tipo selecionado:', selectedCampaignType);
     console.log('🏢 Conta selecionada:', selectedAccount);
+    console.log('📅 Período:', dateRange);
     
     let filtered = campaigns;
 
@@ -207,43 +356,65 @@ const GooglePatrocinadoPage = () => {
     }
 
     setFilteredCampaigns(filtered);
-    console.log(`✅ RESULTADO FINAL: ${filtered.length} campanhas após todos os filtros`);
+    console.log(`✅ RESULTADO FINAL DOS FILTROS: ${filtered.length} campanhas após todos os filtros`);
     
     if (filtered.length > 0) {
       console.log('📋 Campanhas filtradas:', filtered.map(c => `${c.name} (${c.status})`));
+      // Log detalhado das métricas das campanhas filtradas
+      filtered.forEach((campaign, index) => {
+        console.log(`📊 ${index + 1}. ${campaign.name} - Métricas:`);
+        if (campaign.metrics) {
+          console.log(`   - Impressões: ${campaign.metrics.impressions}`);
+          console.log(`   - Cliques: ${campaign.metrics.clicks}`);
+          console.log(`   - CTR: ${campaign.metrics.ctr}`);
+          console.log(`   - CPC: ${campaign.metrics.average_cpc}`);
+          console.log(`   - Gasto: ${campaign.metrics.cost_micros}`);
+          console.log(`   - Conversões: ${campaign.metrics.conversions}`);
+        }
+      });
+    } else {
+      console.log('❌ Nenhuma campanha encontrada com os filtros aplicados');
     }
-  }, [campaigns, searchTerm, selectedCampaignStatus, selectedCampaignType, selectedAccount]);
+  }, [campaigns, searchTerm, selectedCampaignStatus, selectedCampaignType, selectedAccount, dateRange]);
 
   // Handlers para filtros
   const handleDateRangeChange = (newDateRange) => {
+    console.log('📅 Alterando período de datas:', newDateRange);
     setDateRange(newDateRange);
     // Recarregar dados com novo período
     setTimeout(() => {
+      console.log('🔄 Recarregando campanhas com novo período...');
       loadCampaignsWithMetrics();
     }, 100);
   };
 
   const handleSearchChange = (newSearchTerm) => {
+    console.log('🔍 Alterando termo de busca:', newSearchTerm);
     setSearchTerm(newSearchTerm);
   };
 
   const handleAccountChange = (accountKey) => {
+    console.log('🏢 Alterando conta selecionada:', accountKey);
     setSelectedAccount(accountKey);
     // Recarregar dados para nova conta
     setTimeout(() => {
+      console.log('🔄 Recarregando campanhas para nova conta...');
       loadCampaignsWithMetrics();
     }, 100);
   };
 
   const handleStatusChange = (status) => {
+    console.log('📊 Alterando status selecionado:', status);
     setSelectedCampaignStatus(status);
   };
 
   const handleCampaignTypeChange = (type) => {
+    console.log('🏷️ Alterando tipo de campanha selecionado:', type);
     setSelectedCampaignType(type);
   };
 
   const handleRefresh = () => {
+    console.log('🔄 Atualizando dados das campanhas...');
     loadCampaignsWithMetrics();
   };
 
@@ -336,11 +507,39 @@ const GooglePatrocinadoPage = () => {
           BandeiraEUA={BandeiraEUA}
           BandeiraBrasil={BandeiraBrasil}
           title="Google Patrocinado"
-          subtitle="Dashboard de campanhas Google Ads"
+          subtitle="Dashboard de campanhas Google Ads - Dados Reais da API"
         />
 
         {/* Content Area */}
         <div className="google-patrocinado-content">
+          {/* Indicador de Status da API */}
+          {!isLoading && !error && (
+            <div style={{ 
+              background: '#4CAF50', 
+              color: 'white', 
+              padding: '10px', 
+              borderRadius: '5px', 
+              marginBottom: '20px',
+              textAlign: 'center'
+            }}>
+              <strong>🚀 Dados Reais da Google Ads API</strong> - {campaigns.length} campanhas carregadas
+            </div>
+          )}
+
+          {/* Indicador de Erro */}
+          {error && (
+            <div style={{ 
+              background: '#f44336', 
+              color: 'white', 
+              padding: '10px', 
+              borderRadius: '5px', 
+              marginBottom: '20px',
+              textAlign: 'center'
+            }}>
+              <strong>❌ Erro ao carregar dados:</strong> {error}
+            </div>
+          )}
+
           {/* Filtros */}
           <GooglePatrocinadoFilters
             dateRange={dateRange}
@@ -380,10 +579,19 @@ const GooglePatrocinadoPage = () => {
           {/* Lista de Campanhas */}
           <div className="google-patrocinado-campaigns-section">
             <div className="google-patrocinado-campaigns-header">
-              <h3>Campanhas ({filteredCampaigns.length})</h3>
+              <h3>
+                🚀 Campanhas Reais ({filteredCampaigns.length})
+                <span style={{ fontSize: '12px', color: '#4CAF50', marginLeft: '10px' }}>
+                  ✅ Dados da Google Ads API
+                </span>
+              </h3>
               <p>
-                Mostrando {filteredCampaigns.length} de {campaigns.length} campanhas
+                Mostrando {filteredCampaigns.length} de {campaigns.length} campanhas reais
                 {searchTerm && ` para "${searchTerm}"`}
+                <br />
+                <small style={{ color: '#4CAF50' }}>
+                  📊 Período: {dateRange.since} até {dateRange.until}
+                </small>
               </p>
             </div>
             
@@ -410,37 +618,47 @@ const GooglePatrocinadoPage = () => {
                     </div>
                     
                     <div className="google-patrocinado-campaign-info">
-                      <p><strong>Tipo:</strong> {campaign.advertising_channel_type || 'N/A'}</p>
-                      <p><strong>Conta:</strong> {campaign.accountName || campaign.accountKey}</p>
-                      {campaign.budget_amount_micros && (
-                        <p><strong>Orçamento:</strong> {formatCurrency(campaign.budget_amount_micros / 1000000)}</p>
-                      )}
+                      <p><strong>Tipo:</strong> {campaign.advertising_channel_type || campaign.channelType || 'SEARCH'}</p>
+                      <p><strong>Conta:</strong> {campaign.accountName || 'Apucarana (Google Ads)'}</p>
+                      <p><strong>ID:</strong> {campaign.id}</p>
                     </div>
 
                     {campaign.metrics && (
                       <div className="google-patrocinado-campaign-metrics">
                         <div className="google-patrocinado-metric-item">
-                          <span className="google-patrocinado-metric-label">Gasto</span>
+                          <span className="google-patrocinado-metric-label">💰 Gasto</span>
                           <span className="google-patrocinado-metric-value">
-                            {formatCurrency(campaign.metrics.cost_micros / 1000000)}
+                            {formatCurrency((campaign.metrics.cost_micros || 0) / 1000000)}
                           </span>
                         </div>
                         <div className="google-patrocinado-metric-item">
-                          <span className="google-patrocinado-metric-label">Impressões</span>
+                          <span className="google-patrocinado-metric-label">👁️ Impressões</span>
                           <span className="google-patrocinado-metric-value">
-                            {campaign.metrics.impressions.toLocaleString('pt-BR')}
+                            {(campaign.metrics.impressions || 0).toLocaleString('pt-BR')}
                           </span>
                         </div>
                         <div className="google-patrocinado-metric-item">
-                          <span className="google-patrocinado-metric-label">Cliques</span>
+                          <span className="google-patrocinado-metric-label">🖱️ Cliques</span>
                           <span className="google-patrocinado-metric-value">
-                            {campaign.metrics.clicks.toLocaleString('pt-BR')}
+                            {(campaign.metrics.clicks || 0).toLocaleString('pt-BR')}
                           </span>
                         </div>
                         <div className="google-patrocinado-metric-item">
-                          <span className="google-patrocinado-metric-label">Conversões</span>
+                          <span className="google-patrocinado-metric-label">🎯 CTR</span>
                           <span className="google-patrocinado-metric-value">
-                            {campaign.metrics.conversions.toLocaleString('pt-BR')}
+                            {((campaign.metrics.ctr || 0) * 100).toFixed(2)}%
+                          </span>
+                        </div>
+                        <div className="google-patrocinado-metric-item">
+                          <span className="google-patrocinado-metric-label">📈 Conversões</span>
+                          <span className="google-patrocinado-metric-value">
+                            {(campaign.metrics.conversions || 0).toLocaleString('pt-BR')}
+                          </span>
+                        </div>
+                        <div className="google-patrocinado-metric-item">
+                          <span className="google-patrocinado-metric-label">💵 CPC</span>
+                          <span className="google-patrocinado-metric-value">
+                            {formatCurrency(campaign.metrics.average_cpc || 0)}
                           </span>
                         </div>
                       </div>
