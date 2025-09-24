@@ -181,6 +181,10 @@ async function queryGoogleAds(credentials: any, query: string) {
       console.log(`🔍 Clicks (API): ${firstResult.metrics?.clicks}`)
       console.log(`🔍 Conversions (API): ${firstResult.metrics?.conversions}`)
       
+      // Debug completo de TODAS as métricas
+      console.log(`🔍 TODAS AS MÉTRICAS DISPONÍVEIS:`)
+      console.log(`🔍 Metrics object:`, JSON.stringify(firstResult.metrics, null, 2))
+      
       // Verificar se é conta de teste
       const hasClicks = firstResult.metrics?.clicks > 0
       const hasImpressions = firstResult.metrics?.impressions > 0
@@ -196,6 +200,10 @@ async function queryGoogleAds(credentials: any, query: string) {
       if (hasClicks && hasImpressions && hasConversions && !hasCost) {
         console.log(`⚠️ POSSÍVEL CONTA DE TESTE: Tem tráfego mas sem custos!`)
         console.log(`⚠️ Isso indica que a conta pode estar em modo sandbox/teste`)
+      } else if (hasClicks && hasImpressions && hasConversions && hasCost) {
+        console.log(`✅ CONTA REAL: Tem tráfego E custos!`)
+      } else {
+        console.log(`❌ PROBLEMA: Sem tráfego ou sem custos`)
       }
     }
     

@@ -100,6 +100,118 @@ const getLastWednesday = () => {
 };
 
 /**
+ * Função SIMPLES: sempre buscar a última quinta-feira (ignorar período do FilterBar)
+ */
+const getLastThursday = () => {
+  console.log(`📅 MAPA DE CALOR: Calculando última quinta-feira (ignora filtro de período)`);
+
+  const today = new Date();
+  let lastThursday = new Date(today);
+
+  console.log(`📅 Hoje: ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
+
+  // Se hoje é quinta-feira (4), usar hoje
+  if (today.getDay() === 4) {
+    console.log(`✅ HOJE É QUINTA-FEIRA: usando hoje ${today.toISOString().split('T')[0]}`);
+    return today.toISOString().split('T')[0];
+  }
+
+  // Senão, voltar até encontrar a última quinta-feira
+  while (lastThursday.getDay() !== 4) {
+    lastThursday.setDate(lastThursday.getDate() - 1);
+  }
+
+  const thursdayString = lastThursday.toISOString().split('T')[0];
+  console.log(`✅ ÚLTIMA QUINTA-FEIRA ENCONTRADA: ${thursdayString}`);
+
+  return thursdayString;
+};
+
+/**
+ * Função SIMPLES: sempre buscar a última sexta-feira (ignorar período do FilterBar)
+ */
+const getLastFriday = () => {
+  console.log(`📅 MAPA DE CALOR: Calculando última sexta-feira (ignora filtro de período)`);
+
+  const today = new Date();
+  let lastFriday = new Date(today);
+
+  console.log(`📅 Hoje: ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
+
+  // Se hoje é sexta-feira (5), usar hoje
+  if (today.getDay() === 5) {
+    console.log(`✅ HOJE É SEXTA-FEIRA: usando hoje ${today.toISOString().split('T')[0]}`);
+    return today.toISOString().split('T')[0];
+  }
+
+  // Senão, voltar até encontrar a última sexta-feira
+  while (lastFriday.getDay() !== 5) {
+    lastFriday.setDate(lastFriday.getDate() - 1);
+  }
+
+  const fridayString = lastFriday.toISOString().split('T')[0];
+  console.log(`✅ ÚLTIMA SEXTA-FEIRA ENCONTRADA: ${fridayString}`);
+
+  return fridayString;
+};
+
+/**
+ * Função SIMPLES: sempre buscar o último sábado (ignorar período do FilterBar)
+ */
+const getLastSaturday = () => {
+  console.log(`📅 MAPA DE CALOR: Calculando último sábado (ignora filtro de período)`);
+
+  const today = new Date();
+  let lastSaturday = new Date(today);
+
+  console.log(`📅 Hoje: ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
+
+  // Se hoje é sábado (6), usar hoje
+  if (today.getDay() === 6) {
+    console.log(`✅ HOJE É SÁBADO: usando hoje ${today.toISOString().split('T')[0]}`);
+    return today.toISOString().split('T')[0];
+  }
+
+  // Senão, voltar até encontrar o último sábado
+  while (lastSaturday.getDay() !== 6) {
+    lastSaturday.setDate(lastSaturday.getDate() - 1);
+  }
+
+  const saturdayString = lastSaturday.toISOString().split('T')[0];
+  console.log(`✅ ÚLTIMO SÁBADO ENCONTRADO: ${saturdayString}`);
+
+  return saturdayString;
+};
+
+/**
+ * Função SIMPLES: sempre buscar o último domingo (ignorar período do FilterBar)
+ */
+const getLastSunday = () => {
+  console.log(`📅 MAPA DE CALOR: Calculando último domingo (ignora filtro de período)`);
+
+  const today = new Date();
+  let lastSunday = new Date(today);
+
+  console.log(`📅 Hoje: ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
+
+  // Se hoje é domingo (0), usar hoje
+  if (today.getDay() === 0) {
+    console.log(`✅ HOJE É DOMINGO: usando hoje ${today.toISOString().split('T')[0]}`);
+    return today.toISOString().split('T')[0];
+  }
+
+  // Senão, voltar até encontrar o último domingo
+  while (lastSunday.getDay() !== 0) {
+    lastSunday.setDate(lastSunday.getDate() - 1);
+  }
+
+  const sundayString = lastSunday.toISOString().split('T')[0];
+  console.log(`✅ ÚLTIMO DOMINGO ENCONTRADO: ${sundayString}`);
+
+  return sundayString;
+};
+
+/**
  * Construir filtros (mesma lógica do TotalOportunidadesService)
  */
 const buildFilters = async (selectedFunnel, selectedUnit, selectedSeller, selectedOrigin) => {
@@ -256,16 +368,24 @@ export const getMapaDeCalorData = async (params) => {
     const { startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin } = params;
 
     console.log('🔥 MapaDeCalor: Buscando dados com lógica corrigida...', params);
-    console.log('🚨 IGNORANDO período do FilterBar, sempre buscar última segunda, terça e quarta!');
+    console.log('🚨 IGNORANDO período do FilterBar, sempre buscar semana inteira!');
 
-    // Buscar datas da última segunda-feira, terça-feira e quarta-feira
+    // Buscar datas da semana inteira
     const mondayDate = getLastMonday();
     const tuesdayDate = getLastTuesday();
     const wednesdayDate = getLastWednesday();
+    const thursdayDate = getLastThursday();
+    const fridayDate = getLastFriday();
+    const saturdayDate = getLastSaturday();
+    const sundayDate = getLastSunday();
     console.log(`🎯 DATAS FIXAS PARA HEATMAP:`);
     console.log(`   📅 Segunda-feira: ${mondayDate}`);
     console.log(`   📅 Terça-feira: ${tuesdayDate}`);
     console.log(`   📅 Quarta-feira: ${wednesdayDate}`);
+    console.log(`   📅 Quinta-feira: ${thursdayDate}`);
+    console.log(`   📅 Sexta-feira: ${fridayDate}`);
+    console.log(`   📅 Sábado: ${saturdayDate}`);
+    console.log(`   📅 Domingo: ${sundayDate}`);
 
     // Array para armazenar dados por hora
     const heatmapData = [];
@@ -273,9 +393,17 @@ export const getMapaDeCalorData = async (params) => {
       segunda: [],
       terca: [],
       quarta: [],
+      quinta: [],
+      sexta: [],
+      sabado: [],
+      domingo: [],
       segundaDate: mondayDate,
       tercaDate: tuesdayDate,
-      quartaDate: wednesdayDate
+      quartaDate: wednesdayDate,
+      quintaDate: thursdayDate,
+      sextaDate: fridayDate,
+      sabadoDate: saturdayDate,
+      domingoDate: sundayDate
     };
 
     // Definir horários fixos de 8h às 22h (seguindo padrão do mapa de calor)
@@ -286,32 +414,40 @@ export const getMapaDeCalorData = async (params) => {
 
     console.log('🎯 PROCESSANDO HORÁRIOS:', horarios);
 
-    // BUSCAR DADOS DE SEGUNDA-FEIRA E TERÇA-FEIRA SEPARADAMENTE
-    console.log('🎯 BUSCANDO DADOS DE AMBOS OS DIAS...');
+    // BUSCAR DADOS DE TODOS OS DIAS DA SEMANA
+    console.log('🎯 BUSCANDO DADOS DE TODA A SEMANA...');
 
     // Construir filtros (mesma lógica do TotalOportunidadesService)
     const filtrosCombinados = await buildFilters(selectedFunnel, selectedUnit, selectedSeller, selectedOrigin);
 
-    // BUSCAR DADOS DA SEGUNDA-FEIRA
+    // BUSCAR DADOS TOTAIS POR DIA
     await fetchDayData('segunda-feira', mondayDate, filtrosCombinados, rawLeadsData, 'segunda');
-
-    // BUSCAR DADOS DA TERÇA-FEIRA
     await fetchDayData('terça-feira', tuesdayDate, filtrosCombinados, rawLeadsData, 'terca');
-
-    // BUSCAR DADOS DA QUARTA-FEIRA
     await fetchDayData('quarta-feira', wednesdayDate, filtrosCombinados, rawLeadsData, 'quarta');
+    await fetchDayData('quinta-feira', thursdayDate, filtrosCombinados, rawLeadsData, 'quinta');
+    await fetchDayData('sexta-feira', fridayDate, filtrosCombinados, rawLeadsData, 'sexta');
+    await fetchDayData('sábado', saturdayDate, filtrosCombinados, rawLeadsData, 'sabado');
+    await fetchDayData('domingo', sundayDate, filtrosCombinados, rawLeadsData, 'domingo');
 
-    // BUSCAR DADOS POR HORA PARA SEGUNDA, TERÇA E QUARTA-FEIRA
+    // BUSCAR DADOS POR HORA PARA TODA A SEMANA
     await fetchHourlyData(mondayDate, 1, horarios, filtrosCombinados, heatmapData, 'Segunda-feira');
     await fetchHourlyData(tuesdayDate, 2, horarios, filtrosCombinados, heatmapData, 'Terça-feira');
     await fetchHourlyData(wednesdayDate, 3, horarios, filtrosCombinados, heatmapData, 'Quarta-feira');
+    await fetchHourlyData(thursdayDate, 4, horarios, filtrosCombinados, heatmapData, 'Quinta-feira');
+    await fetchHourlyData(fridayDate, 5, horarios, filtrosCombinados, heatmapData, 'Sexta-feira');
+    await fetchHourlyData(saturdayDate, 6, horarios, filtrosCombinados, heatmapData, 'Sábado');
+    await fetchHourlyData(sundayDate, 0, horarios, filtrosCombinados, heatmapData, 'Domingo');
 
     console.log('✅ MapaDeCalor: Processamento concluído');
     console.log('📊 Dados por hora:', heatmapData);
     console.log('📊 Totais por dia:', {
       segunda: rawLeadsData.segunda ? rawLeadsData.segunda.length : 0,
       terca: rawLeadsData.terca ? rawLeadsData.terca.length : 0,
-      quarta: rawLeadsData.quarta ? rawLeadsData.quarta.length : 0
+      quarta: rawLeadsData.quarta ? rawLeadsData.quarta.length : 0,
+      quinta: rawLeadsData.quinta ? rawLeadsData.quinta.length : 0,
+      sexta: rawLeadsData.sexta ? rawLeadsData.sexta.length : 0,
+      sabado: rawLeadsData.sabado ? rawLeadsData.sabado.length : 0,
+      domingo: rawLeadsData.domingo ? rawLeadsData.domingo.length : 0
     });
 
     // Calcular totais
@@ -319,17 +455,25 @@ export const getMapaDeCalorData = async (params) => {
     const totalSegunda = rawLeadsData.segunda ? rawLeadsData.segunda.length : 0;
     const totalTerca = rawLeadsData.terca ? rawLeadsData.terca.length : 0;
     const totalQuarta = rawLeadsData.quarta ? rawLeadsData.quarta.length : 0;
+    const totalQuinta = rawLeadsData.quinta ? rawLeadsData.quinta.length : 0;
+    const totalSexta = rawLeadsData.sexta ? rawLeadsData.sexta.length : 0;
+    const totalSabado = rawLeadsData.sabado ? rawLeadsData.sabado.length : 0;
+    const totalDomingo = rawLeadsData.domingo ? rawLeadsData.domingo.length : 0;
 
     console.log('🎯 TOTAIS CALCULADOS:');
     console.log(`   - Soma células por hora: ${totalPorHora}`);
     console.log(`   - Total Segunda-feira: ${totalSegunda}`);
     console.log(`   - Total Terça-feira: ${totalTerca}`);
     console.log(`   - Total Quarta-feira: ${totalQuarta}`);
+    console.log(`   - Total Quinta-feira: ${totalQuinta}`);
+    console.log(`   - Total Sexta-feira: ${totalSexta}`);
+    console.log(`   - Total Sábado: ${totalSabado}`);
+    console.log(`   - Total Domingo: ${totalDomingo}`);
 
     return {
       heatmapData: heatmapData,
-      rawData: rawLeadsData, // Estrutura com segunda, terca, quarta, segundaDate, tercaDate, quartaDate
-      totalLeads: totalSegunda + totalTerca + totalQuarta
+      rawData: rawLeadsData, // Estrutura com todos os 7 dias da semana
+      totalLeads: totalSegunda + totalTerca + totalQuarta + totalQuinta + totalSexta + totalSabado + totalDomingo
     };
 
   } catch (error) {

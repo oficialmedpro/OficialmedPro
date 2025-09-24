@@ -21,11 +21,15 @@ const MapaDeCalorComponent = ({
   const [rawLeadsData, setRawLeadsData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Mostrar Segunda-feira, Terça-feira e Quarta-feira
+  // Mostrar a semana completa
   const diasSemana = [
     'Segunda',
     'Terça',
-    'Quarta'
+    'Quarta',
+    'Quinta',
+    'Sexta',
+    'Sábado',
+    'Domingo'
   ];
 
   // Horários de 8h às 22h
@@ -115,17 +119,44 @@ const MapaDeCalorComponent = ({
       return rawLeadsData.quarta.length;
     }
 
+    // Para quinta-feira (dia 4), usar rawLeadsData.quinta
+    if (diaSemana === 4 && rawLeadsData.quinta) {
+      console.log('🎯 TOTAL QUINTA-FEIRA: Contando todos os leads do dia inteiro...');
+      console.log(`📊 Total de leads únicos da quinta-feira: ${rawLeadsData.quinta.length}`);
+      return rawLeadsData.quinta.length;
+    }
+
+    // Para sexta-feira (dia 5), usar rawLeadsData.sexta
+    if (diaSemana === 5 && rawLeadsData.sexta) {
+      console.log('🎯 TOTAL SEXTA-FEIRA: Contando todos os leads do dia inteiro...');
+      console.log(`📊 Total de leads únicos da sexta-feira: ${rawLeadsData.sexta.length}`);
+      return rawLeadsData.sexta.length;
+    }
+
+    // Para sábado (dia 6), usar rawLeadsData.sabado
+    if (diaSemana === 6 && rawLeadsData.sabado) {
+      console.log('🎯 TOTAL SÁBADO: Contando todos os leads do dia inteiro...');
+      console.log(`📊 Total de leads únicos do sábado: ${rawLeadsData.sabado.length}`);
+      return rawLeadsData.sabado.length;
+    }
+
+    // Para domingo (dia 0), usar rawLeadsData.domingo
+    if (diaSemana === 0 && rawLeadsData.domingo) {
+      console.log('🎯 TOTAL DOMINGO: Contando todos os leads do dia inteiro...');
+      console.log(`📊 Total de leads únicos do domingo: ${rawLeadsData.domingo.length}`);
+      return rawLeadsData.domingo.length;
+    }
+
     return 0;
   };
 
-  // Função para encontrar as datas da última segunda e terça
+  // Função para encontrar as datas de todos os dias da semana
   const getRealDateForDay = (nomeDia, diaIndex) => {
     console.log(`📅 CALCULANDO DATA PARA ${nomeDia}:`, { nomeDia, diaIndex });
 
     // Para segunda-feira (diaIndex = 0)
     if (diaIndex === 0 && rawLeadsData.segundaDate) {
       console.log(`🔍 SEGUNDA - Data recebida: ${rawLeadsData.segundaDate}`);
-      // Usar split para evitar problemas de fuso horário
       const [year, month, day] = rawLeadsData.segundaDate.split('-');
       console.log(`🔍 SEGUNDA - Extraído: ${day}/${month}`);
       return `${day}/${month}`;
@@ -134,7 +165,6 @@ const MapaDeCalorComponent = ({
     // Para terça-feira (diaIndex = 1)
     if (diaIndex === 1 && rawLeadsData.tercaDate) {
       console.log(`🔍 TERÇA - Data recebida: ${rawLeadsData.tercaDate}`);
-      // Usar split para evitar problemas de fuso horário
       const [year, month, day] = rawLeadsData.tercaDate.split('-');
       console.log(`🔍 TERÇA - Extraído: ${day}/${month}`);
       return `${day}/${month}`;
@@ -143,9 +173,40 @@ const MapaDeCalorComponent = ({
     // Para quarta-feira (diaIndex = 2)
     if (diaIndex === 2 && rawLeadsData.quartaDate) {
       console.log(`🔍 QUARTA - Data recebida: ${rawLeadsData.quartaDate}`);
-      // Usar split para evitar problemas de fuso horário
       const [year, month, day] = rawLeadsData.quartaDate.split('-');
       console.log(`🔍 QUARTA - Extraído: ${day}/${month}`);
+      return `${day}/${month}`;
+    }
+
+    // Para quinta-feira (diaIndex = 3)
+    if (diaIndex === 3 && rawLeadsData.quintaDate) {
+      console.log(`🔍 QUINTA - Data recebida: ${rawLeadsData.quintaDate}`);
+      const [year, month, day] = rawLeadsData.quintaDate.split('-');
+      console.log(`🔍 QUINTA - Extraído: ${day}/${month}`);
+      return `${day}/${month}`;
+    }
+
+    // Para sexta-feira (diaIndex = 4)
+    if (diaIndex === 4 && rawLeadsData.sextaDate) {
+      console.log(`🔍 SEXTA - Data recebida: ${rawLeadsData.sextaDate}`);
+      const [year, month, day] = rawLeadsData.sextaDate.split('-');
+      console.log(`🔍 SEXTA - Extraído: ${day}/${month}`);
+      return `${day}/${month}`;
+    }
+
+    // Para sábado (diaIndex = 5)
+    if (diaIndex === 5 && rawLeadsData.sabadoDate) {
+      console.log(`🔍 SÁBADO - Data recebida: ${rawLeadsData.sabadoDate}`);
+      const [year, month, day] = rawLeadsData.sabadoDate.split('-');
+      console.log(`🔍 SÁBADO - Extraído: ${day}/${month}`);
+      return `${day}/${month}`;
+    }
+
+    // Para domingo (diaIndex = 6)
+    if (diaIndex === 6 && rawLeadsData.domingoDate) {
+      console.log(`🔍 DOMINGO - Data recebida: ${rawLeadsData.domingoDate}`);
+      const [year, month, day] = rawLeadsData.domingoDate.split('-');
+      console.log(`🔍 DOMINGO - Extraído: ${day}/${month}`);
       return `${day}/${month}`;
     }
 
@@ -292,49 +353,85 @@ const MapaDeCalorComponent = ({
     };
   };
 
-  // Extrair dados da Segunda-feira e Terça-feira
+  // Extrair dados da semana inteira
   const getDataArrays = () => {
     if (!heatmapData || heatmapData.length === 0) {
       return { A: [], T: [] };
     }
 
-    // A: Valores hora-a-hora de Segunda (dia 1), Terça (dia 2) e Quarta (dia 3), 8h-22h, excluindo zeros
+    // A: Valores hora-a-hora de todos os dias da semana, 8h-22h, excluindo zeros
     const A = [];
 
-    // Segunda-feira
+    // Segunda-feira (dia 1)
     for (let hora = 8; hora <= 22; hora++) {
-      const valor = getLeadValue(1, hora); // dia 1 = Segunda-feira
+      const valor = getLeadValue(1, hora);
       if (valor > 0) A.push(valor);
     }
 
-    // Terça-feira
+    // Terça-feira (dia 2)
     for (let hora = 8; hora <= 22; hora++) {
-      const valor = getLeadValue(2, hora); // dia 2 = Terça-feira
+      const valor = getLeadValue(2, hora);
       if (valor > 0) A.push(valor);
     }
 
-    // Quarta-feira
+    // Quarta-feira (dia 3)
     for (let hora = 8; hora <= 22; hora++) {
-      const valor = getLeadValue(3, hora); // dia 3 = Quarta-feira
+      const valor = getLeadValue(3, hora);
       if (valor > 0) A.push(valor);
     }
 
-    // T: Totais de Segunda-feira, Terça-feira e Quarta-feira
+    // Quinta-feira (dia 4)
+    for (let hora = 8; hora <= 22; hora++) {
+      const valor = getLeadValue(4, hora);
+      if (valor > 0) A.push(valor);
+    }
+
+    // Sexta-feira (dia 5)
+    for (let hora = 8; hora <= 22; hora++) {
+      const valor = getLeadValue(5, hora);
+      if (valor > 0) A.push(valor);
+    }
+
+    // Sábado (dia 6)
+    for (let hora = 8; hora <= 22; hora++) {
+      const valor = getLeadValue(6, hora);
+      if (valor > 0) A.push(valor);
+    }
+
+    // Domingo (dia 0)
+    for (let hora = 8; hora <= 22; hora++) {
+      const valor = getLeadValue(0, hora);
+      if (valor > 0) A.push(valor);
+    }
+
+    // T: Totais de todos os dias da semana
     const T = [];
-    const totalSegunda = getTotalLeadsByDay(1); // dia 1 = Segunda-feira
-    const totalTerca = getTotalLeadsByDay(2); // dia 2 = Terça-feira
-    const totalQuarta = getTotalLeadsByDay(3); // dia 3 = Quarta-feira
+    const totalSegunda = getTotalLeadsByDay(1);
+    const totalTerca = getTotalLeadsByDay(2);
+    const totalQuarta = getTotalLeadsByDay(3);
+    const totalQuinta = getTotalLeadsByDay(4);
+    const totalSexta = getTotalLeadsByDay(5);
+    const totalSabado = getTotalLeadsByDay(6);
+    const totalDomingo = getTotalLeadsByDay(0);
 
     if (totalSegunda > 0) T.push(totalSegunda);
     if (totalTerca > 0) T.push(totalTerca);
     if (totalQuarta > 0) T.push(totalQuarta);
+    if (totalQuinta > 0) T.push(totalQuinta);
+    if (totalSexta > 0) T.push(totalSexta);
+    if (totalSabado > 0) T.push(totalSabado);
+    if (totalDomingo > 0) T.push(totalDomingo);
 
-    console.log('📊 Arrays extraídos (Segunda, Terça e Quarta):', {
+    console.log('📊 Arrays extraídos (semana inteira):', {
       A: A.length,
       T: T.length,
       totalSegunda: totalSegunda,
       totalTerca: totalTerca,
-      totalQuarta: totalQuarta
+      totalQuarta: totalQuarta,
+      totalQuinta: totalQuinta,
+      totalSexta: totalSexta,
+      totalSabado: totalSabado,
+      totalDomingo: totalDomingo
     });
 
     return { A, T };
@@ -400,7 +497,9 @@ const MapaDeCalorComponent = ({
                 {/* Células de dados */}
                 {horarios.map((horario, horaIndex) => {
                   const hora = horaIndex + 8; // Converter índice para hora (8-22)
-                  const valor = getLeadValue(diaIndex + 1, hora); // dia_semana 1-7
+                  // Ajustar dia_semana: Segunda=1, Terça=2, Quarta=3, Quinta=4, Sexta=5, Sábado=6, Domingo=0
+                  const diaSemanaValue = diaIndex === 6 ? 0 : diaIndex + 1;
+                  const valor = getLeadValue(diaSemanaValue, hora);
 
                   return (
                     <div
@@ -421,7 +520,9 @@ const MapaDeCalorComponent = ({
 
                 {/* Célula Total do dia */}
                 {(() => {
-                  const totalDia = getTotalLeadsByDay(diaIndex + 1);
+                  // Ajustar dia_semana: Segunda=1, Terça=2, Quarta=3, Quinta=4, Sexta=5, Sábado=6, Domingo=0
+                  const diaSemanaValue = diaIndex === 6 ? 0 : diaIndex + 1;
+                  const totalDia = getTotalLeadsByDay(diaSemanaValue);
                   return (
                     <div
                       key={`${dia}-total`}
