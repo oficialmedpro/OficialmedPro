@@ -211,12 +211,20 @@ serve(async (req) => {
       case '/campaigns':
         const status = url.searchParams.get('status') || 'active'
         const customerId = url.searchParams.get('customer_id')
-        return await handleGetCampaigns(status, customerId)
+        const startDateParam = url.searchParams.get('startDate')
+        const endDateParam = url.searchParams.get('endDate')
+        return await handleGetCampaigns(status, customerId, startDateParam, endDateParam)
       
       case '/stats':
         const startDate = url.searchParams.get('startDate')
         const endDate = url.searchParams.get('endDate')
         return await handleGetStats(startDate, endDate)
+      
+      case '/campaign-metrics':
+        const campaignId = url.searchParams.get('campaign_id')
+        const startDateCampaign = url.searchParams.get('start_date')
+        const endDateCampaign = url.searchParams.get('end_date')
+        return await handleGetCampaignMetrics(campaignId, startDateCampaign, endDateCampaign)
       
       case '/account-balance':
         return await handleGetAccountBalance()
@@ -239,7 +247,7 @@ serve(async (req) => {
         
         console.log(`❌ ROTA NÃO ENCONTRADA:`)
         console.log(`❌ Path recebido: "${path}"`)
-        console.log(`❌ Rotas disponíveis: ["/test-connection", "/campaigns", "/stats", "/account-balance"]`)
+        console.log(`❌ Rotas disponíveis: ["/test-connection", "/campaigns", "/campaign-metrics", "/stats", "/account-balance", "/debug-unidades"]`)
         
         return new Response(
           JSON.stringify({ 
@@ -248,7 +256,7 @@ serve(async (req) => {
             debug: {
               receivedPath: path,
               originalPath: url.pathname,
-              availableRoutes: ['/test-connection', '/campaigns', '/stats', '/account-balance']
+              availableRoutes: ['/test-connection', '/campaigns', '/campaign-metrics', '/stats', '/account-balance', '/debug-unidades']
             }
           }),
           { 
@@ -314,7 +322,7 @@ async function handleTestConnection() {
 /**
  * Buscar campanhas
  */
-async function handleGetCampaigns(status: string, customCustomerId?: string) {
+async function handleGetCampaigns(status: string, customCustomerId?: string, startDate?: string | null, endDate?: string | null) {
   try {
     const credentials = await getGoogleAdsCredentials(customCustomerId)
     
@@ -322,6 +330,7 @@ async function handleGetCampaigns(status: string, customCustomerId?: string) {
     console.log(`🔍 Filtro solicitado: ${status}`)
     console.log(`🔍 Customer ID: ${credentials.customer_id}`)
     console.log(`🔍 Developer Token: ${credentials.developer_token ? '✅ Presente' : '❌ Ausente'}`)
+    console.log(`📅 startDate: ${startDate} | endDate: ${endDate}`)
 
     let whereClause
     if (status === 'active') {
@@ -332,20 +341,34 @@ async function handleGetCampaigns(status: string, customCustomerId?: string) {
       whereClause = "WHERE campaign.status != 'REMOVED'"
     }
 
-    console.log(`📝 Query que será executada: SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type FROM campaign ${whereClause} ORDER BY campaign.id LIMIT 50`)
+    // Preparar datas (usar BETWEEN quando informadas; senão LAST_30_DAYS)
+    let dateFilterClause = "AND segments.date DURING LAST_30_DAYS"
+    if (startDate && endDate) {
+      dateFilterClause = `AND segments.date BETWEEN '${startDate}' AND '${endDate}'`
+    }
 
-    // PRIMEIRA TENTATIVA: Query com filtro (conforme documentação oficial)
-    console.log(`🚀 PRIMEIRA TENTATIVA: Query com filtro`)
+    console.log(`📝 GAQL que será executada:`)
+    console.log(`SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type, metrics.impressions, metrics.clicks, metrics.ctr, metrics.average_cpc, metrics.cost_micros, metrics.conversions, metrics.conversions_value FROM campaign ${whereClause} ${dateFilterClause} ORDER BY campaign.id LIMIT 1000`)
+
+    // Consulta GAQL conforme documentação googleAds:search
     const results = await queryGoogleAds(credentials, `
       SELECT 
         campaign.id,
         campaign.name,
         campaign.status,
-        campaign.advertising_channel_type
+        campaign.advertising_channel_type,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.ctr,
+        metrics.average_cpc,
+        metrics.cost_micros,
+        metrics.conversions,
+        metrics.conversions_value
       FROM campaign
       ${whereClause}
+      ${dateFilterClause}
       ORDER BY campaign.id
-      LIMIT 50
+      LIMIT 1000
     `)
 
     console.log(`📊 RESULTADO:`)
@@ -355,12 +378,37 @@ async function handleGetCampaigns(status: string, customCustomerId?: string) {
     const mappedCampaigns = results.map((row: any) => {
       console.log(`🔍 DEBUG - Processando campanha:`, JSON.stringify(row, null, 2))
       
+      // Determinar status correto (pode vir como número ou string)
+      let campaignStatus = row.campaign.status
+      if (typeof campaignStatus === 'number') {
+        campaignStatus = statusMap[campaignStatus] || 'ENABLED'
+      } else if (typeof campaignStatus === 'string') {
+        // Se já é string, usar diretamente
+        campaignStatus = campaignStatus.toUpperCase()
+      } else {
+        campaignStatus = 'ENABLED' // Fallback
+      }
+      
+      // Extrair métricas reais
+      const metrics = row.metrics || {}
+      
       return {
         id: row.campaign.id,
         name: row.campaign.name,
-        status: statusMap[row.campaign.status] || row.campaign.status,
+        status: campaignStatus,
         channelType: row.campaign.advertising_channel_type,
-        type: 'SEARCH'
+        advertising_channel_type: row.campaign.advertising_channel_type,
+        type: row.campaign.advertising_channel_type || 'SEARCH',
+        // MÉTRICAS REAIS DOS ÚLTIMOS 30 DIAS
+        metrics: {
+          impressions: parseInt(metrics.impressions) || 0,
+          clicks: parseInt(metrics.clicks) || 0,
+          ctr: parseFloat(metrics.ctr) || 0,
+          average_cpc: parseFloat(metrics.average_cpc) || 0,
+          cost_micros: parseInt(metrics.cost_micros) || 0,
+          conversions: parseFloat(metrics.conversions) || 0,
+          conversions_value: parseFloat(metrics.conversions_value) || 0
+        }
       }
     })
 
@@ -621,6 +669,137 @@ async function handleDebugUnidades() {
         error: error.message,
         stack: error.stack 
       }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    )
+  }
+}
+
+/**
+ * Buscar métricas específicas de uma campanha
+ */
+async function handleGetCampaignMetrics(campaignId: string | null, startDate: string | null, endDate: string | null) {
+  try {
+    if (!campaignId) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'campaign_id é obrigatório' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    const credentials = await getGoogleAdsCredentials()
+    
+    console.log(`🔍 Buscando métricas da campanha ${campaignId} de ${startDate} a ${endDate}`)
+
+    // Função para obter data no fuso de São Paulo (GMT-3)
+    const getSaoPauloDate = (dateString: string | null) => {
+      if (!dateString) return null
+      
+      // Se a data já está no formato correto, usar
+      if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return dateString
+      }
+      
+      // Converter considerando fuso de São Paulo
+      const date = new Date(dateString)
+      const saoPauloOffset = -3 * 60 // GMT-3 em minutos
+      const utc = date.getTime() + (date.getTimezoneOffset() * 60000)
+      const saoPauloTime = new Date(utc + (saoPauloOffset * 60000))
+      
+      return saoPauloTime.toISOString().split('T')[0]
+    }
+
+    // Definir período padrão se não fornecido (usar data atual de SP)
+    const hoje = new Date()
+    const saoPauloOffset = -3 * 60 // GMT-3 em minutos
+    const utc = hoje.getTime() + (hoje.getTimezoneOffset() * 60000)
+    const saoPauloTime = new Date(utc + (saoPauloOffset * 60000))
+    const dataHojeSP = saoPauloTime.toISOString().split('T')[0]
+
+    const start = getSaoPauloDate(startDate) || dataHojeSP
+    const end = getSaoPauloDate(endDate) || dataHojeSP
+
+    console.log(`📅 Período ajustado para fuso SP: ${start} a ${end}`)
+
+    const results = await queryGoogleAds(credentials, `
+      SELECT 
+        campaign.id,
+        campaign.name,
+        metrics.clicks,
+        metrics.impressions,
+        metrics.cost_micros,
+        metrics.conversions,
+        metrics.conversions_value,
+        metrics.ctr,
+        metrics.average_cpc
+      FROM campaign
+      WHERE campaign.id = ${campaignId}
+        AND segments.date BETWEEN '${start}' AND '${end}'
+    `)
+
+    // Agregar métricas da campanha
+    const campaignMetrics = results.reduce((acc: any, row: any) => {
+      acc.clicks += parseInt(row.metrics.clicks) || 0
+      acc.impressions += parseInt(row.metrics.impressions) || 0
+      acc.cost_micros += parseInt(row.metrics.cost_micros) || 0
+      acc.conversions += parseFloat(row.metrics.conversions) || 0
+      acc.conversions_value += parseFloat(row.metrics.conversions_value) || 0
+      return acc
+    }, {
+      clicks: 0,
+      impressions: 0,
+      cost_micros: 0,
+      conversions: 0,
+      conversions_value: 0
+    })
+
+    // Calcular métricas derivadas
+    const ctr = campaignMetrics.impressions > 0 
+      ? (campaignMetrics.clicks / campaignMetrics.impressions) * 100 
+      : 0
+
+    const averageCpc = campaignMetrics.clicks > 0 
+      ? campaignMetrics.cost_micros / (campaignMetrics.clicks * 1000000)
+      : 0
+
+    const conversionRate = campaignMetrics.clicks > 0
+      ? (campaignMetrics.conversions / campaignMetrics.clicks) * 100
+      : 0
+
+    const result = {
+      campaignId,
+      campaignName: results[0]?.campaign?.name || `Campanha ${campaignId}`,
+      period: { start, end },
+      metrics: {
+        clicks: campaignMetrics.clicks,
+        impressions: campaignMetrics.impressions,
+        cost_micros: campaignMetrics.cost_micros,
+        conversions: campaignMetrics.conversions,
+        conversions_value: campaignMetrics.conversions_value,
+        ctr: parseFloat(ctr.toFixed(2)),
+        average_cpc: parseFloat(averageCpc.toFixed(2)),
+        conversion_rate: parseFloat(conversionRate.toFixed(2))
+      }
+    }
+
+    console.log(`✅ Métricas da campanha ${campaignId} calculadas:`, result)
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: result
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  } catch (error) {
+    console.error(`❌ Erro ao buscar métricas da campanha ${campaignId}:`, error)
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

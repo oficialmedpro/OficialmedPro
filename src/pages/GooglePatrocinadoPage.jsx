@@ -78,29 +78,26 @@ const GooglePatrocinadoPage = () => {
         setIsLoading(true);
         setError(null);
 
-        // Verificar se o serviço está configurado
-        if (!googlePatrocinadoService.isConfigured()) {
-          setError('Google Ads não está configurado. Verifique as credenciais.');
-          setIsLoading(false);
-          return;
-        }
+        console.log('🚀 PÁGINA: Inicializando Google Patrocinado Page...');
 
-        // Carregar campanhas com métricas
+        // SEMPRE carregar campanhas, independente da configuração local
+        console.log('📊 PÁGINA: Carregando campanhas com métricas...');
         await loadCampaignsWithMetrics();
         
         // Carregar contas disponíveis
         await loadAccounts();
 
-        console.log('✅ Google Patrocinado Page inicializada com sucesso');
+        console.log('✅ PÁGINA: Google Patrocinado Page inicializada com sucesso');
       } catch (error) {
-        console.error('❌ Erro ao inicializar Google Patrocinado Page:', error);
+        console.error('❌ PÁGINA: Erro ao inicializar Google Patrocinado Page:', error);
         setError(error.message || 'Erro ao carregar dados');
       } finally {
         setIsLoading(false);
       }
     };
 
-    initializePage();
+    // Aguardar um pouco para garantir que o serviço foi inicializado
+    setTimeout(initializePage, 1000);
   }, []);
 
   // Carregar campanhas com métricas
@@ -115,12 +112,14 @@ const GooglePatrocinadoPage = () => {
         campaignsData = await googlePatrocinadoService.getCampaignsWithMetrics(dateRange, selectedAccount);
       }
 
+      console.log('🔍 DEBUG: Campanhas recebidas:', campaignsData);
       setCampaigns(campaignsData);
-      console.log(`✅ ${campaignsData.length} campanhas carregadas`);
+      console.log(`✅ ${campaignsData.length} campanhas carregadas na interface`);
 
       // Extrair tipos de campanha únicos
-      const types = [...new Set(campaignsData.map(c => c.advertising_channel_type).filter(Boolean))];
+      const types = [...new Set(campaignsData.map(c => c.advertising_channel_type || c.channelType).filter(Boolean))];
       setCampaignTypes(types);
+      console.log('🏷️ Tipos de campanha encontrados:', types);
 
       // Carregar estatísticas
       await loadStatistics();
@@ -165,32 +164,54 @@ const GooglePatrocinadoPage = () => {
 
   // Filtrar campanhas baseado nos filtros ativos
   useEffect(() => {
+    console.log('🔍 INICIANDO FILTROS:');
+    console.log('📋 Total de campanhas:', campaigns.length);
+    console.log('🔍 Termo de busca:', searchTerm);
+    console.log('📊 Status selecionado:', selectedCampaignStatus);
+    console.log('🏷️ Tipo selecionado:', selectedCampaignType);
+    console.log('🏢 Conta selecionada:', selectedAccount);
+    
     let filtered = campaigns;
 
     // Filtro por termo de busca
     if (searchTerm) {
+      const beforeSearch = filtered.length;
       filtered = filtered.filter(campaign =>
         campaign.name.toLowerCase().includes(searchTerm.toLowerCase())
       );
+      console.log(`🔍 Após filtro de busca "${searchTerm}": ${beforeSearch} → ${filtered.length}`);
     }
 
     // Filtro por status
     if (selectedCampaignStatus !== 'all') {
+      const beforeStatus = filtered.length;
       filtered = filtered.filter(campaign => campaign.status === selectedCampaignStatus);
+      console.log(`📊 Após filtro de status "${selectedCampaignStatus}": ${beforeStatus} → ${filtered.length}`);
     }
 
     // Filtro por tipo de campanha
     if (selectedCampaignType !== 'all') {
-      filtered = filtered.filter(campaign => campaign.advertising_channel_type === selectedCampaignType);
+      const beforeType = filtered.length;
+      filtered = filtered.filter(campaign => 
+        campaign.advertising_channel_type === selectedCampaignType || 
+        campaign.channelType === selectedCampaignType
+      );
+      console.log(`🏷️ Após filtro de tipo "${selectedCampaignType}": ${beforeType} → ${filtered.length}`);
     }
 
     // Filtro por conta
     if (selectedAccount !== 'all') {
+      const beforeAccount = filtered.length;
       filtered = filtered.filter(campaign => campaign.accountKey === selectedAccount);
+      console.log(`🏢 Após filtro de conta "${selectedAccount}": ${beforeAccount} → ${filtered.length}`);
     }
 
     setFilteredCampaigns(filtered);
-    console.log(`🔍 ${filtered.length} campanhas após filtros`);
+    console.log(`✅ RESULTADO FINAL: ${filtered.length} campanhas após todos os filtros`);
+    
+    if (filtered.length > 0) {
+      console.log('📋 Campanhas filtradas:', filtered.map(c => `${c.name} (${c.status})`));
+    }
   }, [campaigns, searchTerm, selectedCampaignStatus, selectedCampaignType, selectedAccount]);
 
   // Handlers para filtros
@@ -378,12 +399,13 @@ const GooglePatrocinadoPage = () => {
             ) : (
               <div className="google-patrocinado-campaigns-grid">
                 {filteredCampaigns.map((campaign, index) => (
-                  <div key={campaign.id || index} className="google-patrocinado-campaign-card">
+                  <div key={campaign.uniqueId || `${campaign.id || 'campaign'}-${campaign.accountKey || 'acc'}-${index}`} className="google-patrocinado-campaign-card">
                     <div className="google-patrocinado-campaign-header">
                       <h4>{campaign.name}</h4>
-                      <span className={`google-patrocinado-campaign-status ${campaign.status.toLowerCase()}`}>
+                      <span className={`google-patrocinado-campaign-status ${(campaign.status || 'enabled').toLowerCase()}`}>
                         {campaign.status === 'ENABLED' ? 'Ativa' : 
-                         campaign.status === 'PAUSED' ? 'Pausada' : 'Removida'}
+                         campaign.status === 'PAUSED' ? 'Pausada' : 
+                         campaign.status === 'REMOVED' ? 'Removida' : 'Ativa'}
                       </span>
                     </div>
                     
