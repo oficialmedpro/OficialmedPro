@@ -16,19 +16,87 @@ const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
 /**
- * Função SIMPLES: sempre buscar a última segunda-feira (ignorar período do FilterBar)
+ * Função auxiliar para adicionar dias a uma data
  */
-const getLastMonday = () => {
-  console.log(`📅 MAPA DE CALOR: Calculando última segunda-feira (ignora filtro de período)`);
+const addDays = (dateString, days) => {
+  const date = new Date(dateString + 'T00:00:00');
+  date.setDate(date.getDate() + days);
+  return date.toISOString().split('T')[0];
+};
+
+/**
+ * Função para buscar TODOS os dados com paginação automática (supera limite 1000)
+ */
+const fetchAllDataWithPagination = async (baseQuery) => {
+  console.log('🔄 INICIANDO PAGINAÇÃO AUTOMÁTICA...');
+
+  let allData = [];
+  let offset = 0;
+  const limit = 1000;
+  let hasMore = true;
+
+  while (hasMore) {
+    const paginatedQuery = `${baseQuery}&limit=${limit}&offset=${offset}`;
+    console.log(`📄 Página ${Math.floor(offset/limit) + 1}: ${supabaseUrl}/rest/v1/${paginatedQuery}`);
+
+    try {
+      const response = await fetch(`${supabaseUrl}/rest/v1/${paginatedQuery}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseServiceKey,
+          'Accept-Profile': 'api',
+          'Content-Profile': 'api'
+        }
+      });
+
+      if (!response.ok) {
+        console.error(`❌ Erro na página ${Math.floor(offset/limit) + 1}:`, response.status);
+        break;
+      }
+
+      const pageData = await response.json();
+      allData = allData.concat(pageData);
+
+      console.log(`✅ Página ${Math.floor(offset/limit) + 1}: ${pageData.length} registros`);
+
+      // Se retornou menos que o limite, chegamos ao fim
+      if (pageData.length < limit) {
+        hasMore = false;
+        console.log('🏁 PAGINAÇÃO CONCLUÍDA - Chegou ao fim dos dados');
+      } else {
+        offset += limit;
+        console.log(`➡️ Continuando para página ${Math.floor(offset/limit) + 1}...`);
+      }
+
+    } catch (error) {
+      console.error('❌ Erro na paginação:', error);
+      break;
+    }
+  }
+
+  console.log(`🎯 PAGINAÇÃO FINALIZADA: ${allData.length} registros totais`);
+  return allData;
+};
+
+/**
+ * Função SIMPLES: sempre buscar a última segunda-feira (com offset de semanas)
+ */
+const getLastMonday = (weekOffset = 0) => {
+  console.log(`📅 MAPA DE CALOR: Calculando última segunda-feira (weekOffset: ${weekOffset})`);
 
   const today = new Date();
+  // Aplicar offset de semanas (weekOffset * 7 dias)
+  today.setDate(today.getDate() - (weekOffset * 7));
+
   let lastMonday = new Date(today);
 
-  console.log(`📅 Hoje: ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
+  console.log(`📅 Data base (com offset): ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
 
   // Se hoje é segunda-feira (1), usar hoje
   if (today.getDay() === 1) {
-    console.log(`✅ HOJE É SEGUNDA-FEIRA: usando hoje ${today.toISOString().split('T')[0]}`);
+    console.log(`✅ É SEGUNDA-FEIRA: usando ${today.toISOString().split('T')[0]}`);
     return today.toISOString().split('T')[0];
   }
 
@@ -38,25 +106,28 @@ const getLastMonday = () => {
   }
 
   const mondayString = lastMonday.toISOString().split('T')[0];
-  console.log(`✅ ÚLTIMA SEGUNDA-FEIRA ENCONTRADA: ${mondayString}`);
+  console.log(`✅ SEGUNDA-FEIRA ENCONTRADA (offset ${weekOffset}): ${mondayString}`);
 
   return mondayString;
 };
 
 /**
- * Função SIMPLES: sempre buscar a última terça-feira (ignorar período do FilterBar)
+ * Função SIMPLES: sempre buscar a última terça-feira (com offset de semanas)
  */
-const getLastTuesday = () => {
-  console.log(`📅 MAPA DE CALOR: Calculando última terça-feira (ignora filtro de período)`);
+const getLastTuesday = (weekOffset = 0) => {
+  console.log(`📅 MAPA DE CALOR: Calculando última terça-feira (weekOffset: ${weekOffset})`);
 
   const today = new Date();
+  // Aplicar offset de semanas (weekOffset * 7 dias)
+  today.setDate(today.getDate() - (weekOffset * 7));
+
   let lastTuesday = new Date(today);
 
-  console.log(`📅 Hoje: ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
+  console.log(`📅 Data base (com offset): ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
 
   // Se hoje é terça-feira (2), usar hoje
   if (today.getDay() === 2) {
-    console.log(`✅ HOJE É TERÇA-FEIRA: usando hoje ${today.toISOString().split('T')[0]}`);
+    console.log(`✅ É TERÇA-FEIRA: usando ${today.toISOString().split('T')[0]}`);
     return today.toISOString().split('T')[0];
   }
 
@@ -66,25 +137,28 @@ const getLastTuesday = () => {
   }
 
   const tuesdayString = lastTuesday.toISOString().split('T')[0];
-  console.log(`✅ ÚLTIMA TERÇA-FEIRA ENCONTRADA: ${tuesdayString}`);
+  console.log(`✅ TERÇA-FEIRA ENCONTRADA (offset ${weekOffset}): ${tuesdayString}`);
 
   return tuesdayString;
 };
 
 /**
- * Função SIMPLES: sempre buscar a última quarta-feira (ignorar período do FilterBar)
+ * Função SIMPLES: sempre buscar a última quarta-feira (com offset de semanas)
  */
-const getLastWednesday = () => {
-  console.log(`📅 MAPA DE CALOR: Calculando última quarta-feira (ignora filtro de período)`);
+const getLastWednesday = (weekOffset = 0) => {
+  console.log(`📅 MAPA DE CALOR: Calculando última quarta-feira (weekOffset: ${weekOffset})`);
 
   const today = new Date();
+  // Aplicar offset de semanas (weekOffset * 7 dias)
+  today.setDate(today.getDate() - (weekOffset * 7));
+
   let lastWednesday = new Date(today);
 
-  console.log(`📅 Hoje: ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
+  console.log(`📅 Data base (com offset): ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
 
   // Se hoje é quarta-feira (3), usar hoje
   if (today.getDay() === 3) {
-    console.log(`✅ HOJE É QUARTA-FEIRA: usando hoje ${today.toISOString().split('T')[0]}`);
+    console.log(`✅ É QUARTA-FEIRA: usando ${today.toISOString().split('T')[0]}`);
     return today.toISOString().split('T')[0];
   }
 
@@ -94,25 +168,28 @@ const getLastWednesday = () => {
   }
 
   const wednesdayString = lastWednesday.toISOString().split('T')[0];
-  console.log(`✅ ÚLTIMA QUARTA-FEIRA ENCONTRADA: ${wednesdayString}`);
+  console.log(`✅ QUARTA-FEIRA ENCONTRADA (offset ${weekOffset}): ${wednesdayString}`);
 
   return wednesdayString;
 };
 
 /**
- * Função SIMPLES: sempre buscar a última quinta-feira (ignorar período do FilterBar)
+ * Função SIMPLES: sempre buscar a última quinta-feira (com offset de semanas)
  */
-const getLastThursday = () => {
-  console.log(`📅 MAPA DE CALOR: Calculando última quinta-feira (ignora filtro de período)`);
+const getLastThursday = (weekOffset = 0) => {
+  console.log(`📅 MAPA DE CALOR: Calculando última quinta-feira (weekOffset: ${weekOffset})`);
 
   const today = new Date();
+  // Aplicar offset de semanas (weekOffset * 7 dias)
+  today.setDate(today.getDate() - (weekOffset * 7));
+
   let lastThursday = new Date(today);
 
-  console.log(`📅 Hoje: ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
+  console.log(`📅 Data base (com offset): ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
 
   // Se hoje é quinta-feira (4), usar hoje
   if (today.getDay() === 4) {
-    console.log(`✅ HOJE É QUINTA-FEIRA: usando hoje ${today.toISOString().split('T')[0]}`);
+    console.log(`✅ É QUINTA-FEIRA: usando ${today.toISOString().split('T')[0]}`);
     return today.toISOString().split('T')[0];
   }
 
@@ -122,25 +199,28 @@ const getLastThursday = () => {
   }
 
   const thursdayString = lastThursday.toISOString().split('T')[0];
-  console.log(`✅ ÚLTIMA QUINTA-FEIRA ENCONTRADA: ${thursdayString}`);
+  console.log(`✅ QUINTA-FEIRA ENCONTRADA (offset ${weekOffset}): ${thursdayString}`);
 
   return thursdayString;
 };
 
 /**
- * Função SIMPLES: sempre buscar a última sexta-feira (ignorar período do FilterBar)
+ * Função SIMPLES: sempre buscar a última sexta-feira (com offset de semanas)
  */
-const getLastFriday = () => {
-  console.log(`📅 MAPA DE CALOR: Calculando última sexta-feira (ignora filtro de período)`);
+const getLastFriday = (weekOffset = 0) => {
+  console.log(`📅 MAPA DE CALOR: Calculando última sexta-feira (weekOffset: ${weekOffset})`);
 
   const today = new Date();
+  // Aplicar offset de semanas (weekOffset * 7 dias)
+  today.setDate(today.getDate() - (weekOffset * 7));
+
   let lastFriday = new Date(today);
 
-  console.log(`📅 Hoje: ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
+  console.log(`📅 Data base (com offset): ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
 
   // Se hoje é sexta-feira (5), usar hoje
   if (today.getDay() === 5) {
-    console.log(`✅ HOJE É SEXTA-FEIRA: usando hoje ${today.toISOString().split('T')[0]}`);
+    console.log(`✅ É SEXTA-FEIRA: usando ${today.toISOString().split('T')[0]}`);
     return today.toISOString().split('T')[0];
   }
 
@@ -150,25 +230,28 @@ const getLastFriday = () => {
   }
 
   const fridayString = lastFriday.toISOString().split('T')[0];
-  console.log(`✅ ÚLTIMA SEXTA-FEIRA ENCONTRADA: ${fridayString}`);
+  console.log(`✅ SEXTA-FEIRA ENCONTRADA (offset ${weekOffset}): ${fridayString}`);
 
   return fridayString;
 };
 
 /**
- * Função SIMPLES: sempre buscar o último sábado (ignorar período do FilterBar)
+ * Função SIMPLES: sempre buscar o último sábado (com offset de semanas)
  */
-const getLastSaturday = () => {
-  console.log(`📅 MAPA DE CALOR: Calculando último sábado (ignora filtro de período)`);
+const getLastSaturday = (weekOffset = 0) => {
+  console.log(`📅 MAPA DE CALOR: Calculando último sábado (weekOffset: ${weekOffset})`);
 
   const today = new Date();
+  // Aplicar offset de semanas (weekOffset * 7 dias)
+  today.setDate(today.getDate() - (weekOffset * 7));
+
   let lastSaturday = new Date(today);
 
-  console.log(`📅 Hoje: ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
+  console.log(`📅 Data base (com offset): ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
 
   // Se hoje é sábado (6), usar hoje
   if (today.getDay() === 6) {
-    console.log(`✅ HOJE É SÁBADO: usando hoje ${today.toISOString().split('T')[0]}`);
+    console.log(`✅ É SÁBADO: usando ${today.toISOString().split('T')[0]}`);
     return today.toISOString().split('T')[0];
   }
 
@@ -178,25 +261,28 @@ const getLastSaturday = () => {
   }
 
   const saturdayString = lastSaturday.toISOString().split('T')[0];
-  console.log(`✅ ÚLTIMO SÁBADO ENCONTRADO: ${saturdayString}`);
+  console.log(`✅ SÁBADO ENCONTRADO (offset ${weekOffset}): ${saturdayString}`);
 
   return saturdayString;
 };
 
 /**
- * Função SIMPLES: sempre buscar o último domingo (ignorar período do FilterBar)
+ * Função SIMPLES: sempre buscar o último domingo (com offset de semanas)
  */
-const getLastSunday = () => {
-  console.log(`📅 MAPA DE CALOR: Calculando último domingo (ignora filtro de período)`);
+const getLastSunday = (weekOffset = 0) => {
+  console.log(`📅 MAPA DE CALOR: Calculando último domingo (weekOffset: ${weekOffset})`);
 
   const today = new Date();
+  // Aplicar offset de semanas (weekOffset * 7 dias)
+  today.setDate(today.getDate() - (weekOffset * 7));
+
   let lastSunday = new Date(today);
 
-  console.log(`📅 Hoje: ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
+  console.log(`📅 Data base (com offset): ${today.toISOString().split('T')[0]} (dia da semana: ${today.getDay()})`);
 
   // Se hoje é domingo (0), usar hoje
   if (today.getDay() === 0) {
-    console.log(`✅ HOJE É DOMINGO: usando hoje ${today.toISOString().split('T')[0]}`);
+    console.log(`✅ É DOMINGO: usando ${today.toISOString().split('T')[0]}`);
     return today.toISOString().split('T')[0];
   }
 
@@ -206,7 +292,7 @@ const getLastSunday = () => {
   }
 
   const sundayString = lastSunday.toISOString().split('T')[0];
-  console.log(`✅ ÚLTIMO DOMINGO ENCONTRADO: ${sundayString}`);
+  console.log(`✅ DOMINGO ENCONTRADO (offset ${weekOffset}): ${sundayString}`);
 
   return sundayString;
 };
@@ -272,7 +358,7 @@ const buildFilters = async (selectedFunnel, selectedUnit, selectedSeller, select
 };
 
 /**
- * Buscar dados de um dia específico
+ * Buscar dados de um dia específico (COM PAGINAÇÃO AUTOMÁTICA)
  */
 const fetchDayData = async (nomeDay, dateString, filtrosCombinados, rawLeadsData, key) => {
   console.log(`🎯 BUSCANDO DADOS DE ${nomeDay.toUpperCase()}: ${dateString}`);
@@ -281,23 +367,13 @@ const fetchDayData = async (nomeDay, dateString, filtrosCombinados, rawLeadsData
 
   console.log(`🔍 Query ${nomeDay}:`, `${supabaseUrl}/rest/v1/${totalDiaQuery}`);
 
-  const totalDiaResponse = await fetch(`${supabaseUrl}/rest/v1/${totalDiaQuery}`, {
-    method: 'GET',
-    headers: {
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
-      'Accept-Profile': 'api',
-      'Content-Profile': 'api'
-    }
-  });
-
-  if (totalDiaResponse.ok) {
-    const totalDiaLeads = await totalDiaResponse.json();
+  try {
+    // 🔄 USAR PAGINAÇÃO AUTOMÁTICA
+    const totalDiaLeads = await fetchAllDataWithPagination(totalDiaQuery);
     rawLeadsData[key] = totalDiaLeads;
-    console.log(`🎯 TOTAL ${nomeDay.toUpperCase()}: ${totalDiaLeads.length} leads encontrados`);
-  } else {
-    console.error(`❌ Erro ao buscar dados de ${nomeDay}:`, totalDiaResponse.status);
+    console.log(`🎯 TOTAL ${nomeDay.toUpperCase()}: ${totalDiaLeads.length} leads encontrados (COM PAGINAÇÃO)`);
+  } catch (error) {
+    console.error(`❌ Erro ao buscar dados de ${nomeDay}:`, error);
     rawLeadsData[key] = [];
   }
 };
@@ -328,26 +404,15 @@ const fetchHourlyData = async (dateString, diaSemana, horarios, filtrosCombinado
 
     console.log(`🔍 Query ${nomeDay} ${horaFim}h:`, `${supabaseUrl}/rest/v1/${leadsQuery}`);
 
-    // Executar busca
-    const leadsResponse = await fetch(`${supabaseUrl}/rest/v1/${leadsQuery}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
-        'Accept-Profile': 'api',
-        'Content-Profile': 'api'
-      }
-    });
-
+    // 🔄 EXECUTAR BUSCA COM PAGINAÇÃO AUTOMÁTICA
     let leadsCount = 0;
 
-    if (leadsResponse.ok) {
-      const horaLeads = await leadsResponse.json();
+    try {
+      const horaLeads = await fetchAllDataWithPagination(leadsQuery);
       leadsCount = horaLeads.length;
-      console.log(`🎯 ${nomeDay} ${horaFim}h: ${leadsCount} leads encontrados`);
-    } else {
-      console.error(`❌ Erro ao buscar leads ${nomeDay} hora ${horaFim}h:`, leadsResponse.status);
+      console.log(`🎯 ${nomeDay} ${horaFim}h: ${leadsCount} leads encontrados (COM PAGINAÇÃO)`);
+    } catch (error) {
+      console.error(`❌ Erro ao buscar leads ${nomeDay} hora ${horaFim}h:`, error);
     }
 
     // Adicionar ao array de dados processados
@@ -365,19 +430,38 @@ const fetchHourlyData = async (dateString, diaSemana, horarios, filtrosCombinado
  */
 export const getMapaDeCalorData = async (params) => {
   try {
-    const { startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin } = params;
+    const { startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin, weekOffset = 0 } = params;
 
-    console.log('🔥 MapaDeCalor: Buscando dados com lógica corrigida...', params);
-    console.log('🚨 IGNORANDO período do FilterBar, sempre buscar semana inteira!');
+    console.log('🔥 MapaDeCalor: Buscando dados com lógica híbrida...', params);
+    console.log(`🎯 WeekOffset: ${weekOffset} - ${weekOffset === 0 ? 'SEMANA ATUAL (esparramada)' : 'SEMANA ANTERIOR (sequencial)'}`);
 
-    // Buscar datas da semana inteira
-    const mondayDate = getLastMonday();
-    const tuesdayDate = getLastTuesday();
-    const wednesdayDate = getLastWednesday();
-    const thursdayDate = getLastThursday();
-    const fridayDate = getLastFriday();
-    const saturdayDate = getLastSaturday();
-    const sundayDate = getLastSunday();
+    let mondayDate, tuesdayDate, wednesdayDate, thursdayDate, fridayDate, saturdayDate, sundayDate;
+
+    if (weekOffset === 0) {
+      // 🎯 SEMANA ATUAL: Lógica esparramada (última ocorrência de cada dia)
+      console.log('🔥 USANDO LÓGICA ESPARRAMADA (semana atual)');
+      mondayDate = getLastMonday(0);
+      tuesdayDate = getLastTuesday(0);
+      wednesdayDate = getLastWednesday(0);
+      thursdayDate = getLastThursday(0);
+      fridayDate = getLastFriday(0);
+      saturdayDate = getLastSaturday(0);
+      sundayDate = getLastSunday(0);
+    } else {
+      // 🎯 SEMANAS ANTERIORES: Lógica sequencial (semana calendário)
+      console.log(`🔥 USANDO LÓGICA SEQUENCIAL (${weekOffset} semana${weekOffset > 1 ? 's' : ''} atrás)`);
+      const baseMondayDate = getLastMonday(weekOffset);
+
+      mondayDate = baseMondayDate;                    // Segunda-feira base
+      tuesdayDate = addDays(baseMondayDate, 1);      // Segunda + 1 dia
+      wednesdayDate = addDays(baseMondayDate, 2);    // Segunda + 2 dias
+      thursdayDate = addDays(baseMondayDate, 3);     // Segunda + 3 dias
+      fridayDate = addDays(baseMondayDate, 4);       // Segunda + 4 dias
+      saturdayDate = addDays(baseMondayDate, 5);     // Segunda + 5 dias
+      sundayDate = addDays(baseMondayDate, 6);       // Segunda + 6 dias
+
+      console.log(`📅 SEMANA SEQUENCIAL CALCULADA (base: ${baseMondayDate}):`);
+    }
     console.log(`🎯 DATAS FIXAS PARA HEATMAP:`);
     console.log(`   📅 Segunda-feira: ${mondayDate}`);
     console.log(`   📅 Terça-feira: ${tuesdayDate}`);

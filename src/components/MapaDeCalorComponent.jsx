@@ -20,6 +20,7 @@ const MapaDeCalorComponent = ({
   const [heatmapData, setHeatmapData] = useState([]);
   const [rawLeadsData, setRawLeadsData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [weekOffset, setWeekOffset] = useState(0); // 0 = semana atual, 1 = semana anterior, etc.
 
   // Mostrar a semana completa
   const diasSemana = [
@@ -57,7 +58,8 @@ const MapaDeCalorComponent = ({
           selectedFunnel,
           selectedUnit,
           selectedSeller,
-          selectedOrigin
+          selectedOrigin,
+          weekOffset
         };
 
         console.log('🔥 Parâmetros enviados para getMapaDeCalorData:', params);
@@ -82,7 +84,7 @@ const MapaDeCalorComponent = ({
       console.log('⚠️ Datas inválidas, não buscando dados:', { startDate, endDate });
       setLoading(false);
     }
-  }, [startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin]);
+  }, [startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin, weekOffset]);
 
   // Função para obter valor do lead em uma célula específica
   const getLeadValue = (diaSemana, hora) => {
@@ -458,6 +460,34 @@ const MapaDeCalorComponent = ({
       <div className="mapa-calor-container">
         <div className="mapa-calor-header">
           <h2>Leads por Dia e Hora</h2>
+
+          {/* Navegação semanal */}
+          <div className="mapa-calor-navigation">
+            <button
+              className="mapa-nav-btn"
+              onClick={() => setWeekOffset(weekOffset + 1)}
+              disabled={loading}
+            >
+              ← Semana Anterior
+            </button>
+
+            <div className="mapa-nav-info">
+              {weekOffset === 0 ? (
+                <span className="current-week">Última Semana</span>
+              ) : (
+                <span className="offset-week">{weekOffset} semana{weekOffset > 1 ? 's' : ''} atrás</span>
+              )}
+            </div>
+
+            <button
+              className="mapa-nav-btn"
+              onClick={() => setWeekOffset(Math.max(0, weekOffset - 1))}
+              disabled={weekOffset === 0 || loading}
+            >
+              Semana Seguinte →
+            </button>
+          </div>
+
           <p className="mapa-calor-subtitle">
             {startDate && endDate ? (
               startDate === endDate ?
