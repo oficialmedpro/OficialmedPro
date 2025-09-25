@@ -49,6 +49,10 @@ jobs:
         platforms: linux/amd64,linux/arm64
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        build-args: |
+          VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_SCHEMA=${{ secrets.VITE_SUPABASE_SCHEMA }}
 
     - name: Image digest
       run: echo ${{ steps.build.outputs.digest }}
@@ -66,4 +70,8 @@ jobs:
           echo "Image: ${{ env.DOCKER_IMAGE }}:beta"
         else
           echo "❌ Beta Docker build failed!"
+<<<<<<< HEAD
         fi
+=======
+        fi
+>>>>>>> 5632ff7791ce0621c646b1964c805e7b8372058e
