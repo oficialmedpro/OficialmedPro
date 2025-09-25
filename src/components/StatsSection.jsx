@@ -148,6 +148,7 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
           selectedUnit={selectedUnit}
           selectedSeller={vendedorId || (vendedorId === null ? "all" : selectedSeller)}
           selectedOrigin={selectedOrigin}
+          isVendedorView={vendedorId !== null}
         />
       </div>
       

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { User } from 'lucide-react';
 import './DashboardPage.css';
 import './DashboardPageFunnel.css';
 import FilterBar from '../components/FilterBar';
@@ -400,7 +401,8 @@ const DashboardPage = ({ onLogout }) => {
               <div className="vendedor-separator">
                 <div className="vendedor-separator-line"></div>
                 <div className="vendedor-separator-name">
-                  📊 {selectedSellerName || 'Vendedor Selecionado'}
+                  <User size={20} />
+                  Vendedor: {selectedSellerName || 'Vendedor Selecionado'}
                 </div>
                 <div className="vendedor-separator-line"></div>
               </div>

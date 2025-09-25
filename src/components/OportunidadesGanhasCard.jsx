@@ -17,7 +17,8 @@ const OportunidadesGanhasCard = ({
   selectedFunnel, 
   selectedUnit, 
   selectedSeller, 
-  selectedOrigin 
+  selectedOrigin,
+  isVendedorView = false // Nova prop para identificar se é a view do vendedor
 }) => {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -144,7 +145,7 @@ const OportunidadesGanhasCard = ({
   };
 
   return (
-    <div className="ogc-oportunidades-ganhas-card">
+    <div className={`ogc-oportunidades-ganhas-card ${isVendedorView ? 'ogc-vendedor-view' : ''}`}>
       {/* Header com título */}
       <div className="ogc-card-header">
         <h2 className="ogc-card-title">Oportunidades<br/>Ganhas</h2>
@@ -169,22 +170,45 @@ const OportunidadesGanhasCard = ({
           <div className="ogc-metric-row">
             <span className="ogc-metric-label">total</span>
             <span className="ogc-metric-value">
-              {(() => {
-                const count = useCountUp(parseInt(ganhasTotalData.value.replace(/,/g, '')), 1500);
-                return count.toLocaleString();
-              })()}
-              {metrics?.totalOportunidadesGanhas?.sellerBreakdown && (
-                <span className="ogc-seller-count-badge" style={{ marginLeft: 6 }}>
-                  ({Math.round(metrics.totalOportunidadesGanhas.sellerBreakdown.percentCount)}%) {metrics.totalOportunidadesGanhas.sellerBreakdown.count}
-                </span>
+              {isVendedorView && metrics?.totalOportunidadesGanhas?.sellerBreakdown ? (
+                // Na view do vendedor, mostrar apenas dados do vendedor
+                <>
+                  {(() => {
+                    const count = useCountUp(parseInt(metrics.totalOportunidadesGanhas.sellerBreakdown.count), 1500);
+                    return count.toLocaleString();
+                  })()}
+                </>
+              ) : (
+                // Na view geral, mostrar dados totais
+                <>
+                  {(() => {
+                    const count = useCountUp(parseInt(ganhasTotalData.value.replace(/,/g, '')), 1500);
+                    return count.toLocaleString();
+                  })()}
+                  {metrics?.totalOportunidadesGanhas?.sellerBreakdown && (
+                    <span className="ogc-seller-count-badge" style={{ marginLeft: 6 }}>
+                      ({Math.round(metrics.totalOportunidadesGanhas.sellerBreakdown.percentCount)}%) {metrics.totalOportunidadesGanhas.sellerBreakdown.count}
+                    </span>
+                  )}
+                </>
               )}
             </span>
           </div>
-          <div className="ogc-primary-value-amount">{ganhasTotalData.opportunityValue}</div>
-          {metrics?.totalOportunidadesGanhas?.sellerBreakdown && (
+          {isVendedorView && metrics?.totalOportunidadesGanhas?.sellerBreakdown ? (
+            // Na view do vendedor, mostrar apenas valor do vendedor
             <div className="ogc-primary-value-seller">
-              ({Math.round(metrics.totalOportunidadesGanhas.sellerBreakdown.percentValue)}%) R$ {Number(metrics.totalOportunidadesGanhas.sellerBreakdown.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {Number(metrics.totalOportunidadesGanhas.sellerBreakdown.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
+          ) : (
+            // Na view geral, mostrar valor total
+            <>
+              <div className="ogc-primary-value-amount">{ganhasTotalData.opportunityValue}</div>
+              {metrics?.totalOportunidadesGanhas?.sellerBreakdown && (
+                <div className="ogc-primary-value-seller">
+                  ({Math.round(metrics.totalOportunidadesGanhas.sellerBreakdown.percentValue)}%) R$ {Number(metrics.totalOportunidadesGanhas.sellerBreakdown.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -193,22 +217,45 @@ const OportunidadesGanhasCard = ({
           <div className="ogc-metric-row">
             <span className="ogc-metric-label">Novas</span>
             <span className="ogc-metric-value">
-              {(() => {
-                const count = useCountUp(parseInt(ganhasNovasData.value.replace(/,/g, '')), 1500);
-                return count.toLocaleString();
-              })()}
-              {metrics?.ganhasNovas?.sellerBreakdown && (
-                <span className="ogc-seller-count-badge" style={{ marginLeft: 6 }}>
-                  ({Math.round(metrics.ganhasNovas.sellerBreakdown.percentCount)}%) {metrics.ganhasNovas.sellerBreakdown.count}
-                </span>
+              {isVendedorView && metrics?.ganhasNovas?.sellerBreakdown ? (
+                // Na view do vendedor, mostrar apenas dados do vendedor
+                <>
+                  {(() => {
+                    const count = useCountUp(parseInt(metrics.ganhasNovas.sellerBreakdown.count), 1500);
+                    return count.toLocaleString();
+                  })()}
+                </>
+              ) : (
+                // Na view geral, mostrar dados totais
+                <>
+                  {(() => {
+                    const count = useCountUp(parseInt(ganhasNovasData.value.replace(/,/g, '')), 1500);
+                    return count.toLocaleString();
+                  })()}
+                  {metrics?.ganhasNovas?.sellerBreakdown && (
+                    <span className="ogc-seller-count-badge" style={{ marginLeft: 6 }}>
+                      ({Math.round(metrics.ganhasNovas.sellerBreakdown.percentCount)}%) {metrics.ganhasNovas.sellerBreakdown.count}
+                    </span>
+                  )}
+                </>
               )}
             </span>
           </div>
-          <div className="ogc-secondary-value-amount">{ganhasNovasData.opportunityValue}</div>
-          {metrics?.ganhasNovas?.sellerBreakdown && (
+          {isVendedorView && metrics?.ganhasNovas?.sellerBreakdown ? (
+            // Na view do vendedor, mostrar apenas valor do vendedor
             <div className="ogc-secondary-value-seller">
-              ({Math.round(metrics.ganhasNovas.sellerBreakdown.percentValue)}%) R$ {Number(metrics.ganhasNovas.sellerBreakdown.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {Number(metrics.ganhasNovas.sellerBreakdown.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
+          ) : (
+            // Na view geral, mostrar valor total
+            <>
+              <div className="ogc-secondary-value-amount">{ganhasNovasData.opportunityValue}</div>
+              {metrics?.ganhasNovas?.sellerBreakdown && (
+                <div className="ogc-secondary-value-seller">
+                  ({Math.round(metrics.ganhasNovas.sellerBreakdown.percentValue)}%) R$ {Number(metrics.ganhasNovas.sellerBreakdown.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
