@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './MapaDeCalorComponent.css';
 import { getMapaDeCalorData } from '../service/mapaDeCalorService';
+import { TrendingUp, Target, HeartCrack, DollarSign, Receipt } from 'lucide-react';
 
 /**
  * 🔥 MAPA DE CALOR - LEADS POR DIA E HORA
@@ -21,6 +22,41 @@ const MapaDeCalorComponent = ({
   const [rawLeadsData, setRawLeadsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [weekOffset, setWeekOffset] = useState(0); // 0 = semana atual, 1 = semana anterior, etc.
+  const [selectedMetric, setSelectedMetric] = useState('opportunities'); // Métrica selecionada
+
+  // Configurações das métricas
+  const metricsConfig = {
+    opportunities: {
+      label: 'Oportunidades',
+      icon: TrendingUp,
+      color: '#3b82f6',
+      description: 'Oportunidades criadas'
+    },
+    wins: {
+      label: 'Ganhos',
+      icon: Target,
+      color: '#10b981',
+      description: 'Oportunidades ganhas'
+    },
+    losses: {
+      label: 'Perdas',
+      icon: HeartCrack,
+      color: '#ef4444',
+      description: 'Oportunidades perdidas'
+    },
+    revenue: {
+      label: 'Faturamento',
+      icon: DollarSign,
+      color: '#f59e0b',
+      description: 'Valor total faturado'
+    },
+    avgTicket: {
+      label: 'Ticket Médio',
+      icon: Receipt,
+      color: '#8b5cf6',
+      description: 'Valor médio por oportunidade'
+    }
+  };
 
   // Mostrar a semana completa
   const diasSemana = [
@@ -59,7 +95,8 @@ const MapaDeCalorComponent = ({
           selectedUnit,
           selectedSeller,
           selectedOrigin,
-          weekOffset
+          weekOffset,
+          selectedMetric
         };
 
         console.log('🔥 Parâmetros enviados para getMapaDeCalorData:', params);
@@ -84,7 +121,7 @@ const MapaDeCalorComponent = ({
       console.log('⚠️ Datas inválidas, não buscando dados:', { startDate, endDate });
       setLoading(false);
     }
-  }, [startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin, weekOffset]);
+  }, [startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin, weekOffset, selectedMetric]);
 
   // Função para obter valor do lead em uma célula específica
   const getLeadValue = (diaSemana, hora) => {
@@ -508,11 +545,33 @@ const MapaDeCalorComponent = ({
             </button>
           </div>
 
+          {/* Seletor de Métricas */}
+          <div className="mapa-metric-selector">
+            {Object.entries(metricsConfig).map(([key, config]) => {
+              const IconComponent = config.icon;
+              return (
+                <button
+                  key={key}
+                  className={`metric-btn ${selectedMetric === key ? 'active' : ''}`}
+                  onClick={() => setSelectedMetric(key)}
+                  disabled={loading}
+                  style={{
+                    '--metric-color': config.color
+                  }}
+                  title={config.description}
+                >
+                  <IconComponent className="metric-icon" size={18} />
+                  <span className="metric-label">{config.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
           <p className="mapa-calor-subtitle">
             {startDate && endDate ? (
               startDate === endDate ?
-                `Distribuição de leads preenchidos em ${startDate}` :
-                `Distribuição de leads preenchidos entre ${startDate} e ${endDate}`
+                `${metricsConfig[selectedMetric].description} em ${startDate}` :
+                `${metricsConfig[selectedMetric].description} entre ${startDate} e ${endDate}`
             ) : (
               'Selecione um período para visualizar os dados'
             )}
