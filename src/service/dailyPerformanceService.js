@@ -827,8 +827,9 @@ const fetchAllMetasOptimized = async (selectedUnit, selectedFunnel, selectedSell
     allMetas.forEach(meta => {
       const valor = parseFloat(meta.valor_da_meta) || 0;
       
-      // 🔧 CORREÇÃO: Usar chave única que combina funil + vendedor_id para evitar sobrescrita
-      const chaveUnica = `${meta.funil}_${meta.vendedor_id || 'default'}`;
+      // 🔧 CORREÇÃO: Para metas gerais (sem vendedor), agrupar por funil para calcular média correta
+      const isMetaGeral = !meta.vendedor_id;
+      const chaveUnica = isMetaGeral ? `funil_${meta.funil}` : `${meta.funil}_${meta.vendedor_id}`;
       
       switch (meta.dashboard) {
         case 'oportunidades_diaria':
@@ -874,9 +875,11 @@ const fetchAllMetasOptimized = async (selectedUnit, selectedFunnel, selectedSell
       const totalDiaria = Object.values(metasOrganizadas[tipo].diaria).reduce((sum, val) => sum + val, 0);
       const totalSabado = Object.values(metasOrganizadas[tipo].sabado).reduce((sum, val) => sum + val, 0);
       
-      console.log(`  ${tipo}:`);
-      console.log(`    - Diária: ${diaria} registros, total: ${totalDiaria}`);
-      console.log(`    - Sábado: ${sabado} registros, total: ${totalSabado}`);
+      console.log(`🔧 ${tipo}:`);
+      console.log(`  - Diária: ${diaria} metas, Total: ${totalDiaria}`);
+      console.log(`  - Sábado: ${sabado} metas, Total: ${totalSabado}`);
+      console.log(`  - Chaves diária:`, Object.keys(metasOrganizadas[tipo].diaria));
+      console.log(`  - Chaves sábado:`, Object.keys(metasOrganizadas[tipo].sabado));
     });
     
     return metasOrganizadas;
@@ -931,6 +934,13 @@ const getMetaFromOrganized = (metasOrganizadas, tipo, currentDate) => {
       console.log(`🔍 ${tipo} - Total: ${totalMeta}, Quantidade: ${valoresValidos.length}, Média: ${media}`);
       return media;
     }
+  }
+  
+  // Para leads, vendas e faturamento, somar quando há múltiplos funis (sem vendedor)
+  // Mas para conversão e ticket médio, sempre calcular média
+  if (tipo === 'leads' || tipo === 'vendas' || tipo === 'faturamento') {
+    console.log(`🔍 ${tipo} - Somando metas de múltiplos funis: ${totalMeta}`);
+    return Math.round(totalMeta);
   }
   
   return Math.round(totalMeta);

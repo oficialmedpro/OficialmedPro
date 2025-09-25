@@ -13,6 +13,14 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        environment: [production, beta]
+        include:
+          - environment: production
+            tag: latest
+          - environment: beta
+            tag: beta
     
     steps:
     - name: Checkout code
@@ -38,14 +46,13 @@ jobs:
           type=sha,prefix={{branch}}-
           type=raw,value=latest,enable={{is_default_branch}}
 
-    - name: Build and push Docker image
+    - name: Build and push Docker image (${{ matrix.environment }})
       uses: docker/build-push-action@v5
       with:
         context: .
         file: ./Dockerfile
         push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+        tags: ${{ env.DOCKER_IMAGE }}:${{ matrix.tag }}
         platforms: linux/amd64,linux/arm64
         cache-from: type=gha
         cache-to: type=gha,mode=max
@@ -61,13 +68,14 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     if: always()
-    
+
     steps:
     - name: Notify deployment status
       run: |
         if [ "${{ needs.build-and-push.result }}" == "success" ]; then
-          echo "✅ Docker image built and pushed successfully!"
-          echo "Image: ${{ env.DOCKER_IMAGE }}:latest"
+          echo "✅ Docker images built and pushed successfully!"
+          echo "Production: ${{ env.DOCKER_IMAGE }}:latest"
+          echo "Beta: ${{ env.DOCKER_IMAGE }}:beta"
         else
           echo "❌ Docker build failed!"
         fi
