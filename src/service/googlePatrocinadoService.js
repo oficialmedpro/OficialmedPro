@@ -1,4 +1,3 @@
-import { getGoogleAdsConfig, getConfiguredGoogleAdsAccounts } from '../constants/googleAds';
 import { supabase } from './supabase';
 
 class GooglePatrocinadoService {
@@ -311,7 +310,7 @@ class GooglePatrocinadoService {
 
   // Método para verificar se as credenciais estão configuradas
   isConfigured(accountKey = 'ACCOUNT_1') {
-    const config = getGoogleAdsConfig(accountKey);
+    // Configuração está na Edge Function (seguro)
     return !!(
       config.CLIENT_ID && 
       config.CLIENT_SECRET && 
@@ -392,7 +391,7 @@ class GooglePatrocinadoService {
 
   // Método auxiliar para verificar configuração da edge function
   isConfiguredForEdgeFunction(accountKey = 'ACCOUNT_1') {
-    const config = getGoogleAdsConfig(accountKey);
+    // Configuração está na Edge Function (seguro)
     return !!(config.CLIENT_ID && config.CLIENT_SECRET && config.REFRESH_TOKEN && config.CUSTOMER_ID && config.DEVELOPER_TOKEN);
   }
 
@@ -557,7 +556,7 @@ class GooglePatrocinadoService {
 
   // Método para buscar de todas as contas configuradas
   async getAllCampaigns() {
-    const configuredAccounts = getConfiguredGoogleAdsAccounts();
+    // Contas configuradas na Edge Function (seguro)
     const allCampaigns = [];
 
     console.log(`Buscando campanhas de ${configuredAccounts.length} contas configuradas`);
@@ -816,7 +815,7 @@ class GooglePatrocinadoService {
       console.error('❌ Erro ao agregar estatísticas:', error);
       
       // Fallback para método anterior
-    const configuredAccounts = getConfiguredGoogleAdsAccounts();
+    // Contas configuradas na Edge Function (seguro)
 
     let totalStats = {
       totalConversions: 0,
@@ -863,7 +862,7 @@ class GooglePatrocinadoService {
 
   // Método para testar conectividade de todas as contas
   async testAllConnections() {
-    const configuredAccounts = getConfiguredGoogleAdsAccounts();
+    // Contas configuradas na Edge Function (seguro)
     const results = {};
 
     console.log(`Testando conectividade de ${configuredAccounts.length} contas`);
@@ -885,7 +884,7 @@ class GooglePatrocinadoService {
 
   // Método utilitário para obter nome da conta
   getAccountName(accountKey) {
-    const accounts = getConfiguredGoogleAdsAccounts();
+    // Contas configuradas na Edge Function (seguro)
     const account = accounts.find(acc => acc.key === accountKey);
     return account ? account.name : accountKey;
   }

@@ -239,22 +239,18 @@ export const getOportunidadesGanhasMetrics = async (
       ? `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}T00:00:00-03:00&create_date=lte.${dataFim}T23:59:59-03:00${filtrosCombinados}`
       : null;
 
-    // 🎯 3. BUSCAR META DE GANHAS - Tabela metas
+    // 🎯 3. CALCULAR META DINÂMICA BASEADA NO PERÍODO
     const unidadeParaMeta = selectedUnit && selectedUnit !== 'all' ? selectedUnit : '[1]';
     
-    let metaOportunidadesGanhasUrl;
+    // Calcular meta baseada no período selecionado
+    const metaOportunidadesGanhas = await calcularMetaDinamica(
+      dataInicio, 
+      dataFim, 
+      selectedFunnel, 
+      unidadeParaMeta
+    );
     
-    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
-      // Funil específico selecionado - buscar meta específica do funil
-      metaOportunidadesGanhasUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.ganhos_oportunidades&funil=eq.${selectedFunnel}`;
-      console.log('🎯 Buscando meta específica do funil para ganhas:', selectedFunnel);
-    } else {
-      // Apenas unidade selecionada - buscar AMBOS funis (6 e 14) e somar
-      metaOportunidadesGanhasUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.ganhos_oportunidades&funil=in.(6,14)`;
-      console.log('🎯 Buscando metas de ambos funis (6 e 14) para somar - ganhas');
-    }
-    
-    console.log('🔍 URL Meta Oportunidades Ganhas:', metaOportunidadesGanhasUrl);
+    console.log('🎯 Meta calculada dinamicamente:', metaOportunidadesGanhas);
 
     // 🟢 EXECUTAR QUERIES COM PAGINAÇÃO
     const baseHeaders = {
@@ -266,13 +262,9 @@ export const getOportunidadesGanhasMetrics = async (
     };
 
     // Executar todas as queries com paginação em paralelo
-    const [ganhasData, novasData, metaResponse, ganhasSellerData, novasSellerData] = await Promise.all([
+    const [ganhasData, novasData, ganhasSellerData, novasSellerData] = await Promise.all([
       fetchAllRecords(totalOportunidadesGanhasUrl, baseHeaders),
       fetchAllRecords(ganhasNovasUrl, baseHeaders),
-      fetch(metaOportunidadesGanhasUrl, {
-        method: 'GET',
-        headers: baseHeaders
-      }),
       totalOportunidadesGanhasSellerUrl ? fetchAllRecords(totalOportunidadesGanhasSellerUrl, baseHeaders) : Promise.resolve([]),
       ganhasNovasSellerUrl ? fetchAllRecords(ganhasNovasSellerUrl, baseHeaders) : Promise.resolve([])
     ]);
@@ -287,7 +279,6 @@ export const getOportunidadesGanhasMetrics = async (
     let sellerValorGanhas = 0;
     let sellerGanhasNovas = 0;
     let sellerValorGanhasNovas = 0;
-    let metaOportunidadesGanhas = 0;
 
     // 1. Total de Oportunidades Ganhas (gain_date=período) - usando paginação
     if (ganhasData && Array.isArray(ganhasData)) {
@@ -334,31 +325,7 @@ export const getOportunidadesGanhasMetrics = async (
       }, 0);
     }
 
-    // 3. Meta de Oportunidades Ganhas
-    if (metaResponse.ok) {
-      const metaData = await metaResponse.json();
-      if (metaData && metaData.length > 0) {
-        if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS') {
-          // Funil específico - usar valor único
-          metaOportunidadesGanhas = parseFloat(metaData[0].valor_da_meta) || 0;
-          console.log(`✅ Meta Oportunidades Ganhas (funil ${selectedFunnel}): ${metaOportunidadesGanhas}`);
-        } else {
-          // Unidade selecionada (ambos funis) - somar as metas dos funis 6 e 14
-          metaOportunidadesGanhas = metaData.reduce((total, meta) => {
-            const valor = parseFloat(meta.valor_da_meta) || 0;
-            return total + valor;
-          }, 0);
-          console.log(`✅ Meta Oportunidades Ganhas (soma funis 6+14): ${metaOportunidadesGanhas}`);
-          console.log(`🔍 Detalhes das metas encontradas:`, metaData.map(m => ({ valor: m.valor_da_meta })));
-        }
-      } else {
-        console.log('⚠️ Nenhuma meta encontrada para oportunidades ganhas, usando valor padrão');
-        metaOportunidadesGanhas = 0; // Valor padrão
-      }
-    } else {
-      console.error('❌ Erro ao buscar meta de oportunidades ganhas:', metaResponse.status);
-      metaOportunidadesGanhas = 0; // Valor padrão em caso de erro
-    }
+    // Meta já foi calculada dinamicamente acima
 
     // 🎯 DADOS ANTERIORES - Buscar dados do período anterior para comparação
     console.log('📊 Buscando dados do período anterior para comparação...');
@@ -527,5 +494,213 @@ const getOportunidadesGanhasAnteriores = async (startDate, endDate, selectedFunn
       totalOportunidadesGanhas: 0,
       ganhasNovas: 0
     };
+  }
+};
+
+/**
+ * 🎯 CALCULAR META DINÂMICA BASEADA NO PERÍODO
+ * 
+ * @param {string} dataInicio - Data inicial (YYYY-MM-DD)
+ * @param {string} dataFim - Data final (YYYY-MM-DD)
+ * @param {string} selectedFunnel - ID do funil selecionado
+ * @param {string} unidadeFranquia - Unidade franquia (ex: "[1]")
+ * @returns {number} Meta calculada
+ */
+const calcularMetaDinamica = async (dataInicio, dataFim, selectedFunnel, unidadeFranquia) => {
+  try {
+    console.log('🎯 Calculando meta dinâmica para período:', { dataInicio, dataFim, selectedFunnel, unidadeFranquia });
+    
+    // Verificar se é período mensal (mês inteiro)
+    const inicio = new Date(dataInicio + 'T00:00:00');
+    const fim = new Date(dataFim + 'T23:59:59');
+    
+    console.log('🔍 Debug datas:', { 
+      dataInicio, 
+      dataFim, 
+      inicio: inicio.toISOString(), 
+      fim: fim.toISOString(),
+      inicioDate: inicio.getDate(),
+      fimDate: fim.getDate(),
+      inicioMonth: inicio.getMonth(),
+      fimMonth: fim.getMonth(),
+      inicioYear: inicio.getFullYear(),
+      fimYear: fim.getFullYear()
+    });
+    
+    // Verificar se é o mesmo mês e ano
+    const mesmoMesAno = inicio.getMonth() === fim.getMonth() && inicio.getFullYear() === fim.getFullYear();
+    
+    // Verificar se começa no dia 1 e termina no último dia do mês
+    const comecaNoDia1 = inicio.getDate() === 1;
+    const ultimoDiaDoMes = new Date(fim.getFullYear(), fim.getMonth() + 1, 0).getDate();
+    const terminaNoUltimoDia = fim.getDate() === ultimoDiaDoMes;
+    
+    const isMesInteiro = mesmoMesAno && comecaNoDia1 && terminaNoUltimoDia;
+    
+    console.log('🔍 Debug mês inteiro:', { 
+      mesmoMesAno, 
+      comecaNoDia1, 
+      terminaNoUltimoDia, 
+      ultimoDiaDoMes,
+      isMesInteiro 
+    });
+    
+    if (isMesInteiro) {
+      console.log('📅 Período mensal detectado - buscando meta mensal');
+      return await buscarMetaPorTipo('mensal', selectedFunnel, unidadeFranquia);
+    }
+    
+    // Verificar se é período de 1 dia
+    const diffTime = fim.getTime() - inicio.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    console.log('🔍 Debug período:', { 
+      diffTime, 
+      diffDays, 
+      inicio: inicio.toISOString(), 
+      fim: fim.toISOString(),
+      isMesmoDia: inicio.toDateString() === fim.toDateString()
+    });
+    
+    // Verificar se é o mesmo dia (mais confiável que diffDays)
+    const isMesmoDia = inicio.toDateString() === fim.toDateString();
+    
+    if (isMesmoDia) {
+      // Período de 1 dia - verificar se é sábado, domingo ou dia da semana
+      const diaSemana = inicio.getDay(); // 0=domingo, 1=segunda, ..., 6=sábado
+      
+      console.log('🔍 Debug dia da semana:', { 
+        dataInicio, 
+        diaSemana, 
+        nomeDia: ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][diaSemana]
+      });
+      
+      if (diaSemana === 0) {
+        console.log('📅 Domingo detectado - meta = 0');
+        return 0;
+      } else if (diaSemana === 6) {
+        console.log('📅 Sábado detectado - buscando meta de sábado');
+        return await buscarMetaPorTipo('sabado', selectedFunnel, unidadeFranquia);
+      } else {
+        console.log('📅 Dia da semana detectado - buscando meta diária');
+        return await buscarMetaPorTipo('diaria', selectedFunnel, unidadeFranquia);
+      }
+    }
+    
+    // Período customizado - calcular baseado nos dias
+    console.log('📅 Período customizado detectado - calculando por dias');
+    return await calcularMetaPeriodoCustomizado(dataInicio, dataFim, selectedFunnel, unidadeFranquia);
+    
+  } catch (error) {
+    console.error('❌ Erro ao calcular meta dinâmica:', error);
+    return 0;
+  }
+};
+
+/**
+ * 🎯 BUSCAR META POR TIPO (diaria, sabado, mensal)
+ */
+const buscarMetaPorTipo = async (tipoMeta, selectedFunnel, unidadeFranquia) => {
+  try {
+    let funilFilter = '';
+    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+      funilFilter = `&funil=eq.${selectedFunnel}`;
+    } else {
+      funilFilter = `&funil=in.(6,14)`;
+    }
+    
+    const metaUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta,funil&unidade_franquia=eq.${encodeURIComponent(unidadeFranquia)}&dashboard=eq.ganhos_oportunidades&tipo_meta=eq.${tipoMeta}${funilFilter}`;
+    
+    console.log('🔍 Buscando meta por tipo:', { tipoMeta, metaUrl });
+    
+    const response = await fetch(metaUrl, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseServiceKey,
+        'Accept-Profile': supabaseSchema,
+      }
+    });
+    
+    if (response.ok) {
+      const metaData = await response.json();
+      if (metaData && metaData.length > 0) {
+        const totalMeta = metaData.reduce((total, meta) => {
+          const valor = parseFloat(meta.valor_da_meta) || 0;
+          return total + valor;
+        }, 0);
+        
+        console.log(`✅ Meta ${tipoMeta} encontrada:`, { 
+          funis: metaData.map(m => ({ funil: m.funil, valor: m.valor_da_meta })),
+          total: totalMeta 
+        });
+        
+        return totalMeta;
+      }
+    }
+    
+    console.log(`⚠️ Nenhuma meta ${tipoMeta} encontrada`);
+    return 0;
+    
+  } catch (error) {
+    console.error(`❌ Erro ao buscar meta ${tipoMeta}:`, error);
+    return 0;
+  }
+};
+
+/**
+ * 🎯 CALCULAR META PARA PERÍODO CUSTOMIZADO
+ */
+const calcularMetaPeriodoCustomizado = async (dataInicio, dataFim, selectedFunnel, unidadeFranquia) => {
+  try {
+    const inicio = new Date(dataInicio);
+    const fim = new Date(dataFim);
+    
+    // Contar dias da semana, sábados e domingos
+    let diasSemana = 0;
+    let sabados = 0;
+    let domingos = 0;
+    
+    const currentDate = new Date(inicio);
+    while (currentDate <= fim) {
+      const diaSemana = currentDate.getDay();
+      
+      if (diaSemana === 0) {
+        domingos++;
+      } else if (diaSemana === 6) {
+        sabados++;
+      } else {
+        diasSemana++;
+      }
+      
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    console.log('📊 Contagem de dias no período:', { diasSemana, sabados, domingos });
+    
+    // Buscar metas
+    const [metaDiaria, metaSabado] = await Promise.all([
+      buscarMetaPorTipo('diaria', selectedFunnel, unidadeFranquia),
+      buscarMetaPorTipo('sabado', selectedFunnel, unidadeFranquia)
+    ]);
+    
+    // Calcular meta total
+    const metaTotal = (diasSemana * metaDiaria) + (sabados * metaSabado) + (domingos * 0);
+    
+    console.log('📊 Cálculo da meta customizada:', {
+      diasSemana,
+      sabados,
+      domingos,
+      metaDiaria,
+      metaSabado,
+      metaTotal: `(${diasSemana} × ${metaDiaria}) + (${sabados} × ${metaSabado}) + (${domingos} × 0) = ${metaTotal}`
+    });
+    
+    return metaTotal;
+    
+  } catch (error) {
+    console.error('❌ Erro ao calcular meta período customizado:', error);
+    return 0;
   }
 };

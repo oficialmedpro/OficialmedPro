@@ -1,4 +1,4 @@
-import { getGoogleAdsConfig, getConfiguredGoogleAdsAccounts } from '../constants/googleAds';
+// Usando Edge Functions para Google Ads (credenciais seguras)
 import { supabase } from './supabase';
 import { googleAdsSupabaseService } from './googleAdsSupabaseService';
 
@@ -91,7 +91,7 @@ class GoogleAdsService {
   // Chamada genérica para a Edge Function
   private async callEdgeFunction(action: string, params: any = {}, accountKey: 'ACCOUNT_1' | 'ACCOUNT_2' = 'ACCOUNT_1'): Promise<GoogleAdsResponse> {
     try {
-      const config = getGoogleAdsConfig(accountKey);
+      // Configuração está na Edge Function (seguro)
       
       console.log(`Chamando Edge Function Google Ads - Ação: ${action}, Conta: ${accountKey}`);
       
@@ -144,7 +144,7 @@ class GoogleAdsService {
 
   // Método auxiliar para verificar configuração da edge function
   private isConfiguredForEdgeFunction(accountKey: 'ACCOUNT_1' | 'ACCOUNT_2' = 'ACCOUNT_1'): boolean {
-    const config = getGoogleAdsConfig(accountKey);
+    // Configuração está na Edge Function (seguro);
     return !!(config.CLIENT_ID && config.CLIENT_SECRET && config.REFRESH_TOKEN && config.CUSTOMER_ID && config.DEVELOPER_TOKEN);
   }
 

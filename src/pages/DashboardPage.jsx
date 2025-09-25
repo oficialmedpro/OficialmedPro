@@ -37,7 +37,7 @@ const DashboardPage = ({ onLogout }) => {
   const [selectedSellerName, setSelectedSellerName] = useState(null);
   const [selectedPeriod, setSelectedPeriod] = useState('today');
   const [selectedFunnel, setSelectedFunnel] = useState('all');
-  const [selectedUnit, setSelectedUnit] = useState('all');
+  const [selectedUnit, setSelectedUnit] = useState('[1]'); // Unidade padrão Apucarana
   const [selectedOrigin, setSelectedOrigin] = useState('all');
   const [unitFilterValue, setUnitFilterValue] = useState(null); // Novo estado para o valor do filtro
   const [statusFilterValue, setStatusFilterValue] = useState(null); // Novo estado para o filtro de status
@@ -50,6 +50,17 @@ const DashboardPage = ({ onLogout }) => {
 
   // Traduções
   const t = translations[currentLanguage];
+
+  // Filtrar funis automaticamente quando a unidade for [1] (Apucarana)
+  useEffect(() => {
+    if (selectedUnit === '[1]') {
+      console.log('🏢 DashboardPage: Unidade [1] selecionada - filtrando funis da Apucarana');
+      // Atualizar o unitFilterValue para mostrar a unidade selecionada no FilterBar
+      setUnitFilterValue('[1]');
+      // Manter 'all' para mostrar todos os funis da unidade [1]
+      // O FunnelChart já filtra por unidade automaticamente
+    }
+  }, [selectedUnit]);
 
   // Atualizar dados de mercado automaticamente
   useEffect(() => {
@@ -375,10 +386,38 @@ const DashboardPage = ({ onLogout }) => {
                 endDate={endDate}
                 selectedFunnel={selectedFunnel}
                 selectedUnit={selectedUnit}
-                selectedSeller={selectedSeller}
+                selectedSeller="all" // Sempre "all" para dados gerais
                 selectedOrigin={selectedOrigin}
+                vendedorId={null} // Sempre dados gerais
+                title="Dados Gerais"
               />
           </>
+
+          {/* Stats Section do Vendedor - Aparece apenas quando vendedor específico está selecionado */}
+          {selectedSeller && selectedSeller !== 'all' && (
+            <>
+              {/* Linha com nome do vendedor */}
+              <div className="vendedor-separator">
+                <div className="vendedor-separator-line"></div>
+                <div className="vendedor-separator-name">
+                  📊 {selectedSellerName || 'Vendedor Selecionado'}
+                </div>
+                <div className="vendedor-separator-line"></div>
+              </div>
+              
+              <StatsSection 
+                  statsCards={statsCards} 
+                  startDate={startDate}
+                  endDate={endDate}
+                  selectedFunnel={selectedFunnel}
+                  selectedUnit={selectedUnit}
+                  selectedSeller={selectedSeller}
+                  selectedOrigin={selectedOrigin}
+                  vendedorId={selectedSeller} // Dados filtrados por vendedor
+                  title="Dados do Vendedor"
+                />
+            </>
+          )}
 
           {/* Chart Section - lógica especial para página de análise de funil */}
           {(() => {

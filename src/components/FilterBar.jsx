@@ -65,12 +65,16 @@ const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSe
     fetchUnits();
   }, []);
 
-  // 🎯 Buscar funis do Supabase ao carregar o componente
+  // 🎯 Buscar funis do Supabase baseado na unidade selecionada
   useEffect(() => {
     const fetchFunnels = async () => {
       try {
         setLoadingFunnels(true);
-        const funisData = await getFunisPorUnidade(); // Buscar todos os funis inicialmente
+        
+        // Se há uma unidade selecionada, buscar funis dessa unidade
+        // Senão, buscar todos os funis
+        const unitId = selectedUnit && selectedUnit !== 'all' ? selectedUnit : null;
+        const funisData = await getFunisPorUnidade(unitId);
         
         // Transformar os dados para o formato esperado pelo componente
         const funisFormatted = [
@@ -84,7 +88,7 @@ const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSe
         ];
         
         setFunnels(funisFormatted);
-        console.log('✅ Funis carregados:', funisFormatted);
+        console.log(`✅ Funis carregados para unidade ${unitId || 'todas'}:`, funisFormatted);
       } catch (error) {
         console.error('❌ Erro ao carregar funis:', error);
         setFunnels([]);
@@ -94,7 +98,7 @@ const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSe
     };
 
     fetchFunnels();
-  }, []);
+  }, [selectedUnit]); // Dependência: recarregar quando selectedUnit mudar
 
   // 🎯 Buscar vendedores do Supabase - APENAS quando unidade específica for selecionada
   useEffect(() => {
@@ -564,21 +568,24 @@ const FilterBar = ({ t, selectedSeller, setSelectedSeller, selectedPeriod, setSe
                       className={`fb-dropdown-item ${selectedPeriod === period.id ? 'fb-selected' : ''}`}
                       onClick={() => {
                         console.log(`📅 FilterBar: Clicando em período ${period.name} (${period.id})`);
-                        // Usar o handler da página principal se disponível
+                        
+                        // Calcular as datas para o período selecionado
+                        const { start, end } = handleDatePreset(period.id);
+                        console.log(`📅 FilterBar: Datas calculadas para ${period.name}:`, { start, end });
+                        
+                        // Aplicar as datas
+                        if (start && end) {
+                          setStartDate(start);
+                          setEndDate(end);
+                          console.log(`📅 FilterBar: Período ${period.name} aplicado:`, { start, end });
+                        }
+                        
+                        // Atualizar o período selecionado se a função estiver disponível
                         if (setSelectedPeriod) {
                           console.log(`📅 FilterBar: Chamando setSelectedPeriod com ${period.id}`);
                           setSelectedPeriod(period.id);
-                        } else {
-                          console.log(`📅 FilterBar: setSelectedPeriod não disponível, usando lógica local`);
-                          // Fallback para lógica local
-                          const { start, end } = handleDatePreset(period.id);
-                          console.log(`📅 FilterBar: Datas calculadas para ${period.name}:`, { start, end });
-                          if (start && end) {
-                            setStartDate(start);
-                            setEndDate(end);
-                            console.log(`📅 FilterBar: Período ${period.name} aplicado:`, { start, end });
-                          }
                         }
+                        
                         setOpenDropdown(null);
                       }}
                     >

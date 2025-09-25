@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { getGoogleAdsConfig } from '../constants/googleAds';
 
 // Configuração do Supabase
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -454,16 +453,9 @@ class GoogleAdsSupabaseService {
       return false;
     }
 
-    // Verificar configuração do Google Ads para a conta especificada
+    // A Edge Function já verifica as configurações automaticamente
     try {
-      const config = getGoogleAdsConfig(accountKey);
-      const isGoogleAdsConfigured = !!(
-        config.CLIENT_ID && 
-        config.CLIENT_SECRET && 
-        config.REFRESH_TOKEN && 
-        config.CUSTOMER_ID && 
-        config.DEVELOPER_TOKEN
-      );
+      const isGoogleAdsConfigured = true; // Edge Function tem todas as credenciais
 
       if (!isGoogleAdsConfigured) {
         console.warn(`⚠️ Google Ads ${accountKey} não configurado completamente`);

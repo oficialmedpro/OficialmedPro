@@ -1,0 +1,46 @@
+version: "3.7"
+
+services:
+
+  ## --------------------------- PWA VITE/REACT (BETA) --------------------------- ##
+  bi-beta:
+    image: oficialmedpro/oficialmed-pwa:beta
+    networks:
+      - OficialMed
+    deploy:
+      mode: replicated
+      replicas: 1            # pode subir para 2+ depois
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+
+        # Router principal (HTTPS)
+        - traefik.http.routers.bi-beta.rule=Host(`beta.oficialmed.com.br`)
+        - traefik.http.routers.bi-beta.entrypoints=websecure
+        - traefik.http.routers.bi-beta.tls.certresolver=letsencryptresolver
+
+        # Serviço apontando para a porta 80 do Nginx no container
+        - traefik.http.services.bi-beta.loadbalancer.server.port=80
+        - traefik.http.services.bi-beta.loadbalancer.passHostHeader=true
+        - traefik.http.routers.bi-beta.service=bi-beta
+
+        # Redirecionar HTTP -> HTTPS
+        - traefik.http.routers.bi-beta-http.rule=Host(`beta.oficialmed.com.br`)
+        - traefik.http.routers.bi-beta-http.entrypoints=web
+        - traefik.http.routers.bi-beta-http.middlewares=force-https-beta
+        - traefik.http.middlewares.force-https-beta.redirectscheme.scheme=https
+
+        # (Opcional) redirecionar www -> raiz
+        - traefik.http.routers.bi-beta-www.rule=Host(`www.beta.oficialmed.com.br`)
+        - traefik.http.routers.bi-beta-www.entrypoints=websecure
+        - traefik.http.routers.bi-beta-www.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.bi-beta-www.middlewares=bi-beta-www2root
+        - traefik.http.middlewares.bi-beta-www2root.redirectregex.regex=^https://www\\.(.*)
+        - traefik.http.middlewares.bi-beta-www2root.redirectregex.replacement=https://$${1}
+
+networks:
+  OficialMed:
+    external: true
+    name: OficialMed

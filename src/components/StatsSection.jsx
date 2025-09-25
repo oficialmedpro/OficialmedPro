@@ -8,20 +8,20 @@ import OportunidadesGanhasCard from './OportunidadesGanhasCard';
 import TicketMedioCard from './TicketMedioCard';
 import OrcamentoNegociacaoCard from './OrcamentoNegociacaoCard';
 
-const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin }) => {
+const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin, vendedorId = null, title = "Stats" }) => {
   const [realMetrics, setRealMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Buscar dados reais do Supabase
   useEffect(() => {
     console.log('⚡ StatsSection useEffect ACIONADO!');
-    console.log('Props atuais:', { startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin });
+    console.log('Props atuais:', { startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin, vendedorId, title });
     
     const fetchRealMetrics = async () => {
       try {
         setLoading(true);
         console.log('='.repeat(60));
-        console.log('🌡️ StatsSection: Buscando métricas reais...');
+        console.log(`🌡️ StatsSection (${title}): Buscando métricas reais...`);
         console.log('🔍 StatsSection: Parâmetros recebidos:');
         console.log('  - startDate:', startDate);
         console.log('  - endDate:', endDate);
@@ -29,15 +29,20 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
         console.log('  - selectedUnit:', selectedUnit);
         console.log('  - selectedSeller:', selectedSeller);
         console.log('  - selectedOrigin:', selectedOrigin);
+        console.log('  - vendedorId:', vendedorId);
+        console.log('  - title:', title);
         console.log('='.repeat(60));
         
-        const metrics = await getThermometerMetrics(startDate, endDate, selectedFunnel, selectedUnit, selectedSeller);
+        // Se vendedorId for fornecido, usar ele ao invés de selectedSeller
+        // Se vendedorId for null, forçar "all" para dados gerais
+        const sellerFilter = vendedorId || (vendedorId === null ? "all" : selectedSeller);
+        const metrics = await getThermometerMetrics(startDate, endDate, selectedFunnel, selectedUnit, sellerFilter);
         setRealMetrics(metrics);
         
-        console.log('✅ StatsSection: Métricas carregadas:', metrics);
+        console.log(`✅ StatsSection (${title}): Métricas carregadas:`, metrics);
         console.log('🔍 StatsSection: Primeiro card será:', metrics?.totalOportunidades);
       } catch (error) {
-        console.error('❌ StatsSection: Erro ao carregar métricas:', error);
+        console.error(`❌ StatsSection (${title}): Erro ao carregar métricas:`, error);
         setRealMetrics(null);
       } finally {
         setLoading(false);
@@ -45,7 +50,7 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
     };
 
     fetchRealMetrics();
-  }, [startDate, endDate, selectedFunnel, selectedUnit, selectedSeller]);
+  }, [startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, vendedorId, title]);
 
   // Função para obter dados do card (APENAS dados reais)
   const getCardData = (card, index) => {
@@ -109,7 +114,7 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
           endDate={endDate}
           selectedFunnel={selectedFunnel}
           selectedUnit={selectedUnit}
-          selectedSeller={selectedSeller}
+          selectedSeller={vendedorId || (vendedorId === null ? "all" : selectedSeller)}
           selectedOrigin={selectedOrigin}
         />
         <OportunidadesPerdidasCard 
@@ -117,7 +122,7 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
           endDate={endDate}
           selectedFunnel={selectedFunnel}
           selectedUnit={selectedUnit}
-          selectedSeller={selectedSeller}
+          selectedSeller={vendedorId || (vendedorId === null ? "all" : selectedSeller)}
           selectedOrigin={selectedOrigin}
         />
         <TicketMedioCard 
@@ -125,7 +130,7 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
           endDate={endDate}
           selectedFunnel={selectedFunnel}
           selectedUnit={selectedUnit}
-          selectedSeller={selectedSeller}
+          selectedSeller={vendedorId || (vendedorId === null ? "all" : selectedSeller)}
           selectedOrigin={selectedOrigin}
         />
         <OrcamentoNegociacaoCard 
@@ -133,7 +138,7 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
           endDate={endDate}
           selectedFunnel={selectedFunnel}
           selectedUnit={selectedUnit}
-          selectedSeller={selectedSeller}
+          selectedSeller={vendedorId || (vendedorId === null ? "all" : selectedSeller)}
           selectedOrigin={selectedOrigin}
         />
         <OportunidadesGanhasCard 
@@ -141,7 +146,7 @@ const StatsSection = ({ statsCards, startDate, endDate, selectedFunnel, selected
           endDate={endDate}
           selectedFunnel={selectedFunnel}
           selectedUnit={selectedUnit}
-          selectedSeller={selectedSeller}
+          selectedSeller={vendedorId || (vendedorId === null ? "all" : selectedSeller)}
           selectedOrigin={selectedOrigin}
         />
       </div>
