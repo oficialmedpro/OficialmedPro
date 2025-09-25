@@ -63,6 +63,9 @@ const MetaMesBar = ({
         
         // Calcular dados da meta do mês
         console.log('📊 MetaMesBar: Dados brutos recebidos:', data);
+        console.log('📊 MetaMesBar: totalOportunidadesGanhas:', data?.totalOportunidadesGanhas);
+        console.log('📊 MetaMesBar: meta encontrada:', data?.totalOportunidadesGanhas?.meta);
+        console.log('📊 MetaMesBar: valor vendido:', data?.totalOportunidadesGanhas?.current);
         const metaCalculada = calcularMetaMes(data);
         setMetaData(metaCalculada);
         console.log('✅ MetaMesBar: Dados da meta carregados:', metaCalculada);
@@ -91,9 +94,14 @@ const MetaMesBar = ({
       };
     }
 
-    const { meta, value } = data.totalOportunidadesGanhas;
+    const { meta, value, sellerBreakdown } = data.totalOportunidadesGanhas;
     const metaMes = meta || 0;
-    const vendidoMes = value || 0;
+    
+    // Se há vendedor selecionado e dados do vendedor disponíveis, usar dados do vendedor
+    const vendidoMes = (selectedSeller && selectedSeller !== 'all' && sellerBreakdown) 
+      ? sellerBreakdown.value 
+      : value || 0;
+    
     const faltam = Math.max(0, metaMes - vendidoMes);
     const percentual = metaMes > 0 ? (vendidoMes / metaMes) * 100 : 0;
     const percentualTexto = `${Math.round(percentual)}%`;
@@ -104,7 +112,10 @@ const MetaMesBar = ({
       faltam,
       percentual,
       percentualTexto,
-      dadosOriginais: data.totalOportunidadesGanhas
+      selectedSeller,
+      usandoDadosVendedor: !!(selectedSeller && selectedSeller !== 'all' && sellerBreakdown),
+      dadosOriginais: data.totalOportunidadesGanhas,
+      sellerBreakdown
     });
 
     return {

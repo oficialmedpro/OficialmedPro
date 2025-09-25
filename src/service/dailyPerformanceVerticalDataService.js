@@ -10,18 +10,26 @@ const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
 /**
- * Buscar metas da tabela metas para uma ronda específica
+ * Buscar metas diárias e calcular metas por ronda
  */
-const buscarMetasRonda = async (nomeRonda, params, metasDebugInfo = {}) => {
+const buscarMetasDiarias = async (params, metasDebugInfo = {}) => {
   try {
     const { selectedFunnel, selectedUnit, selectedSeller } = params;
 
-    const metas = {};
+    const metasDiarias = {};
+    const metasPorRonda = {};
 
-    const tiposMeta = ['oportunidades_ronda', 'ganhas_ronda', 'faturamento_ronda', 'conversao_ronda', 'ticketmedio_ronda'];
+    // Mapear dashboards das metas diárias
+    const dashboardsMetas = {
+      'leads': 'novas_oportunidades',
+      'vendas': 'oportunidades_diaria_ganhas', 
+      'faturamento': 'oportunidades_faturamento',
+      'conversao': 'taxa_conversao_diaria',
+      'ticketMedio': 'ticket_medio_diario'
+    };
 
-    for (const tipoMeta of tiposMeta) {
-      // Aplicar filtros como no DailyPerformanceService
+    for (const [metrica, dashboard] of Object.entries(dashboardsMetas)) {
+      // Aplicar filtros
       const funilFilter = (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined')
         ? `&funil=eq.${selectedFunnel}`
         : `&funil=in.(6,14)`;
@@ -32,7 +40,7 @@ const buscarMetasRonda = async (nomeRonda, params, metasDebugInfo = {}) => {
         ? `&unidade_franquia=eq.${encodeURIComponent(selectedUnit)}`
         : '';
 
-      let query = `metas?select=id,nome_meta,valor_da_meta,dashboard&dashboard=eq.${tipoMeta}${funilFilter}${vendedorFilter}${unidadeFilter}`;
+      let query = `metas?select=id,nome_meta,valor_da_meta,dashboard&dashboard=eq.${dashboard}${funilFilter}${vendedorFilter}${unidadeFilter}`;
 
       const response = await fetch(`${supabaseUrl}/rest/v1/${query}`, {
         method: 'GET',
@@ -56,35 +64,26 @@ const buscarMetasRonda = async (nomeRonda, params, metasDebugInfo = {}) => {
 
           // Para conversão e ticket médio, calcular média se houver múltiplos valores
           let valorFinal = totalMeta;
-          const chave = tipoMeta.replace('_ronda', '');
-
-          if ((chave === 'conversao' || chave === 'ticketmedio') && data.length > 1) {
-            // Se há múltiplos vendedores, usar média para conversão e ticket médio
+          if ((metrica === 'conversao' || metrica === 'ticketMedio') && data.length > 1) {
             valorFinal = totalMeta / data.length;
           }
 
-          // Mapear para nomes corretos
-          if (chave === 'oportunidades') {
-            metas.oportunidades = valorFinal;
-          } else if (chave === 'ganhas') {
-            metas.ganhas = valorFinal;
-          } else if (chave === 'faturamento') {
-            metas.faturamento = valorFinal;
-          } else if (chave === 'conversao') {
-            metas.conversao = valorFinal;
-          } else if (chave === 'ticketmedio') {
-            metas.ticketmedio = valorFinal;
-          }
+          // Armazenar meta diária
+          metasDiarias[metrica] = valorFinal;
+          
+          // Calcular meta por ronda (dividir por 6)
+          metasPorRonda[metrica] = valorFinal / 6;
+
+          console.log(`📊 Meta diária ${metrica}: ${valorFinal} | Meta por ronda: ${metasPorRonda[metrica]}`);
         }
       }
     }
 
-    return metas;
+    return { metasDiarias, metasPorRonda };
 
   } catch (error) {
-    console.error(`❌ Erro ao buscar metas para ronda ${nomeRonda}:`, error);
-    // Retornar valor padrão para teste
-    return { oportunidades: 50 };
+    console.error(`❌ Erro ao buscar metas diárias:`, error);
+    return { metasDiarias: {}, metasPorRonda: {} };
   }
 };
 
@@ -310,17 +309,18 @@ export const getPerformanceDataByRondaHorario = async (params) => {
         'TICKET MÉDIO': ticketMedio.toFixed(0)
       });
 
-      // Buscar metas das tabelas específicas para a ronda
-      const metasRonda = await buscarMetasRonda(nome, params, metasDebugInfo);
+      // Buscar metas diárias e calcular metas por ronda
+      const { metasDiarias, metasPorRonda } = await buscarMetasDiarias(params, metasDebugInfo);
 
       // Adicionar debug das metas ao debugInfo da ronda
       debugInfo[debugInfo.length - 1].metasDebug = metasDebugInfo;
 
-      const metaLeads = metasRonda.oportunidades || 0;
-      const metaVendas = metasRonda.ganhas || 0;
-      const metaFaturamento = metasRonda.faturamento || 0;
-      const metaConversao = metasRonda.conversao || 0;
-      const metaTicketMedio = metasRonda.ticketmedio || 0;
+      // Usar metas por ronda calculadas (meta diária ÷ 6)
+      const metaLeads = metasPorRonda.leads || 0;
+      const metaVendas = metasPorRonda.vendas || 0;
+      const metaFaturamento = metasPorRonda.faturamento || 0;
+      const metaConversao = metasPorRonda.conversao || 0;
+      const metaTicketMedio = metasPorRonda.ticketMedio || 0;
 
       console.log(`📊 Metas aplicadas para ronda ${nome}:`, {
         leads: metaLeads,
@@ -474,35 +474,37 @@ export const getPerformanceDataByRondaHorario = async (params) => {
       'TOTAL TICKET MÉDIO': totalTicketMedio.toFixed(0)
     });
 
-    // As metas da coluna Total devem ser iguais às do Fechamento
-    // Calcular dados de fechamento primeiro para usar as metas
-    const fechamento = calculateFechamentoData(performanceData);
+    // Buscar metas diárias para usar nas colunas Fechamento e Total
+    const { metasDiarias } = await buscarMetasDiarias(params, metasDebugInfo);
+
+    // Calcular dados de fechamento usando metas diárias
+    const fechamento = calculateFechamentoData(performanceData, metasDiarias);
 
     const totalData = {
       leads: {
         realizado: totalLeadsCount,
-        meta: fechamento.leads.meta,
-        gap: totalLeadsCount - fechamento.leads.meta
+        meta: metasDiarias.leads || 0,
+        gap: totalLeadsCount - (metasDiarias.leads || 0)
       },
       vendas: {
         realizado: totalVendasCount,
-        meta: fechamento.vendas.meta,
-        gap: totalVendasCount - fechamento.vendas.meta
+        meta: metasDiarias.vendas || 0,
+        gap: totalVendasCount - (metasDiarias.vendas || 0)
       },
       faturamento: {
         realizado: totalFaturamentoTotal,
-        meta: fechamento.faturamento.meta,
-        gap: totalFaturamentoTotal - fechamento.faturamento.meta
+        meta: metasDiarias.faturamento || 0,
+        gap: totalFaturamentoTotal - (metasDiarias.faturamento || 0)
       },
       conversao: {
         realizado: parseFloat(totalConversaoRate.toFixed(1)),
-        meta: fechamento.conversao.meta,
-        gap: parseFloat((totalConversaoRate - fechamento.conversao.meta).toFixed(1))
+        meta: metasDiarias.conversao || 0,
+        gap: parseFloat((totalConversaoRate - (metasDiarias.conversao || 0)).toFixed(1))
       },
       ticketMedio: {
         realizado: parseFloat(totalTicketMedio.toFixed(0)),
-        meta: fechamento.ticketMedio.meta,
-        gap: parseFloat((totalTicketMedio - fechamento.ticketMedio.meta).toFixed(0))
+        meta: metasDiarias.ticketMedio || 0,
+        gap: parseFloat((totalTicketMedio - (metasDiarias.ticketMedio || 0)).toFixed(0))
       }
     };
 
@@ -525,44 +527,30 @@ export const getPerformanceDataByRondaHorario = async (params) => {
 /**
  * Calcular dados de fechamento (totalização das rondas)
  * @param {Object} performanceData - Dados de performance por ronda
+ * @param {Object} metasDiarias - Metas diárias para usar no fechamento
  * @returns {Object} Dados de fechamento totalizados
  */
-export const calculateFechamentoData = (performanceData) => {
+export const calculateFechamentoData = (performanceData, metasDiarias = {}) => {
   const fechamento = {
-    leads: { realizado: 0, meta: 0, gap: 0 },
-    vendas: { realizado: 0, meta: 0, gap: 0 },
-    faturamento: { realizado: 0, meta: 0, gap: 0 },
-    conversao: { realizado: 0, meta: 0, gap: 0 },
-    ticketMedio: { realizado: 0, meta: 0, gap: 0 }
+    leads: { realizado: 0, meta: metasDiarias.leads || 0, gap: 0 },
+    vendas: { realizado: 0, meta: metasDiarias.vendas || 0, gap: 0 },
+    faturamento: { realizado: 0, meta: metasDiarias.faturamento || 0, gap: 0 },
+    conversao: { realizado: 0, meta: metasDiarias.conversao || 0, gap: 0 },
+    ticketMedio: { realizado: 0, meta: metasDiarias.ticketMedio || 0, gap: 0 }
   };
 
   const rondas = Object.keys(performanceData);
   if (rondas.length === 0) return fechamento;
 
-  let totalConversaoMeta = 0;
-  let totalTicketMedioMeta = 0;
-  let rondasComMeta = 0;
-
-  // Somar totais (leads, vendas, faturamento = soma simples)
-  // Para conversão e ticket médio = calcular média das metas
+  // Somar totais realizados das rondas
   rondas.forEach(ronda => {
     const data = performanceData[ronda];
     fechamento.leads.realizado += data.leads.realizado;
-    fechamento.leads.meta += data.leads.meta;
     fechamento.vendas.realizado += data.vendas.realizado;
-    fechamento.vendas.meta += data.vendas.meta;
     fechamento.faturamento.realizado += data.faturamento.realizado;
-    fechamento.faturamento.meta += data.faturamento.meta;
-
-    // Para conversão e ticket médio: somar as metas para depois calcular média
-    if (data.conversao.meta > 0 || data.ticketMedio.meta > 0) {
-      totalConversaoMeta += data.conversao.meta;
-      totalTicketMedioMeta += data.ticketMedio.meta;
-      rondasComMeta++;
-    }
   });
 
-  // Calcular gaps para leads, vendas e faturamento (soma simples)
+  // Calcular gaps usando metas diárias
   fechamento.leads.gap = fechamento.leads.realizado - fechamento.leads.meta;
   fechamento.vendas.gap = fechamento.vendas.realizado - fechamento.vendas.meta;
   fechamento.faturamento.gap = fechamento.faturamento.realizado - fechamento.faturamento.meta;
@@ -572,21 +560,11 @@ export const calculateFechamentoData = (performanceData) => {
     ? parseFloat(((fechamento.vendas.realizado / fechamento.leads.realizado) * 100).toFixed(1))
     : 0;
 
-  // Calcular conversão meta (MÉDIA das metas das rondas)
-  fechamento.conversao.meta = rondasComMeta > 0
-    ? parseFloat((totalConversaoMeta / rondasComMeta).toFixed(1))
-    : 0;
-
   fechamento.conversao.gap = parseFloat((fechamento.conversao.realizado - fechamento.conversao.meta).toFixed(1));
 
   // Calcular ticket médio realizado (total faturamento / total vendas)
   fechamento.ticketMedio.realizado = fechamento.vendas.realizado > 0
     ? parseFloat((fechamento.faturamento.realizado / fechamento.vendas.realizado).toFixed(0))
-    : 0;
-
-  // Calcular ticket médio meta (MÉDIA das metas das rondas)
-  fechamento.ticketMedio.meta = rondasComMeta > 0
-    ? parseFloat((totalTicketMedioMeta / rondasComMeta).toFixed(0))
     : 0;
 
   fechamento.ticketMedio.gap = parseFloat((fechamento.ticketMedio.realizado - fechamento.ticketMedio.meta).toFixed(0));

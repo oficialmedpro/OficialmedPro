@@ -250,7 +250,8 @@ export const getOportunidadesGanhasMetrics = async (
       dataInicio, 
       dataFim, 
       selectedFunnel, 
-      unidadeParaMeta
+      unidadeParaMeta,
+      selectedSeller // Passar selectedSeller para calcular metas por vendedor
     );
     
     console.log('🎯 Meta calculada dinamicamente:', metaOportunidadesGanhas);
@@ -509,9 +510,9 @@ const getOportunidadesGanhasAnteriores = async (startDate, endDate, selectedFunn
  * @param {string} unidadeFranquia - Unidade franquia (ex: "[1]")
  * @returns {number} Meta calculada
  */
-const calcularMetaDinamica = async (dataInicio, dataFim, selectedFunnel, unidadeFranquia) => {
+const calcularMetaDinamica = async (dataInicio, dataFim, selectedFunnel, unidadeFranquia, selectedSeller = null) => {
   try {
-    console.log('🎯 Calculando meta dinâmica para período:', { dataInicio, dataFim, selectedFunnel, unidadeFranquia });
+    console.log('🎯 Calculando meta dinâmica para período:', { dataInicio, dataFim, selectedFunnel, unidadeFranquia, selectedSeller });
     
     // Verificar se é período mensal (mês inteiro)
     // Se as datas já têm timezone, usar diretamente, senão adicionar
@@ -551,7 +552,14 @@ const calcularMetaDinamica = async (dataInicio, dataFim, selectedFunnel, unidade
     
     if (isMesInteiro) {
       console.log('📅 Período mensal detectado - buscando meta mensal');
-      const metaMensal = await buscarMetaPorTipo('mensal', selectedFunnel, unidadeFranquia);
+      console.log('📅 Debug período mensal:', { 
+        dataInicio, 
+        dataFim, 
+        selectedSeller, 
+        selectedFunnel, 
+        unidadeFranquia 
+      });
+      const metaMensal = await buscarMetaPorTipo('mensal', selectedFunnel, unidadeFranquia, selectedSeller);
       console.log('🎯 Meta mensal calculada:', metaMensal);
       return metaMensal;
     }
@@ -586,16 +594,16 @@ const calcularMetaDinamica = async (dataInicio, dataFim, selectedFunnel, unidade
         return 0;
       } else if (diaSemana === 6) {
         console.log('📅 Sábado detectado - buscando meta de sábado');
-        return await buscarMetaPorTipo('sabado', selectedFunnel, unidadeFranquia);
+        return await buscarMetaPorTipo('sabado', selectedFunnel, unidadeFranquia, selectedSeller);
       } else {
         console.log('📅 Dia da semana detectado - buscando meta diária');
-        return await buscarMetaPorTipo('diaria', selectedFunnel, unidadeFranquia);
+        return await buscarMetaPorTipo('diaria', selectedFunnel, unidadeFranquia, selectedSeller);
       }
     }
     
     // Período customizado - calcular baseado nos dias
     console.log('📅 Período customizado detectado - calculando por dias');
-    return await calcularMetaPeriodoCustomizado(dataInicio, dataFim, selectedFunnel, unidadeFranquia);
+    return await calcularMetaPeriodoCustomizado(dataInicio, dataFim, selectedFunnel, unidadeFranquia, selectedSeller);
     
   } catch (error) {
     console.error('❌ Erro ao calcular meta dinâmica:', error);
@@ -606,7 +614,7 @@ const calcularMetaDinamica = async (dataInicio, dataFim, selectedFunnel, unidade
 /**
  * 🎯 BUSCAR META POR TIPO (diaria, sabado, mensal)
  */
-const buscarMetaPorTipo = async (tipoMeta, selectedFunnel, unidadeFranquia) => {
+const buscarMetaPorTipo = async (tipoMeta, selectedFunnel, unidadeFranquia, selectedSeller = null) => {
   try {
     let funilFilter = '';
     if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
@@ -615,9 +623,38 @@ const buscarMetaPorTipo = async (tipoMeta, selectedFunnel, unidadeFranquia) => {
       funilFilter = `&funil=in.(6,14)`;
     }
     
-    const metaUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta,funil&unidade_franquia=eq.${encodeURIComponent(unidadeFranquia)}&dashboard=eq.ganhos_oportunidades&tipo_meta=eq.${tipoMeta}${funilFilter}`;
+    // Se há vendedor selecionado, buscar meta específica do vendedor
+    let vendedorFilter = '';
+    let tipoMetaParaBusca = tipoMeta;
     
-    console.log('🔍 Buscando meta por tipo:', { tipoMeta, metaUrl });
+    if (selectedSeller && selectedSeller !== 'all' && selectedSeller !== 'TODOS' && selectedSeller !== '' && selectedSeller !== 'undefined') {
+      vendedorFilter = `&vendedor_id=eq.${selectedSeller}`;
+      // Para vendedor específico, usar tipo_meta com prefixo vendedor_
+      if (tipoMeta === 'diaria') {
+        tipoMetaParaBusca = 'vendedor_diaria';
+      } else if (tipoMeta === 'sabado') {
+        tipoMetaParaBusca = 'sabado'; // Sábado já tem vendedor_id
+      } else if (tipoMeta === 'mensal') {
+        tipoMetaParaBusca = 'vendedor_mensal';
+      }
+    }
+    
+    // Para vendedor específico, usar dashboard de faturamento baseado no tipo de meta
+    let dashboardParaBusca = 'ganhos_oportunidades'; // Padrão para dados gerais
+    
+    if (selectedSeller && selectedSeller !== 'all' && selectedSeller !== 'TODOS' && selectedSeller !== '' && selectedSeller !== 'undefined') {
+      if (tipoMeta === 'diaria') {
+        dashboardParaBusca = 'oportunidades_faturamento';
+      } else if (tipoMeta === 'sabado') {
+        dashboardParaBusca = 'oportunidades_faturamento_sabado';
+      } else if (tipoMeta === 'mensal') {
+        dashboardParaBusca = 'oportunidades_faturamento_mensal';
+      }
+    }
+    
+    const metaUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta,funil&unidade_franquia=eq.${encodeURIComponent(unidadeFranquia)}&dashboard=eq.${dashboardParaBusca}&tipo_meta=eq.${tipoMetaParaBusca}${funilFilter}${vendedorFilter}`;
+    
+    console.log('🔍 Buscando meta por tipo:', { tipoMeta, tipoMetaParaBusca, selectedSeller, metaUrl });
     
     const response = await fetch(metaUrl, {
       method: 'GET',
@@ -658,7 +695,7 @@ const buscarMetaPorTipo = async (tipoMeta, selectedFunnel, unidadeFranquia) => {
 /**
  * 🎯 CALCULAR META PARA PERÍODO CUSTOMIZADO
  */
-const calcularMetaPeriodoCustomizado = async (dataInicio, dataFim, selectedFunnel, unidadeFranquia) => {
+const calcularMetaPeriodoCustomizado = async (dataInicio, dataFim, selectedFunnel, unidadeFranquia, selectedSeller = null) => {
   try {
     const inicio = new Date(dataInicio);
     const fim = new Date(dataFim);
@@ -687,8 +724,8 @@ const calcularMetaPeriodoCustomizado = async (dataInicio, dataFim, selectedFunne
     
     // Buscar metas
     const [metaDiaria, metaSabado] = await Promise.all([
-      buscarMetaPorTipo('diaria', selectedFunnel, unidadeFranquia),
-      buscarMetaPorTipo('sabado', selectedFunnel, unidadeFranquia)
+      buscarMetaPorTipo('diaria', selectedFunnel, unidadeFranquia, selectedSeller),
+      buscarMetaPorTipo('sabado', selectedFunnel, unidadeFranquia, selectedSeller)
     ]);
     
     // Calcular meta total

@@ -103,6 +103,7 @@ const Sidebar = ({
         { icon: 'funil-compra', label: 'Ranking de Performance', path: '/ranking-de-performance', active: false },
         { icon: 'funil-compra', label: 'Matriz RFV', path: '/matriz-rfv', active: false },
         { icon: 'funil-compra', label: 'Mapa de Calor', path: '/mapa-de-calor', active: false },
+        { icon: 'funil-compra', label: 'Metas', path: '/metas', active: false },
         { icon: 'dashboard-meta', label: 'Dashboard MetaAds', active: false },
         { icon: 'dashboard-google', label: 'Dashboard GoogleAds', active: false }
       ]

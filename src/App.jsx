@@ -5,6 +5,7 @@ import PerformanceDiariaPage from './pages/PerformanceDiariaPage'
 import PerformanceRondaPage from './pages/PerformanceRondaPage'
 import RankingDePerformancePage from './pages/RankingDePerformancePage'
 import MatrizRFVPage from './pages/MatrizRFVPage'
+import MetasPage from './pages/MetasPage'
 import MapaDeCalorPage from './pages/MapaDeCalorPage'
 import DashGooglePatrocinadoPage from './pages/DashGooglePatrocinadoPage'
 import DashboardMetaAds from './pages/DashboardMetaAds'
@@ -106,6 +107,7 @@ function App() {
         <Route path="/performance-ronda" element={<PerformanceRondaPage onLogout={handleLogout} />} />
         <Route path="/ranking-de-performance" element={<RankingDePerformancePage onLogout={handleLogout} />} />
         <Route path="/matriz-rfv" element={<MatrizRFVPage onLogout={handleLogout} />} />
+        <Route path="/metas" element={<MetasPage onLogout={handleLogout} />} />
         <Route path="/mapa-de-calor" element={<MapaDeCalorPage onLogout={handleLogout} />} />
         <Route path="/dashgooglepatrocinado" element={<DashGooglePatrocinadoPage onLogout={handleLogout} />} />
         <Route path="/meta-ads" element={<DashboardMetaAds onLogout={handleLogout} />} />
