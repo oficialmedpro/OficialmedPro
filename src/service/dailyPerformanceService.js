@@ -250,14 +250,16 @@ const fetchLeadsMeta = async (selectedUnit, selectedFunnel, selectedSeller, tota
     }
 
     // Dashboard específico para metas diárias de oportunidades
-    let dashboard = 'oportunidades_diaria';
+    let dashboard = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
+      ? 'oportunidades_diaria'
+      : 'novas_oportunidades';
 
     // Se for sábado (6), usar dashboard específico
     if (dayOfWeek === 6) {
       dashboard = 'oportunidades_sabado';
       console.log('🟡 DailyPerformanceService: Sábado detectado - usando dashboard específico:', dashboard);
     }
-    
+
     // Montar filtros
     const unidadeFilter = unidadeParaMeta ? `&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}` : '';
     const funilFilter = (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== '' && selectedFunnel !== 'undefined')
@@ -265,7 +267,7 @@ const fetchLeadsMeta = async (selectedUnit, selectedFunnel, selectedSeller, tota
       : `&funil=in.(6,14)`;
     const vendedorFilter = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
       ? `&vendedor_id=eq.${selectedSeller}`
-      : '';
+      : '&vendedor_id=is.null';
     
     const metaUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&dashboard=eq.${dashboard}${funilFilter}${vendedorFilter}${unidadeFilter}`;
     
@@ -411,7 +413,9 @@ const fetchVendasMeta = async (selectedUnit, selectedFunnel, selectedSeller, tot
     }
 
     // Dashboard específico para metas diárias de vendas/ganhas
-    let dashboard = 'oportunidades_diaria_ganhas';
+    let dashboard = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
+      ? 'oportunidades_diaria_ganhas'
+      : 'ganhos_oportunidades';
 
     // Se for sábado (6), usar dashboard específico
     if (dayOfWeek === 6) {
@@ -426,7 +430,7 @@ const fetchVendasMeta = async (selectedUnit, selectedFunnel, selectedSeller, tot
       : `&funil=in.(6,14)`;
     const vendedorFilter = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
       ? `&vendedor_id=eq.${selectedSeller}`
-      : '';
+      : '&vendedor_id=is.null';
     
     const metaUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&dashboard=eq.${dashboard}${funilFilter}${vendedorFilter}${unidadeFilter}`;
     
@@ -499,7 +503,9 @@ const fetchFaturamentoMeta = async (selectedUnit, selectedFunnel, selectedSeller
     }
 
     // Dashboard específico para metas de faturamento
-    let dashboard = 'oportunidades_faturamento';
+    let dashboard = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
+      ? 'oportunidades_faturamento'
+      : 'oportunidades_faturamento_diario';
 
     // Se for sábado (6), usar dashboard específico
     if (dayOfWeek === 6) {
@@ -514,7 +520,7 @@ const fetchFaturamentoMeta = async (selectedUnit, selectedFunnel, selectedSeller
       : `&funil=in.(6,14)`;
     const vendedorFilter = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
       ? `&vendedor_id=eq.${selectedSeller}`
-      : '';
+      : '&vendedor_id=is.null';
     
     const metaUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&dashboard=eq.${dashboard}${funilFilter}${vendedorFilter}${unidadeFilter}`;
     
@@ -586,7 +592,9 @@ const fetchTaxaConversaoMeta = async (selectedUnit, selectedFunnel, selectedSell
     }
 
     // Dashboard específico para metas de taxa de conversão diária
-    let dashboard = 'taxa_conversao_diaria';
+    let dashboard = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
+      ? 'taxa_conversao_diaria'
+      : 'conversao_ronda';
 
     // Se for sábado (6), usar dashboard específico
     if (dayOfWeek === 6) {
@@ -601,7 +609,7 @@ const fetchTaxaConversaoMeta = async (selectedUnit, selectedFunnel, selectedSell
       : `&funil=in.(6,14)`;
     const vendedorFilter = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
       ? `&vendedor_id=eq.${selectedSeller}`
-      : '';
+      : '&vendedor_id=is.null';
 
     const metaUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&dashboard=eq.${dashboard}${funilFilter}${vendedorFilter}${unidadeFilter}`;
 
@@ -677,7 +685,9 @@ const fetchTicketMedioMeta = async (selectedUnit, selectedFunnel, selectedSeller
     }
 
     // Dashboard específico para metas de ticket médio diário
-    let dashboard = 'ticket_medio_diario';
+    let dashboard = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
+      ? 'ticket_medio_diario'
+      : 'ticketmedio_oportunidades';
 
     // Se for sábado (6), usar dashboard específico
     if (dayOfWeek === 6) {
@@ -692,7 +702,7 @@ const fetchTicketMedioMeta = async (selectedUnit, selectedFunnel, selectedSeller
       : `&funil=in.(6,14)`;
     const vendedorFilter = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
       ? `&vendedor_id=eq.${selectedSeller}`
-      : '';
+      : '&vendedor_id=is.null';
 
     const metaUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&dashboard=eq.${dashboard}${funilFilter}${vendedorFilter}${unidadeFilter}`;
 
@@ -764,10 +774,10 @@ const fetchAllMetasOptimized = async (selectedUnit, selectedFunnel, selectedSell
       : `&funil=in.(6,14)`;
     const vendedorFilter = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
       ? `&vendedor_id=eq.${selectedSeller}`
-      : '';
+      : '&vendedor_id=is.null';
     
     // Buscar TODAS as metas em uma única requisição
-    const metasUrl = `${supabaseUrl}/rest/v1/metas?select=*&dashboard=in.(oportunidades_diaria,oportunidades_sabado,oportunidades_diaria_ganhas,oportunidades_aabado_ganhas,oportunidades_faturamento,oportunidades_faturamento_sabado,taxa_conversao_diaria,taxa_conversao_sabado,ticket_medio_diario,ticket_medio_sabado)${funilFilter}${vendedorFilter}${unidadeFilter}`;
+    const metasUrl = `${supabaseUrl}/rest/v1/metas?select=*&dashboard=in.(oportunidades_diaria,oportunidades_sabado,oportunidades_diaria_ganhas,oportunidades_aabado_ganhas,oportunidades_faturamento,oportunidades_faturamento_sabado,oportunidades_faturamento_diario,taxa_conversao_diaria,taxa_conversao_sabado,conversao_ronda,ticket_medio_diario,ticket_medio_sabado,ticketmedio_oportunidades,ganhos_oportunidades,novas_oportunidades)${funilFilter}${vendedorFilter}${unidadeFilter}`;
     
     console.log('⚡ DailyPerformanceService: URL otimizada para todas as metas:', metasUrl);
     
@@ -916,7 +926,11 @@ const getMetaFromOrganized = (metasOrganizadas, tipo, currentDate) => {
   // Para conversão e ticket médio, calcular média se houver múltiplos valores
   if (tipo === 'conversao' || tipo === 'ticketMedio') {
     const valoresValidos = Object.values(metasEspecificas).filter(v => v > 0);
-    return valoresValidos.length > 0 ? totalMeta / valoresValidos.length : 0;
+    if (valoresValidos.length > 0) {
+      const media = totalMeta / valoresValidos.length;
+      console.log(`🔍 ${tipo} - Total: ${totalMeta}, Quantidade: ${valoresValidos.length}, Média: ${media}`);
+      return media;
+    }
   }
   
   return Math.round(totalMeta);
