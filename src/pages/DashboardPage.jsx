@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'lucide-react';
+import MetaMesBar from '../components/MetaMesBar';
 import './DashboardPage.css';
 import './DashboardPageFunnel.css';
 import FilterBar from '../components/FilterBar';
@@ -370,6 +371,16 @@ const DashboardPage = ({ onLogout }) => {
 
       {/* Main Content */}
       <main className="main-content">
+          {/* Meta do Mês Bar - Sempre visível, antes do StatsSection */}
+          <MetaMesBar 
+            startDate={startDate}
+            endDate={endDate}
+            selectedFunnel={selectedFunnel}
+            selectedUnit={selectedUnit}
+            selectedSeller={selectedSeller}
+            selectedOrigin={selectedOrigin}
+          />
+
           {/* Stats Section - Mostra dados de todas as unidades por padrão, filtra quando unidade selecionada */}
           <>
             {/* Debug: Verificar valores antes de passar para StatsSection */}

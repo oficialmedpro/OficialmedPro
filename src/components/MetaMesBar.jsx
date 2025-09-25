@@ -21,7 +21,7 @@ const MetaMesBar = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Buscar dados da meta do mês
+  // Buscar dados da meta do mês (sempre do mês atual, independente do período selecionado)
   useEffect(() => {
     console.log('📊 MetaMesBar useEffect ACIONADO!');
     console.log('Props atuais:', { startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin });
@@ -32,9 +32,19 @@ const MetaMesBar = ({
         setError(null);
         console.log('='.repeat(60));
         console.log('📊 MetaMesBar: Buscando dados da meta do mês...');
-        console.log('🔍 Parâmetros recebidos:');
-        console.log('  - startDate:', startDate);
-        console.log('  - endDate:', endDate);
+        
+        // Calcular primeiro e último dia do mês atual
+        const hoje = new Date();
+        const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+        const ultimoDiaMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
+        
+        // Formatar datas para o serviço
+        const dataInicio = primeiroDiaMes.toISOString().split('T')[0] + 'T00:00:00';
+        const dataFim = ultimoDiaMes.toISOString().split('T')[0] + 'T23:59:59';
+        
+        console.log('🔍 Parâmetros para meta do mês:');
+        console.log('  - dataInicio (1º dia do mês):', dataInicio);
+        console.log('  - dataFim (último dia do mês):', dataFim);
         console.log('  - selectedFunnel:', selectedFunnel);
         console.log('  - selectedUnit:', selectedUnit);
         console.log('  - selectedSeller:', selectedSeller);
@@ -43,8 +53,8 @@ const MetaMesBar = ({
         
         // Buscar dados de oportunidades ganhas para calcular vendas do mês
         const data = await getOportunidadesGanhasMetrics(
-          startDate, 
-          endDate, 
+          dataInicio, 
+          dataFim, 
           selectedFunnel, 
           selectedUnit, 
           selectedSeller, 
@@ -65,7 +75,7 @@ const MetaMesBar = ({
     };
 
     fetchMetaData();
-  }, [startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin]);
+  }, [selectedFunnel, selectedUnit, selectedSeller, selectedOrigin]); // Removido startDate e endDate das dependências
 
   // Função para calcular a meta do mês
   const calcularMetaMes = (data) => {
@@ -138,7 +148,7 @@ const MetaMesBar = ({
       <div className="meta-mes-line"></div>
       <div className="meta-mes-content">
         <div className="meta-mes-icon">
-          <Target size={24} />
+          <Target size={20} />
         </div>
         <div className="meta-mes-info">
           <div className="meta-mes-title">Meta do Mês</div>
