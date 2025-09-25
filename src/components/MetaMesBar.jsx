@@ -62,6 +62,7 @@ const MetaMesBar = ({
         );
         
         // Calcular dados da meta do mês
+        console.log('📊 MetaMesBar: Dados brutos recebidos:', data);
         const metaCalculada = calcularMetaMes(data);
         setMetaData(metaCalculada);
         console.log('✅ MetaMesBar: Dados da meta carregados:', metaCalculada);
@@ -80,6 +81,7 @@ const MetaMesBar = ({
   // Função para calcular a meta do mês
   const calcularMetaMes = (data) => {
     if (!data || !data.totalOportunidadesGanhas) {
+      console.log('❌ MetaMesBar: Dados não encontrados:', data);
       return {
         metaMes: 0,
         vendidoMes: 0,
@@ -95,6 +97,15 @@ const MetaMesBar = ({
     const faltam = Math.max(0, metaMes - vendidoMes);
     const percentual = metaMes > 0 ? (vendidoMes / metaMes) * 100 : 0;
     const percentualTexto = `${Math.round(percentual)}%`;
+
+    console.log('📊 MetaMesBar: Cálculo da meta:', {
+      metaMes,
+      vendidoMes,
+      faltam,
+      percentual,
+      percentualTexto,
+      dadosOriginais: data.totalOportunidadesGanhas
+    });
 
     return {
       metaMes,
@@ -152,23 +163,21 @@ const MetaMesBar = ({
         </div>
         <div className="meta-mes-info">
           <div className="meta-mes-title">Meta do Mês</div>
-          <div className="meta-mes-values">
-            <div className="meta-mes-item">
-              <span className="meta-mes-label">Meta:</span>
-              <span className="meta-mes-value">{formatCurrency(metaData.metaMes)}</span>
-            </div>
-            <div className="meta-mes-item">
-              <span className="meta-mes-label">Vendido:</span>
-              <span className="meta-mes-value vendido">{formatCurrency(metaData.vendidoMes)}</span>
-            </div>
-            <div className="meta-mes-item">
-              <span className="meta-mes-label">Faltam:</span>
-              <span className="meta-mes-value faltam">{formatCurrency(metaData.faltam)}</span>
-            </div>
-            <div className="meta-mes-item">
-              <span className="meta-mes-label">Progresso:</span>
-              <span className="meta-mes-value progresso">{metaData.percentualTexto}</span>
-            </div>
+          <div className="meta-mes-item">
+            <span className="meta-mes-label">Meta:</span>
+            <span className="meta-mes-value">{formatCurrency(metaData.metaMes)}</span>
+          </div>
+          <div className="meta-mes-item">
+            <span className="meta-mes-label">Vendido:</span>
+            <span className="meta-mes-value vendido">{formatCurrency(metaData.vendidoMes)}</span>
+          </div>
+          <div className="meta-mes-item">
+            <span className="meta-mes-label">Faltam:</span>
+            <span className="meta-mes-value faltam">{formatCurrency(metaData.faltam)}</span>
+          </div>
+          <div className="meta-mes-item">
+            <span className="meta-mes-label">Progresso:</span>
+            <span className="meta-mes-value progresso">{metaData.percentualTexto}</span>
           </div>
         </div>
         <div className="meta-mes-progress-bar">

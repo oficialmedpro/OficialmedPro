@@ -15,7 +15,7 @@
 .meta-mes-line {
   flex: 1;
   height: 2px;
-  background: linear-gradient(90deg, transparent, #10b981, transparent);
+  background: linear-gradient(90deg, transparent, #065057, transparent);
   border-radius: 1px;
 }
 
@@ -23,17 +23,17 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  background: linear-gradient(135deg, #10b981, #059669);
+  background: linear-gradient(135deg, #065057, #056e96);
   color: #ffffff;
-  padding: 8px 24px;
+  padding: 8px 10px;
   border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  /* box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); */
   border: 2px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
-  min-width: 800px;
+  min-width: 50%;
   position: relative;
   overflow: hidden;
-  height: 60px;
+  height: 50px;
 }
 
 .meta-mes-content::before {
