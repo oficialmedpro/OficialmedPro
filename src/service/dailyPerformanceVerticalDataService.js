@@ -22,7 +22,7 @@ const buscarMetasDiarias = async (params, metasDebugInfo = {}) => {
     // Mapear dashboards das metas diárias
     // Se não há vendedor selecionado, usar metas gerais
     const dashboardsMetas = selectedSeller && selectedSeller !== 'all' ? {
-      'leads': 'novas_oportunidades',
+      'leads': 'oportunidades_diaria',
       'vendas': 'oportunidades_diaria_ganhas', 
       'faturamento': 'oportunidades_faturamento',
       'conversao': 'taxa_conversao_diaria',
@@ -30,7 +30,7 @@ const buscarMetasDiarias = async (params, metasDebugInfo = {}) => {
     } : {
       'leads': 'novas_oportunidades',
       'vendas': 'ganhos_oportunidades',
-      'faturamento': 'orcamentos_oportunidades',
+      'faturamento': 'oportunidades_faturamento_diario',
       'conversao': 'conversao_ronda', // Usar conversao_ronda como base
       'ticketMedio': 'ticketmedio_oportunidades'
     };
@@ -44,12 +44,29 @@ const buscarMetasDiarias = async (params, metasDebugInfo = {}) => {
         : `&funil=in.(6,14)`;
       const vendedorFilter = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined')
         ? `&vendedor_id=eq.${selectedSeller}`
-        : '';
+        : '&vendedor_id=is.null';
       const unidadeFilter = selectedUnit && selectedUnit !== 'all'
         ? `&unidade_franquia=eq.${encodeURIComponent(selectedUnit)}`
         : '';
 
-      let query = `metas?select=id,nome_meta,valor_da_meta,dashboard&dashboard=eq.${dashboard}${funilFilter}${vendedorFilter}${unidadeFilter}`;
+      // Para vendas e faturamento, determinar tipo de meta baseado no dia
+      let tipoMetaFilter = '';
+      if ((metrica === 'vendas' && dashboard === 'ganhos_oportunidades') || 
+          (metrica === 'faturamento' && dashboard === 'oportunidades_faturamento_diario')) {
+        // Determinar se é sábado ou dia da semana
+        const hoje = new Date();
+        const diaSemana = hoje.getDay(); // 0 = domingo, 6 = sábado
+        
+        if (diaSemana === 6) {
+          // Sábado
+          tipoMetaFilter = '&tipo_meta=eq.sabado';
+        } else {
+          // Dia da semana
+          tipoMetaFilter = '&tipo_meta=eq.diaria';
+        }
+      }
+
+      let query = `metas?select=id,nome_meta,valor_da_meta,dashboard&dashboard=eq.${dashboard}${funilFilter}${vendedorFilter}${unidadeFilter}${tipoMetaFilter}`;
 
       const response = await fetch(`${supabaseUrl}/rest/v1/${query}`, {
         method: 'GET',
@@ -76,19 +93,20 @@ const buscarMetasDiarias = async (params, metasDebugInfo = {}) => {
           let valorFinal = totalMeta;
           if ((metrica === 'conversao' || metrica === 'ticketMedio') && data.length > 1) {
             valorFinal = totalMeta / data.length;
+            console.log(`🔍 ${metrica} - Total: ${totalMeta}, Quantidade: ${data.length}, Média: ${valorFinal}`);
           }
 
           // Armazenar meta diária
           metasDiarias[metrica] = valorFinal;
           
-          // Calcular meta por ronda
-          if (metrica === 'conversao' || metrica === 'ticketMedio') {
-            // Para conversão e ticket médio, usar o valor completo (não dividir)
-            metasPorRonda[metrica] = valorFinal;
-          } else {
-            // Para leads, vendas e faturamento, dividir por 6 e arredondar
-            metasPorRonda[metrica] = Math.round((valorFinal / 6) * 100) / 100;
-          }
+              // Calcular meta por ronda
+              if (metrica === 'conversao' || metrica === 'ticketMedio') {
+                // Para conversão e ticket médio, usar o valor completo (não dividir)
+                metasPorRonda[metrica] = valorFinal;
+              } else {
+                // Para leads, vendas e faturamento, dividir por 6 e arredondar para inteiro
+                metasPorRonda[metrica] = Math.round(valorFinal / 6);
+              }
 
           console.log(`📊 Meta diária ${metrica}: ${valorFinal} | Meta por ronda: ${metasPorRonda[metrica]}`);
         } else {
@@ -354,17 +372,17 @@ export const getPerformanceDataByRondaHorario = async (params) => {
         leads: {
           realizado: leadsCount,
           meta: metaLeads,
-          gap: leadsCount - metaLeads
+          gap: Math.round(leadsCount - metaLeads)
         },
         vendas: {
           realizado: vendasCount,
           meta: metaVendas,
-          gap: vendasCount - metaVendas
+          gap: Math.round(vendasCount - metaVendas)
         },
         faturamento: {
           realizado: faturamentoTotal,
           meta: metaFaturamento,
-          gap: faturamentoTotal - metaFaturamento
+          gap: Math.round(faturamentoTotal - metaFaturamento)
         },
         conversao: {
           realizado: parseFloat(conversaoRate.toFixed(1)),

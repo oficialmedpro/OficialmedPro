@@ -47,12 +47,9 @@ const DailyPerformanceVertical = ({
         setRondas(data.rondas);
         setPerformanceData(data.performanceData);
         setTotalData(data.totalData || {});  // Capturar dados totais do dia
+        setFechamentoData(data.fechamentoData || {});  // Capturar dados de fechamento com metas diárias
         setDebugInfo(data.debugInfo || []);  // Capturar info de debug
         setMetasDebugInfo(data.metasDebugInfo || {});  // Capturar debug das metas
-
-        // Calcular dados de fechamento (já calculado no service, mas precisa recalcular aqui por questões de sequência)
-        const fechamento = calculateFechamentoData(data.performanceData);
-        setFechamentoData(fechamento);
 
 
       } catch (error) {
