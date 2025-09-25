@@ -6,9 +6,7 @@
  */
 
 // Configurações do Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * 🎯 BUSCAR TODAS AS METAS ATIVAS

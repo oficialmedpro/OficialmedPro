@@ -20,6 +20,12 @@ ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
     VITE_SUPABASE_SERVICE_ROLE_KEY=$VITE_SUPABASE_SERVICE_ROLE_KEY \
     VITE_SUPABASE_SCHEMA=$VITE_SUPABASE_SCHEMA
 
+# Debug - mostrar se as variáveis estão sendo recebidas (sem expor o valor completo)
+RUN echo "🔧 Build Args recebidos:" && \
+    echo "VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:0:20}..." && \
+    echo "VITE_SUPABASE_SERVICE_ROLE_KEY: ${VITE_SUPABASE_SERVICE_ROLE_KEY:0:10}..." && \
+    echo "VITE_SUPABASE_SCHEMA: $VITE_SUPABASE_SCHEMA"
+
 # Build the app
 RUN npm run build
 

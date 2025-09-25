@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+// Debug para verificar se as variáveis de ambiente estão chegando
+import './debug/buildInfo.js'
 import DashboardPage from './pages/DashboardPage'
 import PerformanceDiariaPage from './pages/PerformanceDiariaPage'
 import PerformanceRondaPage from './pages/PerformanceRondaPage'
