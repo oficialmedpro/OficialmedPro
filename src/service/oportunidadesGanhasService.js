@@ -511,8 +511,9 @@ const calcularMetaDinamica = async (dataInicio, dataFim, selectedFunnel, unidade
     console.log('🎯 Calculando meta dinâmica para período:', { dataInicio, dataFim, selectedFunnel, unidadeFranquia });
     
     // Verificar se é período mensal (mês inteiro)
-    const inicio = new Date(dataInicio + 'T00:00:00');
-    const fim = new Date(dataFim + 'T23:59:59');
+    // Se as datas já têm timezone, usar diretamente, senão adicionar
+    const inicio = dataInicio.includes('T') ? new Date(dataInicio) : new Date(dataInicio + 'T00:00:00');
+    const fim = dataFim.includes('T') ? new Date(dataFim) : new Date(dataFim + 'T23:59:59');
     
     console.log('🔍 Debug datas:', { 
       dataInicio, 

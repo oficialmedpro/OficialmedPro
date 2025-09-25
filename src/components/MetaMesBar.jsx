@@ -38,9 +38,9 @@ const MetaMesBar = ({
         const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
         const ultimoDiaMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
         
-        // Formatar datas para o serviço
-        const dataInicio = primeiroDiaMes.toISOString().split('T')[0] + 'T00:00:00';
-        const dataFim = ultimoDiaMes.toISOString().split('T')[0] + 'T23:59:59';
+        // Formatar datas para o serviço (corrigindo formato)
+        const dataInicio = primeiroDiaMes.toISOString().split('T')[0] + 'T00:00:00-03:00';
+        const dataFim = ultimoDiaMes.toISOString().split('T')[0] + 'T23:59:59-03:00';
         
         console.log('🔍 Parâmetros para meta do mês:');
         console.log('  - dataInicio (1º dia do mês):', dataInicio);
