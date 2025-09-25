@@ -225,9 +225,12 @@ export const getOportunidadesGanhasMetrics = async (
     console.log('  - filtrosCombinados:', filtrosCombinados);
 
     // 🟢 URLs principais (sempre SEM vendedor) para manter os totais gerais inalterados ao selecionar vendedor
-    // CORREÇÃO CRÍTICA: Usar timezone GMT-3 explicitamente como GoogleConversaoService
-    const totalOportunidadesGanhasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicio}T00:00:00-03:00&gain_date=lte.${dataFim}T23:59:59-03:00${filtrosSemVendedor}`;
-    const ganhasNovasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}T00:00:00-03:00&create_date=lte.${dataFim}T23:59:59-03:00${filtrosSemVendedor}`;
+    // CORREÇÃO CRÍTICA: Verificar se as datas já têm timezone antes de adicionar
+    const dataInicioFormatada = dataInicio.includes('T') ? dataInicio : `${dataInicio}T00:00:00-03:00`;
+    const dataFimFormatada = dataFim.includes('T') ? dataFim : `${dataFim}T23:59:59-03:00`;
+    
+    const totalOportunidadesGanhasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicioFormatada}&gain_date=lte.${dataFimFormatada}${filtrosSemVendedor}`;
+    const ganhasNovasUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicioFormatada}&create_date=lte.${dataFimFormatada}${filtrosSemVendedor}`;
     console.log('🔍 URL Total Ganhas (GERAL):', totalOportunidadesGanhasUrl);
     console.log('🔍 URL Ganhas Novas (GERAL):', ganhasNovasUrl);
 
@@ -548,7 +551,9 @@ const calcularMetaDinamica = async (dataInicio, dataFim, selectedFunnel, unidade
     
     if (isMesInteiro) {
       console.log('📅 Período mensal detectado - buscando meta mensal');
-      return await buscarMetaPorTipo('mensal', selectedFunnel, unidadeFranquia);
+      const metaMensal = await buscarMetaPorTipo('mensal', selectedFunnel, unidadeFranquia);
+      console.log('🎯 Meta mensal calculada:', metaMensal);
+      return metaMensal;
     }
     
     // Verificar se é período de 1 dia
