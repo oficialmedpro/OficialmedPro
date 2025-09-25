@@ -236,10 +236,10 @@ export const getOportunidadesGanhasMetrics = async (
 
     // Se houver vendedor selecionado, montar URLs específicas do vendedor também
     const totalOportunidadesGanhasSellerUrl = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined' && selectedSeller !== 'TODOS')
-      ? `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicio}T00:00:00-03:00&gain_date=lte.${dataFim}T23:59:59-03:00${filtrosCombinados}`
+      ? `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&gain_date=gte.${dataInicioFormatada}&gain_date=lte.${dataFimFormatada}${filtrosCombinados}`
       : null;
     const ganhasNovasSellerUrl = (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined' && selectedSeller !== 'TODOS')
-      ? `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicio}T00:00:00-03:00&create_date=lte.${dataFim}T23:59:59-03:00${filtrosCombinados}`
+      ? `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,value&archived=eq.0&status=eq.gain&create_date=gte.${dataInicioFormatada}&create_date=lte.${dataFimFormatada}${filtrosCombinados}`
       : null;
 
     // 🎯 3. CALCULAR META DINÂMICA BASEADA NO PERÍODO
