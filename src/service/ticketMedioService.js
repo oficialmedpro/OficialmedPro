@@ -218,14 +218,29 @@ export const getTicketMedioMetrics = async (
     
     let metaTicketMedioUrl;
     
-    if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
-      // Funil específico selecionado - buscar meta específica do funil
-      metaTicketMedioUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.ticketmedio_oportunidades&funil=eq.${selectedFunnel}`;
-      console.log('🎯 Buscando meta específica do funil para ticket médio:', selectedFunnel);
+    // 🎯 LÓGICA DE META BASEADA NA SELEÇÃO E VENDEDOR
+    if (selectedSeller && selectedSeller !== 'all' && selectedSeller !== '' && selectedSeller !== 'undefined') {
+      // Vendedor específico selecionado - buscar meta específica do vendedor
+      if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+        // Funil + Vendedor específico
+        metaTicketMedioUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.ticket_medio_diario&funil=eq.${selectedFunnel}&vendedor_id=eq.${selectedSeller}`;
+        console.log('🎯 Buscando meta específica do vendedor e funil para ticket médio:', selectedSeller, selectedFunnel);
+      } else {
+        // Apenas vendedor específico - buscar AMBOS funis (6 e 14) e calcular média
+        metaTicketMedioUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.ticket_medio_diario&funil=in.(6,14)&vendedor_id=eq.${selectedSeller}`;
+        console.log('🎯 Buscando metas de ambos funis (6 e 14) para vendedor específico - ticket médio:', selectedSeller);
+      }
     } else {
-      // Apenas unidade selecionada - buscar AMBOS funis (6 e 14) e somar
-      metaTicketMedioUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.ticketmedio_oportunidades&funil=in.(6,14)`;
-      console.log('🎯 Buscando metas de ambos funis (6 e 14) para somar - ticket médio');
+      // Sem vendedor específico - buscar metas gerais
+      if (selectedFunnel && selectedFunnel !== 'all' && selectedFunnel !== 'TODOS' && selectedFunnel !== '' && selectedFunnel !== 'undefined') {
+        // Funil específico selecionado - buscar meta específica do funil
+        metaTicketMedioUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.ticketmedio_oportunidades&funil=eq.${selectedFunnel}&vendedor_id=is.null`;
+        console.log('🎯 Buscando meta específica do funil para ticket médio (geral):', selectedFunnel);
+      } else {
+        // Apenas unidade selecionada - buscar AMBOS funis (6 e 14) e calcular média
+        metaTicketMedioUrl = `${supabaseUrl}/rest/v1/metas?select=valor_da_meta&unidade_franquia=eq.${encodeURIComponent(unidadeParaMeta)}&dashboard=eq.ticketmedio_oportunidades&funil=in.(6,14)&vendedor_id=is.null`;
+        console.log('🎯 Buscando metas de ambos funis (6 e 14) para calcular média - ticket médio (geral)');
+      }
     }
     
     console.log('🔍 URL Meta Ticket Médio:', metaTicketMedioUrl);

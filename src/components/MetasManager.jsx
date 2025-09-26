@@ -28,6 +28,52 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
     loadData();
   }, [selectedUnit, selectedFunnel, selectedOrigin]);
 
+  // Prevenir scroll automático em toda a página ao focar em inputs
+  useEffect(() => {
+    let savedScrollTop = 0;
+    let isPreventingScroll = false;
+
+    const handleInputClick = (e) => {
+      if (e.target.type === 'number' || e.target.classList.contains('meta-input') || e.target.classList.contains('form-input')) {
+        // Salvar posição atual
+        savedScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        isPreventingScroll = true;
+
+        console.log('🔒 Salvando posição do scroll:', savedScrollTop);
+      }
+    };
+
+    const handleInputFocus = (e) => {
+      if (isPreventingScroll && (e.target.type === 'number' || e.target.classList.contains('meta-input') || e.target.classList.contains('form-input'))) {
+        // Restaurar posição imediatamente
+        setTimeout(() => {
+          window.scrollTo(0, savedScrollTop);
+          console.log('📍 Restaurando posição do scroll para:', savedScrollTop);
+          isPreventingScroll = false;
+        }, 0);
+      }
+    };
+
+    const handleScroll = () => {
+      if (isPreventingScroll) {
+        // Se estivermos prevenindo scroll, forçar volta à posição salva
+        window.scrollTo(0, savedScrollTop);
+        console.log('🚫 Scroll bloqueado, mantendo posição:', savedScrollTop);
+      }
+    };
+
+    // Adicionar listeners
+    document.addEventListener('mousedown', handleInputClick, true);
+    document.addEventListener('focusin', handleInputFocus, true);
+    document.addEventListener('scroll', handleScroll, true);
+
+    return () => {
+      document.removeEventListener('mousedown', handleInputClick, true);
+      document.removeEventListener('focusin', handleInputFocus, true);
+      document.removeEventListener('scroll', handleScroll, true);
+    };
+  }, []);
+
   // Força re-render quando vendedores são carregados
   useEffect(() => {
     if (vendedores.length > 0) {
@@ -97,7 +143,11 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
   const handleSaveMeta = async () => {
     try {
       setLoading(true);
-      await metasService.updateMeta(editingMeta.id, {
+      setError(null); // Limpar erros anteriores
+
+      console.log('💾 Iniciando salvamento da meta:', editingMeta);
+
+      const result = await metasService.updateMeta(editingMeta.id, {
         nome_meta: editingMeta.nome_meta,
         valor_da_meta: parseFloat(editingMeta.valor_da_meta) || 0,
         unidade: editingMeta.unidade,
@@ -109,11 +159,13 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
         funil: editingMeta.funil ? parseInt(editingMeta.funil) : null
       });
 
+      console.log('✅ Meta salva com sucesso:', result);
       setEditingMeta(null);
       await loadMetas();
     } catch (err) {
       console.error('❌ Erro ao salvar meta:', err);
       setError(err.message || 'Erro ao salvar meta');
+      alert(`Erro ao salvar meta: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setLoading(false);
     }
@@ -223,6 +275,17 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
                 step="0.01"
                 value={editingMeta.valor_da_meta || ''}
                 onChange={(e) => setEditingMeta({...editingMeta, valor_da_meta: e.target.value})}
+                onMouseDown={(e) => {
+                  // Salvar posição antes do clique
+                  e.target.dataset.scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                }}
+                onFocus={(e) => {
+                  // Restaurar posição salva
+                  const savedScrollTop = parseInt(e.target.dataset.scrollTop || '0');
+                  requestAnimationFrame(() => {
+                    window.scrollTo(0, savedScrollTop);
+                  });
+                }}
                 className="meta-input"
               />
             ) : (
@@ -311,6 +374,17 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
                 type="number"
                 value={editingMeta.funil || ''}
                 onChange={(e) => setEditingMeta({...editingMeta, funil: e.target.value})}
+                onMouseDown={(e) => {
+                  // Salvar posição antes do clique
+                  e.target.dataset.scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                }}
+                onFocus={(e) => {
+                  // Restaurar posição salva
+                  const savedScrollTop = parseInt(e.target.dataset.scrollTop || '0');
+                  requestAnimationFrame(() => {
+                    window.scrollTo(0, savedScrollTop);
+                  });
+                }}
                 className="meta-input"
                 placeholder="Ex: 1, 2, 3..."
               />
@@ -411,6 +485,17 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
                 step="0.01"
                 value={newMeta.valor_da_meta}
                 onChange={(e) => setNewMeta({...newMeta, valor_da_meta: e.target.value})}
+                onMouseDown={(e) => {
+                  // Salvar posição antes do clique
+                  e.target.dataset.scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                }}
+                onFocus={(e) => {
+                  // Restaurar posição salva
+                  const savedScrollTop = parseInt(e.target.dataset.scrollTop || '0');
+                  requestAnimationFrame(() => {
+                    window.scrollTo(0, savedScrollTop);
+                  });
+                }}
                 className="form-input"
                 placeholder="0.00"
               />
@@ -479,6 +564,17 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
                 type="number"
                 value={newMeta.funil}
                 onChange={(e) => setNewMeta({...newMeta, funil: e.target.value})}
+                onMouseDown={(e) => {
+                  // Salvar posição antes do clique
+                  e.target.dataset.scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                }}
+                onFocus={(e) => {
+                  // Restaurar posição salva
+                  const savedScrollTop = parseInt(e.target.dataset.scrollTop || '0');
+                  requestAnimationFrame(() => {
+                    window.scrollTo(0, savedScrollTop);
+                  });
+                }}
                 className="form-input"
                 placeholder="Ex: 1, 2, 3..."
               />

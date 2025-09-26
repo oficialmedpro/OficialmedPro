@@ -866,7 +866,13 @@ const fetchAllMetasOptimized = async (selectedUnit, selectedFunnel, selectedSell
           metasOrganizadas.ticketMedio.sabado[chaveUnica] = valor;
           break;
         case 'oportunidades_faturamento_diario':
-          metasOrganizadas.faturamento.diaria[chaveUnica] = valor;
+          if (meta.tipo_meta === 'diaria') {
+            metasOrganizadas.faturamento.diaria[chaveUnica] = valor;
+            console.log(`🔍 [fetchAllMetasOrganized] Meta DIÁRIA de faturamento adicionada: ${valor} para ${chaveUnica}`);
+          } else if (meta.tipo_meta === 'sabado') {
+            metasOrganizadas.faturamento.sabado[chaveUnica] = valor;
+            console.log(`🔍 [fetchAllMetasOrganized] Meta SÁBADO de faturamento adicionada: ${valor} para ${chaveUnica}`);
+          }
           break;
         case 'ganhos_oportunidades':
           metasOrganizadas.vendas.diaria[chaveUnica] = valor;
@@ -915,17 +921,27 @@ const fetchAllMetasOptimized = async (selectedUnit, selectedFunnel, selectedSell
  */
 const getMetaFromOrganized = (metasOrganizadas, tipo, currentDate) => {
   const dayOfWeek = currentDate ? currentDate.getDay() : null;
+  console.log(`🔍 [getMetaFromOrganized] Tipo: ${tipo}, Current Date: ${currentDate}, Day of Week: ${dayOfWeek}`);
   
   // Domingo = 0, meta = 0
   if (dayOfWeek === 0) {
+    console.log(`🔍 [getMetaFromOrganized] Domingo detectado, meta 0 para ${tipo}`);
     return 0;
   }
   
-  // Sábado = 6, usar metas de sábado
+  // Sábado = 6, usar metas de sábado se existirem, senão usar metas diárias
   const isSabado = dayOfWeek === 6;
   const tipoMetas = metasOrganizadas[tipo] || {};
-  const metasEspecificas = isSabado ? tipoMetas.sabado : tipoMetas.diaria;
   
+  console.log(`🔍 [getMetaFromOrganized] Metas organizadas para ${tipo}:`, tipoMetas);
+  console.log(`🔍 [getMetaFromOrganized] É sábado? ${isSabado} (dayOfWeek: ${dayOfWeek})`);
+
+  const metasEspecificas = isSabado && Object.keys(tipoMetas.sabado || {}).length > 0 
+    ? tipoMetas.sabado 
+    : tipoMetas.diaria;
+  
+  console.log(`🔍 [getMetaFromOrganized] Metas específicas selecionadas para ${tipo}:`, metasEspecificas);
+
   if (!metasEspecificas || Object.keys(metasEspecificas).length === 0) {
     // Fallback para metas padrão
     const metasPadrao = {
@@ -935,6 +951,7 @@ const getMetaFromOrganized = (metasOrganizadas, tipo, currentDate) => {
       conversao: 30,
       ticketMedio: 250
     };
+    console.log(`🔍 [getMetaFromOrganized] Nenhuma meta específica encontrada para ${tipo}. Usando fallback: ${metasPadrao[tipo] || 0}`);
     return metasPadrao[tipo] || 0;
   }
   
@@ -1280,19 +1297,18 @@ export const getDailyPerformanceData = async (
     // Usar datas fornecidas ou defaultar para o mês corrente
     let dataInicioMes, dataFimMes;
 
-    if (startDate && endDate) {
+    if (startDate && endDate && startDate !== '' && endDate !== '') {
       // Usar as datas fornecidas
       dataInicioMes = startDate;
       dataFimMes = endDate;
       console.log('📅 Intervalo fornecido pelos parâmetros:', { dataInicioMes, dataFimMes });
     } else {
-      // Fallback: mês corrente (01 até HOJE)
+      // Fallback: apenas o dia atual (não o mês inteiro)
       const now = new Date();
       const hojeDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const inicioMesDate = new Date(hojeDate.getFullYear(), hojeDate.getMonth(), 1);
-      dataInicioMes = inicioMesDate.toISOString().split('T')[0];
+      dataInicioMes = hojeDate.toISOString().split('T')[0];
       dataFimMes = hojeDate.toISOString().split('T')[0];
-      console.log('📅 Intervalo padrão (mês atual):', { dataInicioMes, dataFimMes });
+      console.log('📅 Intervalo padrão (apenas hoje):', { dataInicioMes, dataFimMes });
     }
 
     // Construir filtros
@@ -1312,7 +1328,7 @@ export const getDailyPerformanceData = async (
     // Gerar dados diários estruturados (as metas são buscadas individualmente por dia)
     const dailyData = await generateDailyData(dataInicioMes, dataFimMes, dailyLeads, dailyVendas, selectedUnit, selectedFunnel, selectedSeller, totalDays);
     
-    // Calcular dados de resumo
+    // Calcular dados de resumo - APENAS para o período selecionado
     const summaryData = calculateSummaryData(dailyData);
     
     console.log('✅ DailyPerformanceService: Dados processados:');
