@@ -212,8 +212,8 @@ const MetasPage = ({ onLogout }) => {
         onLogout={onLogout}
       />
 
-      {/* FilterBar Fixo */}
-      <FilterBar
+      {/* FilterBar DESABILITADO PARA TESTAR SCROLL */}
+      {false && <FilterBar
         t={t}
         // Estados atuais
         selectedSeller={selectedSeller}
@@ -238,7 +238,7 @@ const MetasPage = ({ onLogout }) => {
         onSellerNameChange={onSellerNameChange}
         // Indicadores de mercado
         marketData={marketData}
-      />
+      />}
 
       {/* Main Content */}
       <main className="main-content">

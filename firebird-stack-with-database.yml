@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  firebird:
+    image: jacobalberty/firebird:3.0
+    environment:
+      - FIREBIRD_DATABASE=psbd.FDB
+      - FIREBIRD_USER=OFICIALMED-TESTE
+      - FIREBIRD_PASSWORD=OficialmEd07@
+      - FIREBIRD_DB_PATH=/firebird/data
+      - FIREBIRD_DB_CHARSET=WIN1252
+    volumes:
+      - firebird_data:/firebird/data
+      - firebird_logs:/firebird/log
+      # Mapear o banco local diretamente
+      - C:\SisPS\BD\psbd.fdb:/firebird/data/psbd.FDB:ro
+    ports:
+      - "3050:3050"
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+volumes:
+  firebird_data:
+  firebird_logs:

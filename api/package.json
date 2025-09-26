@@ -8,10 +8,11 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
-    "express": "^4.21.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
+    "express": "^4.21.1",
     "google-ads-api": "^21.0.1",
+    "node-fetch": "^3.3.2",
     "node-firebird": "^1.1.9"
   }
 }

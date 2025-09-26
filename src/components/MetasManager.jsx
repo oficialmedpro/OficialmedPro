@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { metasService } from '../service/metasService';
 import { Target, Edit3, Save, X, Plus, Trash2, Users } from 'lucide-react';
 import './MetasManager.css';
 
+// NOVA VERSÃO - RECRIADA DO ZERO
+
 const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
+  console.log('🚀 NOVA VERSÃO DO METASMANAGER CARREGADA!', { selectedUnit, selectedFunnel, selectedOrigin });
+  
   const [metas, setMetas] = useState({ gerais: [], vendedores: {} });
   const [vendedores, setVendedores] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,66 +32,115 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
     loadData();
   }, [selectedUnit, selectedFunnel, selectedOrigin]);
 
-  // Prevenir scroll automático em toda a página ao focar em inputs
+  // SOLUÇÃO DEFINITIVA: Controlar scroll e manter foco
   useEffect(() => {
-    let savedScrollTop = 0;
-    let isPreventingScroll = false;
+    let savedScrollPosition = 0;
+    let isInputFocused = false;
+    let scrollTimeout = null;
+    let focusedElement = null;
+    let focusedElementId = null;
+    let restoreFocusTimeout = null;
 
-    const handleInputClick = (e) => {
-      if (e.target.type === 'number' || e.target.classList.contains('meta-input') || e.target.classList.contains('form-input')) {
-        // Salvar posição atual
-        savedScrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        isPreventingScroll = true;
-
-        console.log('🔒 Salvando posição do scroll:', savedScrollTop);
-      }
-    };
-
-    const handleInputFocus = (e) => {
-      if (isPreventingScroll && (e.target.type === 'number' || e.target.classList.contains('meta-input') || e.target.classList.contains('form-input'))) {
+    const handleFocusIn = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+        savedScrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+        isInputFocused = true;
+        focusedElement = e.target;
+        focusedElementId = e.target.id || e.target.name || e.target.className;
+        console.log('🎯 Input focado, posição salva:', savedScrollPosition, 'ID:', focusedElementId);
+        
         // Restaurar posição imediatamente
-        setTimeout(() => {
-          window.scrollTo(0, savedScrollTop);
-          console.log('📍 Restaurando posição do scroll para:', savedScrollTop);
-          isPreventingScroll = false;
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          window.scrollTo(0, savedScrollPosition);
         }, 0);
       }
     };
 
+    const handleFocusOut = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+        // Só perde foco se não for uma re-renderização
+        if (focusedElementId && e.target.id === focusedElementId) {
+          console.log('🎯 Input perdeu foco (re-renderização detectada)');
+          // Não limpar o foco, apenas marcar como perdido temporariamente
+        } else {
+          isInputFocused = false;
+          focusedElement = null;
+          focusedElementId = null;
+          console.log('🎯 Input perdeu foco (real)');
+        }
+      }
+    };
+
     const handleScroll = () => {
-      if (isPreventingScroll) {
-        // Se estivermos prevenindo scroll, forçar volta à posição salva
-        window.scrollTo(0, savedScrollTop);
-        console.log('🚫 Scroll bloqueado, mantendo posição:', savedScrollTop);
+      if (isInputFocused && focusedElement) {
+        console.log('🚫 Scroll bloqueado, restaurando posição:', savedScrollPosition);
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          window.scrollTo(0, savedScrollPosition);
+        }, 0);
+      }
+    };
+
+    const handleInput = (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+        if (isInputFocused && focusedElement === e.target) {
+          console.log('⌨️ Digitação detectada, mantendo posição:', savedScrollPosition);
+          window.scrollTo(0, savedScrollPosition);
+        }
+      }
+    };
+
+    // Função para restaurar foco após re-renderização
+    const restoreFocus = () => {
+      if (focusedElementId && isInputFocused) {
+        const element = document.querySelector(`#${focusedElementId}`);
+        if (element) {
+          element.focus();
+          // Restaurar posição do cursor no final do texto
+          const length = element.value.length;
+          element.setSelectionRange(length, length);
+          console.log('🔄 Foco restaurado após re-renderização');
+        }
       }
     };
 
     // Adicionar listeners
-    document.addEventListener('mousedown', handleInputClick, true);
-    document.addEventListener('focusin', handleInputFocus, true);
-    document.addEventListener('scroll', handleScroll, true);
+    document.addEventListener('focusin', handleFocusIn, true);
+    document.addEventListener('focusout', handleFocusOut, true);
+    document.addEventListener('input', handleInput, true);
+    window.addEventListener('scroll', handleScroll, true);
+
+    // Restaurar foco continuamente durante re-renderizações
+    const startFocusRestore = () => {
+      if (focusedElementId && isInputFocused) {
+        restoreFocus();
+        restoreFocusTimeout = setTimeout(startFocusRestore, 50);
+      }
+    };
+
+    // Iniciar restauração de foco
+    if (focusedElementId && isInputFocused) {
+      startFocusRestore();
+    }
 
     return () => {
-      document.removeEventListener('mousedown', handleInputClick, true);
-      document.removeEventListener('focusin', handleInputFocus, true);
-      document.removeEventListener('scroll', handleScroll, true);
+      clearTimeout(scrollTimeout);
+      clearTimeout(restoreFocusTimeout);
+      document.removeEventListener('focusin', handleFocusIn, true);
+      document.removeEventListener('focusout', handleFocusOut, true);
+      document.removeEventListener('input', handleInput, true);
+      window.removeEventListener('scroll', handleScroll, true);
     };
   }, []);
 
-  // Força re-render quando vendedores são carregados
-  useEffect(() => {
-    if (vendedores.length > 0) {
-      console.log('🔄 Vendedores carregados, forçando atualização da UI');
-    }
-  }, [vendedores]);
-
   const loadData = async () => {
     try {
+      console.log('🚀 Iniciando carregamento de dados...');
       setLoading(true);
-      // Primeiro carrega os vendedores
       await loadVendedores();
-      // Depois carrega as metas
       await loadMetas();
+      console.log('✅ Dados carregados com sucesso!');
     } catch (err) {
       console.error('❌ Erro ao carregar dados:', err);
     } finally {
@@ -97,10 +150,11 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
 
   const loadMetas = async () => {
     try {
+      console.log('🔄 Iniciando carregamento de metas...');
       setError(null);
       const metasData = await metasService.getAllMetas();
-      setMetas(metasData);
       console.log('📊 Metas carregadas:', metasData);
+      setMetas(metasData);
     } catch (err) {
       console.error('❌ Erro ao carregar metas:', err);
       setError(err.message || 'Erro ao carregar metas');
@@ -120,19 +174,7 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
   // Função para buscar nome do vendedor pelo ID
   const getVendedorNome = (vendedorId) => {
     if (!vendedorId) return null;
-
-    console.log('🔍 Buscando vendedor:', vendedorId, 'na lista:', vendedores);
-
-    // Tentar diferentes tipos de comparação
-    let vendedor = vendedores.find(v => v.id === vendedorId);
-    if (!vendedor) {
-      vendedor = vendedores.find(v => v.id == vendedorId);
-    }
-    if (!vendedor) {
-      vendedor = vendedores.find(v => String(v.id) === String(vendedorId));
-    }
-
-    console.log('👤 Vendedor encontrado:', vendedor);
+    const vendedor = vendedores.find(v => v.id === vendedorId || v.id == vendedorId || String(v.id) === String(vendedorId));
     return vendedor ? vendedor.nome : `Vendedor ${vendedorId}`;
   };
 
@@ -143,9 +185,9 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
   const handleSaveMeta = async () => {
     try {
       setLoading(true);
-      setError(null); // Limpar erros anteriores
+      setError(null);
 
-      console.log('💾 Iniciando salvamento da meta:', editingMeta);
+      console.log('💾 Salvando meta:', editingMeta);
 
       const result = await metasService.updateMeta(editingMeta.id, {
         nome_meta: editingMeta.nome_meta,
@@ -222,6 +264,36 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
     }
   };
 
+  // Componente de input simples - sem complicações
+  const SimpleInput = ({ value, onChange, type = "text", className = "", style = {}, ...props }) => {
+    return (
+      <input
+        type={type}
+        value={value}
+        onChange={onChange}
+        className={className}
+        style={style}
+        {...props}
+      />
+    );
+  };
+
+  // Componente de select simples
+  const SimpleSelect = ({ value, onChange, options, className = "", ...props }) => (
+    <select
+      value={value}
+      onChange={onChange}
+      className={className}
+      {...props}
+    >
+      {options.map(option => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  );
+
   const MetaCard = ({ meta, isEditing, onEdit, onSave, onCancel, onDelete }) => {
     const isCurrentlyEditing = isEditing && editingMeta?.id === meta.id;
 
@@ -232,19 +304,19 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
           <div className="meta-actions">
             {isCurrentlyEditing ? (
               <>
-                <button onClick={onSave} className="btn-save">
+                <button onClick={onSave} className="btn-save" title="Salvar">
                   <Save size={14} />
                 </button>
-                <button onClick={onCancel} className="btn-cancel">
+                <button onClick={onCancel} className="btn-cancel" title="Cancelar">
                   <X size={14} />
                 </button>
               </>
             ) : (
               <>
-                <button onClick={() => onEdit(meta)} className="btn-edit">
+                <button onClick={() => onEdit(meta)} className="btn-edit" title="Editar">
                   <Edit3 size={14} />
                 </button>
-                <button onClick={() => onDelete(meta.id)} className="btn-delete">
+                <button onClick={() => onDelete(meta.id)} className="btn-delete" title="Excluir">
                   <Trash2 size={14} />
                 </button>
               </>
@@ -256,10 +328,10 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
           <div className="meta-field">
             <label>Nome da Meta:</label>
             {isCurrentlyEditing ? (
-              <input
-                type="text"
+              <SimpleInput
                 value={editingMeta.nome_meta || ''}
                 onChange={(e) => setEditingMeta({...editingMeta, nome_meta: e.target.value})}
+                id={`meta-nome-${meta.id}`}
                 className="meta-input"
               />
             ) : (
@@ -270,23 +342,17 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
           <div className="meta-field">
             <label>Valor:</label>
             {isCurrentlyEditing ? (
-              <input
-                type="number"
-                step="0.01"
+              <SimpleInput
+                type="text"
                 value={editingMeta.valor_da_meta || ''}
                 onChange={(e) => setEditingMeta({...editingMeta, valor_da_meta: e.target.value})}
-                onMouseDown={(e) => {
-                  // Salvar posição antes do clique
-                  e.target.dataset.scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                id={`meta-valor-${meta.id}`}
+                style={{
+                  border: '1px solid #ccc',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  width: '100px'
                 }}
-                onFocus={(e) => {
-                  // Restaurar posição salva
-                  const savedScrollTop = parseInt(e.target.dataset.scrollTop || '0');
-                  requestAnimationFrame(() => {
-                    window.scrollTo(0, savedScrollTop);
-                  });
-                }}
-                className="meta-input"
               />
             ) : (
               <span>{parseFloat(meta.valor_da_meta || 0).toLocaleString('pt-BR', {
@@ -299,16 +365,18 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
           <div className="meta-field">
             <label>Unidade:</label>
             {isCurrentlyEditing ? (
-              <select
+              <SimpleSelect
                 value={editingMeta.unidade || ''}
                 onChange={(e) => setEditingMeta({...editingMeta, unidade: e.target.value})}
+                id={`meta-unidade-${meta.id}`}
                 className="meta-select"
-              >
-                <option value="R$">R$</option>
-                <option value="%">%</option>
-                <option value="unidade">Unidade</option>
-                <option value="lead">Lead</option>
-              </select>
+                options={[
+                  { value: 'R$', label: 'R$' },
+                  { value: '%', label: '%' },
+                  { value: 'unidade', label: 'Unidade' },
+                  { value: 'lead', label: 'Lead' }
+                ]}
+              />
             ) : (
               <span>{meta.unidade}</span>
             )}
@@ -317,18 +385,20 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
           <div className="meta-field">
             <label>Tipo:</label>
             {isCurrentlyEditing ? (
-              <select
+              <SimpleSelect
                 value={editingMeta.tipo_meta || ''}
                 onChange={(e) => setEditingMeta({...editingMeta, tipo_meta: e.target.value})}
+                id={`meta-tipo-${meta.id}`}
                 className="meta-select"
-              >
-                <option value="diária">Diária</option>
-                <option value="sábado">Sábado</option>
-                <option value="mensal">Mensal</option>
-                <option value="vendedor_diaria">Vendedor Diária</option>
-                <option value="vendedor_sabado">Vendedor Sábado</option>
-                <option value="vendedor_mensal">Vendedor Mensal</option>
-              </select>
+                options={[
+                  { value: 'diária', label: 'Diária' },
+                  { value: 'sábado', label: 'Sábado' },
+                  { value: 'mensal', label: 'Mensal' },
+                  { value: 'vendedor_diaria', label: 'Vendedor Diária' },
+                  { value: 'vendedor_sabado', label: 'Vendedor Sábado' },
+                  { value: 'vendedor_mensal', label: 'Vendedor Mensal' }
+                ]}
+              />
             ) : (
               <span>{meta.tipo_meta}</span>
             )}
@@ -337,14 +407,16 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
           <div className="meta-field">
             <label>Ativo:</label>
             {isCurrentlyEditing ? (
-              <select
+              <SimpleSelect
                 value={editingMeta.ativo ? 'true' : 'false'}
                 onChange={(e) => setEditingMeta({...editingMeta, ativo: e.target.value === 'true'})}
+                id={`meta-ativo-${meta.id}`}
                 className="meta-select"
-              >
-                <option value="true">Sim</option>
-                <option value="false">Não</option>
-              </select>
+                options={[
+                  { value: 'true', label: 'Sim' },
+                  { value: 'false', label: 'Não' }
+                ]}
+              />
             ) : (
               <span className={`meta-status ${meta.ativo ? 'ativo' : 'inativo'}`}>
                 {meta.ativo ? 'Sim' : 'Não'}
@@ -355,8 +427,7 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
           <div className="meta-field">
             <label>Dashboard:</label>
             {isCurrentlyEditing ? (
-              <input
-                type="text"
+              <SimpleInput
                 value={editingMeta.dashboard || ''}
                 onChange={(e) => setEditingMeta({...editingMeta, dashboard: e.target.value})}
                 className="meta-input"
@@ -370,21 +441,10 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
           <div className="meta-field">
             <label>Funil:</label>
             {isCurrentlyEditing ? (
-              <input
+              <SimpleInput
                 type="number"
                 value={editingMeta.funil || ''}
                 onChange={(e) => setEditingMeta({...editingMeta, funil: e.target.value})}
-                onMouseDown={(e) => {
-                  // Salvar posição antes do clique
-                  e.target.dataset.scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                }}
-                onFocus={(e) => {
-                  // Restaurar posição salva
-                  const savedScrollTop = parseInt(e.target.dataset.scrollTop || '0');
-                  requestAnimationFrame(() => {
-                    window.scrollTo(0, savedScrollTop);
-                  });
-                }}
                 className="meta-input"
                 placeholder="Ex: 1, 2, 3..."
               />
@@ -396,8 +456,7 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
           <div className="meta-field">
             <label>Unidade Franquia:</label>
             {isCurrentlyEditing ? (
-              <input
-                type="text"
+              <SimpleInput
                 value={editingMeta.unidade_franquia || ''}
                 onChange={(e) => setEditingMeta({...editingMeta, unidade_franquia: e.target.value})}
                 className="meta-input"
@@ -469,8 +528,7 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
           <div className="form-grid">
             <div className="form-field">
               <label>Nome da Meta:</label>
-              <input
-                type="text"
+              <SimpleInput
                 value={newMeta.nome_meta}
                 onChange={(e) => setNewMeta({...newMeta, nome_meta: e.target.value})}
                 className="form-input"
@@ -480,22 +538,11 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
 
             <div className="form-field">
               <label>Valor:</label>
-              <input
+              <SimpleInput
                 type="number"
                 step="0.01"
                 value={newMeta.valor_da_meta}
                 onChange={(e) => setNewMeta({...newMeta, valor_da_meta: e.target.value})}
-                onMouseDown={(e) => {
-                  // Salvar posição antes do clique
-                  e.target.dataset.scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                }}
-                onFocus={(e) => {
-                  // Restaurar posição salva
-                  const savedScrollTop = parseInt(e.target.dataset.scrollTop || '0');
-                  requestAnimationFrame(() => {
-                    window.scrollTo(0, savedScrollTop);
-                  });
-                }}
                 className="form-input"
                 placeholder="0.00"
               />
@@ -503,54 +550,55 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
 
             <div className="form-field">
               <label>Unidade:</label>
-              <select
+              <SimpleSelect
                 value={newMeta.unidade}
                 onChange={(e) => setNewMeta({...newMeta, unidade: e.target.value})}
                 className="form-select"
-              >
-                <option value="R$">R$</option>
-                <option value="%">%</option>
-                <option value="unidade">Unidade</option>
-                <option value="lead">Lead</option>
-              </select>
+                options={[
+                  { value: 'R$', label: 'R$' },
+                  { value: '%', label: '%' },
+                  { value: 'unidade', label: 'Unidade' },
+                  { value: 'lead', label: 'Lead' }
+                ]}
+              />
             </div>
 
             <div className="form-field">
               <label>Tipo:</label>
-              <select
+              <SimpleSelect
                 value={newMeta.tipo_meta}
                 onChange={(e) => setNewMeta({...newMeta, tipo_meta: e.target.value})}
                 className="form-select"
-              >
-                <option value="diária">Diária</option>
-                <option value="sábado">Sábado</option>
-                <option value="mensal">Mensal</option>
-                <option value="vendedor_diaria">Vendedor Diária</option>
-                <option value="vendedor_sabado">Vendedor Sábado</option>
-                <option value="vendedor_mensal">Vendedor Mensal</option>
-              </select>
+                options={[
+                  { value: 'diária', label: 'Diária' },
+                  { value: 'sábado', label: 'Sábado' },
+                  { value: 'mensal', label: 'Mensal' },
+                  { value: 'vendedor_diaria', label: 'Vendedor Diária' },
+                  { value: 'vendedor_sabado', label: 'Vendedor Sábado' },
+                  { value: 'vendedor_mensal', label: 'Vendedor Mensal' }
+                ]}
+              />
             </div>
 
             <div className="form-field">
               <label>Vendedor (opcional):</label>
-              <select
+              <SimpleSelect
                 value={newMeta.vendedor_id}
                 onChange={(e) => setNewMeta({...newMeta, vendedor_id: e.target.value})}
                 className="form-select"
-              >
-                <option value="">Geral (todos os vendedores)</option>
-                {vendedores.map(vendedor => (
-                  <option key={vendedor.id} value={vendedor.id}>
-                    {vendedor.nome}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: '', label: 'Geral (todos os vendedores)' },
+                  ...vendedores.map(vendedor => ({
+                    value: vendedor.id,
+                    label: vendedor.nome
+                  }))
+                ]}
+              />
             </div>
 
             <div className="form-field">
               <label>Dashboard:</label>
-              <input
-                type="text"
+              <SimpleInput
                 value={newMeta.dashboard}
                 onChange={(e) => setNewMeta({...newMeta, dashboard: e.target.value})}
                 className="form-input"
@@ -560,21 +608,10 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
 
             <div className="form-field">
               <label>Funil:</label>
-              <input
+              <SimpleInput
                 type="number"
                 value={newMeta.funil}
                 onChange={(e) => setNewMeta({...newMeta, funil: e.target.value})}
-                onMouseDown={(e) => {
-                  // Salvar posição antes do clique
-                  e.target.dataset.scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-                }}
-                onFocus={(e) => {
-                  // Restaurar posição salva
-                  const savedScrollTop = parseInt(e.target.dataset.scrollTop || '0');
-                  requestAnimationFrame(() => {
-                    window.scrollTo(0, savedScrollTop);
-                  });
-                }}
                 className="form-input"
                 placeholder="Ex: 1, 2, 3..."
               />
@@ -582,8 +619,7 @@ const MetasManager = ({ selectedUnit, selectedFunnel, selectedOrigin }) => {
 
             <div className="form-field">
               <label>Unidade Franquia:</label>
-              <input
-                type="text"
+              <SimpleInput
                 value={newMeta.unidade_franquia}
                 onChange={(e) => setNewMeta({...newMeta, unidade_franquia: e.target.value})}
                 className="form-input"

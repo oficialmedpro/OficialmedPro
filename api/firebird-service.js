@@ -21,7 +21,12 @@ const firebirdConfig = {
   lowercase_keys: false, // Manter nomes originais das colunas
   role: null,
   pageSize: 4096,
-  charset: process.env.FIREBIRD_CHARSET || 'WIN1252'
+  charset: process.env.FIREBIRD_CHARSET || 'WIN1252',
+  // Configuração para Firebird 3.0
+  wireCrypt: 'DISABLED',
+  connectionTimeout: 30,
+  // Forçar protocolo antigo
+  protocol: 'TCP'
 };
 
 class FirebirdService {

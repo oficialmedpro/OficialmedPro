@@ -285,6 +285,7 @@ const MapaDeCalorPage = ({ onLogout }) => {
           selectedUnit={selectedUnit}
           selectedSeller={selectedSeller}
           selectedOrigin={selectedOrigin}
+          isDarkMode={isDarkMode}
         />
       </main>
 

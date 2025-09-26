@@ -1,11 +1,9 @@
-/* MetasManager.css */
+/* MetasManager.css - Versão Simplificada */
 .metas-manager {
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
   padding: 20px;
-  /* Prevenir scroll automático em inputs */
-  scroll-behavior: auto;
 }
 
 .error-banner {
@@ -146,9 +144,6 @@
   outline: none;
   border-color: var(--accent-blue);
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-  /* Prevenir scroll automático em inputs */
-  scroll-margin: 0;
-  scroll-snap-margin: 0;
 }
 
 .form-textarea {
@@ -257,8 +252,7 @@
 }
 
 .meta-card:hover {
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
+  opacity: 0.95;
 }
 
 .meta-card.editing {
@@ -382,18 +376,6 @@
   transition: border-color 0.2s;
   background: var(--bg-tertiary);
   color: var(--text-primary);
-  /* Prevenir scroll automático ao focar */
-  scroll-margin: 0 !important;
-  scroll-snap-margin: 0 !important;
-}
-
-/* Específico para inputs numéricos */
-.meta-input[type="number"],
-.form-input[type="number"] {
-  /* Desabilitar comportamento de scroll do browser */
-  scroll-margin-top: 0 !important;
-  scroll-margin-bottom: 0 !important;
-  overscroll-behavior: none;
 }
 
 .meta-input:focus,
@@ -402,9 +384,6 @@
   outline: none;
   border-color: var(--accent-blue);
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-  /* Prevenir scroll automático em inputs */
-  scroll-margin: 0;
-  scroll-snap-margin: 0;
 }
 
 .meta-textarea {

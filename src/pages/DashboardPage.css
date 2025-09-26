@@ -401,7 +401,8 @@
   margin-left: 70px;
   margin-top: 60px;
   padding: 20px;
-  transition: all 0.3s ease;
+  /* DESABILITADO: transition pode causar scroll automático */
+  /* transition: all 0.3s ease; */
   overflow-x: hidden;
   max-width: calc(100vw - 70px);
   box-sizing: border-box;

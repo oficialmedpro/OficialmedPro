@@ -137,6 +137,14 @@
   color: var(--text-secondary);
   font-size: 12px;
   font-weight: 600;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  transform: rotate(180deg);
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
 }
 
 /* RFV Matrix Grid */
@@ -437,7 +445,7 @@
   height: 420px;
 }
 
-/* Treemap Items */
+/* Treemap Items - Otimizado para performance */
 .treemap-item {
   border-radius: 8px;
   display: flex;
@@ -445,10 +453,11 @@
   justify-content: center;
   align-items: center;
   padding: 8px;
-  transition: all 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  will-change: transform;
 }
 
 .treemap-item:hover {
@@ -457,38 +466,17 @@
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
 }
 
-/* Transições suaves para todos os textos */
-.treemap-percentage,
-.treemap-name,
-.treemap-count,
-.treemap-value {
-  transition: all 0.3s ease;
+/* Transições otimizadas apenas para ícone */
+.treemap-icon {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  will-change: opacity, transform;
 }
 
-/* Efeitos hover para aumentar textos */
-.treemap-item:hover .treemap-percentage {
-  font-size: 20px !important;
-  font-weight: 800 !important;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8) !important;
-}
-
-.treemap-item:hover .treemap-name {
-  font-size: 14px !important;
-  font-weight: 700 !important;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8) !important;
-}
-
-.treemap-item:hover .treemap-count {
-  font-size: 12px !important;
-  font-weight: 600 !important;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8) !important;
-}
-
-.treemap-item:hover .treemap-value {
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8) !important;
-  color: rgba(255, 255, 255, 1) !important;
+/* Efeitos hover apenas para ícone (tooltip já mostra detalhes) */
+.treemap-item:hover .treemap-icon {
+  opacity: 1 !important;
+  transform: scale(1.1) !important;
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.8));
 }
 
 .treemap-item.large {
@@ -509,6 +497,23 @@
 .treemap-item.xsmall {
   grid-column: span 1;
   grid-row: span 1;
+}
+
+.treemap-percentage-with-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.treemap-icon {
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.7));
+  opacity: 0.9;
 }
 
 .treemap-percentage {
@@ -536,18 +541,32 @@
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
 }
 
+.treemap-count-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.treemap-separator {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 9px;
+  font-weight: 600;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+}
+
 .treemap-value {
   color: rgba(255, 255, 255, 0.9);
   font-size: 9px;
   font-weight: 600;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
-  margin-top: 2px;
 }
 
 /* Ajustes para large items */
 .treemap-item.large .treemap-percentage {
   font-size: 24px;
-  margin-bottom: 8px;
 }
 
 .treemap-item.large .treemap-name {
@@ -798,4 +817,125 @@
     color: var(--text-color);
     margin-bottom: 5px;
     line-height: 1.2;
+}
+
+/* ===================================================
+   🎯 RFV TOOLTIP - Efeito hover igual ao RFM
+   =================================================== */
+
+.rfv-tooltip {
+  background: var(--bg-secondary);
+  border: 2px solid #f97316;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 300px;
+  z-index: 1000;
+  pointer-events: none;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.rfv-tooltip-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.rfv-tooltip-icon {
+  font-size: 20px;
+}
+
+.rfv-tooltip-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.rfv-tooltip-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.rfv-tooltip-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rfv-tooltip-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.rfv-tooltip-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f97316;
+}
+
+.rfv-tooltip-description {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.rfv-tooltip-description p {
+  margin: 0 0 8px 0;
+}
+
+.rfv-tooltip-description p:last-child {
+  margin-bottom: 0;
+}
+
+.rfv-tooltip-description strong {
+  color: #f97316;
+  font-weight: 600;
+}
+
+/* Responsividade do tooltip */
+@media (max-width: 768px) {
+  .rfv-tooltip {
+    max-width: 280px;
+    padding: 12px;
+  }
+  
+  .rfv-tooltip-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .rfv-tooltip {
+    max-width: 250px;
+    padding: 10px;
+  }
+  
+  .rfv-tooltip-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Otimizações de performance adicionais */
+.treemap-item {
+  contain: layout style paint;
+}
+
+.rfv-tooltip {
+  contain: layout style paint;
+}
+
+/* Reduzir repaints desnecessários */
+.treemap-percentage,
+.treemap-name,
+.treemap-count,
+.treemap-value {
+  contain: layout style;
 }

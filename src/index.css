@@ -32,6 +32,90 @@ body {
 
 /* Estilos de botão removidos para evitar conflito com o dashboard */
 
+/* CORREÇÃO: ATACAR DIRETO O PROBLEMA DO INPUT */
+* {
+  scroll-behavior: auto !important;
+  scroll-margin: 0 !important;
+  scroll-snap-margin: 0 !important;
+  scroll-padding: 0 !important;
+}
+
+html, body {
+  scroll-behavior: auto !important;
+}
+
+/* FORÇA BRUTA: Desabilitar QUALQUER scroll automático */
+input:focus {
+  scroll-margin: 0 !important;
+  scroll-snap-margin: 0 !important;
+  scroll-padding: 0 !important;
+  overscroll-behavior: none !important;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  scroll-margin: 0 !important;
+  scroll-snap-margin: 0 !important;
+  scroll-padding: 0 !important;
+  overscroll-behavior: none !important;
+  /* Prevenir scroll automático do navegador */
+  scroll-behavior: auto !important;
+}
+
+/* Solução específica para a página de metas */
+.metas-manager * {
+  scroll-behavior: auto !important;
+  scroll-margin: 0 !important;
+  scroll-snap-margin: 0 !important;
+  scroll-padding: 0 !important;
+}
+
+/* SOLUÇÃO AGRESSIVA GLOBAL: Forçar comportamento de scroll */
+html, body {
+  scroll-behavior: auto !important;
+  overscroll-behavior: none !important;
+}
+
+/* Prevenir scroll automático em TODOS os inputs globalmente */
+input, textarea, select {
+  scroll-margin: 0 !important;
+  scroll-snap-margin: 0 !important;
+  scroll-padding: 0 !important;
+  overscroll-behavior: none !important;
+  scroll-behavior: auto !important;
+  scroll-margin-block: 0 !important;
+  scroll-margin-inline: 0 !important;
+  scroll-margin-block-start: 0 !important;
+  scroll-margin-block-end: 0 !important;
+  scroll-margin-inline-start: 0 !important;
+  scroll-margin-inline-end: 0 !important;
+  scroll-snap-align: none !important;
+  scroll-snap-stop: normal !important;
+}
+
+/* Específico para inputs em foco */
+input:focus, textarea:focus, select:focus {
+  scroll-margin: 0 !important;
+  scroll-snap-margin: 0 !important;
+  scroll-padding: 0 !important;
+  overscroll-behavior: none !important;
+  scroll-behavior: auto !important;
+  scroll-margin-block: 0 !important;
+  scroll-margin-inline: 0 !important;
+  scroll-margin-block-start: 0 !important;
+  scroll-margin-block-end: 0 !important;
+  scroll-margin-inline-start: 0 !important;
+  scroll-margin-inline-end: 0 !important;
+  scroll-snap-align: none !important;
+  scroll-snap-stop: normal !important;
+  /* Forçar posição estática */
+  position: relative !important;
+  transform: none !important;
+  transition: none !important;
+}
+
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;

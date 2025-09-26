@@ -1,10 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import './MatrizRFVComponent.css';
 // Usar service novo para dados reais, mantendo o antigo como fallback interno
 import { rfvRealService } from '../service/rfvRealService';
 import RFVOpportunitiesCard from './RFVOpportunitiesCard';
-import RFMTreemapChart from './RFMTreemapChart';
 import { rfvService } from '../service/rfvService';
+// Importar ícones Lucide React
+import { 
+  Crown, 
+  Star, 
+  Target, 
+  Clock, 
+  AlertTriangle, 
+  Moon, 
+  Bed, 
+  XCircle, 
+  AlertCircle, 
+  TrendingUp, 
+  Users,
+  Zap
+} from 'lucide-react';
 
 const MatrizRFVComponent = ({
   startDate,
@@ -22,6 +36,9 @@ const MatrizRFVComponent = ({
   const [selectedSegment, setSelectedSegment] = useState('all');
   const [dataSource, setDataSource] = useState(null);
   const [selectedSegmentForDetails, setSelectedSegmentForDetails] = useState(null);
+  const [hoveredSegment, setHoveredSegment] = useState(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isHovering, setIsHovering] = useState(false);
 
   // Funções auxiliares para mapear segmentos
   const getNomeSegmento = (segmento) => {
@@ -218,54 +235,104 @@ const MatrizRFVComponent = ({
     loadRFVData();
   }, [startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin]);
 
-  const formatCurrency = (value) => {
+  const formatCurrency = useCallback((value) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
     }).format(value);
-  };
+  }, []);
 
-  const formatNumber = (value) => {
+  const formatNumber = useCallback((value) => {
     return new Intl.NumberFormat('pt-BR').format(value);
-  };
+  }, []);
 
 
   // Função para lidar com clique no segmento
-  const handleSegmentClick = (segmento) => {
+  const handleSegmentClick = useCallback((segmento) => {
     setSelectedSegmentForDetails(segmento);
-  };
+  }, []);
 
-  const getSegmentDescription = (segment) => {
-    const descriptions = {
-      'champions': 'Seus melhores clientes! Compram frequentemente e gastam muito.',
-      'loyal': 'Clientes fiéis que compram regularmente.',
-      'potential': 'Clientes com potencial para se tornarem leais.',
-      'new': 'Novos clientes com alto valor inicial.',
-      'promising': 'Novos clientes com bom potencial.',
-      'need_attention': 'Bons clientes que não compram há um tempo.',
-      'about_to_sleep': 'Clientes em risco de se tornarem inativos.',
-      'at_risk': 'Clientes valiosos que podem estar indo embora.',
-      'cannot_lose': 'Seus melhores clientes que estão se tornando inativos.',
-      'hibernating': 'Clientes inativos de alto valor.'
-    };
-    return descriptions[segment.id] || 'Segmento de clientes RFV';
-  };
+  // Handlers otimizados para efeito hover
+  const handleMouseEnter = useCallback((segment, event) => {
+    setIsHovering(true);
+    setHoveredSegment(segment);
+    setMousePosition({ x: event.clientX, y: event.clientY });
+  }, []);
 
-  const getRecommendation = (segment) => {
-    const recommendations = {
-      'champions': 'Recompense-os! Ofereça produtos premium e programas VIP.',
-      'loyal': 'Mantenha o relacionamento com ofertas exclusivas.',
-      'potential': 'Crie campanhas para aumentar a frequência de compra.',
-      'new': 'Desenvolva programa de onboarding personalizado.',
-      'promising': 'Eduque sobre outros produtos e benefícios.',
-      'need_attention': 'Campanhas de reativação com desconto limitado.',
-      'about_to_sleep': 'Ofertas especiais para manter o engajamento.',
-      'at_risk': 'Campanhas urgentes de retenção personalizadas.',
-      'cannot_lose': 'Estratégia VIP de reconquista imediata.',
-      'hibernating': 'Campanhas de winback com ofertas irresistíveis.'
-    };
-    return recommendations[segment.id] || 'Desenvolva estratégia específica para este segmento.';
-  };
+  const handleMouseMove = useCallback((event) => {
+    if (isHovering) {
+      setMousePosition({ x: event.clientX, y: event.clientY });
+    }
+  }, [isHovering]);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsHovering(false);
+    setHoveredSegment(null);
+  }, []);
+
+  // Funções memoizadas para melhor performance
+  const segmentDescriptions = useMemo(() => ({
+    'campeoes': 'Seus melhores clientes! Compram frequentemente, recentemente e gastam muito.',
+    'clientes_fieis': 'Clientes fiéis que compram regularmente e têm alto valor.',
+    'potenciais_fieis': 'Clientes com potencial para se tornarem leais e valiosos.',
+    'promissores': 'Novos clientes com bom potencial de crescimento.',
+    'clientes_recentes': 'Novos clientes que fizeram primeira compra recentemente.',
+    'em_risco': 'Clientes valiosos que podem estar indo embora.',
+    'precisam_atencao': 'Bons clientes que precisam de atenção para não se tornarem inativos.',
+    'prestes_hibernar': 'Clientes em risco de se tornarem inativos.',
+    'hibernando': 'Clientes inativos com baixa frequência e valor.',
+    'perdidos': 'Clientes que não compram há muito tempo e com baixo valor.',
+    'nao_posso_perder': 'Seus melhores clientes que estão se tornando inativos.',
+    'novos_valiosos': 'Novos clientes com alto valor inicial.',
+    'recencia_alta_valor_alto': 'Clientes com recência alta mas valor significativo.',
+    'outros': 'Outros segmentos de clientes.'
+  }), []);
+
+  const segmentRecommendations = useMemo(() => ({
+    'campeoes': 'Recompense-os! Ofereça produtos premium e programas VIP.',
+    'clientes_fieis': 'Mantenha o relacionamento com ofertas exclusivas.',
+    'potenciais_fieis': 'Crie campanhas para aumentar a frequência de compra.',
+    'promissores': 'Eduque sobre outros produtos e benefícios.',
+    'clientes_recentes': 'Desenvolva programa de onboarding personalizado.',
+    'em_risco': 'Campanhas urgentes de retenção personalizadas.',
+    'precisam_atencao': 'Campanhas de engajamento e ofertas personalizadas.',
+    'prestes_hibernar': 'Ofertas especiais para manter o engajamento.',
+    'hibernando': 'Campanhas de reativação com ofertas irresistíveis.',
+    'perdidos': 'Campanhas de winback agressivas ou considerar como perdidos.',
+    'nao_posso_perder': 'Estratégia VIP de reconquista imediata.',
+    'novos_valiosos': 'Programa de fidelização desde o início.',
+    'recencia_alta_valor_alto': 'Foque em aumentar a frequência de compra.',
+    'outros': 'Desenvolva estratégia específica para este segmento.'
+  }), []);
+
+  const segmentIcons = useMemo(() => ({
+    'campeoes': <Crown size={20} />,
+    'clientes_fieis': <Star size={20} />,
+    'potenciais_fieis': <Users size={20} />,
+    'promissores': <Target size={20} />,
+    'clientes_recentes': <Clock size={20} />,
+    'em_risco': <AlertTriangle size={20} />,
+    'precisam_atencao': <AlertCircle size={20} />,
+    'prestes_hibernar': <Moon size={20} />,
+    'hibernando': <Bed size={20} />,
+    'perdidos': <XCircle size={20} />,
+    'nao_posso_perder': <AlertCircle size={20} />,
+    'novos_valiosos': <Zap size={20} />,
+    'recencia_alta_valor_alto': <TrendingUp size={20} />,
+    'outros': <Users size={20} />
+  }), []);
+
+  const getSegmentDescription = useCallback((segment) => {
+    return segmentDescriptions[segment.id] || 'Segmento de clientes RFV';
+  }, [segmentDescriptions]);
+
+  const getRecommendation = useCallback((segment) => {
+    return segmentRecommendations[segment.id] || 'Desenvolva estratégia específica para este segmento.';
+  }, [segmentRecommendations]);
+
+  const getSegmentIcon = useCallback((segment) => {
+    return segmentIcons[segment.id] || <Users size={20} />;
+  }, [segmentIcons]);
 
   const totalCustomers = rfvData.reduce((sum, segment) => sum + (segment.clientes || 0), 0);
   const totalRevenue = rfvData.reduce((sum, segment) => sum + (segment.faturamento || 0), 0);
@@ -554,11 +621,22 @@ const MatrizRFVComponent = ({
                     className={`treemap-item ${itemSize} ${selectedSegmentForDetails?.id === dados.id ? 'selected' : ''}`}
                     style={{backgroundColor: dados.cor}}
                     onClick={() => handleSegmentClick(dados)}
+                    onMouseEnter={(e) => handleMouseEnter(dados, e)}
+                    onMouseMove={handleMouseMove}
+                    onMouseLeave={handleMouseLeave}
                   >
-                    <div className="treemap-percentage">{dados.percentual}%</div>
+                    <div className="treemap-percentage-with-icon">
+                      <span className="treemap-percentage">{dados.percentual}%</span>
+                      <span className="treemap-icon">
+                        {getSegmentIcon(dados)}
+                      </span>
+                    </div>
                     <div className="treemap-name">{dados.nome}</div>
-                    <div className="treemap-count">{dados.clientes} clientes</div>
-                    <div className="treemap-value">{formatCurrency(dados.valorTotal || 0)}</div>
+                    <div className="treemap-count-value">
+                      <span className="treemap-count">{dados.clientes} clientes</span>
+                      <span className="treemap-separator"> | </span>
+                      <span className="treemap-value">{formatCurrency(dados.valorTotal || 0)}</span>
+                    </div>
                   </div>
                 );
               })}
@@ -566,16 +644,44 @@ const MatrizRFVComponent = ({
         )}
       </div>
 
-      {/* Novo Treemap RFM */}
-      <RFMTreemapChart 
-        startDate={startDate}
-        endDate={endDate}
-        selectedFunnel={selectedFunnel}
-        selectedUnit={selectedUnit}
-        selectedSeller={selectedSeller}
-        selectedOrigin={selectedOrigin}
-        isDarkMode={isDarkMode}
-      />
+
+      {/* Tooltip otimizado */}
+      {hoveredSegment && isHovering && (
+        <div 
+          className="rfv-tooltip"
+          style={{
+            left: mousePosition.x + 15,
+            top: mousePosition.y - 10,
+            position: 'fixed',
+            zIndex: 1000
+          }}
+        >
+          <div className="rfv-tooltip-header">
+            <span className="rfv-tooltip-icon">{getSegmentIcon(hoveredSegment)}</span>
+            <span className="rfv-tooltip-title">{hoveredSegment.nome}</span>
+          </div>
+          
+          <div className="rfv-tooltip-stats">
+            <div className="rfv-tooltip-stat">
+              <span className="rfv-tooltip-label">Clientes:</span>
+              <span className="rfv-tooltip-value">{hoveredSegment.clientes}</span>
+            </div>
+            <div className="rfv-tooltip-stat">
+              <span className="rfv-tooltip-label">Percentual:</span>
+              <span className="rfv-tooltip-value">{hoveredSegment.percentual}%</span>
+            </div>
+            <div className="rfv-tooltip-stat">
+              <span className="rfv-tooltip-label">Valor Total:</span>
+              <span className="rfv-tooltip-value">{formatCurrency(hoveredSegment.valorTotal || 0)}</span>
+            </div>
+          </div>
+
+          <div className="rfv-tooltip-description">
+            <p><strong>Descrição:</strong> {getSegmentDescription(hoveredSegment)}</p>
+            <p><strong>Recomendação:</strong> {getRecommendation(hoveredSegment)}</p>
+          </div>
+        </div>
+      )}
 
       {/* Componente de Oportunidades do RFV */}
       <RFVOpportunitiesCard 
