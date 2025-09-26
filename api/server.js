@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleAdsApi } from 'google-ads-api';
+import firebirdService from './firebird-service.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -521,6 +522,172 @@ app.get('/api/stats', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Erro ao buscar estatísticas:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// =================== ENDPOINTS DO FIREBIRD ===================
+
+/**
+ * Teste de conexão com Firebird
+ */
+app.get('/api/firebird/test-connection', async (req, res) => {
+  try {
+    console.log('🧪 Testando conexão Firebird...');
+    const result = await firebirdService.testConnection();
+
+    res.json({
+      success: result.success,
+      message: result.message,
+      data: result.success ? {
+        serverTime: result.serverTime,
+        config: result.config
+      } : null,
+      error: result.success ? null : result.error,
+      timestamp: new Date().toISOString()
+    });
+
+  } catch (error) {
+    console.error('❌ Erro no teste de conexão Firebird:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Listar todas as tabelas do banco Firebird
+ */
+app.get('/api/firebird/tables', async (req, res) => {
+  try {
+    console.log('📋 Listando tabelas Firebird...');
+    const tables = await firebirdService.listTables();
+
+    res.json({
+      success: true,
+      data: tables,
+      count: tables.length
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao listar tabelas:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Descrever estrutura de uma tabela
+ */
+app.get('/api/firebird/tables/:tableName/structure', async (req, res) => {
+  try {
+    const { tableName } = req.params;
+    console.log(`📋 Descrevendo tabela: ${tableName}`);
+
+    const fields = await firebirdService.describeTable(tableName);
+
+    res.json({
+      success: true,
+      data: {
+        tableName: tableName.toUpperCase(),
+        fields: fields
+      },
+      count: fields.length
+    });
+
+  } catch (error) {
+    console.error(`❌ Erro ao descrever tabela ${req.params.tableName}:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Buscar dados de uma tabela
+ */
+app.get('/api/firebird/tables/:tableName/data', async (req, res) => {
+  try {
+    const { tableName } = req.params;
+    const {
+      fields = '*',
+      where = '',
+      orderBy = '',
+      limit = 50,
+      offset = 0
+    } = req.query;
+
+    console.log(`🔍 Buscando dados da tabela: ${tableName}`);
+
+    const result = await firebirdService.selectFromTable(tableName, {
+      fields,
+      where,
+      orderBy,
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    res.json({
+      success: true,
+      data: result.data,
+      count: result.count,
+      hasMore: result.hasMore,
+      pagination: {
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      }
+    });
+
+  } catch (error) {
+    console.error(`❌ Erro ao buscar dados da tabela ${req.params.tableName}:`, error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Executar query customizada
+ */
+app.post('/api/firebird/query', async (req, res) => {
+  try {
+    const { sql, params = [], limit = 100, offset = 0 } = req.body;
+
+    if (!sql) {
+      return res.status(400).json({
+        success: false,
+        error: 'SQL query is required'
+      });
+    }
+
+    console.log('🔍 Executando query customizada...');
+
+    const result = await firebirdService.customQuery(sql, params, {
+      limit: parseInt(limit),
+      offset: parseInt(offset)
+    });
+
+    res.json({
+      success: true,
+      data: result.data,
+      count: result.count,
+      hasMore: result.hasMore,
+      pagination: {
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Erro na query customizada:', error);
     res.status(500).json({
       success: false,
       error: error.message

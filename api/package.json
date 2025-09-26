@@ -11,6 +11,7 @@
     "express": "^4.21.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
-    "google-ads-api": "^21.0.1"
+    "google-ads-api": "^21.0.1",
+    "node-firebird": "^1.1.9"
   }
 }
