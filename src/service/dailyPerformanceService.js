@@ -856,11 +856,26 @@ const fetchAllMetasOptimized = async (selectedUnit, selectedFunnel, selectedSell
         case 'taxa_conversao_sabado':
           metasOrganizadas.conversao.sabado[chaveUnica] = valor;
           break;
+        case 'conversao_ronda':
+          metasOrganizadas.conversao.diaria[chaveUnica] = valor;
+          break;
         case 'ticket_medio_diario':
           metasOrganizadas.ticketMedio.diaria[chaveUnica] = valor;
           break;
         case 'ticket_medio_sabado':
           metasOrganizadas.ticketMedio.sabado[chaveUnica] = valor;
+          break;
+        case 'oportunidades_faturamento_diario':
+          metasOrganizadas.faturamento.diaria[chaveUnica] = valor;
+          break;
+        case 'ganhos_oportunidades':
+          metasOrganizadas.vendas.diaria[chaveUnica] = valor;
+          break;
+        case 'novas_oportunidades':
+          metasOrganizadas.leads.diaria[chaveUnica] = valor;
+          break;
+        case 'ticketmedio_oportunidades':
+          metasOrganizadas.ticketMedio.diaria[chaveUnica] = valor;
           break;
       }
     });
