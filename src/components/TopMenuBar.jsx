@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { syncFollowUpStage, checkFollowUpSync } from '../service/sprintHubSyncService';
 import { testFunilSpecific, testFunilSpecificWithUnit } from '../service/totalOportunidadesService';
 import autoSyncService from '../service/autoSyncService';
+import scheduledSyncService from '../service/scheduledSyncService';
+import notificationService from '../service/notificationService';
 // Imports temporariamente removidos - arquivos não existem no repositório
 // import { generateDuplicateReport, performFullCleanup } from '../service/duplicateCleanupService';
 // import { syncTodayOnly, syncAll, checkFullSync } from '../service/unifiedSyncService';
@@ -68,6 +70,11 @@ const TopMenuBar = ({
   const [isHourlySyncRunning, setIsHourlySyncRunning] = useState(false);
   const [hourlySyncInterval, setHourlySyncInterval] = useState(null);
   const [syncProgress, setSyncProgress] = useState(null);
+  
+  // Estados para sincronização agendada
+  const [isScheduledSyncRunning, setIsScheduledSyncRunning] = useState(false);
+  const [nextScheduledSync, setNextScheduledSync] = useState(null);
+  const [scheduledSyncTimes, setScheduledSyncTimes] = useState([]);
   const languageDropdownRef = useRef(null);
   
   // Verificar se é admin (temporário - baseado nas credenciais fixas)
@@ -2392,6 +2399,51 @@ const TopMenuBar = ({
     }
   }, []);
 
+  // Função para iniciar/parar sincronização agendada
+  const handleToggleScheduledSync = () => {
+    const status = scheduledSyncService.getStatus();
+    
+    if (status.isRunning) {
+      scheduledSyncService.stop();
+      setIsScheduledSyncRunning(false);
+      logger.info('⏹️ Sincronização agendada parada');
+    } else {
+      scheduledSyncService.start();
+      setIsScheduledSyncRunning(true);
+      updateScheduledSyncInfo();
+      logger.info('🚀 Sincronização agendada iniciada');
+    }
+  };
+
+  // Função para atualizar informações da sincronização agendada
+  const updateScheduledSyncInfo = () => {
+    const status = scheduledSyncService.getStatus();
+    const nextTimes = scheduledSyncService.getNextSyncTimes();
+    
+    setNextScheduledSync(status.nextSyncTime);
+    setScheduledSyncTimes(nextTimes);
+  };
+
+  // Função para forçar sincronização agendada
+  const handleForceScheduledSync = async () => {
+    if (isScheduledSyncRunning) return;
+    
+    setIsScheduledSyncRunning(true);
+    try {
+      const result = await scheduledSyncService.forceSync();
+      if (result.success) {
+        logger.info('✅ Sincronização agendada executada com sucesso');
+        updateScheduledSyncInfo();
+      } else {
+        logger.error('❌ Erro na sincronização agendada:', result.error);
+      }
+    } catch (error) {
+      logger.error('❌ Erro ao executar sincronização agendada:', error);
+    } finally {
+      setIsScheduledSyncRunning(false);
+    }
+  };
+
   // Carregar status do serviço de sincronização ao montar
   useEffect(() => {
     const status = autoSyncService.getStatus();
@@ -2410,6 +2462,25 @@ const TopMenuBar = ({
     
     return () => {
       window.removeEventListener('syncStatusUpdated', handleSyncUpdate);
+    };
+  }, []);
+
+  // Carregar status da sincronização agendada ao montar
+  useEffect(() => {
+    const status = scheduledSyncService.getStatus();
+    setIsScheduledSyncRunning(status.isRunning);
+    updateScheduledSyncInfo();
+    
+    // Escutar atualizações da sincronização agendada
+    const handleScheduledSyncUpdate = (event) => {
+      setLastSyncTime(event.detail.lastSyncTime);
+      updateScheduledSyncInfo();
+    };
+    
+    window.addEventListener('scheduledSyncUpdated', handleScheduledSyncUpdate);
+    
+    return () => {
+      window.removeEventListener('scheduledSyncUpdated', handleScheduledSyncUpdate);
     };
   }, []);
 
@@ -2512,6 +2583,27 @@ const TopMenuBar = ({
           <span className="tmb-sync-time">{formatSyncTime(lastSyncTime)}</span>
         </div>
         
+        {/* Status da Sincronização Agendada */}
+        {isScheduledSyncRunning && (
+          <div className="tmb-sync-info">
+            <span className="tmb-sync-label">Próxima sincronização:</span>
+            <span className="tmb-sync-time">
+              {nextScheduledSync ? formatSyncTime(nextScheduledSync) : 'Calculando...'}
+            </span>
+          </div>
+        )}
+        
+        {/* Horários de Sincronização */}
+        {isScheduledSyncRunning && scheduledSyncTimes.length > 0 && (
+          <div className="tmb-sync-info">
+            <span className="tmb-sync-label">Horários:</span>
+            <span className="tmb-sync-time">
+              {scheduledSyncTimes.slice(0, 3).map(time => time.formatted).join(', ')}
+              {scheduledSyncTimes.length > 3 && '...'}
+            </span>
+          </div>
+        )}
+        
         {/* Botões do Serviço Diário - apenas para admin */}
         {isAdmin && (
           <>
@@ -2534,6 +2626,58 @@ const TopMenuBar = ({
                 </>
               )}
             </button>
+
+            {/* Botão de Sincronização Agendada */}
+            <button 
+              className={`tmb-sync-btn ${isScheduledSyncRunning ? 'syncing' : ''}`}
+              onClick={handleToggleScheduledSync}
+              disabled={isScheduledSyncRunning}
+              title={`🕐 SINCRONIZAÇÃO AGENDADA - ${isScheduledSyncRunning ? 'Parar' : 'Iniciar'} sincronização automática nos horários: 8:00, 9:50, 11:50, 13:50, 15:50, 17:50, 19:50, 20:50 (Brasília)`}
+              style={{ 
+                marginLeft: '8px', 
+                background: isScheduledSyncRunning 
+                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
+              }}
+            >
+              {isScheduledSyncRunning ? (
+                <>
+                  <span className="tmb-sync-spinner"></span>
+                  Parando...
+                </>
+              ) : (
+                <>
+                  🕐 AUTO SYNC
+                </>
+              )}
+            </button>
+
+            {/* Botão para forçar sincronização agendada */}
+            {isScheduledSyncRunning && (
+              <button 
+                className={`tmb-sync-btn ${isScheduledSyncRunning ? 'syncing' : ''}`}
+                onClick={handleForceScheduledSync}
+                disabled={isScheduledSyncRunning}
+                title="🔄 FORÇAR SYNC - Executar sincronização agendada agora"
+                style={{ 
+                  marginLeft: '8px', 
+                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                  fontSize: '12px',
+                  padding: '4px 8px'
+                }}
+              >
+                {isScheduledSyncRunning ? (
+                  <>
+                    <span className="tmb-sync-spinner"></span>
+                    Executando...
+                  </>
+                ) : (
+                  <>
+                    🔄 FORÇAR
+                  </>
+                )}
+              </button>
+            )}
 
 
           </>

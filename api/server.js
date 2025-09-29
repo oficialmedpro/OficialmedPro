@@ -45,6 +45,9 @@ console.log('🔑 Supabase Key:', SUPABASE_KEY ? '✅ Configurada' : '❌ Não c
 let cachedCredentials = null;
 let credentialsExpiry = null;
 
+// Importar script de sincronização
+import { spawn } from 'child_process';
+
 /**
  * Busca credenciais do Google Ads do Supabase
  */
@@ -695,6 +698,122 @@ app.post('/api/firebird/query', async (req, res) => {
   }
 });
 
+// Endpoint para sincronização automática
+app.post('/api/sync-now', async (req, res) => {
+  try {
+    console.log('🔄 Iniciando sincronização via API...');
+    
+    const { source = 'api', timestamp } = req.body;
+    
+    // Executar script de sincronização
+    const syncScript = path.join(__dirname, '..', 'src', 'sincronizacao', 'sync-now.js');
+    
+    const child = spawn('node', [syncScript], {
+      stdio: 'pipe',
+      cwd: path.join(__dirname, '..'),
+      env: {
+        ...process.env,
+        FORCE_SYNC: 'true'
+      }
+    });
+    
+    let output = '';
+    let errorOutput = '';
+    
+    child.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+    
+    child.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+    
+    child.on('close', (code) => {
+      if (code === 0) {
+        console.log('✅ Sincronização concluída com sucesso');
+        res.json({
+          success: true,
+          message: 'Sincronização concluída com sucesso',
+          source,
+          timestamp: new Date().toISOString(),
+          output: output.trim()
+        });
+      } else {
+        console.error('❌ Erro na sincronização:', errorOutput);
+        res.status(500).json({
+          success: false,
+          message: 'Erro na sincronização',
+          source,
+          timestamp: new Date().toISOString(),
+          error: errorOutput.trim(),
+          code
+        });
+      }
+    });
+    
+    child.on('error', (error) => {
+      console.error('❌ Erro ao executar sincronização:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro ao executar sincronização',
+        source,
+        timestamp: new Date().toISOString(),
+        error: error.message
+      });
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro no endpoint de sincronização:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor',
+      source: 'api',
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  }
+});
+
+// Endpoint para status da sincronização
+app.get('/api/sync-status', async (req, res) => {
+  try {
+    // Buscar última sincronização do banco
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/sincronizacao?select=created_at,descricao&order=created_at.desc&limit=1`, {
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'apikey': SUPABASE_KEY,
+        'Accept-Profile': 'api'
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      const lastSync = data.length > 0 ? data[0] : null;
+      
+      res.json({
+        success: true,
+        lastSyncTime: lastSync?.created_at || null,
+        lastSyncDescription: lastSync?.descricao || null,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Erro ao buscar status da sincronização',
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error) {
+    console.error('❌ Erro ao buscar status:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erro interno do servidor',
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  }
+});
+
 // Servir arquivos estáticos do frontend em produção
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '..', 'dist')));
@@ -711,6 +830,96 @@ app.listen(PORT, () => {
   if (process.env.NODE_ENV === 'production') {
     console.log('🌐 Modo produção: servindo arquivos estáticos');
   }
+  // Iniciar agendador backend (independente do frontend) se habilitado
+  if (process.env.ENABLE_BACKEND_SCHEDULER === 'true') {
+    startBackendScheduler();
+  } else {
+    console.log('⏸️ Backend scheduler desabilitado (ENABLE_BACKEND_SCHEDULER != "true")');
+  }
 });
 
 export default app;
+
+// =============================
+//    BACKEND SCHEDULER (TZ BR)
+// =============================
+
+// Executa sincronização automática nos horários fixos de Brasília,
+// mesmo que ninguém abra o dashboard. Evita duplicidade por minuto.
+
+function getSaoPauloParts(date = new Date()) {
+  const dtf = new Intl.DateTimeFormat('pt-BR', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  });
+  const parts = dtf.formatToParts(date).reduce((acc, p) => {
+    acc[p.type] = p.value; return acc;
+  }, {});
+  // parts: { year, month, day, hour, minute, second }
+  return parts;
+}
+
+function startBackendScheduler() {
+  const times = [
+    { hour: 8, minute: 0 },
+    { hour: 9, minute: 50 },
+    { hour: 11, minute: 50 },
+    { hour: 13, minute: 50 },
+    { hour: 15, minute: 50 },
+    { hour: 17, minute: 50 },
+    { hour: 19, minute: 50 },
+    { hour: 20, minute: 50 }
+  ];
+
+  let lastRunKey = null; // Ex: '2025-09-29 08:00'
+
+  function shouldRunNow() {
+    const p = getSaoPauloParts();
+    const h = parseInt(p.hour, 10);
+    const m = parseInt(p.minute, 10);
+    const match = times.some(t => t.hour === h && t.minute === m);
+    if (!match) return false;
+    const key = `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`;
+    if (lastRunKey === key) return false; // já rodou neste minuto
+    lastRunKey = key;
+    return true;
+  }
+
+  function runSyncNow() {
+    try {
+      const syncScript = path.join(__dirname, '..', 'src', 'sincronizacao', 'sync-now.js');
+      const child = spawn('node', [syncScript], {
+        stdio: 'inherit',
+        cwd: path.join(__dirname, '..'),
+        env: { ...process.env, FORCE_SYNC: 'true' }
+      });
+      child.on('close', (code) => {
+        const status = code === 0 ? 'sucesso' : `erro (codigo ${code})`;
+        const when = new Date().toISOString();
+        console.log(`🕐 Scheduler backend: sincronização finalizada com ${status} em ${when}`);
+      });
+      child.on('error', (err) => {
+        console.error('❌ Scheduler backend: erro ao spawnar sync-now.js', err);
+      });
+    } catch (err) {
+      console.error('❌ Scheduler backend: erro inesperado ao iniciar sync', err);
+    }
+  }
+
+  console.log('🕐 Backend scheduler ativado (fuso America/Sao_Paulo).');
+  console.log('⏰ Horários: 08:00, 09:50, 11:50, 13:50, 15:50, 17:50, 19:50, 20:50 (Brasília)');
+
+  // Checa a cada 15 segundos para pegar o minuto exato
+  setInterval(() => {
+    if (shouldRunNow()) {
+      console.log('🚀 Scheduler backend: disparando sincronização...');
+      runSyncNow();
+    }
+  }, 15000);
+}
