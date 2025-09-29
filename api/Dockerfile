@@ -3,6 +3,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Instalar dependências do sistema
+RUN apk add --no-cache git
+
 # Dependências
 COPY api/package*.json ./
 RUN npm ci --omit=dev
