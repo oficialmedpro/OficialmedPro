@@ -52,19 +52,17 @@ const RFVMetricsCards = ({
         console.log('✅ RFVMetricsCards: Métricas recebidas:', rfvMetrics);
         setMetrics(rfvMetrics);
       } catch (error) {
-        console.error('Erro ao carregar métricas RFV:', error);
+        console.error('❌ Erro ao carregar métricas RFV:', error);
 
-        // Fallback para dados simulados em caso de erro
-        const fallbackMetrics = {
-          totalClientes: 245,
-          faturamento: 156000,
-          ticketMedio: 420,
-          clientesAtivos: 89,
-          clientesNovos: 23,
-          clientesEmRisco: 12
-        };
-
-        setMetrics(fallbackMetrics);
+        // Sem fallback - mostrar estado vazio em caso de erro
+        setMetrics({
+          totalClientes: 0,
+          faturamento: 0,
+          ticketMedio: 0,
+          clientesAtivos: 0,
+          clientesNovos: 0,
+          clientesEmRisco: 0
+        });
       }
 
       setIsLoading(false);

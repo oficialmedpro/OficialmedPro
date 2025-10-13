@@ -73,12 +73,12 @@ class ScheduledSyncService {
     // Executar sincronização via API
     async performSync() {
         try {
-            console.log('🔄 Iniciando sincronização automática agendada...');
+            console.log('🚀 Iniciando sincronização OTIMIZADA automática agendada...');
             
             // Notificar início da sincronização
             notificationService.notifySyncStarted();
             
-            // Chamar endpoint de sincronização
+            // Chamar endpoint de sincronização com flag optimized=true
             const response = await fetch('/api/sync-now', {
                 method: 'POST',
                 headers: {
@@ -86,13 +86,14 @@ class ScheduledSyncService {
                 },
                 body: JSON.stringify({
                     source: 'scheduled_sync',
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
+                    optimized: true // ⚡ Usar sincronização otimizada
                 })
             });
 
             if (response.ok) {
                 const result = await response.json();
-                console.log('✅ Sincronização automática concluída:', result);
+                console.log('✅ Sincronização OTIMIZADA automática concluída:', result);
                 
                 // Atualizar tempo da última sincronização
                 this.lastSyncTime = new Date();

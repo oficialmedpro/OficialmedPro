@@ -44,9 +44,7 @@ const MatrizRFVPage = ({ onLogout }) => {
     lastUpdate: new Date()
   });
 
-  // Estados específicos para RFV
-  const [rfvData, setRfvData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Estados específicos para RFV (removidos - não utilizados)
 
   // Traduções
   const t = translations[currentLanguage];
@@ -252,7 +250,7 @@ const MatrizRFVPage = ({ onLogout }) => {
           selectedSeller={selectedSeller}
           selectedOrigin={selectedOrigin}
           isDarkMode={isDarkMode}
-          loading={loading}
+          loading={false}
         />
 
         {/* Matriz RFV Component */}

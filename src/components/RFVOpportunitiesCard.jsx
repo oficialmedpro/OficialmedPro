@@ -114,6 +114,7 @@ const RFVOpportunitiesCard = ({
         `)
         .in('lead_id', leadIds)
         .eq('archived', 0)
+        .eq('status', 'gain') // 🔧 CORREÇÃO: Filtrar apenas oportunidades ganhas
         .order('create_date', { ascending: false })
         .range(offset, offset + itemsPerPage - 1);
 
@@ -124,7 +125,8 @@ const RFVOpportunitiesCard = ({
         return;
       }
 
-      console.log('✅ Oportunidades encontradas:', oportunidades?.length || 0);
+      console.log('✅ Oportunidades GANHAS encontradas:', oportunidades?.length || 0);
+      console.log('🔧 DEBUG - Filtro aplicado: status=gain, archived=0');
 
       // Buscar nomes dos vendedores usando user_id como id_sprint
       let vendedorBySprintId = {};

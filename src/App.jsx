@@ -18,6 +18,7 @@ import LossReasonsDebugPage from './pages/LossReasonsDebugPage'
 import DebugRankingPage from './pages/DebugRankingPage'
 import DebugSellerRankingPage from './pages/DebugSellerRankingPage'
 import DebugTicketRankingPage from './pages/DebugTicketRankingPage'
+import UserManagementPage from './pages/UserManagementPage'
 import Login from './components/Login'
 import autoSyncService from './service/autoSyncService'
 
@@ -120,6 +121,7 @@ function App() {
         <Route path="/debug-ranking" element={<DebugRankingPage onLogout={handleLogout} />} />
         <Route path="/debug-seller-ranking" element={<DebugSellerRankingPage onLogout={handleLogout} />} />
         <Route path="/debug-ticket-ranking" element={<DebugTicketRankingPage onLogout={handleLogout} />} />
+        <Route path="/usuarios" element={<UserManagementPage onLogout={handleLogout} />} />
       </Routes>
     </Router>
   )

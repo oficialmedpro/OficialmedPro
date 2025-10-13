@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './UserManagementPage.css';
 
-const UserManagementPage = () => {
+const UserManagementPage = ({ onLogout }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -12,71 +12,35 @@ const UserManagementPage = () => {
   const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
-  // Mock data - substituir por chamada à API
+  // Buscar usuários da API
   useEffect(() => {
-    // Simular carregamento
-    setTimeout(() => {
-      setUsers([
-        {
-          id: 260,
-          status: 'online',
-          avatar: '/api/placeholder/40/40',
-          firstName: 'Ailton',
-          lastName: 'dos Santos',
-          username: 'ailton',
-          email: 'farmaceuticooficialmedlondrina@gmail.com',
-          access: 'liberado',
-          userType: 'padrão',
-          createdAt: '10/09/2025 05:14',
-          lastLogin: '20/09/2025 08:41',
-          lastAction: '20/09/2025 08:42'
-        },
-        {
-          id: 255,
-          status: 'offline',
-          avatar: '/api/placeholder/40/40',
-          firstName: 'Financeiro',
-          lastName: 'Oficialmed',
-          username: 'financeiro_ofm',
-          email: 'financeiro@oficialmed.com.br',
-          access: 'liberado',
-          userType: 'administrador',
-          createdAt: '09/09/2025 14:30',
-          lastLogin: '19/09/2025 16:20',
-          lastAction: '19/09/2025 16:25'
-        },
-        {
-          id: 240,
-          status: 'offline',
-          avatar: '/api/placeholder/40/40',
-          firstName: 'Gabrielli',
-          lastName: 'Henriques',
-          username: 'gabi',
-          email: 'gabrielli@oficialmed.com.br',
-          access: 'liberado',
-          userType: 'administrador',
-          createdAt: '08/09/2025 10:15',
-          lastLogin: '19/09/2025 15:45',
-          lastAction: '19/09/2025 15:50'
-        },
-        {
-          id: 235,
-          status: 'ausente',
-          avatar: '/api/placeholder/40/40',
-          firstName: 'Gustavo',
-          lastName: 'de Paula',
-          username: 'gustavo',
-          email: 'gustavo@oficialmed.com.br',
-          access: 'liberado',
-          userType: 'padrão',
-          createdAt: '07/09/2025 09:20',
-          lastLogin: '19/09/2025 14:30',
-          lastAction: '19/09/2025 14:35'
-        }
-      ]);
-      setLoading(false);
-    }, 1000);
+    loadUsers();
   }, []);
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/users');
+
+      if (!response.ok) {
+        throw new Error(`Erro ao carregar usuários: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        setUsers(data.data);
+      } else {
+        console.error('Erro na resposta da API:', data.error);
+        alert('Erro ao carregar usuários: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar usuários:', error);
+      alert('Erro ao conectar com a API: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -127,6 +91,113 @@ const UserManagementPage = () => {
   const handleTransferUser = (user) => {
     // Implementar lógica de transferência
     console.log('Transferir usuário:', user);
+  };
+
+  const handleCreateUser = async (userData) => {
+    try {
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`Usuário criado com sucesso!\nSenha temporária: ${data.tempPassword}`);
+        loadUsers(); // Recarregar lista
+        setShowNewUserModal(false);
+      } else {
+        alert('Erro ao criar usuário: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Erro ao criar usuário:', error);
+      alert('Erro ao conectar com a API: ' + error.message);
+    }
+  };
+
+  const handleUpdateUser = async (userData) => {
+    try {
+      const response = await fetch(`/api/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('Usuário atualizado com sucesso!');
+        loadUsers(); // Recarregar lista
+        setShowEditUserModal(false);
+        setSelectedUser(null);
+      } else {
+        alert('Erro ao atualizar usuário: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar usuário:', error);
+      alert('Erro ao conectar com a API: ' + error.message);
+    }
+  };
+
+  const handleResetPassword = async (userId) => {
+    if (!confirm('Deseja realmente resetar a senha deste usuário?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/users/${userId}/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`Senha resetada com sucesso!\nNova senha: ${data.tempPassword}`);
+      } else {
+        alert('Erro ao resetar senha: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Erro ao resetar senha:', error);
+      alert('Erro ao conectar com a API: ' + error.message);
+    }
+  };
+
+  const handleToggleUserAccess = async (userId, currentAccess) => {
+    const action = currentAccess === 'liberado' ? 'bloquear' : 'desbloquear';
+
+    if (!confirm(`Deseja realmente ${action} este usuário?`)) {
+      return;
+    }
+
+    try {
+      const endpoint = currentAccess === 'liberado' ? 'ban' : 'unban';
+      const response = await fetch(`/api/users/${userId}/${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`Usuário ${action === 'bloquear' ? 'bloqueado' : 'desbloqueado'} com sucesso!`);
+        loadUsers(); // Recarregar lista
+      } else {
+        alert(`Erro ao ${action} usuário: ` + data.error);
+      }
+    } catch (error) {
+      console.error(`Erro ao ${action} usuário:`, error);
+      alert('Erro ao conectar com a API: ' + error.message);
+    }
   };
 
   if (loading) {
@@ -255,7 +326,7 @@ const UserManagementPage = () => {
                 <td className="user-last-action">{user.lastAction}</td>
                 
                 <td className="user-actions">
-                  <button 
+                  <button
                     className="btn-edit"
                     onClick={() => handleEditUser(user)}
                     title="Editar usuário"
@@ -266,17 +337,42 @@ const UserManagementPage = () => {
                     </svg>
                     Editar
                   </button>
-                  
-                  <button 
-                    className="btn-transfer"
-                    onClick={() => handleTransferUser(user)}
-                    title="Transferir usuário"
+
+                  <button
+                    className="btn-reset-password"
+                    onClick={() => handleResetPassword(user.id)}
+                    title="Resetar senha"
                   >
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H5a2 2 0 0 0-2-2z"></path>
-                      <path d="M8 21v-4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v4"></path>
-                      <path d="M12 3v18"></path>
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <circle cx="12" cy="16" r="1"></circle>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                     </svg>
+                    Reset
+                  </button>
+
+                  <button
+                    className={user.access === 'liberado' ? 'btn-ban' : 'btn-unban'}
+                    onClick={() => handleToggleUserAccess(user.id, user.access)}
+                    title={user.access === 'liberado' ? 'Bloquear usuário' : 'Desbloquear usuário'}
+                  >
+                    {user.access === 'liberado' ? (
+                      <>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                        </svg>
+                        Bloquear
+                      </>
+                    ) : (
+                      <>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                          <polyline points="22,4 12,14.01 9,11.01"></polyline>
+                        </svg>
+                        Liberar
+                      </>
+                    )}
                   </button>
                 </td>
               </tr>
@@ -336,29 +432,20 @@ const UserManagementPage = () => {
 
       {/* Modais */}
       {showNewUserModal && (
-        <NewUserModal 
+        <NewUserModal
           onClose={() => setShowNewUserModal(false)}
-          onSave={(userData) => {
-            // Implementar criação de usuário
-            console.log('Novo usuário:', userData);
-            setShowNewUserModal(false);
-          }}
+          onSave={handleCreateUser}
         />
       )}
 
       {showEditUserModal && selectedUser && (
-        <EditUserModal 
+        <EditUserModal
           user={selectedUser}
           onClose={() => {
             setShowEditUserModal(false);
             setSelectedUser(null);
           }}
-          onSave={(userData) => {
-            // Implementar edição de usuário
-            console.log('Editar usuário:', userData);
-            setShowEditUserModal(false);
-            setSelectedUser(null);
-          }}
+          onSave={handleUpdateUser}
         />
       )}
     </div>

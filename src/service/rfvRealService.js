@@ -21,20 +21,21 @@ const fetchAllRecords = async (url, headers) => {
   console.log('📄 RFV: Iniciando paginação para URL:', url);
 
   while (hasMore) {
-    const paginatedUrl = `${url}`;
-    const paginationHeaders = {
-      ...headers,
-      'Range': `${offset}-${offset + pageSize - 1}`
-    };
+    // Construir URL com offset e limit nativos do Supabase
+    const separator = url.includes('?') ? '&' : '?';
+    const paginatedUrl = `${url}${separator}offset=${offset}&limit=${pageSize}`;
+    
+    console.log(`📄 RFV: Buscando página ${Math.floor(offset / pageSize) + 1} - URL:`, paginatedUrl);
 
     try {
       const response = await fetch(paginatedUrl, {
         method: 'GET',
-        headers: paginationHeaders
+        headers: headers
       });
 
       if (!response.ok) {
         console.error(`❌ RFV: Erro na página ${Math.floor(offset / pageSize) + 1}:`, response.status);
+        console.error(`❌ RFV: Response text:`, await response.text());
         break;
       }
 
@@ -46,6 +47,7 @@ const fetchAllRecords = async (url, headers) => {
       // Se retornou menos que o tamanho da página, não há mais dados
       if (pageData.length < pageSize) {
         hasMore = false;
+        console.log(`📄 RFV: Última página atingida (${pageData.length} < ${pageSize})`);
       } else {
         offset += pageSize;
       }
@@ -53,11 +55,14 @@ const fetchAllRecords = async (url, headers) => {
       // Verificar Content-Range header para confirmar se há mais dados
       const contentRange = response.headers.get('Content-Range');
       if (contentRange) {
+        console.log(`📄 RFV: Content-Range header:`, contentRange);
         const match = contentRange.match(/(\d+)-(\d+)\/(\d+|\*)/);
         if (match) {
-          const [, , end, total] = match;
+          const [, start, end, total] = match;
+          console.log(`📄 RFV: Range: ${start}-${end}/${total}`);
           if (total !== '*' && parseInt(end) >= parseInt(total) - 1) {
             hasMore = false;
+            console.log(`📄 RFV: Fim dos dados detectado pelo Content-Range`);
           }
         }
       }
@@ -72,15 +77,29 @@ const fetchAllRecords = async (url, headers) => {
   return allRecords;
 };
 
+// Flag global para evitar múltiplas chamadas simultâneas
+let isProcessing = false;
+
 // Service NOVO para RFV usando o mesmo padrão do OportunidadesGanhasCard/thermometerService (REST PostgREST)
 export const rfvRealService = {
   async getRFVAnalysis({ startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin } = {}) {
+    // Evitar múltiplas chamadas simultâneas
+    if (isProcessing) {
+      console.log('🚫 rfvRealService: Chamada bloqueada - já processando');
+      return null;
+    }
+    
+    isProcessing = true;
+    console.log('🔒 rfvRealService: BLOQUEIO ATIVADO - processando...');
+    
     try {
       console.log('🔍 rfvRealService: Iniciando análise RFV com dados reais...');
       console.log('🔍 rfvRealService: Filtros recebidos:', { startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin });
+      console.log('🔍 rfvRealService: Stack trace:', new Error().stack?.split('\n').slice(1, 4).join('\n'));
+      console.log('🔍 rfvRealService: TIMESTAMP:', new Date().toISOString());
 
-      // 🔧 CORREÇÃO: Aplicar filtros exatos que a interface usa
-      let queryParams = `select=id,value,user_id,lead_id,create_date,gain_date,status&archived=eq.0&status=eq.gain`;
+      // 🔧 CORREÇÃO: Aplicar filtros exatos que a interface usa + campos do lead
+      let queryParams = `select=id,value,user_id,lead_id,create_date,gain_date,status,lead_firstname,lead_lastname,lead_whatsapp&archived=eq.0&status=eq.gain`;
 
       // Aplicar filtro de data para análise RFV (mesma lógica dos cartões)
       if (startDate && endDate) {
@@ -128,8 +147,15 @@ export const rfvRealService = {
       };
 
       // Usar paginação para buscar TODOS os registros
+      console.log('🔄 RFV Treemap: Iniciando busca de oportunidades...');
       const oportunidades = await fetchAllRecords(url, baseHeaders);
       console.log('📊 RFV Treemap: Oportunidades encontradas:', oportunidades.length);
+      console.log('📊 RFV Treemap: Primeiras 3 oportunidades:', oportunidades.slice(0, 3));
+      
+      if (oportunidades.length === 0) {
+        console.warn('⚠️ RFV Treemap: Nenhuma oportunidade encontrada!');
+        throw new Error('Nenhuma oportunidade encontrada para análise RFV');
+      }
 
       // Calcular métricas RFV simples
       const clientesMap = new Map();
@@ -146,12 +172,26 @@ export const rfvRealService = {
         totalFaturamento += valor;
 
         if (!clientesMap.has(leadId)) {
-          clientesMap.set(leadId, { lead_id: leadId, totalValor: 0, frequencia: 0, ultimaCompra: null });
+          clientesMap.set(leadId, { 
+            lead_id: leadId, 
+            totalValor: 0, 
+            frequencia: 0, 
+            ultimaCompra: null,
+            nome: op.lead_firstname || '',
+            sobrenome: op.lead_lastname || '',
+            whatsapp: op.lead_whatsapp || ''
+          });
         }
         const c = clientesMap.get(leadId);
         c.totalValor += valor;
         c.frequencia += 1;
-        if (data && (!c.ultimaCompra || data > c.ultimaCompra)) c.ultimaCompra = data;
+        if (data && (!c.ultimaCompra || data > c.ultimaCompra)) {
+          c.ultimaCompra = data;
+          // Atualizar dados do lead com a oportunidade mais recente
+          c.nome = op.lead_firstname || c.nome;
+          c.sobrenome = op.lead_lastname || c.sobrenome;
+          c.whatsapp = op.lead_whatsapp || c.whatsapp;
+        }
       });
 
       const hoje = new Date();
@@ -169,6 +209,10 @@ export const rfvRealService = {
 
       console.log('👥 Total de clientes únicos:', clientes.length);
       console.log('💰 Faturamento total:', totalFaturamento);
+      console.log('📊 Distribuição por segmento:', clientes.reduce((acc, c) => {
+        acc[c.segmento] = (acc[c.segmento] || 0) + 1;
+        return acc;
+      }, {}));
 
       // Montar distribuição para os gráficos de barras
       const distributionData = {
@@ -283,7 +327,7 @@ export const rfvRealService = {
       
       const matrixData = {};
 
-      return {
+      const result = {
         clientes,
         totalClientes: clientes.length,
         totalFaturamento,
@@ -296,11 +340,27 @@ export const rfvRealService = {
         }
       };
 
+      // Cache removido - causava problemas de valores mudando
+      console.log('🔍 rfvRealService: RESULTADO FINAL:', {
+        totalClientes: result.clientes?.length || 0,
+        totalSegmentos: result.segmentos?.length || 0,
+        primeiroSegmento: result.segmentos?.[0]?.nome || 'N/A',
+        primeiroClientes: result.segmentos?.[0]?.clientes || 0,
+        timestamp: new Date().toISOString()
+      });
+
+      return result;
+
     } catch (error) {
       console.error('❌ rfvRealService: Erro na análise RFV com dados reais:', error);
       throw error;
+    } finally {
+      isProcessing = false;
+      console.log('🔓 rfvRealService: BLOQUEIO LIBERADO');
     }
   },
+
+  // Função clearCache removida - cache foi removido
 
   async getRFVMetrics(params = {}) {
     try {
@@ -311,8 +371,8 @@ export const rfvRealService = {
         startDate, endDate, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin
       });
       
-      // 🔧 CORREÇÃO: Aplicar filtros exatos que a interface usa
-      let queryParams = `select=id,value,user_id,lead_id,create_date,gain_date,status&archived=eq.0&status=eq.gain`;
+      // 🔧 CORREÇÃO: Aplicar filtros exatos que a interface usa + campos do lead
+      let queryParams = `select=id,value,user_id,lead_id,create_date,gain_date,status,lead_firstname,lead_lastname,lead_whatsapp&archived=eq.0&status=eq.gain`;
 
       // Aplicar filtro de data para métricas do período
       if (startDate && endDate) {
@@ -374,12 +434,26 @@ export const rfvRealService = {
         totalFaturamento += valor;
 
         if (!clientesMap.has(leadId)) {
-          clientesMap.set(leadId, { lead_id: leadId, totalValor: 0, frequencia: 0, ultimaCompra: null });
+          clientesMap.set(leadId, { 
+            lead_id: leadId, 
+            totalValor: 0, 
+            frequencia: 0, 
+            ultimaCompra: null,
+            nome: op.lead_firstname || '',
+            sobrenome: op.lead_lastname || '',
+            whatsapp: op.lead_whatsapp || ''
+          });
         }
         const c = clientesMap.get(leadId);
         c.totalValor += valor;
         c.frequencia += 1;
-        if (data && (!c.ultimaCompra || data > c.ultimaCompra)) c.ultimaCompra = data;
+        if (data && (!c.ultimaCompra || data > c.ultimaCompra)) {
+          c.ultimaCompra = data;
+          // Atualizar dados do lead com a oportunidade mais recente
+          c.nome = op.lead_firstname || c.nome;
+          c.sobrenome = op.lead_lastname || c.sobrenome;
+          c.whatsapp = op.lead_whatsapp || c.whatsapp;
+        }
       });
 
       // Calcular recência e scores RFV para cada cliente

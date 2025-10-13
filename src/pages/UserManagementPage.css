@@ -271,9 +271,10 @@
 }
 
 .user-actions {
-  width: 140px;
+  width: 200px;
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .btn-edit {
@@ -322,6 +323,82 @@
 .btn-transfer svg {
   width: 16px;
   height: 16px;
+}
+
+/* Novos botões de ação */
+.btn-reset-password {
+  background: #f59e0b;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-reset-password:hover {
+  background: #d97706;
+  transform: translateY(-1px);
+}
+
+.btn-reset-password svg {
+  width: 14px;
+  height: 14px;
+}
+
+.btn-ban {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-ban:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.btn-ban svg {
+  width: 14px;
+  height: 14px;
+}
+
+.btn-unban {
+  background: #059669;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-unban:hover {
+  background: #047857;
+  transform: translateY(-1px);
+}
+
+.btn-unban svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* Paginação */
@@ -567,9 +644,23 @@
   .user-table-container {
     overflow-x: auto;
   }
-  
+
   .user-table {
-    min-width: 1000px;
+    min-width: 1200px;
+  }
+
+  .user-actions {
+    width: 180px;
+  }
+
+  .btn-edit, .btn-reset-password, .btn-ban, .btn-unban {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .btn-edit svg, .btn-reset-password svg, .btn-ban svg, .btn-unban svg {
+    width: 12px;
+    height: 12px;
   }
 }
 

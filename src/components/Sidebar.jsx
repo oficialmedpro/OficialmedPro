@@ -105,7 +105,8 @@ const Sidebar = ({
         { icon: 'funil-compra', label: 'Mapa de Calor', path: '/mapa-de-calor', active: false },
         { icon: 'funil-compra', label: 'Metas', path: '/metas', active: false },
         { icon: 'dashboard-meta', label: 'Dashboard MetaAds', active: false },
-        { icon: 'dashboard-google', label: 'Dashboard GoogleAds', active: false }
+        { icon: 'dashboard-google', label: 'Dashboard GoogleAds', active: false },
+        { icon: 'funil-compra', label: 'Usuários', path: '/usuarios', active: false }
       ]
     },
     {

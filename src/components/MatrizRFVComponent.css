@@ -939,3 +939,306 @@
 .treemap-value {
   contain: layout style;
 }
+
+/* Botão de Exportação no Treemap */
+.treemap-export-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.treemap-item:hover .treemap-export-button {
+  opacity: 1;
+}
+
+.export-btn {
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.export-btn:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.export-btn:active {
+  transform: scale(0.95);
+}
+
+/* Modal de Exportação */
+.export-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.export-modal {
+  background: var(--bg-primary, #0f172a);
+  border-radius: 16px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  border: 1px solid var(--border-color, #334155);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.export-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color, #334155);
+}
+
+.export-modal-header h3 {
+  color: var(--text-primary, #f8fafc);
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: var(--bg-secondary, #1e293b);
+  color: var(--text-primary, #f8fafc);
+}
+
+.export-modal-content {
+  padding: 24px;
+}
+
+.export-segment-info {
+  margin-bottom: 24px;
+}
+
+.segment-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  background: var(--bg-secondary, #1e293b);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #334155);
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  display: block;
+  color: var(--text-primary, #f8fafc);
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.loading-clients {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color, #334155);
+  border-top: 3px solid var(--accent-color, #3b82f6);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-clients p {
+  color: var(--text-secondary, #94a3b8);
+  margin: 0;
+}
+
+.export-description {
+  margin-bottom: 20px;
+}
+
+.export-description p {
+  color: var(--text-primary, #f8fafc);
+  margin: 0;
+  font-size: 14px;
+}
+
+.export-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.export-btn-csv,
+.export-btn-excel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  background: var(--bg-secondary, #1e293b);
+  border: 2px solid var(--border-color, #334155);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-primary, #f8fafc);
+}
+
+.export-btn-csv:hover,
+.export-btn-excel:hover {
+  border-color: var(--accent-color, #3b82f6);
+  background: var(--bg-primary, #0f172a);
+  transform: translateY(-2px);
+}
+
+.export-btn-csv:disabled,
+.export-btn-excel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.export-btn-csv span,
+.export-btn-excel span {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.export-btn-csv small,
+.export-btn-excel small {
+  color: var(--text-secondary, #94a3b8);
+  font-size: 12px;
+}
+
+.export-preview {
+  background: var(--bg-secondary, #1e293b);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-color, #334155);
+}
+
+.export-preview h4 {
+  color: var(--text-primary, #f8fafc);
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.preview-table {
+  overflow-x: auto;
+}
+
+.preview-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.preview-table th,
+.preview-table td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color, #334155);
+}
+
+.preview-table th {
+  color: var(--text-secondary, #94a3b8);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.preview-table td {
+  color: var(--text-primary, #f8fafc);
+}
+
+.preview-note {
+  color: var(--text-secondary, #94a3b8);
+  font-size: 12px;
+  margin: 8px 0 0 0;
+  text-align: center;
+  font-style: italic;
+}
+
+/* Responsividade do Modal */
+@media (max-width: 768px) {
+  .export-modal {
+    margin: 10px;
+    max-height: 90vh;
+  }
+
+  .export-modal-header {
+    padding: 16px 20px;
+  }
+
+  .export-modal-content {
+    padding: 20px;
+  }
+
+  .segment-stats {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .export-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-table {
+    font-size: 11px;
+  }
+
+  .preview-table th,
+  .preview-table td {
+    padding: 6px;
+  }
+}

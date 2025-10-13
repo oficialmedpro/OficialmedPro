@@ -532,6 +532,393 @@ app.get('/api/stats', async (req, res) => {
   }
 });
 
+// =================== ENDPOINTS DE USUÁRIOS ===================
+
+/**
+ * Listar todos os usuários da tabela users do schema api
+ */
+app.get('/api/users', async (req, res) => {
+  try {
+    console.log('👥 Listando usuários da tabela users...');
+
+    const response = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'apikey': SUPABASE_KEY,
+        'Accept': 'application/json',
+        'Accept-Profile': SUPABASE_SCHEMA,
+        'Content-Profile': SUPABASE_SCHEMA
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+    }
+
+    const users = await response.json();
+
+    // Mapear usuários para o formato esperado pela interface
+    const mappedUsers = users.map(user => ({
+      id: user.id,
+      status: user.status === 'active' ? 'online' : 'offline',
+      avatar: user.avatar_url || '/api/placeholder/40/40',
+      firstName: user.first_name || 'Nome',
+      lastName: user.last_name || 'Sobrenome',
+      username: user.username,
+      email: user.email,
+      access: user.access_status || 'liberado',
+      userType: getUserTypeLabel(user.user_type_id),
+      createdAt: user.created_at ? new Date(user.created_at).toLocaleString('pt-BR') : '-',
+      lastLogin: user.last_login_at ? new Date(user.last_login_at).toLocaleString('pt-BR') : 'Nunca',
+      lastAction: user.updated_at ? new Date(user.updated_at).toLocaleString('pt-BR') : '-'
+    }));
+
+    console.log(`✅ ${mappedUsers.length} usuários encontrados`);
+
+    res.json({
+      success: true,
+      data: mappedUsers,
+      count: mappedUsers.length
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao listar usuários:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Criar novo usuário
+ */
+app.post('/api/users', async (req, res) => {
+  try {
+    const { firstName, lastName, username, email, userType, access } = req.body;
+
+    console.log('👤 Criando novo usuário:', email);
+
+    // Gerar senha temporária
+    const tempPassword = generateTempPassword();
+
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'apikey': SUPABASE_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: {
+          first_name: firstName,
+          last_name: lastName,
+          username,
+          role: userType || 'padrão',
+          created_by: 'admin'
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`Erro ao criar usuário: ${errorData}`);
+    }
+
+    const data = await response.json();
+
+    // Se o usuário deve estar bloqueado, aplicar ban
+    if (access === 'bloqueado') {
+      await banUser(data.user.id);
+    }
+
+    console.log('✅ Usuário criado com sucesso');
+
+    res.json({
+      success: true,
+      data: data.user,
+      tempPassword,
+      message: `Usuário criado com sucesso. Senha temporária: ${tempPassword}`
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao criar usuário:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Atualizar usuário
+ */
+app.put('/api/users/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { firstName, lastName, username, email, userType, access } = req.body;
+
+    console.log('✏️ Atualizando usuário:', userId);
+
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'apikey': SUPABASE_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email,
+        user_metadata: {
+          first_name: firstName,
+          last_name: lastName,
+          username,
+          role: userType,
+          updated_by: 'admin'
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`Erro ao atualizar usuário: ${errorData}`);
+    }
+
+    const data = await response.json();
+
+    // Aplicar bloqueio/desbloqueio conforme necessário
+    if (access === 'bloqueado') {
+      await banUser(userId);
+    } else if (access === 'liberado') {
+      await unbanUser(userId);
+    }
+
+    console.log('✅ Usuário atualizado com sucesso');
+
+    res.json({
+      success: true,
+      data: data.user,
+      message: 'Usuário atualizado com sucesso'
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao atualizar usuário:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Reset de senha
+ */
+app.post('/api/users/:userId/reset-password', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { newPassword } = req.body;
+
+    console.log('🔐 Resetando senha do usuário:', userId);
+
+    const password = newPassword || generateTempPassword();
+
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'apikey': SUPABASE_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        password
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`Erro ao resetar senha: ${errorData}`);
+    }
+
+    console.log('✅ Senha resetada com sucesso');
+
+    res.json({
+      success: true,
+      tempPassword: password,
+      message: `Senha resetada com sucesso. Nova senha: ${password}`
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao resetar senha:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Bloquear usuário
+ */
+app.post('/api/users/:userId/ban', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    console.log('🚫 Bloqueando usuário:', userId);
+
+    await banUser(userId);
+
+    res.json({
+      success: true,
+      message: 'Usuário bloqueado com sucesso'
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao bloquear usuário:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Desbloquear usuário
+ */
+app.post('/api/users/:userId/unban', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    console.log('✅ Desbloqueando usuário:', userId);
+
+    await unbanUser(userId);
+
+    res.json({
+      success: true,
+      message: 'Usuário desbloqueado com sucesso'
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao desbloquear usuário:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Deletar usuário
+ */
+app.delete('/api/users/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    console.log('🗑️ Deletando usuário:', userId);
+
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'apikey': SUPABASE_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(`Erro ao deletar usuário: ${errorData}`);
+    }
+
+    console.log('✅ Usuário deletado com sucesso');
+
+    res.json({
+      success: true,
+      message: 'Usuário deletado com sucesso'
+    });
+
+  } catch (error) {
+    console.error('❌ Erro ao deletar usuário:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Funções auxiliares para usuários
+function getUserStatus(user) {
+  if (!user.last_sign_in_at) return 'offline';
+
+  const lastLogin = new Date(user.last_sign_in_at);
+  const now = new Date();
+  const diffMinutes = (now - lastLogin) / (1000 * 60);
+
+  if (diffMinutes < 15) return 'online';
+  if (diffMinutes < 60) return 'ausente';
+  return 'offline';
+}
+
+function getUserTypeLabel(userTypeId) {
+  switch (userTypeId) {
+    case 1: return 'administrador';
+    case 2: return 'gerente';
+    case 3: return 'vendedor';
+    case 4: return 'padrão';
+    default: return 'padrão';
+  }
+}
+
+function generateTempPassword() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$';
+  let password = '';
+  for (let i = 0; i < 12; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
+async function banUser(userId) {
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'apikey': SUPABASE_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      ban_duration: 'permanent'
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    throw new Error(`Erro ao bloquear usuário: ${errorData}`);
+  }
+}
+
+async function unbanUser(userId) {
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${SUPABASE_KEY}`,
+      'apikey': SUPABASE_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      ban_duration: 'none'
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    throw new Error(`Erro ao desbloquear usuário: ${errorData}`);
+  }
+}
+
 // =================== ENDPOINTS DO FIREBIRD ===================
 
 /**
@@ -703,10 +1090,14 @@ app.post('/api/sync-now', async (req, res) => {
   try {
     console.log('🔄 Iniciando sincronização via API...');
     
-    const { source = 'api', timestamp } = req.body;
+    const { source = 'api', timestamp, optimized = true } = req.body;
     
-    // Executar script de sincronização
-    const syncScript = path.join(__dirname, '..', 'src', 'sincronizacao', 'sync-now.js');
+    // Escolher script de sincronização (otimizado por padrão)
+    const syncScript = optimized 
+      ? path.join(__dirname, '..', 'src', 'sincronizacao', 'sync-hourly-optimized.js')
+      : path.join(__dirname, '..', 'src', 'sincronizacao', 'sync-now.js');
+    
+    console.log(`🚀 Usando sincronização ${optimized ? 'OTIMIZADA' : 'PADRÃO'}`);
     
     const child = spawn('node', [syncScript], {
       stdio: 'pipe',
@@ -733,8 +1124,9 @@ app.post('/api/sync-now', async (req, res) => {
         console.log('✅ Sincronização concluída com sucesso');
         res.json({
           success: true,
-          message: 'Sincronização concluída com sucesso',
+          message: `Sincronização ${optimized ? 'OTIMIZADA' : 'padrão'} concluída com sucesso`,
           source,
+          optimized,
           timestamp: new Date().toISOString(),
           output: output.trim()
         });
@@ -744,6 +1136,7 @@ app.post('/api/sync-now', async (req, res) => {
           success: false,
           message: 'Erro na sincronização',
           source,
+          optimized,
           timestamp: new Date().toISOString(),
           error: errorOutput.trim(),
           code
@@ -757,6 +1150,7 @@ app.post('/api/sync-now', async (req, res) => {
         success: false,
         message: 'Erro ao executar sincronização',
         source,
+        optimized,
         timestamp: new Date().toISOString(),
         error: error.message
       });

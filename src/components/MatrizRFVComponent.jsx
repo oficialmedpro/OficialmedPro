@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import './MatrizRFVComponent.css';
-// Usar service novo para dados reais, mantendo o antigo como fallback interno
+// Usar apenas service de dados reais
 import { rfvRealService } from '../service/rfvRealService';
+
 import RFVOpportunitiesCard from './RFVOpportunitiesCard';
-import { rfvService } from '../service/rfvService';
 // Importar ícones Lucide React
 import { 
   Crown, 
@@ -17,7 +17,10 @@ import {
   AlertCircle, 
   TrendingUp, 
   Users,
-  Zap
+  Zap,
+  Download,
+  FileSpreadsheet,
+  FileText
 } from 'lucide-react';
 
 const MatrizRFVComponent = ({
@@ -29,16 +32,22 @@ const MatrizRFVComponent = ({
   selectedOrigin,
   isDarkMode
 }) => {
-  const [rfvData, setRfvData] = useState([]);
+  const [rfvData, setRfvData] = useState(null);
   const [distributionData, setDistributionData] = useState(null);
   const [matrixData, setMatrixData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
+  
   const [selectedSegment, setSelectedSegment] = useState('all');
   const [dataSource, setDataSource] = useState(null);
   const [selectedSegmentForDetails, setSelectedSegmentForDetails] = useState(null);
   const [hoveredSegment, setHoveredSegment] = useState(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovering, setIsHovering] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [selectedSegmentForExport, setSelectedSegmentForExport] = useState(null);
+  const [segmentClients, setSegmentClients] = useState([]);
+  const [isLoadingClients, setIsLoadingClients] = useState(false);
 
   // Funções auxiliares para mapear segmentos
   const getNomeSegmento = (segmento) => {
@@ -125,41 +134,32 @@ const MatrizRFVComponent = ({
     ]
   ];
 
+
   // Carregar dados RFV reais
   useEffect(() => {
     const loadRFVData = async () => {
+      // Pequeno delay para garantir que o componente esteja totalmente renderizado
+      await new Promise(resolve => setTimeout(resolve, 100));
       setIsLoading(true);
-      console.log('🔄 MatrizRFVComponent: Carregando dados reais...');
 
       try {
-        // Tentar dados reais primeiro
-        let analysis;
-        try {
-          analysis = await rfvRealService.getRFVAnalysis({
-            startDate,
-            endDate,
-            selectedFunnel,
-            selectedUnit,
-            selectedSeller,
-            selectedOrigin
-          });
-        } catch (e) {
-          console.warn('⚠️ RFV real falhou, usando fallback simulado:', e.message);
-          analysis = await rfvService.getRFVAnalysis({
-            startDate,
-            endDate,
-            selectedFunnel,
-            selectedUnit,
-            selectedSeller,
-            selectedOrigin
-          });
-        }
+        // Buscar apenas dados reais - sem fallback para dados simulados
+        console.log('🔄 Carregando dados REAIS do RFV...');
+        const analysis = await rfvRealService.getRFVAnalysis({
+          startDate,
+          endDate,
+          selectedFunnel,
+          selectedUnit,
+          selectedSeller,
+          selectedOrigin
+        });
+        console.log('✅ Dados REAIS carregados com sucesso:', analysis?.clientes?.length || 0, 'clientes');
 
         // Processar dados para o treemap
         const segmentosMap = new Map();
         
         // Agrupar clientes por segmento
-        analysis.clientes.forEach(cliente => {
+        (analysis?.clientes || []).forEach(cliente => {
           const segmento = cliente.segmento || 'outros';
           if (!segmentosMap.has(segmento)) {
             segmentosMap.set(segmento, {
@@ -177,59 +177,43 @@ const MatrizRFVComponent = ({
         });
 
         // Calcular percentuais
-        const totalClientes = analysis.clientes.length;
+        const totalClientes = analysis?.clientes?.length || 0;
         const segmentosData = Array.from(segmentosMap.values()).map(seg => ({
           ...seg,
           percentual: totalClientes > 0 ? (seg.clientes / totalClientes * 100).toFixed(2) : 0
         }));
 
+        console.log('🔄 Atualizando estado com dados RFV...');
+        console.log('📊 Segmentos processados:', segmentosData.length);
+        console.log('📊 Total de clientes:', analysis.clientes.length);
+        console.log('📋 Fonte dos dados:', analysis.dataSource?.message);
+        console.log('🎨 Dados do treemap:', segmentosData);
+        
         setRfvData(segmentosData);
         setDistributionData(analysis.distributionData);
         setMatrixData(analysis.matrixData);
         setDataSource(analysis.dataSource);
-
-        console.log('📊 Dados RFV reais carregados:', segmentosData);
-        console.log('📋 Fonte dos dados:', analysis.dataSource?.message);
+        
+        // Só parar de carregar quando tiver dados válidos
+        setIsLoading(false);
+        setIsInitialized(true);
+        
       } catch (error) {
-        console.error('Erro ao carregar dados RFV:', error);
-
-        // Fallback para dados simulados em caso de erro
-        const fallbackData = [];
-        setRfvData(fallbackData);
-        setDistributionData({
-          recencia: [
-            { score: 1, count: 20, label: 'R1' },
-            { score: 2, count: 40, label: 'R2' },
-            { score: 3, count: 62, label: 'R3' },
-            { score: 4, count: 245, label: 'R4' },
-            { score: 5, count: 768, label: 'R5' }
-          ],
-          frequencia: [
-            { score: 1, count: 214, label: 'F1' },
-            { score: 2, count: 223, label: 'F2' },
-            { score: 3, count: 445, label: 'F3' },
-            { score: 4, count: 198, label: 'F4' },
-            { score: 5, count: 55, label: 'F5' }
-          ],
-          valor: [
-            { score: 1, count: 207, label: 'V1' },
-            { score: 2, count: 164, label: 'V2' },
-            { score: 3, count: 311, label: 'V3' },
-            { score: 4, count: 201, label: 'V4' },
-            { score: 5, count: 252, label: 'V5' }
-          ]
+        console.error('❌ Erro ao carregar dados RFV:', error);
+        
+        // Sem fallback - mostrar estado vazio em caso de erro
+        setRfvData(null);
+        setDistributionData(null);
+        setMatrixData({});
+        setDataSource({ 
+          isReal: false, 
+          message: '❌ Erro ao carregar dados RFV - Verifique a conexão' 
         });
-        setMatrixData({
-          'Clientes fiéis': { percentual: '19.35', clientes: 273 },
-          'Campeões': { percentual: '11.84', clientes: 167 },
-          'Hibernando': { percentual: '11.84', clientes: 167 },
-          'Valiosos': { percentual: '9.3', clientes: 131 },
-          'Não pode perder': { percentual: '8.9', clientes: 126 },
-          'Potenciais fiéis': { percentual: '7.8', clientes: 110 }
-        });
+        
+        // Parar de carregar mesmo em caso de erro
+        setIsLoading(false);
+        setIsInitialized(true);
       }
-
-      setIsLoading(false);
     };
 
     loadRFVData();
@@ -334,12 +318,198 @@ const MatrizRFVComponent = ({
     return segmentIcons[segment.id] || <Users size={20} />;
   }, [segmentIcons]);
 
-  const totalCustomers = rfvData.reduce((sum, segment) => sum + (segment.clientes || 0), 0);
-  const totalRevenue = rfvData.reduce((sum, segment) => sum + (segment.faturamento || 0), 0);
+  // Função para buscar clientes de um segmento específico
+  const fetchSegmentClients = useCallback(async (segmentId) => {
+    setIsLoadingClients(true);
+    try {
+      console.log('🔍 Buscando clientes do segmento:', segmentId);
+      console.log('🔍 IMPORTANTE: Usando os MESMOS dados do treemap para manter consistência');
+      
+      // 🔧 CORREÇÃO: Usar os MESMOS filtros do treemap para manter consistência
+      const analysis = await rfvRealService.getRFVAnalysis({
+        startDate,
+        endDate,
+        selectedFunnel,
+        selectedUnit,
+        selectedSeller,
+        selectedOrigin
+      });
+
+      console.log(`📊 Total de clientes retornados pela análise histórica: ${analysis.clientes.length}`);
+      console.log(`📊 Segmentos encontrados:`, [...new Set(analysis.clientes.map(c => c.segmento))]);
+
+      // Filtrar clientes do segmento específico
+      const clients = analysis.clientes.filter(cliente => cliente.segmento === segmentId);
+      
+      console.log(`📊 Encontrados ${clients.length} clientes no segmento ${segmentId} (dados históricos completos)`);
+      console.log(`📊 Primeiros 3 clientes do segmento:`, clients.slice(0, 3));
+      
+      setSegmentClients(clients);
+      return clients;
+    } catch (error) {
+      console.error('Erro ao buscar clientes do segmento:', error);
+      setSegmentClients([]);
+      return [];
+    } finally {
+      setIsLoadingClients(false);
+    }
+  }, [selectedFunnel, selectedUnit, selectedSeller, selectedOrigin]);
+
+  // Função para exportar dados em CSV
+  const exportToCSV = useCallback((clients, segmentName) => {
+    if (!clients || clients.length === 0) {
+      alert('Nenhum cliente encontrado para exportar');
+      return;
+    }
+
+    const headers = [
+      'Lead ID',
+      'Nome',
+      'Sobrenome',
+      'WhatsApp',
+      'Total Valor (R$)',
+      'Frequência',
+      'Recência (dias)',
+      'Score R',
+      'Score F', 
+      'Score V',
+      'Segmento',
+      'Última Compra',
+      'Ticket Médio (R$)'
+    ];
+
+    const csvContent = [
+      headers.join(','),
+      ...clients.map(client => [
+        client.lead_id || '',
+        client.nome || '',
+        client.sobrenome || '',
+        client.whatsapp || '',
+        (client.totalValor || 0).toFixed(2),
+        client.frequencia || 0,
+        client.recencia || 0,
+        client.r || 0,
+        client.f || 0,
+        client.v || 0,
+        client.segmento || '',
+        client.ultimaCompra ? new Date(client.ultimaCompra).toLocaleDateString('pt-BR') : '',
+        ((client.totalValor || 0) / (client.frequencia || 1)).toFixed(2)
+      ].join(','))
+    ].join('\n');
+
+    // Criar e baixar arquivo
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `clientes_${segmentName}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    console.log(`✅ CSV exportado: ${clients.length} clientes do segmento ${segmentName}`);
+  }, []);
+
+  // Função para exportar dados em Excel (formato CSV otimizado para Excel)
+  const exportToExcel = useCallback((clients, segmentName) => {
+    if (!clients || clients.length === 0) {
+      alert('Nenhum cliente encontrado para exportar');
+      return;
+    }
+
+    // Criar conteúdo CSV otimizado para Excel com separador de ponto e vírgula
+    const headers = [
+      'Lead ID',
+      'Nome',
+      'Sobrenome', 
+      'WhatsApp',
+      'Total Valor (R$)',
+      'Frequência',
+      'Recência (dias)',
+      'Score R',
+      'Score F',
+      'Score V',
+      'Segmento',
+      'Última Compra',
+      'Ticket Médio (R$)'
+    ];
+
+    // Usar ponto e vírgula como separador (padrão brasileiro para Excel)
+    const csvContent = [
+      headers.join(';'),
+      ...clients.map(client => [
+        client.lead_id || '',
+        `"${client.nome || ''}"`, // Aspas para evitar problemas com vírgulas
+        `"${client.sobrenome || ''}"`,
+        `"${client.whatsapp || ''}"`,
+        (client.totalValor || 0).toFixed(2).replace('.', ','), // Vírgula decimal brasileira
+        client.frequencia || 0,
+        client.recencia || 0,
+        client.r || 0,
+        client.f || 0,
+        client.v || 0,
+        `"${client.segmento || ''}"`,
+        client.ultimaCompra ? new Date(client.ultimaCompra).toLocaleDateString('pt-BR') : '',
+        ((client.totalValor || 0) / (client.frequencia || 1)).toFixed(2).replace('.', ',')
+      ].join(';'))
+    ].join('\n');
+
+    // Adicionar BOM para UTF-8 (importante para caracteres especiais no Excel)
+    const BOM = '\uFEFF';
+    const csvWithBOM = BOM + csvContent;
+    
+    const blob = new Blob([csvWithBOM], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    // Usar extensão .csv para evitar problemas de corrupção
+    link.setAttribute('download', `clientes_${segmentName}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    console.log(`✅ Excel exportado: ${clients.length} clientes do segmento ${segmentName}`);
+  }, []);
+
+  // Função para abrir modal de exportação
+  const handleExportClick = useCallback(async (segment) => {
+    setSelectedSegmentForExport(segment);
+    setShowExportModal(true);
+    
+    // Buscar clientes do segmento
+    await fetchSegmentClients(segment.id);
+  }, [fetchSegmentClients]);
+
+  // Função para fechar modal
+  const closeExportModal = useCallback(() => {
+    setShowExportModal(false);
+    setSelectedSegmentForExport(null);
+    setSegmentClients([]);
+  }, []);
+
+  const totalCustomers = rfvData?.reduce((sum, segment) => sum + (segment.clientes || 0), 0) || 0;
+  const totalRevenue = rfvData?.reduce((sum, segment) => sum + (segment.faturamento || 0), 0) || 0;
 
   const filteredData = selectedSegment === 'all'
-    ? rfvData
-    : rfvData.filter(segment => segment.id === selectedSegment);
+    ? rfvData || []
+    : (rfvData || []).filter(segment => segment.id === selectedSegment);
+
+  // Só renderizar quando o componente estiver inicializado E tiver dados
+  if (!isInitialized || !rfvData) {
+    return (
+      <div className="matriz-rfv-component">
+        <div className="rfv-header">
+          <div className="rfv-title-section">
+            <h2 className="rfv-section-title">CLASSIFICAÇÃO DE CLIENTES - RFV</h2>
+            <p className="rfv-section-subtitle">Desenvolvido por: Vitória Vicente</p>
+          </div>
+        </div>
+        <div className="loading-message">Carregando dados RFV...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="matriz-rfv-component">
@@ -577,11 +747,8 @@ const MatrizRFVComponent = ({
       {/* Treemap dos Segmentos Principais */}
       <div className="rfv-treemap-section">
         <h3 className="rfv-treemap-title">Distribuição dos Principais Segmentos</h3>
-        {isLoading ? (
-          <div className="loading-message">Carregando segmentos RFV...</div>
-        ) : (
-          <div className="rfv-treemap">
-            {rfvData
+        <div className="rfv-treemap">
+            {(rfvData || [])
               .sort((a, b) => parseFloat(b.percentual) - parseFloat(a.percentual))
               // Mostrar todos os segmentos
               .map((dados, index) => {
@@ -637,11 +804,22 @@ const MatrizRFVComponent = ({
                       <span className="treemap-separator"> | </span>
                       <span className="treemap-value">{formatCurrency(dados.valorTotal || 0)}</span>
                     </div>
+                    <div className="treemap-export-button">
+                      <button
+                        className="export-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleExportClick(dados);
+                        }}
+                        title={`Exportar clientes do segmento ${dados.nome}`}
+                      >
+                        <Download size={14} />
+                      </button>
+                    </div>
                   </div>
                 );
               })}
-          </div>
-        )}
+        </div>
       </div>
 
 
@@ -679,6 +857,114 @@ const MatrizRFVComponent = ({
           <div className="rfv-tooltip-description">
             <p><strong>Descrição:</strong> {getSegmentDescription(hoveredSegment)}</p>
             <p><strong>Recomendação:</strong> {getRecommendation(hoveredSegment)}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Exportação */}
+      {showExportModal && selectedSegmentForExport && (
+        <div className="export-modal-overlay" onClick={closeExportModal}>
+          <div className="export-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="export-modal-header">
+              <h3>Exportar Clientes - {selectedSegmentForExport.nome}</h3>
+              <button className="close-btn" onClick={closeExportModal}>×</button>
+            </div>
+            
+            <div className="export-modal-content">
+              <div className="export-segment-info">
+                <div className="segment-stats">
+                  <div className="stat-item">
+                    <span className="stat-label">Clientes:</span>
+                    <span className="stat-value">{selectedSegmentForExport.clientes}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Valor Total:</span>
+                    <span className="stat-value">{formatCurrency(selectedSegmentForExport.valorTotal || 0)}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Percentual:</span>
+                    <span className="stat-value">{selectedSegmentForExport.percentual}%</span>
+                  </div>
+                </div>
+              </div>
+
+              {isLoadingClients ? (
+                <div className="loading-clients">
+                  <div className="loading-spinner"></div>
+                  <p>Carregando clientes do segmento...</p>
+                </div>
+              ) : (
+                <div className="export-options">
+                  <div className="export-description">
+                    <p>Escolha o formato para exportar os {segmentClients.length} clientes deste segmento:</p>
+                    <p style={{fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px'}}>
+                      📊 <strong>Dados consistentes</strong> - Mesmos dados exibidos no treemap
+                    </p>
+                  </div>
+                  
+                  <div className="export-buttons">
+                    <button
+                      className="export-btn-csv"
+                      onClick={() => exportToCSV(segmentClients, selectedSegmentForExport.nome)}
+                      disabled={segmentClients.length === 0}
+                    >
+                      <FileText size={20} />
+                      <span>Exportar CSV</span>
+                      <small>{segmentClients.length} clientes</small>
+                    </button>
+                    
+                    <button
+                      className="export-btn-excel"
+                      onClick={() => exportToExcel(segmentClients, selectedSegmentForExport.nome)}
+                      disabled={segmentClients.length === 0}
+                    >
+                      <FileSpreadsheet size={20} />
+                      <span>Exportar para Excel</span>
+                      <small>{segmentClients.length} clientes (.csv)</small>
+                    </button>
+                  </div>
+
+                  {segmentClients.length > 0 && (
+                    <div className="export-preview">
+                      <h4>Preview dos dados:</h4>
+                      <div className="preview-table">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Lead ID</th>
+                              <th>Nome</th>
+                              <th>Sobrenome</th>
+                              <th>WhatsApp</th>
+                              <th>Valor Total</th>
+                              <th>Frequência</th>
+                              <th>Recência</th>
+                              <th>Scores RFV</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {segmentClients.slice(0, 5).map((client, index) => (
+                              <tr key={index}>
+                                <td>{client.lead_id}</td>
+                                <td>{client.nome || '-'}</td>
+                                <td>{client.sobrenome || '-'}</td>
+                                <td>{client.whatsapp || '-'}</td>
+                                <td>{formatCurrency(client.totalValor || 0)}</td>
+                                <td>{client.frequencia}</td>
+                                <td>{client.recencia} dias</td>
+                                <td>R{client.r} F{client.f} V{client.v}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        {segmentClients.length > 5 && (
+                          <p className="preview-note">... e mais {segmentClients.length - 5} clientes</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
