@@ -21,6 +21,7 @@ import DebugTicketRankingPage from './pages/DebugTicketRankingPage'
 import UserManagementPage from './pages/UserManagementPage'
 import Login from './components/Login'
 import autoSyncService from './service/autoSyncService'
+import Callix from './pages/Callix'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -122,6 +123,7 @@ function App() {
         <Route path="/debug-seller-ranking" element={<DebugSellerRankingPage onLogout={handleLogout} />} />
         <Route path="/debug-ticket-ranking" element={<DebugTicketRankingPage onLogout={handleLogout} />} />
         <Route path="/usuarios" element={<UserManagementPage onLogout={handleLogout} />} />
+        <Route path="/callix" element={<Callix onLogout={handleLogout} />} />
       </Routes>
     </Router>
   )

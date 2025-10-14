@@ -59,7 +59,9 @@ export const translations = {
     funilCompra: 'Funil Compra',
     funilRecompra: 'Funil Recompra',
     funilsAdm: 'Análises de Performance',
+    Ferramentas: 'Ferramentas',
     funilComercial: 'Funil Comercial',
+    IntegracaoCallix: 'Integracao Callix',
     
     // Busca
     searchPlaceholder: 'Buscar...',
@@ -143,7 +145,9 @@ export const translations = {
     funilCompra: 'Purchase Funnel',
     funilRecompra: 'Repurchase Funnel',
     funilsAdm: 'Performance Analysis',
+    Ferramentas: 'Tools',
     funilComercial: 'Commercial Funnel',
+    IntegracaoCallix: 'Callix Integration',
     
     // Search
     searchPlaceholder: 'Search...',

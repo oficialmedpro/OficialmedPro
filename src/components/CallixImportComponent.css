@@ -1,0 +1,441 @@
+/* ==================== CALLIX TABS ==================== */
+
+.callix-tabs {
+  display: flex;
+  background: #171e31;
+  border-radius: 8px 8px 0 0;
+  padding: 0;
+  margin-bottom: 0;
+  border-bottom: 2px solid #1e293b;
+}
+
+.callix-tab {
+  flex: 1;
+  padding: 15px 20px;
+  background: transparent;
+  border: none;
+  color: #cccccc;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-bottom: 3px solid transparent;
+}
+
+.callix-tab:hover {
+  background: #1e293b;
+  color: #ffffff;
+}
+
+.callix-tab.active {
+  background: #0f172a;
+  color: #00d4ff;
+  border-bottom-color: #00d4ff;
+}
+
+.callix-tab-content {
+  background: #0f172a;
+  border-radius: 0 0 8px 8px;
+  min-height: 600px;
+}
+
+/* ==================== CALLIX IMPORT COMPONENT ==================== */
+
+.callix-import-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #0f172a;
+  border-radius: 12px;
+  color: #ffffff;
+}
+
+.callix-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #333;
+}
+
+.callix-header h2 {
+  color: #00d4ff;
+  margin: 0 0 10px 0;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.callix-header p {
+  color: #cccccc;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.callix-main-content {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 30px;
+  min-height: 500px;
+}
+
+.callix-left-panel {
+  background: #171e31;
+  border-radius: 8px;
+  padding: 25px;
+}
+
+.callix-right-panel {
+  background: #171e31;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+/* ==================== FORM ELEMENTS ==================== */
+
+.callix-form-group {
+  margin-bottom: 25px;
+}
+
+.callix-label {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.callix-select {
+  width: 100%;
+  padding: 12px 16px;
+  background: #081125;
+  border: 2px solid #1e293b;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.callix-select:focus {
+  outline: none;
+  border-color: #00d4ff;
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+}
+
+.callix-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ==================== SEGMENT INFO ==================== */
+
+.callix-segment-info {
+  margin: 20px 0;
+  padding: 20px;
+  background: #0f172a;
+  border-radius: 8px;
+  border-left: 4px solid #00d4ff;
+}
+
+.callix-segment-details h4 {
+  color: #00d4ff;
+  margin: 0 0 15px 0;
+  font-size: 1.2rem;
+}
+
+.callix-segment-details p {
+  margin: 8px 0;
+  color: #cccccc;
+}
+
+.callix-segment-details strong {
+  color: #ffffff;
+}
+
+/* ==================== BUTTONS ==================== */
+
+.callix-actions {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-top: 25px;
+}
+
+.callix-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.callix-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.callix-btn-primary {
+  background: linear-gradient(135deg, #00d4ff, #0099cc);
+  color: #ffffff;
+}
+
+.callix-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #00b8e6, #0088bb);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+}
+
+.callix-btn-secondary {
+  background: linear-gradient(135deg, #28a745, #1e7e34);
+  color: #ffffff;
+}
+
+.callix-btn-secondary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #218838, #155724);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.callix-btn-info {
+  background: linear-gradient(135deg, #17a2b8, #117a8b);
+  color: #ffffff;
+}
+
+.callix-btn-info:hover:not(:disabled) {
+  background: linear-gradient(135deg, #138496, #0c5460);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+}
+
+.callix-btn-outline {
+  background: transparent;
+  color: #00d4ff;
+  border: 2px solid #00d4ff;
+}
+
+.callix-btn-outline:hover:not(:disabled) {
+  background: #00d4ff;
+  color: #1a1a1a;
+  transform: translateY(-2px);
+}
+
+.callix-btn-small {
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  min-width: auto;
+}
+
+/* ==================== PROGRESS ==================== */
+
+.callix-progress {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.callix-progress h3 {
+  color: #00d4ff;
+  margin: 0 0 20px 0;
+}
+
+.callix-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #081125;
+  border-top: 4px solid #00d4ff;
+  border-radius: 50%;
+  animation: callix-spin 1s linear infinite;
+  margin: 0 auto 20px auto;
+}
+
+@keyframes callix-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ==================== COMPLETED STATE ==================== */
+
+.callix-completed {
+  text-align: center;
+}
+
+.callix-completed h3 {
+  color: #28a745;
+  margin: 0 0 25px 0;
+  font-size: 1.5rem;
+}
+
+.callix-stats {
+  background: #0f172a;
+  border-radius: 8px;
+  padding: 25px;
+  margin: 25px 0;
+  text-align: left;
+}
+
+.callix-stats h4 {
+  color: #00d4ff;
+  margin: 0 0 20px 0;
+  text-align: center;
+}
+
+.callix-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.callix-stat-item {
+  text-align: center;
+  padding: 15px;
+  background: #081125;
+  border-radius: 8px;
+  transition: transform 0.3s ease;
+}
+
+.callix-stat-item:hover {
+  transform: translateY(-2px);
+}
+
+.callix-stat-number {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 5px;
+}
+
+.callix-stat-success {
+  color: #28a745;
+}
+
+.callix-stat-updated {
+  color: #17a2b8;
+}
+
+.callix-stat-error {
+  color: #dc3545;
+}
+
+.callix-stat-label {
+  display: block;
+  font-size: 0.9rem;
+  color: #cccccc;
+  font-weight: 500;
+}
+
+.callix-next-actions {
+  margin-top: 30px;
+}
+
+.callix-next-actions h4 {
+  color: #ffffff;
+  margin: 0 0 20px 0;
+}
+
+/* ==================== LOGS ==================== */
+
+.callix-logs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #333;
+}
+
+.callix-logs-header h3 {
+  color: #00d4ff;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.callix-logs-content {
+  max-height: 400px;
+  overflow-y: auto;
+  background: #081125;
+  border-radius: 6px;
+  padding: 15px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.callix-logs-empty {
+  color: #666666;
+  text-align: center;
+  font-style: italic;
+  margin: 20px 0;
+}
+
+.callix-log-item {
+  color: #cccccc;
+  margin-bottom: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid #1e293b;
+}
+
+.callix-log-item:last-child {
+  border-bottom: none;
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 768px) {
+  .callix-main-content {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .callix-actions {
+    flex-direction: column;
+  }
+  
+  .callix-btn {
+    width: 100%;
+  }
+  
+  .callix-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .callix-import-container {
+    padding: 15px;
+  }
+  
+  .callix-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .callix-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==================== SCROLLBAR CUSTOMIZATION ==================== */
+
+.callix-logs-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.callix-logs-content::-webkit-scrollbar-track {
+  background: #081125;
+  border-radius: 4px;
+}
+
+.callix-logs-content::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+.callix-logs-content::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}

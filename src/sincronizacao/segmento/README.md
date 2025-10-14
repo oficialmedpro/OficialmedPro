@@ -13,6 +13,10 @@ src/sincronizacao/segmento/
 ├── README-sync-leads-by-segment.md    # Documentação da inserção inicial
 ├── update-full-leads-by-segment.js    # Script de atualização completa (todos os campos)
 ├── README-update-full-leads.md        # Documentação da atualização completa
+├── sync-and-enrich-segment.js         # Script unificado (inserção + enriquecimento)
+├── supabase-edge-function-sync.js     # Edge Function para cron automático
+├── setup-cron-sync.sql               # Configuração do pg_cron
+├── README-supabase-cron.md           # Documentação da sincronização automática
 └── print-leads-from-segment.js        # Script de debug para visualizar dados
 ```
 
@@ -89,11 +93,41 @@ node src/sincronizacao/segmento/update-full-leads-by-segment.js 123
 GET /leads/{leadId}?allFields=1&i=oficialmed
 ```
 
-📖 **Documentação completa**: [`README-update-full-leads.md`](./README-update-full-leads.md)
+    📖 **Documentação completa**: [`README-update-full-leads.md`](./README-update-full-leads.md)
 
----
+    ---
 
-### 3. `print-leads-from-segment.js`
+    ### 3. `sync-and-enrich-segment.js`
+    **Script unificado - Inserção + Enriquecimento em uma execução**
+
+    #### Uso:
+    ```bash
+    node src/sincronizacao/segmento/sync-and-enrich-segment.js [ID_DO_SEGMENTO]
+    ```
+
+    #### Exemplo:
+    ```bash
+    node src/sincronizacao/segmento/sync-and-enrich-segment.js 123
+    ```
+
+    #### Funcionalidades:
+    - ✅ Busca leads de um segmento
+    - ✅ Para cada lead: verifica se existe no banco
+    - ✅ Se não existe: **insere** com dados completos (79 campos)
+    - ✅ Se existe: **atualiza** com dados completos (79 campos)
+    - ✅ **Uma única execução** faz tudo
+    - ✅ Progress bar detalhado
+    - ✅ Tratamento de erros individual
+
+    #### Vantagens:
+    - 🚀 **Mais rápido**: Uma execução só
+    - 🎯 **Mais simples**: Sem necessidade de 2 etapas
+    - ✅ **Mais confiável**: Sem dependência entre scripts
+    - 📊 **Melhor para produção**: Ideal para automação
+
+    ---
+
+    ### 4. `print-leads-from-segment.js`
 **Script de debug para visualizar dados brutos do segmento**
 
 #### Uso:
@@ -286,7 +320,20 @@ graph TD
 
 ## 🔄 Fluxo de Sincronização Completo
 
-### Processo Recomendado em 2 Etapas:
+### **Opção 1: Processo Unificado (Recomendado)**
+
+```bash
+# 🚀 EXECUÇÃO ÚNICA: Inserção + Enriquecimento
+node src/sincronizacao/segmento/sync-and-enrich-segment.js 123
+```
+
+**Vantagens:**
+- ✅ **Mais simples**: Uma execução só
+- ✅ **Mais rápido**: ~1 minuto para 90 leads
+- ✅ **Mais confiável**: Sem dependência entre scripts
+- ✅ **Ideal para automação**: Perfeito para cron jobs
+
+### **Opção 2: Processo em 2 Etapas (Alternativo)**
 
 ```bash
 # 🚀 ETAPA 1: Inserção Rápida (campos básicos)
@@ -296,30 +343,53 @@ node src/sincronizacao/segmento/sync-leads-by-segment.js 123
 node src/sincronizacao/segmento/update-full-leads-by-segment.js 123
 ```
 
-### Por que 2 etapas?
+**Quando usar:**
+- ✅ Quando você quer leads básicos rapidamente
+- ✅ Quando a rede está instável
+- ✅ Para debug e desenvolvimento
 
-1. **Primeira etapa é rápida**: 
-   - Insere leads básicos imediatamente
-   - Campos essenciais + campo `segmento`
-   - ~15 segundos para 90 leads
+### **Opção 3: Automação via Supabase Cron (Produção)**
 
-2. **Segunda etapa é completa**:
-   - Busca dados detalhados de cada lead
-   - Atualiza com 79 campos completos
-   - ~1 minuto para 90 leads
+```sql
+-- Configuração automática diária
+-- Veja: README-supabase-cron.md
+```
 
-3. **Vantagens**:
-   - ✅ Leads disponíveis rapidamente no banco
-   - ✅ Atualização detalhada pode falhar sem perder leads
-   - ✅ Primeira etapa pode rodar com frequência
-   - ✅ Segunda etapa pode rodar periodicamente
+**Vantagens:**
+- ✅ **Execução automática**: Sem intervenção manual
+- ✅ **Sem Portainer**: Tudo no Supabase
+- ✅ **Logs integrados**: Monitoramento completo
+- ✅ **Mais econômico**: Sem custos adicionais
 
 ## 🔮 Próximos Passos
 
 1. ~~**Script de Atualização**~~: ✅ **Concluído** - `update-full-leads-by-segment.js`
-2. **Sincronização Automática**: Integrar com sistema de cron jobs
+2. ~~**Sincronização Automática**~~: ✅ **Concluído** - Sistema Supabase Cron
 3. **Monitoramento**: Implementar alertas para falhas de sincronização
 4. **Otimização**: Implementar sincronização em lotes para grandes volumes
+
+## 🕐 **Sincronização Automática (NOVA!)**
+
+### **Opção 1: Script Local (Atual)**
+```bash
+# Execução manual
+node src/sincronizacao/segmento/sync-and-enrich-segment.js 123
+```
+
+### **Opção 2: Supabase Cron (Recomendado)**
+```bash
+# Execução automática via pg_cron
+# Configuração: setup-cron-sync.sql
+# Edge Function: supabase-edge-function-sync.js
+```
+
+**📖 Documentação completa**: [`README-supabase-cron.md`](./README-supabase-cron.md)
+
+**🎯 Vantagens do Supabase Cron:**
+- ✅ **Sem dependência do Portainer**
+- ✅ **Execução automática diária**
+- ✅ **Logs integrados**
+- ✅ **Mais confiável e econômico**
 
 ## 🆘 Troubleshooting
 

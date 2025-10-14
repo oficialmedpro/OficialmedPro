@@ -110,11 +110,11 @@ const Sidebar = ({
       ]
     },
     {
-      id: 'funilComercial',
-      label: translations.funilComercial,
+      id: 'ferramentas',
+      label: translations.Ferramentas,
       icon: 'funil-recompra',
       subItems: [
-        // Itens removidos conforme solicitado
+        { icon: 'funil-recompra', label: 'Integração Callix', path: '/callix', active: false }
       ]
     }
   ];
