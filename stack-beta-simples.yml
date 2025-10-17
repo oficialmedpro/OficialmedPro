@@ -1,0 +1,57 @@
+version: "3.7"
+
+services:
+  ## --------------------------- PWA VITE/REACT (BETA) - IMAGEM PRÉ-CONSTRUÍDA --------------------------- ##
+  bi-beta:
+    image: bi-beta:latest
+    networks:
+      - OficialMed
+    
+    # 🔐 SECRETS (mantendo sua configuração original)
+    environment:
+      - VITE_SUPABASE_URL_FILE=/run/secrets/VITE_SUPABASE_URL
+      - VITE_SUPABASE_SERVICE_ROLE_KEY_FILE=/run/secrets/VITE_SUPABASE_SERVICE_ROLE_KEY
+      - VITE_SUPABASE_SCHEMA_FILE=/run/secrets/VITE_SUPABASE_SCHEMA
+
+    secrets:
+      - VITE_SUPABASE_URL
+      - VITE_SUPABASE_SERVICE_ROLE_KEY
+      - VITE_SUPABASE_SCHEMA
+    
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.bi-beta.rule=Host(`beta.oficialmed.com.br`)
+        - traefik.http.routers.bi-beta.entrypoints=websecure
+        - traefik.http.routers.bi-beta.tls.certresolver=letsencryptresolver
+        - traefik.http.services.bi-beta.loadbalancer.server.port=80
+        - traefik.http.services.bi-beta.loadbalancer.passHostHeader=true
+        - traefik.http.routers.bi-beta.service=bi-beta
+        - traefik.http.routers.bi-beta-http.rule=Host(`beta.oficialmed.com.br`)
+        - traefik.http.routers.bi-beta-http.entrypoints=web
+        - traefik.http.routers.bi-beta-http.middlewares=force-https-beta
+        - traefik.http.middlewares.force-https-beta.redirectscheme.scheme=https
+        - traefik.http.routers.bi-beta-www.rule=Host(`www.beta.oficialmed.com.br`)
+        - traefik.http.routers.bi-beta-www.entrypoints=websecure
+        - traefik.http.routers.bi-beta-www.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.bi-beta-www.middlewares=bi-beta-www2root
+        - traefik.http.middlewares.bi-beta-www2root.redirectregex.regex=^https://www\\.(.*)
+        - traefik.http.middlewares.bi-beta-www2root.redirectregex.replacement=https://$${1}
+
+networks:
+  OficialMed:
+    external: true
+    name: OficialMed
+    
+secrets:
+  VITE_SUPABASE_URL:
+    external: true
+  VITE_SUPABASE_SERVICE_ROLE_KEY:
+    external: true
+  VITE_SUPABASE_SCHEMA:
+    external: true
