@@ -422,3 +422,4 @@ Em caso de dúvidas ou problemas:
 **✅ Sistema pronto para uso! O cronjob rodará automaticamente 24/7.** 🚀
 
 
+

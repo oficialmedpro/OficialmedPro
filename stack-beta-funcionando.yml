@@ -1,13 +1,12 @@
 version: "3.7"
 
 services:
-  ## --------------------------- PWA VITE/REACT (BETA) - IMAGEM PRÉ-CONSTRUÍDA --------------------------- ##
+  ## --------------------------- PWA VITE/REACT (BETA) --------------------------- ##
   bi-beta:
     image: bi-beta:latest
     networks:
       - OficialMed
     
-    # 🔐 SECRETS (mantendo sua configuração original)
     environment:
       - VITE_SUPABASE_URL_FILE=/run/secrets/VITE_SUPABASE_URL
       - VITE_SUPABASE_SERVICE_ROLE_KEY_FILE=/run/secrets/VITE_SUPABASE_SERVICE_ROLE_KEY
@@ -17,7 +16,7 @@ services:
       - VITE_SUPABASE_URL
       - VITE_SUPABASE_SERVICE_ROLE_KEY
       - VITE_SUPABASE_SCHEMA
-    
+      
     deploy:
       mode: replicated
       replicas: 1
@@ -47,7 +46,7 @@ networks:
   OficialMed:
     external: true
     name: OficialMed
-    
+
 secrets:
   VITE_SUPABASE_URL:
     external: true

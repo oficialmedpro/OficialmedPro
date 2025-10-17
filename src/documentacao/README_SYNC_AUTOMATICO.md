@@ -208,3 +208,4 @@ Consulte: `src/documentacao/DEPLOY_SYNC_HOURLY_CRON.md`
 **🚀 Sistema pronto! O cronjob está rodando 24/7 automaticamente no Supabase.**
 
 
+

@@ -21,7 +21,7 @@ import DebugTicketRankingPage from './pages/DebugTicketRankingPage'
 import UserManagementPage from './pages/UserManagementPage'
 import Login from './components/Login'
 import autoSyncService from './service/autoSyncService'
-import Callix from './pages/Callix'
+import Callix from './pages/callix'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
