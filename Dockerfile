@@ -15,12 +15,17 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Set environment variables (will be overridden by Portainer secrets)
-ENV VITE_SUPABASE_URL=placeholder
-ENV VITE_SUPABASE_SERVICE_ROLE_KEY=placeholder
-ENV VITE_SUPABASE_SCHEMA=api
+# Accept build arguments
+ARG VITE_SUPABASE_URL=placeholder
+ARG VITE_SUPABASE_SERVICE_ROLE_KEY=placeholder
+ARG VITE_SUPABASE_SCHEMA=api
 
-# Build DEVE funcionar ou falhar
+# Set environment variables for build
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_SERVICE_ROLE_KEY=$VITE_SUPABASE_SERVICE_ROLE_KEY
+ENV VITE_SUPABASE_SCHEMA=$VITE_SUPABASE_SCHEMA
+
+# Build application
 RUN npm run build
 
 # Production stage
