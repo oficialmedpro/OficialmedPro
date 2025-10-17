@@ -1,0 +1,33 @@
+name: Test Verbose Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Build Docker image with verbose output
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile.verbose
+        push: false
+        load: true
+        tags: test-build:latest
+        platforms: linux/amd64
+        build-args: |
+          VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_SERVICE_ROLE_KEY=${{ secrets.VITE_SUPABASE_SERVICE_ROLE_KEY }}
+          VITE_SUPABASE_SCHEMA=${{ secrets.VITE_SUPABASE_SCHEMA }}
+
+    - name: Test if build succeeded
+      run: echo "✅ Build succeeded!"
+
