@@ -3,11 +3,14 @@ FROM node:18-alpine as build
 
 WORKDIR /app
 
+# Install dependencies for better compatibility
+RUN apk add --no-cache git
+
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies (including devDependencies for build)
-RUN npm ci
+# Install dependencies with verbose output
+RUN npm ci --verbose
 
 # Copy source code
 COPY . .
@@ -26,8 +29,14 @@ RUN echo "🔧 Build Args recebidos:" && \
     echo "VITE_SUPABASE_SERVICE_ROLE_KEY: ${VITE_SUPABASE_SERVICE_ROLE_KEY:0:10}..." && \
     echo "VITE_SUPABASE_SCHEMA: $VITE_SUPABASE_SCHEMA"
 
-# Build the app
-RUN npm run build
+# Debug - mostrar versões
+RUN echo "🔧 Versões:" && \
+    echo "Node: $(node --version)" && \
+    echo "NPM: $(npm --version)" && \
+    echo "Vite: $(npx vite --version)"
+
+# Build the app with verbose output
+RUN npm run build --verbose
 
 # Production stage
 FROM nginx:alpine
