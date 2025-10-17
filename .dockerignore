@@ -4,7 +4,8 @@ dist
 temp
 temp-analysis
 **/*.log
-src
-public
 *.md
 .gitignore
+.github
+.env
+.env.local
