@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  minha-pwa:
+    build:
+      context: .
+      dockerfile: Dockerfile.portainer
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_SERVICE_ROLE_KEY=${VITE_SUPABASE_SERVICE_ROLE_KEY}
+      - VITE_SUPABASE_SCHEMA=${VITE_SUPABASE_SCHEMA}
+    restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.minha-pwa.rule=Host(`seu-dominio.com`)"
+      - "traefik.http.services.minha-pwa.loadbalancer.server.port=80"
