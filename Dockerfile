@@ -3,52 +3,43 @@ FROM node:18-alpine as build
 
 WORKDIR /app
 
-# Install dependencies
-RUN apk add --no-cache git
-
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install dependencies (including devDependencies for build)
 RUN npm ci
 
 # Copy source code
 COPY . .
 
-# Accept build arguments
-ARG VITE_SUPABASE_URL=placeholder
-ARG VITE_SUPABASE_SERVICE_ROLE_KEY=placeholder
-ARG VITE_SUPABASE_SCHEMA=api
+# Accept Vite environment variables at build-time and expose them to the build
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_SERVICE_ROLE_KEY
+ARG VITE_SUPABASE_SCHEMA
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL \
+    VITE_SUPABASE_SERVICE_ROLE_KEY=$VITE_SUPABASE_SERVICE_ROLE_KEY \
+    VITE_SUPABASE_SCHEMA=$VITE_SUPABASE_SCHEMA
 
-# Set environment variables for build
-ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
-ENV VITE_SUPABASE_SERVICE_ROLE_KEY=$VITE_SUPABASE_SERVICE_ROLE_KEY
-ENV VITE_SUPABASE_SCHEMA=$VITE_SUPABASE_SCHEMA
+# Debug - mostrar se as variáveis estão sendo recebidas (sem expor o valor completo)
+RUN echo "🔧 Build Args recebidos:" && \
+    echo "VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:0:20}..." && \
+    echo "VITE_SUPABASE_SERVICE_ROLE_KEY: ${VITE_SUPABASE_SERVICE_ROLE_KEY:0:10}..." && \
+    echo "VITE_SUPABASE_SCHEMA: $VITE_SUPABASE_SCHEMA"
 
-# Build application
+# Build the app
 RUN npm run build
 
 # Production stage
 FROM nginx:alpine
 
-# Install bash
-RUN apk add --no-cache bash
-
 # Copy nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Criar diretório dist se não existir
-RUN mkdir -p /usr/share/nginx/html
-
-# Copy built app
+# Copy built app from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
-
-# Copy entrypoint script
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Expose port
 EXPOSE 80
 
-# Use custom entrypoint
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
