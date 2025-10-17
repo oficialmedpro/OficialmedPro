@@ -4,7 +4,7 @@ services:
   ## --------------------------- PWA VITE/REACT (BETA) - BUILD FROM GIT --------------------------- ##
   bi-beta:
     build:
-      context: https://github.com/oficialmedpro/OficialmedPro.git
+      context: .
       dockerfile: Dockerfile.portainer
     networks:
       - OficialMed
