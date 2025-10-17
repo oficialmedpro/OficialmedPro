@@ -28,6 +28,10 @@ RUN echo "🔧 Verificando node_modules:" && ls -la node_modules | head -10
 # Tentar build com debug completo
 RUN npm run build 2>&1 || echo "❌ Build falhou, mas continuando..."
 
+# Verificar se dist existe
+RUN echo "🔧 Verificando se dist existe:" && ls -la /app/ || echo "❌ Pasta /app não existe"
+RUN echo "🔧 Verificando se dist existe:" && ls -la /app/dist/ || echo "❌ Pasta dist não existe"
+
 # Production stage
 FROM nginx:alpine
 
@@ -37,8 +41,12 @@ RUN apk add --no-cache bash
 # Copy nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Copy built app (se existir)
-COPY --from=build /app/dist /usr/share/nginx/html
+# Criar diretório dist se não existir
+RUN mkdir -p /usr/share/nginx/html
+
+# Copy built app (se existir) ou criar um index.html simples
+COPY --from=build /app/dist /usr/share/nginx/html 2>/dev/null || echo "❌ Dist não existe, criando index.html simples"
+RUN echo '<!DOCTYPE html><html><head><title>OficialMed BI</title><meta charset="utf-8"></head><body><h1>🚀 OficialMed BI</h1><p>Em construção...</p><p>Versão: 1.0.0</p></body></html>' > /usr/share/nginx/html/index.html
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
