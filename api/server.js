@@ -1085,6 +1085,12 @@ app.post('/api/firebird/query', async (req, res) => {
   }
 });
 
+// Importar endpoint de segmentos
+import segmentosRouter from './processar-segmentos-lote.js';
+
+// Usar router de segmentos
+app.use('/api', segmentosRouter);
+
 // Endpoint para sincronização automática
 app.post('/api/sync-now', async (req, res) => {
   try {

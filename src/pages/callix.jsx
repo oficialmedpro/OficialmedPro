@@ -6,6 +6,7 @@ import TopMenuBar from '../components/TopMenuBar';
 import Sidebar from '../components/Sidebar';
 import CallixImportComponent from '../components/CallixImportComponent';
 import AutoSegmentsManager from '../components/AutoSegmentsManager';
+import CronJobMonitor from '../components/CronJobMonitor';
 import { translations } from '../data/translations';
 import {
   formatCurrency,
@@ -280,25 +281,32 @@ const CallixPage = ({ onLogout }) => {
       <main className="main-content">
         <div className="main-chart">
           {/* Tabs */}
-          <div className="callix-tabs">
-            <button 
-              className={`callix-tab ${activeTab === 'import' ? 'active' : ''}`}
-              onClick={() => setActiveTab('import')}
-            >
-              🔗 Importação Manual
-            </button>
-            <button 
-              className={`callix-tab ${activeTab === 'automation' ? 'active' : ''}`}
-              onClick={() => setActiveTab('automation')}
-            >
-              🤖 Segmentos Automáticos
-            </button>
-          </div>
+                 <div className="callix-tabs">
+                   <button 
+                     className={`callix-tab ${activeTab === 'import' ? 'active' : ''}`}
+                     onClick={() => setActiveTab('import')}
+                   >
+                     🔗 Importação Manual
+                   </button>
+                   <button 
+                     className={`callix-tab ${activeTab === 'automation' ? 'active' : ''}`}
+                     onClick={() => setActiveTab('automation')}
+                   >
+                     🤖 Segmentos Automáticos
+                   </button>
+                   <button 
+                     className={`callix-tab ${activeTab === 'monitor' ? 'active' : ''}`}
+                     onClick={() => setActiveTab('monitor')}
+                   >
+                     📊 Monitor Cron Jobs
+                   </button>
+                 </div>
 
           {/* Tab Content */}
           <div className="callix-tab-content">
             {activeTab === 'import' && <CallixImportComponent />}
             {activeTab === 'automation' && <AutoSegmentsManager />}
+            {activeTab === 'monitor' && <CronJobMonitor />}
           </div>
         </div>
       </main>

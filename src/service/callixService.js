@@ -81,38 +81,63 @@ export async function getSegmentos() {
 
 async function fetchLeadsFromSegment(segmentId) {
   const url = `https://${CONFIG.SPRINTHUB.baseUrl}/leadsfromtype/segment/${segmentId}?i=${CONFIG.SPRINTHUB.instance}&apitoken=${CONFIG.SPRINTHUB.apiToken}`;
-  const requestBody = {
-    "page": 0,
-    "limit": 100,
-    "orderByKey": "createDate",
-    "orderByDirection": "desc",
-    "showAnon": false,
-    "search": "",
-    "query": "{total,leads{id,fullname,photoUrl,email,points,city,state,country,lastActive,archived,owner{completName},companyData{companyname},createDate}}",
-    "showArchived": false,
-    "additionalFilter": null,
-    "idOnly": false
-  };
+  
+  let allLeads = [];
+  let page = 0;
+  const limit = 100; // Buscar 100 por vez
+  let hasMore = true;
 
   try {
-    const response = await makeRequest(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-        // Removido Authorization header que causa CORS
-      },
-      body: JSON.stringify(requestBody)
-    });
+    while (hasMore) {
+      const requestBody = {
+        "page": page,
+        "limit": limit,
+        "orderByKey": "createDate",
+        "orderByDirection": "desc",
+        "showAnon": false,
+        "search": "",
+        "query": "{total,leads{id,fullname,photoUrl,email,points,city,state,country,lastActive,archived,owner{completName},companyData{companyname},createDate}}",
+        "showArchived": false,
+        "additionalFilter": null,
+        "idOnly": false
+      };
 
-    if (response.ok && response.data && response.data.data && response.data.data.leads) {
-      return response.data.data.leads;
+      console.log(`🔍 Buscando página ${page + 1} do segmento ${segmentId}...`);
+
+      const response = await makeRequest(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (response.ok && response.data && response.data.data && response.data.data.leads) {
+        const leads = response.data.data.leads;
+        allLeads = allLeads.concat(leads);
+        
+        console.log(`✅ Página ${page + 1}: ${leads.length} leads encontrados (Total: ${allLeads.length})`);
+        
+        // Se retornou menos que o limite, não há mais páginas
+        if (leads.length < limit) {
+          hasMore = false;
+        } else {
+          page++;
+          // Delay entre páginas para respeitar rate limit
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      } else {
+        throw new Error('Resposta inválida da API');
+      }
     }
 
-    throw new Error('Resposta inválida da API');
+    console.log(`🎯 Total de leads encontrados no segmento: ${allLeads.length}`);
+    return allLeads;
+
   } catch (error) {
     console.error(`❌ Erro ao buscar leads do segmento: ${error.message}`);
-    return [];
+    return allLeads; // Retornar o que conseguiu buscar até agora
   }
 }
 
@@ -541,7 +566,7 @@ export async function enrichExistingLeads(segmentId, onProgress = null) {
 
 // ==================== FUNÇÃO PARA ENVIAR LEADS PARA CALLIX ====================
 
-export async function sendLeadsToCallix(segmentId, onProgress = null) {
+export async function sendLeadsToCallix(segmentId, campaignId, onProgress = null, forceResend = false) {
   try {
     if (onProgress) onProgress('🚀 Enviando leads para Callix...');
     
@@ -562,40 +587,217 @@ export async function sendLeadsToCallix(segmentId, onProgress = null) {
       return {
         success: true,
         message: 'Nenhum lead encontrado para envio',
-        sent: 0
+        stats: { total: 0, sent: 0, alreadySent: 0, errors: 0 }
       };
     }
 
-    // TODO: Implementar envio real para Callix API
-    // Por enquanto, simular o envio
+    // Verificar quais leads já foram enviados para o Callix
+    const { data: sentLeads, error: sentError } = await supabaseClient
+      .from('lead_callix_status')
+      .select('lead_id')
+      .eq('segmento_id', segmentId)
+      .eq('enviado_callix', true);
+
+    if (sentError) {
+      console.warn('⚠️ Erro ao verificar leads já enviados:', sentError.message);
+    }
+
+    const sentLeadIds = sentLeads ? sentLeads.map(l => l.lead_id) : [];
+    const leadsToSend = forceResend ? leads : leads.filter(lead => !sentLeadIds.includes(lead.id));
+    const alreadySentCount = leads.length - (forceResend ? 0 : leadsToSend.length);
+
+    if (onProgress) {
+      if (forceResend) {
+        onProgress(`🔄 REENVIO FORÇADO: ${leads.length} leads serão reenviados`);
+      } else {
+        onProgress(`📊 Total: ${leads.length} leads | Já enviados: ${alreadySentCount} | Para enviar: ${leadsToSend.length}`);
+      }
+    }
+
+    if (!forceResend && leadsToSend.length === 0) {
+      if (onProgress) onProgress('✅ Todos os leads já foram enviados para o Callix');
+      return {
+        success: true,
+        message: 'Todos os leads já foram enviados para o Callix',
+        stats: { total: leads.length, sent: 0, alreadySent: alreadySentCount, errors: 0 }
+      };
+    }
+
+    // Enviar leads para Callix API real
+    const CALLIX_TOKEN = '68b46239-a040-4703-b8e9-c0b25b519e64';
+    const CALLIX_URL = 'https://oficialmed.callix.com.br/api/v1/campaign_contacts_async';
+    
     let sent = 0;
     let errors = 0;
 
-    for (const lead of leads) {
+    // 🎯 FUNÇÃO CORRIGIDA PARA TELEFONE BRASILEIRO
+    const corrigirTelefoneBrasileiro = (telefone) => {
       try {
-        // Simular envio para Callix
-        await new Promise(resolve => setTimeout(resolve, 100));
+        if (!telefone || telefone.trim() === '') {
+          return '';
+        }
         
-        // TODO: Implementar chamada real para Callix API
-        // const response = await fetch('https://api.callix.com/leads', {
-        //   method: 'POST',
-        //   headers: { 'Authorization': `Bearer ${CALLIX_TOKEN}` },
-        //   body: JSON.stringify({
-        //     name: `${lead.firstname} ${lead.lastname}`,
-        //     phone: lead.whatsapp,
-        //     email: lead.email,
-        //     // ... outros campos
-        //   })
-        // });
+        // Remover espaços e caracteres especiais
+        let telLimpo = telefone.replace(/\D/g, '');
         
-        sent++;
-        if (onProgress) onProgress(`Lead ${lead.id} enviado para Callix`);
+        // Se começa com 55 (DDI do Brasil), remover
+        if (telLimpo.startsWith('55')) {
+          telLimpo = telLimpo.substring(2);
+        }
+        
+        // Se ainda tem mais de 11 dígitos após remover DDI, pode ser que tenha 55 duplicado
+        if (telLimpo.length > 11 && telLimpo.startsWith('55')) {
+          telLimpo = telLimpo.substring(2);
+        }
+        
+        // 🎯 NOVA LÓGICA: Adicionar 9 faltante após DDD
+        if (telLimpo.length === 10) {
+          // Telefone tem 10 dígitos: DDD + 8 dígitos
+          // Formato correto: DDD + 9 + 8 dígitos = 11 dígitos
+          const ddd = telLimpo.substring(0, 2);  // Primeiros 2 dígitos (DDD)
+          const numero = telLimpo.substring(2);   // Últimos 8 dígitos
+          telLimpo = ddd + '9' + numero;         // Adicionar 9 após DDD
+          
+          console.log(`📱 Telefone corrigido: ${telefone} → ${telLimpo} (adicionado 9 após DDD)`);
+        } else if (telLimpo.length === 11) {
+          // Telefone já tem 11 dígitos: DDD + 9 + 8 dígitos (formato correto)
+          console.log(`📱 Telefone já correto: ${telefone} → ${telLimpo} (11 dígitos)`);
+        } else {
+          // Telefone com número de dígitos inválido
+          console.warn(`⚠️ Telefone com formato inválido: ${telefone} → ${telLimpo} (${telLimpo.length} dígitos)`);
+        }
+        
+        return telLimpo;
         
       } catch (error) {
-        errors++;
-        console.error(`❌ Erro ao enviar lead ${lead.id}:`, error);
-        if (onProgress) onProgress(`Erro ao enviar lead ${lead.id}`);
+        console.error('❌ Erro ao processar telefone:', telefone, error);
+        return telefone; // Retornar original em caso de erro
       }
+    };
+
+    // Função para formatar data DD/MM/AAAA
+    const formatarDataDDMMAAAA = (data) => {
+      if (!data) return '';
+      try {
+        const dataObj = new Date(data);
+        if (isNaN(dataObj.getTime())) return '';
+        
+        const dia = dataObj.getDate().toString().padStart(2, '0');
+        const mes = (dataObj.getMonth() + 1).toString().padStart(2, '0');
+        const ano = dataObj.getFullYear().toString();
+        
+        return `${dia}/${mes}/${ano}`;
+      } catch (error) {
+        return '';
+      }
+    };
+
+    // Enviar leads em lotes para respeitar rate limit (1 req/min)
+    const BATCH_SIZE = 100; // Enviar 100 leads por vez
+    const batches = [];
+    
+    // Dividir leads em lotes
+    for (let i = 0; i < leadsToSend.length; i += BATCH_SIZE) {
+      batches.push(leadsToSend.slice(i, i + BATCH_SIZE));
+    }
+
+    if (onProgress) onProgress(`📦 Enviando ${leadsToSend.length} leads em ${batches.length} lotes de ${BATCH_SIZE}`);
+
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
+      
+      try {
+        if (onProgress) onProgress(`📤 Enviando lote ${batchIndex + 1}/${batches.length} (${batch.length} leads)...`);
+        console.log(`🔄 Processando lote ${batchIndex + 1}/${batches.length} com ${batch.length} leads`);
+
+        // Preparar dados do lote
+        const importData = batch.map(lead => ({
+          Nome: lead.firstname || 'Lead sem nome',
+          Sobrenome: lead.lastname || '',
+          link: `https://oficialmed.sprinthub.app/sh/leads/profile/${lead.id}`,
+          email: lead.email || '',
+          telefone: corrigirTelefoneBrasileiro(lead.whatsapp || lead.phone || ''),
+          cidade: lead.city || '',
+          estado: lead.state || '',
+          'Data-compra': lead.data_ultima_compra ? formatarDataDDMMAAAA(lead.data_ultima_compra) : '',
+          Observacao: lead.observacao || '',
+          Formula: lead.descricao_formula || '',
+          'tipo-compra': lead.tipo_de_compra || '',
+          'objetivo-cliente': lead.objetivos_do_cliente || ''
+        }));
+
+        const payload = {
+          data: {
+            type: "campaign_contacts_async",
+            attributes: {
+              remove_duplicated_phones: "true",
+              import_data: importData
+            },
+            relationships: {
+              campaign_list: {
+                data: {
+                  type: "campaign_lists",
+                  id: campaignId
+                }
+              }
+            }
+          }
+        };
+
+        const response = await fetch(CALLIX_URL, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${CALLIX_TOKEN}`,
+            'Content-Type': 'application/vnd.api+json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          sent += batch.length;
+          
+          // Registrar todos os leads do lote no controle de status
+          for (const lead of batch) {
+            await supabaseClient
+              .from('lead_callix_status')
+              .upsert({
+                lead_id: lead.id,
+                segmento_id: segmentId,
+                enviado_callix: true,
+                data_envio_callix: new Date().toISOString(),
+                callix_id: result.data?.id?.toString() || 'unknown',
+                status_callix: 'sent'
+              }, {
+                onConflict: 'lead_id,segmento_id'
+              });
+          }
+
+          if (onProgress) onProgress(`✅ Lote ${batchIndex + 1}/${batches.length} enviado: ${batch.length} leads`);
+          
+          // Delay para respeitar rate limit (1 req/min = 60 segundos)
+          if (batchIndex < batches.length - 1) {
+            if (onProgress) onProgress('⏳ Aguardando 60s para respeitar rate limit (1 req/min)...');
+            await new Promise(resolve => setTimeout(resolve, 60000));
+          }
+        } else {
+          errors += batch.length;
+          const errorText = await response.text();
+          console.error(`❌ Erro ao enviar lote ${batchIndex + 1}:`, errorText);
+          if (onProgress) onProgress(`❌ Erro ao enviar lote ${batchIndex + 1}: ${response.status}`);
+          // Continuar para o próximo lote mesmo com erro
+          continue;
+        }
+        
+      } catch (error) {
+        errors += batch.length;
+        console.error(`❌ Erro ao enviar lote ${batchIndex + 1}:`, error);
+        if (onProgress) onProgress(`❌ Erro ao enviar lote ${batchIndex + 1}: ${error.message}`);
+        // Continuar para o próximo lote mesmo com erro
+        continue;
+      }
+      
+      console.log(`✅ Lote ${batchIndex + 1}/${batches.length} processado com sucesso`);
     }
 
     const result = {
@@ -604,6 +806,7 @@ export async function sendLeadsToCallix(segmentId, onProgress = null) {
       stats: {
         total: leads.length,
         sent,
+        alreadySent: alreadySentCount,
         errors
       }
     };

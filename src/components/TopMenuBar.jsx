@@ -127,14 +127,16 @@ const TopMenuBar = ({
     }
   };
 
-  // 🔎 Buscar última sincronização na tabela api.sincronizacao
+  // 🔎 Buscar última sincronização e próxima execução da view api.sync_status
   const fetchLastSyncFromDB = async () => {
     try {
       const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
       const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
       if (!SUPABASE_URL || !SUPABASE_KEY) return;
+      
+      // Buscar status da sincronização automática (cronjob)
       const resp = await fetch(
-        `${SUPABASE_URL}/rest/v1/sincronizacao?select=created_at,data,descricao&order=created_at.desc&limit=1`,
+        `${SUPABASE_URL}/rest/v1/sync_status?select=*`,
         {
           headers: {
             'Authorization': `Bearer ${SUPABASE_KEY}`,
@@ -143,12 +145,22 @@ const TopMenuBar = ({
           }
         }
       );
+      
       if (!resp.ok) return;
       const arr = await resp.json();
+      
       if (Array.isArray(arr) && arr.length > 0) {
-        const item = arr[0];
-        const ts = item.created_at || item.data;
-        if (ts) setLastSyncTime(new Date(ts));
+        const status = arr[0];
+        
+        // Atualizar última sincronização
+        if (status.ultima_sincronizacao) {
+          setLastSyncTime(new Date(status.ultima_sincronizacao));
+        }
+        
+        // Atualizar próxima sincronização
+        if (status.proxima_sincronizacao) {
+          setNextScheduledSync(new Date(status.proxima_sincronizacao));
+        }
       }
     } catch (_) {
       // silencioso para não poluir UI
@@ -2450,17 +2462,26 @@ const TopMenuBar = ({
     if (status?.lastSyncTime) {
       setLastSyncTime(status.lastSyncTime);
     }
+    
     // Buscar do banco a última sincronização (fonte de verdade)
     fetchLastSyncFromDB();
+    
+    // Atualizar a cada 30 segundos para pegar novos dados do banco
+    const interval = setInterval(() => {
+      fetchLastSyncFromDB();
+    }, 30000); // 30 segundos
     
     // Escutar atualizações do serviço
     const handleSyncUpdate = (event) => {
       setLastSyncTime(event.detail.lastSyncTime);
+      // Atualizar também do banco quando houver evento
+      fetchLastSyncFromDB();
     };
     
     window.addEventListener('syncStatusUpdated', handleSyncUpdate);
     
     return () => {
+      clearInterval(interval);
       window.removeEventListener('syncStatusUpdated', handleSyncUpdate);
     };
   }, []);
@@ -2583,26 +2604,13 @@ const TopMenuBar = ({
           <span className="tmb-sync-time">{formatSyncTime(lastSyncTime)}</span>
         </div>
         
-        {/* Status da Sincronização Agendada */}
-        {isScheduledSyncRunning && (
-          <div className="tmb-sync-info">
-            <span className="tmb-sync-label">Próxima sincronização:</span>
-            <span className="tmb-sync-time">
-              {nextScheduledSync ? formatSyncTime(nextScheduledSync) : 'Calculando...'}
-            </span>
-          </div>
-        )}
-        
-        {/* Horários de Sincronização */}
-        {isScheduledSyncRunning && scheduledSyncTimes.length > 0 && (
-          <div className="tmb-sync-info">
-            <span className="tmb-sync-label">Horários:</span>
-            <span className="tmb-sync-time">
-              {scheduledSyncTimes.slice(0, 3).map(time => time.formatted).join(', ')}
-              {scheduledSyncTimes.length > 3 && '...'}
-            </span>
-          </div>
-        )}
+        {/* Próxima Sincronização - sempre visível */}
+        <div className="tmb-sync-info">
+          <span className="tmb-sync-label">Próxima sincronização:</span>
+          <span className="tmb-sync-time">
+            {nextScheduledSync ? formatSyncTime(nextScheduledSync) : 'Calculando...'}
+          </span>
+        </div>
         
         {/* Botões do Serviço Diário - apenas para admin */}
         {isAdmin && (
@@ -2627,57 +2635,26 @@ const TopMenuBar = ({
               )}
             </button>
 
-            {/* Botão de Sincronização Agendada */}
+            {/* Botão de Sincronização Agendada - Apenas informativo, cronjob roda no Supabase */}
             <button 
-              className={`tmb-sync-btn ${isScheduledSyncRunning ? 'syncing' : ''}`}
-              onClick={handleToggleScheduledSync}
-              disabled={isScheduledSyncRunning}
-              title={`🕐 SINCRONIZAÇÃO AGENDADA - ${isScheduledSyncRunning ? 'Parar' : 'Iniciar'} sincronização automática nos horários: 8:00, 9:50, 11:50, 13:50, 15:50, 17:50, 19:50, 20:50 (Brasília)`}
+              className="tmb-sync-btn"
+              onClick={() => {
+                alert(
+                  '🕐 SINCRONIZAÇÃO AUTOMÁTICA ATIVA\n\n' +
+                  '✅ O cronjob está rodando automaticamente no Supabase\n' +
+                  '⏰ Executa às :45 de cada hora (00:45, 01:45, 02:45...)\n' +
+                  '📊 Os dados de última e próxima sincronização são atualizados automaticamente\n\n' +
+                  'Use o botão "⚡ SYNC AGORA" para forçar uma sincronização imediata.'
+                );
+              }}
+              title="🕐 SINCRONIZAÇÃO AUTOMÁTICA - Cronjob rodando no Supabase às :45 de cada hora"
               style={{ 
                 marginLeft: '8px', 
-                background: isScheduledSyncRunning 
-                  ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
-                  : 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
               }}
             >
-              {isScheduledSyncRunning ? (
-                <>
-                  <span className="tmb-sync-spinner"></span>
-                  Parando...
-                </>
-              ) : (
-                <>
-                  🕐 AUTO SYNC
-                </>
-              )}
+              🕐 AUTO SYNC ATIVO
             </button>
-
-            {/* Botão para forçar sincronização agendada */}
-            {isScheduledSyncRunning && (
-              <button 
-                className={`tmb-sync-btn ${isScheduledSyncRunning ? 'syncing' : ''}`}
-                onClick={handleForceScheduledSync}
-                disabled={isScheduledSyncRunning}
-                title="🔄 FORÇAR SYNC - Executar sincronização agendada agora"
-                style={{ 
-                  marginLeft: '8px', 
-                  background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                  fontSize: '12px',
-                  padding: '4px 8px'
-                }}
-              >
-                {isScheduledSyncRunning ? (
-                  <>
-                    <span className="tmb-sync-spinner"></span>
-                    Executando...
-                  </>
-                ) : (
-                  <>
-                    🔄 FORÇAR
-                  </>
-                )}
-              </button>
-            )}
 
 
           </>

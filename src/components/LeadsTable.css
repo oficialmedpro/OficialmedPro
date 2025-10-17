@@ -1,0 +1,385 @@
+/* ========================================
+   LEADS TABLE COMPONENT STYLES
+   ======================================== */
+
+.leads-table-container {
+  background: #0f172a;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid #1e293b;
+}
+
+.leads-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #333;
+}
+
+.header-left h3 {
+  color: #ffffff;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.segment-info {
+  color: #888;
+  font-size: 12px;
+  margin-left: 10px;
+}
+
+.close-btn {
+  background: #ff4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.3s ease;
+}
+
+.close-btn:hover {
+  background: #ff6666;
+}
+
+/* ========================================
+   FILTROS
+   ======================================== */
+
+.leads-table-filters {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #171e31;
+  border-radius: 8px;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.filter-group label {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.filter-select {
+  background: #1e293b;
+  color: #ffffff;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #00d4ff;
+}
+
+.results-info {
+  color: #888;
+  font-size: 12px;
+}
+
+/* ========================================
+   TABELA
+   ======================================== */
+
+.leads-table-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.leads-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #0f172a;
+}
+
+.leads-table thead {
+  background: #171e31;
+}
+
+.leads-table th {
+  color: #ffffff;
+  padding: 15px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  border-bottom: 1px solid #333;
+  white-space: nowrap;
+}
+
+.leads-table td {
+  padding: 12px;
+  border-bottom: 1px solid #2a2a2a;
+  color: #ffffff;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+.lead-row {
+  transition: background-color 0.2s ease;
+}
+
+.lead-row:hover {
+  background: #171e31;
+}
+
+.lead-row:last-child td {
+  border-bottom: none;
+}
+
+/* ========================================
+   CÉLULAS ESPECÍFICAS
+   ======================================== */
+
+.lead-name {
+  font-weight: 500;
+  color: #ffffff;
+  min-width: 150px;
+}
+
+.lead-whatsapp {
+  font-family: monospace;
+  color: #00ff88;
+  min-width: 120px;
+}
+
+.lead-email {
+  color: #88ccff;
+  min-width: 150px;
+  word-break: break-all;
+}
+
+.lead-segment {
+  color: #ffaa00;
+  min-width: 120px;
+}
+
+.lead-status {
+  min-width: 100px;
+}
+
+.lead-actions {
+  min-width: 120px;
+  text-align: center;
+}
+
+/* ========================================
+   STATUS BADGES
+   ======================================== */
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-pending {
+  background: #ffaa00;
+  color: #000;
+}
+
+.status-sent {
+  background: #00aaff;
+  color: #fff;
+}
+
+.status-contacted {
+  background: #00ff88;
+  color: #000;
+}
+
+.status-not-contacted {
+  background: #ff6666;
+  color: #fff;
+}
+
+.status-converted {
+  background: #8800ff;
+  color: #fff;
+}
+
+.status-failed {
+  background: #ff4444;
+  color: #fff;
+}
+
+.status-unknown {
+  background: #666;
+  color: #fff;
+}
+
+/* ========================================
+   BOTÕES
+   ======================================== */
+
+.view-profile-btn {
+  background: linear-gradient(135deg, #00d4ff, #0099cc);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.view-profile-btn:hover {
+  background: linear-gradient(135deg, #00b8e6, #0088bb);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+}
+
+/* ========================================
+   ESTADOS
+   ======================================== */
+
+.loading-state,
+.error-state,
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #888;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #333;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.error-state p {
+  color: #ff4444;
+  margin-bottom: 15px;
+}
+
+.retry-btn {
+  background: linear-gradient(135deg, #00d4ff, #0099cc);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.retry-btn:hover {
+  background: linear-gradient(135deg, #00b8e6, #0088bb);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3);
+}
+
+.empty-state p {
+  color: #888;
+  font-size: 16px;
+}
+
+/* ========================================
+   PAGINAÇÃO
+   ======================================== */
+
+.leads-table-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #333;
+}
+
+.pagination-btn {
+  background: #1e293b;
+  color: #ffffff;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: #334155;
+  border-color: #475569;
+}
+
+.pagination-btn:disabled {
+  background: #222;
+  color: #666;
+  cursor: not-allowed;
+  border-color: #333;
+}
+
+.pagination-info {
+  color: #888;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* ========================================
+   RESPONSIVIDADE
+   ======================================== */
+
+@media (max-width: 768px) {
+  .leads-table-container {
+    padding: 15px;
+    margin: 15px 0;
+  }
+  
+  .leads-table-filters {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .leads-table {
+    font-size: 12px;
+  }
+  
+  .leads-table th,
+  .leads-table td {
+    padding: 8px 6px;
+  }
+  
+  .leads-table-pagination {
+    flex-direction: column;
+    gap: 10px;
+  }
+}

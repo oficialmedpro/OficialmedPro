@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import './CallixImportComponent.css';
 import { getSegmentos, importAndEnrichSegment, enrichExistingLeads, sendLeadsToCallix, checkCallixStatus } from '../service/callixService';
+import LeadsTable from './LeadsTable';
 
 const CallixImportComponent = () => {
   const [segmentos, setSegmentos] = useState([]);
   const [selectedSegmento, setSelectedSegmento] = useState('');
+  const [campaignId, setCampaignId] = useState(22); // ID da lista Callix
+  const [forceResend, setForceResend] = useState(false); // Forçar reenvio
   const [loading, setLoading] = useState(false);
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
   const [step, setStep] = useState('select'); // select, importing, sending, checking, completed
+  const [showLeadsTable, setShowLeadsTable] = useState(false);
+  const [selectedSegmentoForTable, setSelectedSegmentoForTable] = useState(null);
 
   useEffect(() => {
     loadSegmentos();
@@ -38,6 +43,28 @@ const CallixImportComponent = () => {
     setLogs([]);
     setStats(null);
     setStep('select');
+  };
+
+  const handleViewLeads = () => {
+    if (!selectedSegmento) {
+      addLog('❌ Selecione um segmento primeiro');
+      return;
+    }
+
+    const segmento = segmentos.find(s => s.id.toString() === selectedSegmento);
+    if (segmento) {
+      setSelectedSegmentoForTable({
+        id: segmento.id,
+        nome: segmento.name
+      });
+      setShowLeadsTable(true);
+      addLog(`🔍 Visualizando leads do segmento: ${segmento.name}`);
+    }
+  };
+
+  const handleCloseLeadsTable = () => {
+    setShowLeadsTable(false);
+    setSelectedSegmentoForTable(null);
   };
 
   const handleSegmentoChange = (e) => {
@@ -90,11 +117,16 @@ const CallixImportComponent = () => {
       const segmento = segmentos.find(s => s.id === parseInt(selectedSegmento));
       addLog(`📤 Enviando leads do segmento "${segmento.name}" para Callix...`);
       
-      const result = await sendLeadsToCallix(selectedSegmento, addLog);
+      const result = await sendLeadsToCallix(selectedSegmento, campaignId, addLog, forceResend);
       
       if (result.success) {
-        addLog(`✅ Envio concluído! ${result.stats.sent} leads enviados`);
+        const stats = result.stats;
+        addLog(`✅ Envio concluído! ${stats.sent} leads enviados`);
+        if (stats.alreadySent > 0) {
+          addLog(`ℹ️ ${stats.alreadySent} leads já estavam enviados`);
+        }
         setStep('completed');
+        setStats(stats);
       } else {
         addLog(`❌ Erro no envio: ${result.error}`);
         setStep('completed');
@@ -199,6 +231,39 @@ const CallixImportComponent = () => {
               </select>
             </div>
 
+            <div className="callix-form-group">
+              <label htmlFor="campaign-id" className="callix-label">
+                🎯 ID da Lista Callix
+              </label>
+              <input
+                id="campaign-id"
+                type="number"
+                value={campaignId}
+                onChange={(e) => setCampaignId(parseInt(e.target.value) || 22)}
+                className="callix-input"
+                placeholder="Ex: 22"
+                min="1"
+                disabled={loading}
+              />
+              <small className="callix-help-text">
+                ID da lista de campanha no Callix onde os leads serão enviados
+              </small>
+            </div>
+
+            <div className="callix-form-group">
+              <label className="callix-checkbox-label">
+                <input
+                  type="checkbox"
+                  checked={forceResend}
+                  onChange={(e) => setForceResend(e.target.checked)}
+                  disabled={loading}
+                />
+                <span className="callix-checkbox-text">
+                  🔄 Forçar reenvio (enviar mesmo leads já enviados anteriormente)
+                </span>
+              </label>
+            </div>
+
             {selectedSegmento && (
               <div className="callix-segment-info">
                 {(() => {
@@ -232,6 +297,22 @@ const CallixImportComponent = () => {
               >
                 {loading ? '⏳ Enriquecendo...' : '🔄 Apenas Enriquecer Leads Existentes'}
               </button>
+
+              <button
+                onClick={handleViewLeads}
+                disabled={!selectedSegmento}
+                className="callix-btn callix-btn-info"
+              >
+                👁️ Ver Leads do Segmento
+              </button>
+              
+              <button
+                onClick={handleSendToCallix}
+                disabled={!selectedSegmento || !campaignId || loading}
+                className="callix-btn callix-btn-success"
+              >
+                {loading ? '⏳ Enviando...' : '📤 Enviar para Callix'}
+              </button>
             </div>
           </div>
         );
@@ -243,6 +324,17 @@ const CallixImportComponent = () => {
               <h3>🔄 Importando e Enriquecendo Leads</h3>
               <div className="callix-spinner"></div>
               <p>Aguarde enquanto os leads são importados e enriquecidos...</p>
+            </div>
+          </div>
+        );
+
+      case 'sending':
+        return (
+          <div className="callix-step-content">
+            <div className="callix-progress">
+              <h3>📤 Enviando para Callix</h3>
+              <div className="callix-spinner"></div>
+              <p>Aguarde enquanto os leads são enviados para o Callix...</p>
             </div>
           </div>
         );
@@ -285,16 +377,38 @@ const CallixImportComponent = () => {
                 </div>
               )}
 
+              {/* Estatísticas do Callix */}
+              {stats && stats.sent !== undefined && (
+                <div className="callix-stats">
+                  <h4>📤 Estatísticas do Callix</h4>
+                  <div className="callix-stats-grid">
+                    <div className="callix-stat-item">
+                      <span className="callix-stat-number">{stats.total || 0}</span>
+                      <span className="callix-stat-label">Total de Leads</span>
+                    </div>
+                    <div className="callix-stat-item">
+                      <span className="callix-stat-number callix-stat-success">{stats.sent || 0}</span>
+                      <span className="callix-stat-label">Enviados</span>
+                    </div>
+                    {stats.alreadySent > 0 && (
+                      <div className="callix-stat-item">
+                        <span className="callix-stat-number callix-stat-warning">{stats.alreadySent}</span>
+                        <span className="callix-stat-label">Já Enviados</span>
+                      </div>
+                    )}
+                    {stats.errors > 0 && (
+                      <div className="callix-stat-item">
+                        <span className="callix-stat-number callix-stat-error">{stats.errors}</span>
+                        <span className="callix-stat-label">Erros</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="callix-next-actions">
                 <h4>🎯 Próximos Passos</h4>
                 <div className="callix-actions">
-                  <button
-                    onClick={handleSendToCallix}
-                    disabled={loading}
-                    className="callix-btn callix-btn-secondary"
-                  >
-                    {loading ? '⏳ Enviando...' : '📤 Enviar para Callix'}
-                  </button>
                   <button
                     onClick={handleCheckStatus}
                     disabled={loading}
@@ -357,6 +471,15 @@ const CallixImportComponent = () => {
           </div>
         </div>
       </div>
+
+      {/* Tabela de Leads */}
+      {showLeadsTable && (
+        <LeadsTable
+          segmentoId={selectedSegmentoForTable?.id}
+          segmentoNome={selectedSegmentoForTable?.nome}
+          onClose={handleCloseLeadsTable}
+        />
+      )}
     </div>
   );
 };

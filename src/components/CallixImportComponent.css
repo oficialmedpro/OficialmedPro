@@ -202,6 +202,17 @@
   box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
 }
 
+.callix-btn-success {
+  background: linear-gradient(135deg, #20c997, #17a2b8);
+  color: #ffffff;
+}
+
+.callix-btn-success:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1abc9c, #138496);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(32, 201, 151, 0.3);
+}
+
 .callix-btn-info {
   background: linear-gradient(135deg, #17a2b8, #117a8b);
   color: #ffffff;
@@ -323,6 +334,10 @@
   color: #dc3545;
 }
 
+.callix-stat-warning {
+  color: #f59e0b;
+}
+
 .callix-stat-label {
   display: block;
   font-size: 0.9rem;
@@ -438,4 +453,32 @@
 
 .callix-logs-content::-webkit-scrollbar-thumb:hover {
   background: #334155;
+}
+
+.callix-help-text {
+  font-size: 0.875rem;
+  color: #888;
+  margin-top: 5px;
+  display: block;
+}
+
+.callix-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.callix-checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #00d4ff;
+  cursor: pointer;
+}
+
+.callix-checkbox-text {
+  font-size: 0.95rem;
+  color: #cccccc;
+  line-height: 1.4;
 }

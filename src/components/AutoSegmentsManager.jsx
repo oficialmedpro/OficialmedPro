@@ -12,6 +12,7 @@ import {
   formatarTempoRestante
 } from '../service/autoSegmentsService';
 import { getSegmentos } from '../service/callixService';
+import LeadsTable from './LeadsTable';
 
 const AutoSegmentsManager = () => {
   const [segmentos, setSegmentos] = useState([]);
@@ -21,6 +22,8 @@ const AutoSegmentsManager = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingSegmento, setEditingSegmento] = useState(null);
   const [logs, setLogs] = useState([]);
+  const [showLeadsTable, setShowLeadsTable] = useState(false);
+  const [selectedSegmento, setSelectedSegmento] = useState(null);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -28,7 +31,8 @@ const AutoSegmentsManager = () => {
     nome: '',
     ativo: true,
     enviar_callix: false,
-    frequencia_horas: 6
+    frequencia_horas: 6,
+    campaign_id: 7 // ID padrão da lista Callix para teste
   });
 
   useEffect(() => {
@@ -151,6 +155,20 @@ const AutoSegmentsManager = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleViewLeads = (segmentoAuto) => {
+    setSelectedSegmento({
+      id: segmentoAuto.segmento_id,
+      nome: segmentoAuto.nome
+    });
+    setShowLeadsTable(true);
+    addLog(`🔍 Visualizando leads do segmento: ${segmentoAuto.nome}`);
+  };
+
+  const handleCloseLeadsTable = () => {
+    setShowLeadsTable(false);
+    setSelectedSegmento(null);
   };
 
   const handleDeleteSegmento = async (id, nome) => {
@@ -279,6 +297,9 @@ const AutoSegmentsManager = () => {
                   <p><strong>Total de Leads:</strong> {getSegmentoTotalLeads(segmento.segmento_id)}</p>
                   <p><strong>Frequência:</strong> A cada {segmento.frequencia_horas}h</p>
                   <p><strong>Enviar Callix:</strong> {segmento.enviar_callix ? '✅ Sim' : '❌ Não'}</p>
+                   {segmento.enviar_callix && segmento.campaign_id && (
+                     <p><strong>Lista Callix:</strong> ID {segmento.campaign_id}</p>
+                   )}
                   <p><strong>Próxima Execução:</strong> {formatarTempoRestante(segmento.proxima_execucao)}</p>
                   {segmento.ultima_execucao && (
                     <p><strong>Última Execução:</strong> {new Date(segmento.ultima_execucao).toLocaleString('pt-BR')}</p>
@@ -297,6 +318,15 @@ const AutoSegmentsManager = () => {
                     disabled={loading}
                   >
                     {segmento.ativo ? '⏸️ Pausar' : '▶️ Ativar'}
+                  </button>
+                  
+                  <button
+                    onClick={() => handleViewLeads(segmento)}
+                    className="btn btn-sm btn-success"
+                    disabled={loading}
+                    title="Ver leads deste segmento"
+                  >
+                    👁️ Ver Leads
                   </button>
                   
                   <button
@@ -341,6 +371,15 @@ const AutoSegmentsManager = () => {
           )}
         </div>
       </div>
+
+      {/* Tabela de Leads */}
+      {showLeadsTable && (
+        <LeadsTable
+          segmentoId={selectedSegmento?.id}
+          segmentoNome={selectedSegmento?.nome}
+          onClose={handleCloseLeadsTable}
+        />
+      )}
 
       {/* Modal */}
       {showModal && (
@@ -404,6 +443,24 @@ const AutoSegmentsManager = () => {
                   Enviar leads para Callix automaticamente
                 </label>
               </div>
+
+              {formData.enviar_callix && (
+                <div className="form-group">
+                  <label>
+                    ID da Lista Callix:
+                    <input
+                      type="number"
+                      value={formData.campaign_id}
+                      onChange={(e) => setFormData({...formData, campaign_id: parseInt(e.target.value)})}
+                      placeholder="Ex: 7"
+                      min="1"
+                    />
+                  </label>
+                  <small className="form-help">
+                    ID da lista de campanha no Callix onde os leads serão enviados
+                  </small>
+                </div>
+              )}
 
               <div className="form-group">
                 <label>
