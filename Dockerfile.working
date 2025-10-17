@@ -15,9 +15,9 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Set environment variables (will be overridden by Portainer secrets)
-ENV VITE_SUPABASE_URL=placeholder
-ENV VITE_SUPABASE_SERVICE_ROLE_KEY=placeholder
+# Set environment variables
+ENV VITE_SUPABASE_URL=https://agdffspstbxeqhqtltvb.supabase.co
+ENV VITE_SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTczNDQ5NzQwMCwiZXhwIjoyMDUwMDczNDAwfQ.alcgQVSO5zQ5hLtRunyRlg_N9GymGor
 ENV VITE_SUPABASE_SCHEMA=api
 
 # Build the app

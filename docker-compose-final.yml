@@ -1,0 +1,97 @@
+version: "3.7"
+
+services:
+
+  ## --------------------------- PWA VITE/REACT --------------------------- ##
+  bi:
+    image: oficialmedpro/oficialmed-pwa:latest
+    networks:
+      - OficialMed
+    environment:
+      - VITE_SUPABASE_URL_FILE=/run/secrets/VITE_SUPABASE_URL
+      - VITE_SUPABASE_SERVICE_ROLE_KEY_FILE=/run/secrets/VITE_SUPABASE_SERVICE_ROLE_KEY
+      - VITE_SUPABASE_SCHEMA_FILE=/run/secrets/VITE_SUPABASE_SCHEMA
+      - CRON_AUTH_TOKEN=meu-token-super-secreto-2024
+
+    secrets:
+      - VITE_SUPABASE_URL
+      - VITE_SUPABASE_SERVICE_ROLE_KEY
+      - VITE_SUPABASE_SCHEMA
+      
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+
+        # Router principal (HTTPS)
+        - traefik.http.routers.bi.rule=Host(`bi.oficialmed.com.br`)
+        - traefik.http.routers.bi.entrypoints=websecure
+        - traefik.http.routers.bi.tls.certresolver=letsencryptresolver
+
+        # Serviço apontando para a porta 80 do Nginx no container
+        - traefik.http.services.bi.loadbalancer.server.port=80
+        - traefik.http.services.bi.loadbalancer.passHostHeader=true
+        - traefik.http.routers.bi.service=bi
+
+        # Redirecionar HTTP -> HTTPS
+        - traefik.http.routers.bi-http.rule=Host(`bi.oficialmed.com.br`)
+        - traefik.http.routers.bi-http.entrypoints=web
+        - traefik.http.routers.bi-http.middlewares=force-https
+        - traefik.http.middlewares.force-https.redirectscheme.scheme=https
+
+        # (Opcional) redirecionar www -> raiz
+        - traefik.http.routers.bi-www.rule=Host(`www.bi.oficialmed.com.br`)
+        - traefik.http.routers.bi-www.entrypoints=websecure
+        - traefik.http.routers.bi-www.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.bi-www.middlewares=bi-www2root
+        - traefik.http.middlewares.bi-www2root.redirectregex.regex=^https://www\\.(.*)
+        - traefik.http.middlewares.bi-www2root.redirectregex.replacement=https://$${1}
+
+  ## --------------------------- API NODE.JS --------------------------- ##
+  api:
+    image: oficialmedpro/oficialmed-api:latest
+    networks:
+      - OficialMed
+    environment:
+      - NODE_ENV=production
+      - VITE_SUPABASE_URL_FILE=/run/secrets/VITE_SUPABASE_URL
+      - VITE_SUPABASE_SERVICE_ROLE_KEY_FILE=/run/secrets/VITE_SUPABASE_SERVICE_ROLE_KEY
+      - VITE_SUPABASE_SCHEMA_FILE=/run/secrets/VITE_SUPABASE_SCHEMA
+      - VITE_SPRINTHUB_BASE_URL=sprinthub-api-master.sprinthub.app
+      - VITE_SPRINTHUB_API_TOKEN=9ad36c85-5858-4960-9935-e73c3698dd0c
+      - VITE_SPRINTHUB_INSTANCE=oficialmed
+      - ENABLE_BACKEND_SCHEDULER=true
+      - CRON_AUTH_TOKEN=meu-token-super-secreto-2024
+    secrets:
+      - VITE_SUPABASE_URL
+      - VITE_SUPABASE_SERVICE_ROLE_KEY
+      - VITE_SUPABASE_SCHEMA
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.api.rule=Host(`bi.oficialmed.com.br`) && PathPrefix(`/api`)
+        - traefik.http.routers.api.entrypoints=websecure
+        - traefik.http.routers.api.tls.certresolver=letsencryptresolver
+        - traefik.http.services.api.loadbalancer.server.port=3002
+        
+networks:
+  OficialMed:
+    external: true
+    name: OficialMed
+
+secrets:
+  VITE_SUPABASE_URL:
+    external: true
+  VITE_SUPABASE_SERVICE_ROLE_KEY:
+    external: true
+  VITE_SUPABASE_SCHEMA:
+    external: true
