@@ -44,9 +44,11 @@ COPY nginx.conf /etc/nginx/nginx.conf
 # Criar diretório dist se não existir
 RUN mkdir -p /usr/share/nginx/html
 
-# Copy built app (se existir) ou criar um index.html simples
-COPY --from=build /app/dist /usr/share/nginx/html 2>/dev/null || echo "Dist nao existe, criando index.html simples"
-RUN echo '<!DOCTYPE html><html><head><title>OficialMed BI</title><meta charset="utf-8"></head><body><h1>OficialMed BI</h1><p>Em construcao...</p><p>Versao: 1.0.0</p></body></html>' > /usr/share/nginx/html/index.html
+# Copy built app
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Create fallback index.html
+RUN echo '<html><head><title>OficialMed BI</title></head><body><h1>OficialMed BI</h1><p>Loading...</p></body></html>' > /usr/share/nginx/html/index.html
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
