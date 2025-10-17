@@ -1,0 +1,58 @@
+name: Deploy API Only
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'api/**'
+      - '.github/workflows/deploy-api-only.yml'
+  workflow_dispatch:
+
+env:
+  DOCKER_IMAGE: oficialmedpro/oficialmed-api
+  DOCKER_TAG: latest
+
+jobs:
+  build-and-push-api:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Build and push API Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./api/Dockerfile
+        push: true
+        tags: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}
+        platforms: linux/amd64,linux/arm64
+        no-cache: true
+
+    - name: Image digest
+      run: echo ${{ steps.build.outputs.digest }}
+
+  notify:
+    needs: build-and-push-api
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: Notify deployment status
+      run: |
+        if [ "${{ needs.build-and-push-api.result }}" == "success" ]; then
+          echo "✅ API Docker image built and pushed successfully!"
+          echo "API: ${{ env.DOCKER_IMAGE }}:${{ env.DOCKER_TAG }}"
+        else
+          echo "❌ API Docker build failed!"
+        fi
