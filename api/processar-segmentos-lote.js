@@ -4,6 +4,17 @@ const router = express.Router();
 // Endpoint para processar segmentos em lote (100 leads por vez)
 // Domínio de produção: https://bi.oficialmed.com.br/api/processar-segmentos-lote
 router.post('/processar-segmentos-lote', async (req, res) => {
+  // Verificar token de autenticação
+  const authToken = req.headers['x-auth-token'];
+  const expectedToken = process.env.CRON_AUTH_TOKEN || 'meu-token-super-secreto-2024';
+  
+  if (!authToken || authToken !== expectedToken) {
+    console.log('❌ Tentativa de acesso não autorizada ao endpoint de cron job');
+    return res.status(401).json({
+      success: false,
+      error: 'Token de autenticação inválido'
+    });
+  }
   try {
     console.log('🚀 Iniciando processamento de segmentos em lote...');
     

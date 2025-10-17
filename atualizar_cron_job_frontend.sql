@@ -16,7 +16,7 @@ SELECT cron.schedule(
   $$
   SELECT net.http_post(
     'https://bi.oficialmed.com.br/api/processar-segmentos-lote',
-    headers => '{"Content-Type": "application/json"}'::jsonb,
+    headers => '{"Content-Type": "application/json", "x-auth-token": "meu-token-super-secreto-2024"}'::jsonb,
     body => '{}'::jsonb
   );
   $$

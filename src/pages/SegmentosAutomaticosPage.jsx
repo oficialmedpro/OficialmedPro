@@ -262,7 +262,8 @@ const SegmentosAutomaticosPage = () => {
             const response = await fetch('https://bi.oficialmed.com.br/api/processar-segmentos-lote', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'x-auth-token': 'meu-token-super-secreto-2024'
           },
           body: JSON.stringify({})
         });
