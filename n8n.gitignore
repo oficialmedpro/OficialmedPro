@@ -1,0 +1,107 @@
+# =====================================================
+# .gitignore para N8N - Oficial Med
+# =====================================================
+# 
+# Adicione estas linhas ao seu .gitignore principal
+# ou use este arquivo como referência
+#
+
+## 🔐 Arquivos com Credenciais
+n8n.env
+*.env
+!n8n.env.example
+!*.env.example
+
+## 💾 Backups
+backups/
+backup/
+*.sql
+*.sql.gz
+*.tar.gz
+*.backup
+
+## 📊 Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+## 🗄️ Dados Locais
+n8n-data/
+.n8n/
+n8n_data/
+
+## 📝 Arquivos Temporários
+temp/
+tmp/
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+## 🔧 Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+## 📦 Node.js (se usar localmente)
+node_modules/
+package-lock.json
+yarn.lock
+
+## 🐳 Docker
+.docker/
+docker-compose.override.yml
+
+## 📊 Metadados
+*.info
+*.metadata
+
+## 🔐 Chaves e Certificados
+*.key
+*.pem
+*.crt
+*.cert
+*.p12
+*.pfx
+
+## 🗃️ Dados Sensíveis
+credentials/
+secrets/
+.secrets/
+
+## ⚙️ Configurações Locais
+config.local.yml
+config.local.json
+*.local.yml
+*.local.json
+
+## 📈 Métricas e Monitoramento
+metrics/
+monitoring/
+
+## 🧪 Testes
+test-results/
+coverage/
+
+## 📱 Sistema
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
+## 🔄 Backups de Segurança
+safety-backup-*/
+rollback-*/
+
+## 📋 Notas Pessoais
+notes/
+TODO.txt
+NOTES.txt
+
+# =====================================================
+# FIM
+# =====================================================
+
