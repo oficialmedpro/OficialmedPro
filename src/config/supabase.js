@@ -10,15 +10,29 @@ const getSupabaseConfig = () => {
   // Tentar diferentes formas de obter as variáveis
   let supabaseUrl = import.meta.env.VITE_SUPABASE_URL ||
                     window.ENV?.VITE_SUPABASE_URL ||
+                    process.env.VITE_SUPABASE_URL ||
                     'https://agdffspstbxeqhqtltvb.supabase.co';
 
   let supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
                           window.ENV?.VITE_SUPABASE_SERVICE_ROLE_KEY ||
+                          process.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
                           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxNzUyNTUzNSwiZXhwIjoyMDMzMTAxNTM1fQ.gxoHQn-5MwRqgMgXoFOyGCcFrCH7GzHE4ZQXQPNIRV4';
 
   let supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA ||
                        window.ENV?.VITE_SUPABASE_SCHEMA ||
+                       process.env.VITE_SUPABASE_SCHEMA ||
                        'api';
+
+  // Validação adicional para garantir que a URL seja válida
+  if (!supabaseUrl || supabaseUrl === 'undefined' || supabaseUrl === 'null') {
+    console.warn('⚠️ VITE_SUPABASE_URL não encontrada, usando fallback');
+    supabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
+  }
+
+  if (!supabaseServiceKey || supabaseServiceKey === 'undefined' || supabaseServiceKey === 'null') {
+    console.warn('⚠️ VITE_SUPABASE_SERVICE_ROLE_KEY não encontrada, usando fallback');
+    supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxNzUyNTUzNSwiZXhwIjoyMDMzMTAxNTM1fQ.gxoHQn-5MwRqgMgXoFOyGCcFrCH7GzHE4ZQXQPNIRV4';
+  }
 
   // Log de debug para entender o que está acontecendo
   console.log('🔧 Configuração Supabase:', {
