@@ -42,11 +42,20 @@ ls -la /usr/share/nginx/html/index.html
 # Backup do arquivo original
 cp /usr/share/nginx/html/index.html /usr/share/nginx/html/index.html.backup
 
-# Injetar as variáveis
-sed -i "s|</head>|<script>window.ENV = { VITE_SUPABASE_URL: '${VITE_SUPABASE_URL}', VITE_SUPABASE_SERVICE_ROLE_KEY: '${VITE_SUPABASE_SERVICE_ROLE_KEY}', VITE_SUPABASE_SCHEMA: '${VITE_SUPABASE_SCHEMA}' };</script></head>|" /usr/share/nginx/html/index.html
-
-echo "📄 Verificando se a modificação foi aplicada..."
-grep -o "window.ENV" /usr/share/nginx/html/index.html && echo "✅ window.ENV encontrado no HTML" || echo "❌ window.ENV NÃO encontrado no HTML"
+# Verificar se as variáveis têm valores válidos
+if [ -z "$VITE_SUPABASE_URL" ] || [ "$VITE_SUPABASE_URL" = "..." ]; then
+    echo "❌ VITE_SUPABASE_URL está vazia ou inválida"
+    echo "🔧 Usando fallback embutido na imagem"
+    # Não injetar variáveis, deixar usar os fallbacks
+else
+    echo "✅ VITE_SUPABASE_URL válida: ${VITE_SUPABASE_URL:0:30}..."
+    
+    # Injetar as variáveis
+    sed -i "s|</head>|<script>window.ENV = { VITE_SUPABASE_URL: '${VITE_SUPABASE_URL}', VITE_SUPABASE_SERVICE_ROLE_KEY: '${VITE_SUPABASE_SERVICE_ROLE_KEY}', VITE_SUPABASE_SCHEMA: '${VITE_SUPABASE_SCHEMA}' };</script></head>|" /usr/share/nginx/html/index.html
+    
+    echo "📄 Verificando se a modificação foi aplicada..."
+    grep -o "window.ENV" /usr/share/nginx/html/index.html && echo "✅ window.ENV encontrado no HTML" || echo "❌ window.ENV NÃO encontrado no HTML"
+fi
 
 # Executar o comando original
 echo "🚀 Iniciando aplicação..."

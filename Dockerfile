@@ -32,22 +32,14 @@ RUN npm run build
 # Production stage
 FROM nginx:alpine
 
-# Install bash for the entrypoint script
-RUN apk add --no-cache bash
-
 # Copy nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Copy built app from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copy entrypoint script
-COPY docker-entrypoint.sh /docker-entrypoint.sh
-RUN chmod +x /docker-entrypoint.sh
-
 # Expose port
 EXPOSE 80
 
-# Use entrypoint script
-ENTRYPOINT ["/docker-entrypoint.sh"]
+# Start nginx directly
 CMD ["nginx", "-g", "daemon off;"]
