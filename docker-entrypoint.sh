@@ -34,6 +34,10 @@ echo "  VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:0:30}..."
 echo "  VITE_SUPABASE_SERVICE_ROLE_KEY: ${VITE_SUPABASE_SERVICE_ROLE_KEY:0:20}..."
 echo "  VITE_SUPABASE_SCHEMA: $VITE_SUPABASE_SCHEMA"
 
+# Injetar variáveis no HTML para o frontend acessar
+echo "🔧 Injetando variáveis no HTML..."
+sed -i "s|</head>|<script>window.ENV = { VITE_SUPABASE_URL: '${VITE_SUPABASE_URL}', VITE_SUPABASE_SERVICE_ROLE_KEY: '${VITE_SUPABASE_SERVICE_ROLE_KEY}', VITE_SUPABASE_SCHEMA: '${VITE_SUPABASE_SCHEMA}' };</script></head>|" /usr/share/nginx/html/index.html
+
 # Executar o comando original
 echo "🚀 Iniciando aplicação..."
 exec "$@"
