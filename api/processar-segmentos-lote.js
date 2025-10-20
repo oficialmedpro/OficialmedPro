@@ -1,4 +1,4 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
 
 // Endpoint para processar segmentos em lote (100 leads por vez)
@@ -259,4 +259,4 @@ function formatarDataDDMMAAAA(data) {
   }
 }
 
-module.exports = router;
+export default router;
