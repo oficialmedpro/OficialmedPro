@@ -2,10 +2,8 @@ import React, { useState, useEffect } from 'react'
 import { googleAdsConnectionTest } from '../service/googleAdsConnectionTest.js'
 import './credenciais_supabase_google.css'
 
-// Configurações do Supabase (mesmo padrão do supabase.js)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
-const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api'
+// Configurações do Supabase (usando configuração centralizada)
+import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
 
 const CredenciaisSupabaseGoogle = () => {
   const [unidade, setUnidade] = useState(null)

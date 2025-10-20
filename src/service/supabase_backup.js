@@ -1,10 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { getTodayDateSP, getStartOfDaySP, getEndOfDaySP } from '../utils/utils.js'
-
-// Configurações do Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
-const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api'
+import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
 
 // Cliente Supabase com service role key (permite acesso a todos os schemas)
 export const supabase = createClient(supabaseUrl, supabaseServiceKey, {

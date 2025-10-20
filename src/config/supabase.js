@@ -24,8 +24,9 @@ const getSupabaseConfig = () => {
                        'api';
 
   // Validação adicional para garantir que a URL seja válida
-  if (!supabaseUrl || supabaseUrl === 'undefined' || supabaseUrl === 'null') {
-    console.warn('⚠️ VITE_SUPABASE_URL não encontrada, usando fallback');
+  if (!supabaseUrl || supabaseUrl === 'undefined' || supabaseUrl === 'null' || !supabaseUrl.startsWith('http')) {
+    console.warn('⚠️ VITE_SUPABASE_URL não encontrada ou inválida, usando fallback');
+    console.warn('⚠️ URL recebida:', supabaseUrl);
     supabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
   }
 

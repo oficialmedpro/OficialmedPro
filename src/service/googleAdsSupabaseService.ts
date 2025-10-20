@@ -1,14 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
+import { supabaseUrl, supabaseServiceKey } from '../config/supabase.js';
 
-// Configuração do Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('⚠️ Variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY não configuradas');
-}
-
-const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+// Usar a configuração centralizada
+const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+});
 
 export interface GoogleAdsCampaign {
   id: string;
