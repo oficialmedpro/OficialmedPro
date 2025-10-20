@@ -30,10 +30,10 @@ router.post('/processar-segmentos-lote', async (req, res) => {
     console.log('🚀 Iniciando processamento de segmentos em lote...');
     
     // Buscar segmentos ativos
-    const segmentosResponse = await fetch(`${process.env.SUPABASE_URL}/rest/v1/segmento_automatico?ativo=eq.true&select=*`, {
+    const segmentosResponse = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/segmento_automatico?ativo=eq.true&select=*`, {
       headers: {
-        'apikey': process.env.SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+        'apikey': process.env.VITE_SUPABASE_SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${process.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
         'Content-Type': 'application/json'
       }
     });
@@ -52,10 +52,10 @@ router.post('/processar-segmentos-lote', async (req, res) => {
       
       try {
         // Buscar leads do segmento (100 por vez)
-        const leadsResponse = await fetch(`${process.env.SUPABASE_URL}/rest/v1/leads?segmento=eq.${segmento.segmento_id}&enviado_callix=eq.false&limit=100`, {
+        const leadsResponse = await fetch(`${process.env.VITE_SUPABASE_URL}/rest/v1/leads?segmento=eq.${segmento.segmento_id}&enviado_callix=eq.false&limit=100`, {
           headers: {
-            'apikey': process.env.SUPABASE_SERVICE_KEY,
-            'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+            'apikey': process.env.VITE_SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${process.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
             'Content-Type': 'application/json'
           }
         });
@@ -198,11 +198,11 @@ async function enviarLoteParaCallix(leads, segmento, env) {
 
     // Bulk update leads table
     for (const update of updates) {
-      await fetch(`${env.SUPABASE_URL}/rest/v1/leads?id=eq.${update.id}`, {
+      await fetch(`${env.VITE_SUPABASE_URL}/rest/v1/leads?id=eq.${update.id}`, {
         method: 'PATCH',
         headers: {
-          'apikey': env.SUPABASE_SERVICE_KEY,
-          'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`,
+          'apikey': env.VITE_SUPABASE_SERVICE_ROLE_KEY,
+          'Authorization': `Bearer ${env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
           'Content-Type': 'application/json',
           'Prefer': 'return=minimal'
         },
