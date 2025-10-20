@@ -70,6 +70,14 @@ services:
   krayin-crm:
     image: webkul/krayin:latest
     restart: unless-stopped
+    command: >
+      bash -c "
+      php artisan config:cache &&
+      php artisan route:cache &&
+      php artisan view:cache &&
+      php artisan optimize &&
+      /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisor.conf
+      "
 
     volumes:
       - krayin_crm_data:/app/storage
@@ -102,6 +110,10 @@ services:
       - ASSET_URL=https://crm.oficialmed.com.br
       - FORCE_HTTPS=true
       - TRUSTED_PROXIES=*
+      - HTTPS_ONLY=true
+      - SCHEME=https
+      - HTTP_HOST=crm.oficialmed.com.br
+      - SERVER_NAME=crm.oficialmed.com.br
 
       ## 📧 Mail Configuration (configure conforme necessário)
       - MAIL_MAILER=smtp
