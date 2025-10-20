@@ -132,7 +132,7 @@ const TopMenuBar = ({
   const fetchLastSyncFromDB = async () => {
     try {
       const SUPABASE_URL = supabaseUrl;
-      const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+      const SUPABASE_KEY = supabaseServiceKey;
       if (!SUPABASE_URL || !SUPABASE_KEY) return;
       
       // Buscar status da sincronização automática (cronjob)
