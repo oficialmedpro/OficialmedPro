@@ -200,11 +200,11 @@ export async function executarTodosSegmentosAutomaticos(onProgress = null) {
   try {
     if (onProgress) onProgress('🚀 Executando todos os segmentos automáticos...');
     
-    const response = await fetch(`${supabaseUrl}/functions/v1/process-auto-segments`, {
+    const response = await fetch('/api/processar-segmentos-lote', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`
+        'x-auth-token': 'meu-token-super-secreto-2024'
       }
     });
 
