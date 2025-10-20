@@ -2,9 +2,7 @@
  * Serviço temporário para comparar URLs e resultados entre serviços
  */
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
 
 const baseHeaders = {
   'Accept': 'application/json',

@@ -5,9 +5,11 @@
  * Útil para corrigir problemas de sincronização
  */
 
+import { supabaseUrl, supabaseServiceKey } from '../config/supabase.js';
+
 const SUPABASE_CONFIG = {
-    url: import.meta.env.VITE_SUPABASE_URL,
-    serviceRoleKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+    url: supabaseUrl,
+    serviceRoleKey: supabaseServiceKey
 };
 
 // 🔍 BUSCAR DUPLICATAS POR ID

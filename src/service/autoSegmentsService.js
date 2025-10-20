@@ -199,7 +199,8 @@ export async function executarTodosSegmentosAutomaticos(onProgress = null) {
   try {
     if (onProgress) onProgress('🚀 Executando todos os segmentos automáticos...');
     
-    const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/process-auto-segments`, {
+    import { supabaseUrl } from '../config/supabase.js';
+    const response = await fetch(`${supabaseUrl}/functions/v1/process-auto-segments`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

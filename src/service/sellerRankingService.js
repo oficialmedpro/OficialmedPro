@@ -5,10 +5,8 @@
  * agrupados por user_id, ordenados por quantidade de oportunidades
  */
 
-// Configurações do Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+// Configurações do Supabase - usando configuração centralizada
+import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * 🏆 BUSCAR RANKING DE VENDEDORES (OPORTUNIDADES GANHAS AGRUPADAS POR USER_ID)

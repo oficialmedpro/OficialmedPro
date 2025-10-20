@@ -70,14 +70,6 @@ services:
   krayin-crm:
     image: webkul/krayin:latest
     restart: unless-stopped
-    command: >
-      bash -c "
-      php artisan config:cache &&
-      php artisan route:cache &&
-      php artisan view:cache &&
-      php artisan optimize &&
-      /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisor.conf
-      "
 
     volumes:
       - krayin_crm_data:/app/storage

@@ -1,9 +1,7 @@
 import { getTodayDateSP, getStartOfDaySP, getEndOfDaySP } from '../utils/utils.js'
 
-// Configurações do Supabase
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
-const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api'
+// Configurações do Supabase - usando configuração centralizada
+import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
 
 // 🎯 Função para buscar unidades
 export const getUnidades = async () => {

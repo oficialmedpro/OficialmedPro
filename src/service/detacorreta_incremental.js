@@ -11,9 +11,11 @@ const SPRINTHUB_CONFIG = {
     apiToken: '9ad36c85-5858-4960-9935-e73c3698dd0c'
 };
 
+import { supabaseUrl, supabaseServiceKey } from '../config/supabase.js';
+
 const SUPABASE_CONFIG = {
-    url: import.meta.env.VITE_SUPABASE_URL,
-    serviceRoleKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+    url: supabaseUrl,
+    serviceRoleKey: supabaseServiceKey
 };
 
 // 📋 CONFIGURAÇÃO COMPLETA DAS ETAPAS DO FUNIL 6

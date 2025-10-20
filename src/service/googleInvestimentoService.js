@@ -13,9 +13,7 @@ export const googleInvestimentoService = {
    * @returns {Promise<{ total: number, items: Array }>} total em BRL
    */
   async getInvestimentoTotal(startDate = null, endDate = null) {
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-    const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
-    const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api'
+    import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
 
     // CORREÇÃO: Usar exatamente a mesma lógica do OportunidadesGanhasService
     const hoje = new Date().toISOString().split('T')[0];

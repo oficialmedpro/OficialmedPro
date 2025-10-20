@@ -12,8 +12,8 @@ const CONFIG = {
     instance: import.meta.env.VITE_SPRINTHUB_INSTANCE || 'oficialmed',
   },
   SUPABASE: {
-    url: import.meta.env.VITE_SUPABASE_URL,
-    serviceRoleKey: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY,
+    url: window.ENV?.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL,
+    serviceRoleKey: window.ENV?.VITE_SUPABASE_SERVICE_ROLE_KEY || import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY,
   },
   PAGINATION: {
     limit: 100,

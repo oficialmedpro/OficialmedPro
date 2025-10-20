@@ -5,9 +5,7 @@
  * Baseado na mesma estrutura do daily-performance-table mas agrupando por intervalos de horário
  */
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * Buscar metas diárias e calcular metas por ronda
