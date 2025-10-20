@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getThermometerMetrics } from '../service/thermometerService';
+import { supabaseUrl, supabaseServiceKey } from '../config/supabase.js';
 
 const WonOpportunitiesList = ({ selectedDate }) => {
   const [wonOpportunities, setWonOpportunities] = useState([]);
@@ -18,8 +19,6 @@ const WonOpportunitiesList = ({ selectedDate }) => {
       setError(null);
       
       // COPIANDO EXATO DO THERMOMETERSERVICE
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
       const supabaseSchema = 'public';
       
       // Usar a data fornecida como prop ou data atual

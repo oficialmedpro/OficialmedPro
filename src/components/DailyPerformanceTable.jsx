@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './DailyPerformanceTable.css';
 import { getDailyPerformanceData } from '../service/dailyPerformanceService';
+import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * 🎯 DAILY PERFORMANCE TABLE
@@ -49,9 +50,6 @@ const DailyPerformanceTable = ({
 
     try {
       console.log('⚡ Cache MISS para funil:', funnelId, '- buscando...');
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
       const response = await fetch(`${supabaseUrl}/rest/v1/funis?select=nome_funil&id_funil_sprint=eq.${funnelId}`, {
         method: 'GET',
@@ -99,9 +97,6 @@ const DailyPerformanceTable = ({
 
     try {
       console.log('⚡ Cache MISS para unidade:', unitId, '- buscando...');
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
       const response = await fetch(`${supabaseUrl}/rest/v1/unidades?select=unidade&codigo_sprint=eq.${encodeURIComponent(unitId)}`, {
         method: 'GET',
@@ -140,9 +135,6 @@ const DailyPerformanceTable = ({
     }
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
       const response = await fetch(`${supabaseUrl}/rest/v1/vendedores?select=nome&id_sprint=eq.${parseInt(sellerId)}`, {
         method: 'GET',
@@ -178,9 +170,6 @@ const DailyPerformanceTable = ({
     }
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
       const response = await fetch(`${supabaseUrl}/rest/v1/origem_oportunidade?select=nome&id=eq.${originId}`, {
         method: 'GET',

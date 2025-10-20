@@ -4,6 +4,7 @@ import { getFunilEtapas } from '../service/supabase.js';
 import { getFunnelStagesData } from '../service/funnelStagesService.js';
 import { getFunnelSourcesMetrics } from '../service/funnelSourcesService.js';
 import { getTodayDateSP } from '../utils/utils.js';
+import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
 
 const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin, startDate, endDate, selectedPeriod }) => {
   const [etapas, setEtapas] = useState([]);
@@ -92,9 +93,6 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
     }
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
       const response = await fetch(`${supabaseUrl}/rest/v1/funis?select=nome_funil&id_funil_sprint=eq.${funnelId}`, {
         method: 'GET',
@@ -133,9 +131,6 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
     }
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
       const response = await fetch(`${supabaseUrl}/rest/v1/unidades?select=unidade&codigo_sprint=eq.${encodeURIComponent(unitId)}`, {
         method: 'GET',
@@ -171,9 +166,6 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
     }
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
       // Converter sellerId para int4
       const response = await fetch(`${supabaseUrl}/rest/v1/vendedores?select=nome&id_sprint=eq.${parseInt(sellerId)}`, {
@@ -213,9 +205,6 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
     }
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-      const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
 
       // Usar campo id
       const response = await fetch(`${supabaseUrl}/rest/v1/origem_oportunidade?select=nome&id=eq.${originId}`, {
