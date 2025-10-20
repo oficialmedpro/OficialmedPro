@@ -1,0 +1,169 @@
+version: "3.7"
+
+services:
+
+## --------------------------- POSTGRESQL KGRAIN CRM --------------------------- ##
+
+  postgres-kgrain:
+    image: postgres:14
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+
+    volumes:
+      - postgres_kgrain_data:/var/lib/postgresql/data
+
+    networks:
+      - OficialMed
+
+    environment:
+      ## 🔑 Senha do Postgres 
+      - POSTGRES_PASSWORD=a5895d0e44e68fc82c13e7d6a92313dd
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=kgrain_crm
+
+      ## 🌎 Timezone
+      - TZ=America/Sao_Paulo
+
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+
+## --------------------------- REDIS KGRAIN CRM --------------------------- ##
+
+  redis-kgrain:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass a5895d0e44e68fc82c13e7d6a92313dd
+
+    volumes:
+      - redis_kgrain_data:/data
+
+    networks:
+      - OficialMed
+
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+
+## --------------------------- KGRAIN CRM --------------------------- ##
+
+  kgrain-crm:
+    image: kgrain/crm:latest
+    restart: unless-stopped
+
+    volumes:
+      - kgrain_crm_data:/app/storage
+      - kgrain_crm_uploads:/app/public/uploads
+
+    networks:
+      - OficialMed
+
+    environment:
+      ## 🗄️ Database Configuration
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres-kgrain
+      - DB_PORT=5432
+      - DB_DATABASE=kgrain_crm
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=a5895d0e44e68fc82c13e7d6a92313dd
+
+      ## 🔴 Redis Configuration
+      - REDIS_HOST=redis-kgrain
+      - REDIS_PASSWORD=a5895d0e44e68fc82c13e7d6a92313dd
+      - REDIS_PORT=6379
+
+      ## 🌐 App Configuration
+      - APP_NAME="KGRain CRM"
+      - APP_ENV=production
+      - APP_KEY=base64:$(openssl rand -base64 32)
+      - APP_DEBUG=false
+      - APP_URL=https://crm.oficialmed.com.br
+
+      ## 📧 Mail Configuration (configure conforme necessário)
+      - MAIL_MAILER=smtp
+      - MAIL_HOST=smtp.gmail.com
+      - MAIL_PORT=587
+      - MAIL_USERNAME=
+      - MAIL_PASSWORD=
+      - MAIL_ENCRYPTION=tls
+
+      ## 🌎 Timezone
+      - TZ=America/Sao_Paulo
+
+    depends_on:
+      - postgres-kgrain
+      - redis-kgrain
+
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+
+        # Router principal (HTTPS) - KGRain CRM
+        - traefik.http.routers.kgrain-crm.rule=Host(`crm.oficialmed.com.br`)
+        - traefik.http.routers.kgrain-crm.entrypoints=websecure
+        - traefik.http.routers.kgrain-crm.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.kgrain-crm.service=kgrain-crm
+        - traefik.http.services.kgrain-crm.loadbalancer.server.port=80
+        - traefik.http.services.kgrain-crm.loadbalancer.passHostHeader=true
+
+        # Redirecionar HTTP -> HTTPS - KGRain CRM
+        - traefik.http.routers.kgrain-crm-http.rule=Host(`crm.oficialmed.com.br`)
+        - traefik.http.routers.kgrain-crm-http.entrypoints=web
+        - traefik.http.routers.kgrain-crm-http.middlewares=force-https
+        - traefik.http.middlewares.force-https.redirectscheme.scheme=https
+
+        # (Opcional) redirecionar www -> raiz - KGRain CRM
+        - traefik.http.routers.kgrain-crm-www.rule=Host(`www.crm.oficialmed.com.br`)
+        - traefik.http.routers.kgrain-crm-www.entrypoints=websecure
+        - traefik.http.routers.kgrain-crm-www.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.kgrain-crm-www.middlewares=kgrain-crm-www2root
+        - traefik.http.middlewares.kgrain-crm-www2root.redirectregex.regex=^https://www\\.(.*)
+        - traefik.http.middlewares.kgrain-crm-www2root.redirectregex.replacement=https://$${1}
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
+
+## --------------------------- VOLUMES --------------------------- ##
+
+volumes:
+  postgres_kgrain_data:
+    driver: local
+  redis_kgrain_data:
+    driver: local
+  kgrain_crm_data:
+    driver: local
+  kgrain_crm_uploads:
+    driver: local
+
+## --------------------------- NETWORKS --------------------------- ##
+
+networks:
+  OficialMed:
+    external: true
+    name: OficialMed

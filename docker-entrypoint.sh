@@ -8,6 +8,7 @@ echo "📋 Secrets disponíveis:"
 ls -la /run/secrets/ 2>/dev/null || echo "❌ Diretório /run/secrets não encontrado"
 
 # Ler secrets e definir variáveis de ambiente
+# Priorizar VITE_SUPABASE_URL_CORRETO que tem a URL correta do Supabase
 if [ -f "/run/secrets/VITE_SUPABASE_URL_CORRETO" ]; then
     export VITE_SUPABASE_URL=$(cat /run/secrets/VITE_SUPABASE_URL_CORRETO)
     echo "✅ VITE_SUPABASE_URL carregada do secret VITE_SUPABASE_URL_CORRETO"
