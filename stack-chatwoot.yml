@@ -91,7 +91,7 @@ services:
 
       ## 🌐 App Configuration
       - RAILS_ENV=production
-      - SECRET_KEY_BASE=$(openssl rand -hex 64)
+      - SECRET_KEY_BASE=1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
       - FRONTEND_URL=https://chat.oficialmed.com.br
       - INSTALLATION_NAME="OficialMed Chat"
       - INSTALLATION_VERSION=2.0.0
@@ -179,7 +179,7 @@ services:
 
       ## 🌐 App Configuration
       - RAILS_ENV=production
-      - SECRET_KEY_BASE=$(openssl rand -hex 64)
+      - SECRET_KEY_BASE=1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef
       - FRONTEND_URL=https://chat.oficialmed.com.br
 
       ## 🌎 Timezone

@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # =============================================================================
-# SCRIPT DE CONFIGURAÇÃO - KGRain CRM + Chatwoot (Stacks Separadas)
+# SCRIPT DE CONFIGURAÇÃO - KGRain CRM
 # =============================================================================
 
-echo "🚀 Iniciando configuração do KGRain CRM + Chatwoot (stacks separadas)..."
+echo "🚀 Iniciando configuração do KGRain CRM..."
 
 # Cores para output
 RED='\033[0;31m'
@@ -53,11 +53,10 @@ log "Verificando dependências..."
 # Criar diretórios necessários
 log "Criando diretórios..."
 mkdir -p ./certs
-mkdir -p ./logs
-mkdir -p ./data/postgres
-mkdir -p ./data/redis
-mkdir -p ./data/kgrain
-mkdir -p ./data/chatwoot
+mkdir -p ./logs/kgrain
+mkdir -p ./data/postgres-kgrain
+mkdir -p ./data/redis-kgrain
+mkdir -p ./data/kgrain-crm
 
 # Definir permissões
 chmod 755 ./certs
@@ -68,18 +67,17 @@ log "Configurando variáveis de ambiente..."
 
 # Gerar chaves secretas
 KGRAIN_APP_KEY=$(openssl rand -base64 32)
-CHATWOOT_SECRET_KEY=$(openssl rand -hex 64)
 
-# Criar arquivo .env
-cat > .env << EOF
+# Criar arquivo .env para KGRain
+cat > .env-kgrain << EOF
 # =============================================================================
-# CONFIGURAÇÕES KGRain CRM + Chatwoot
+# CONFIGURAÇÕES KGRain CRM
 # =============================================================================
 
 # Database
 POSTGRES_PASSWORD=a5895d0e44e68fc82c13e7d6a92313dd
 POSTGRES_USER=postgres
-POSTGRES_DB=kgrain_chatwoot
+POSTGRES_DB=kgrain_crm
 
 # Redis
 REDIS_PASSWORD=a5895d0e44e68fc82c13e7d6a92313dd
@@ -87,10 +85,6 @@ REDIS_PASSWORD=a5895d0e44e68fc82c13e7d6a92313dd
 # KGRain CRM
 KGRAIN_APP_KEY=${KGRAIN_APP_KEY}
 KGRAIN_APP_URL=https://crm.oficialmed.com.br
-
-# Chatwoot
-CHATWOOT_SECRET_KEY=${CHATWOOT_SECRET_KEY}
-CHATWOOT_FRONTEND_URL=https://chat.oficialmed.com.br
 
 # Timezone
 TZ=America/Sao_Paulo
@@ -103,7 +97,7 @@ MAIL_PASSWORD=
 MAIL_ENCRYPTION=tls
 EOF
 
-log "Arquivo .env criado com sucesso!"
+log "Arquivo .env-kgrain criado com sucesso!"
 
 # Verificar se a rede OficialMed existe
 log "Verificando rede Docker..."
@@ -129,40 +123,9 @@ if [ ! -f "./certs/crm.oficialmed.com.br.crt" ] || [ ! -f "./certs/crm.oficialme
     echo ""
 fi
 
-if [ ! -f "./certs/chat.oficialmed.com.br.crt" ] || [ ! -f "./certs/chat.oficialmed.com.br.key" ]; then
-    warning "Certificados SSL para chat.oficialmed.com.br não encontrados!"
-    info "Execute o seguinte comando para gerar certificados com Let's Encrypt:"
-    echo ""
-    echo "sudo certbot certonly --standalone -d chat.oficialmed.com.br"
-    echo "sudo cp /etc/letsencrypt/live/chat.oficialmed.com.br/fullchain.pem ./certs/chat.oficialmed.com.br.crt"
-    echo "sudo cp /etc/letsencrypt/live/chat.oficialmed.com.br/privkey.pem ./certs/chat.oficialmed.com.br.key"
-    echo "sudo chown \$USER:\$USER ./certs/chat.oficialmed.com.br.*"
-    echo ""
-fi
-
-# Criar script de inicialização do banco
-log "Criando script de inicialização do banco..."
-
-cat > init-database.sql << 'EOF'
--- Criar banco para KGRain CRM
-CREATE DATABASE IF NOT EXISTS kgrain_crm;
-CREATE USER IF NOT EXISTS 'kgrain'@'%' IDENTIFIED BY 'a5895d0e44e68fc82c13e7d6a92313dd';
-GRANT ALL PRIVILEGES ON kgrain_crm.* TO 'kgrain'@'%';
-
--- Criar banco para Chatwoot
-CREATE DATABASE IF NOT EXISTS chatwoot;
-CREATE USER IF NOT EXISTS 'chatwoot'@'%' IDENTIFIED BY 'a5895d0e44e68fc82c13e7d6a92313dd';
-GRANT ALL PRIVILEGES ON chatwoot.* TO 'chatwoot'@'%';
-
--- Aplicar privilégios
-FLUSH PRIVILEGES;
-EOF
-
-log "Script de inicialização do banco criado!"
-
 # Mostrar próximos passos
 echo ""
-log "✅ Configuração inicial concluída!"
+log "✅ Configuração inicial do KGRain CRM concluída!"
 echo ""
 info "Próximos passos:"
 echo ""
@@ -171,32 +134,24 @@ echo "   - Execute os comandos certbot mostrados acima"
 echo "   - Ou copie seus certificados existentes para ./certs/"
 echo ""
 echo "2. 📧 Configure o email (opcional):"
-echo "   - Edite o arquivo .env"
+echo "   - Edite o arquivo .env-kgrain"
 echo "   - Adicione suas credenciais SMTP"
 echo ""
-echo "3. 🚀 Inicie os serviços (stacks separadas):"
-echo "   # KGRain CRM:"
+echo "3. 🚀 Inicie o KGRain CRM:"
 echo "   docker-compose -f stack-kgrain-crm.yml up -d"
 echo ""
-echo "   # Chatwoot:"
-echo "   docker-compose -f stack-chatwoot.yml up -d"
-echo ""
-echo "4. 🔧 Configure os aplicativos:"
-echo "   - Acesse https://crm.oficialmed.com.br para configurar o KGRain CRM"
-echo "   - Acesse https://chat.oficialmed.com.br para configurar o Chatwoot"
+echo "4. 🔧 Configure o KGRain CRM:"
+echo "   - Acesse https://crm.oficialmed.com.br"
+echo "   - Siga o assistente de configuração inicial"
 echo ""
 echo "5. 📊 Monitore os logs:"
-echo "   # KGRain CRM:"
 echo "   docker-compose -f stack-kgrain-crm.yml logs -f"
-echo ""
-echo "   # Chatwoot:"
-echo "   docker-compose -f stack-chatwoot.yml logs -f"
 echo ""
 
 warning "IMPORTANTE:"
-echo "- Certifique-se de que os domínios crm.oficialmed.com.br e chat.oficialmed.com.br"
-echo "  apontam para o IP do seu servidor"
+echo "- Certifique-se de que o domínio crm.oficialmed.com.br"
+echo "  aponta para o IP do seu servidor"
 echo "- Configure o firewall para permitir as portas 80 e 443"
 echo "- Faça backup regular dos volumes Docker"
 
-log "Configuração concluída! 🎉"
+log "Configuração do KGRain CRM concluída! 🎉"

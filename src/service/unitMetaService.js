@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { supabase } from './supabase';
+import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * Serviço especializado para integração Meta Ads por Unidade
@@ -7,10 +8,10 @@ import { supabase } from './supabase';
  */
 class UnitMetaService {
   constructor() {
-    // URLs e configurações base
-    this.supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    this.supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-    this.supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+    // URLs e configurações base - usando configuração centralizada
+    this.supabaseUrl = supabaseUrl;
+    this.supabaseServiceKey = supabaseServiceKey;
+    this.supabaseSchema = supabaseSchema;
     this.metaBaseUrl = 'https://graph.facebook.com/v18.0';
     
     // Configurações padrão (Apucarana)

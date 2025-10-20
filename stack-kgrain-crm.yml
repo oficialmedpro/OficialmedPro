@@ -2,9 +2,9 @@ version: "3.7"
 
 services:
 
-## --------------------------- POSTGRESQL KGRAIN CRM --------------------------- ##
+## --------------------------- POSTGRESQL KRAYIN CRM --------------------------- ##
 
-  postgres-kgrain:
+  postgres-krayin:
     image: postgres:14
     command: >
       postgres
@@ -17,7 +17,7 @@ services:
       -c default_statistics_target=100
 
     volumes:
-      - postgres_kgrain_data:/var/lib/postgresql/data
+      - postgres_krayin_data:/var/lib/postgresql/data
 
     networks:
       - OficialMed
@@ -26,7 +26,7 @@ services:
       ## 🔑 Senha do Postgres 
       - POSTGRES_PASSWORD=a5895d0e44e68fc82c13e7d6a92313dd
       - POSTGRES_USER=postgres
-      - POSTGRES_DB=kgrain_crm
+      - POSTGRES_DB=krayin_crm
 
       ## 🌎 Timezone
       - TZ=America/Sao_Paulo
@@ -42,14 +42,14 @@ services:
           cpus: "1.0"
           memory: 1G
 
-## --------------------------- REDIS KGRAIN CRM --------------------------- ##
+## --------------------------- REDIS KRAYIN CRM --------------------------- ##
 
-  redis-kgrain:
+  redis-krayin:
     image: redis:7-alpine
     command: redis-server --appendonly yes --requirepass a5895d0e44e68fc82c13e7d6a92313dd
 
     volumes:
-      - redis_kgrain_data:/data
+      - redis_krayin_data:/data
 
     networks:
       - OficialMed
@@ -65,15 +65,16 @@ services:
           cpus: "0.5"
           memory: 512M
 
-## --------------------------- KGRAIN CRM --------------------------- ##
+## --------------------------- KRAYIN CRM --------------------------- ##
 
-  kgrain-crm:
-    image: kgrain/crm:latest
+  krayin-crm:
+    image: webkul/krayin:latest
     restart: unless-stopped
 
     volumes:
-      - kgrain_crm_data:/app/storage
-      - kgrain_crm_uploads:/app/public/uploads
+      - krayin_crm_data:/app/storage
+      - krayin_crm_uploads:/app/public/uploads
+      - krayin_crm_public:/app/public
 
     networks:
       - OficialMed
@@ -81,23 +82,26 @@ services:
     environment:
       ## 🗄️ Database Configuration
       - DB_CONNECTION=pgsql
-      - DB_HOST=postgres-kgrain
+      - DB_HOST=postgres-krayin
       - DB_PORT=5432
-      - DB_DATABASE=kgrain_crm
+      - DB_DATABASE=krayin_crm
       - DB_USERNAME=postgres
       - DB_PASSWORD=a5895d0e44e68fc82c13e7d6a92313dd
 
       ## 🔴 Redis Configuration
-      - REDIS_HOST=redis-kgrain
+      - REDIS_HOST=redis-krayin
       - REDIS_PASSWORD=a5895d0e44e68fc82c13e7d6a92313dd
       - REDIS_PORT=6379
 
       ## 🌐 App Configuration
-      - APP_NAME="KGRain CRM"
+      - APP_NAME="Krayin CRM"
       - APP_ENV=production
-      - APP_KEY=base64:$(openssl rand -base64 32)
-      - APP_DEBUG=false
+      - APP_KEY=base64:Y2hhbmdlLXRoaXMta2V5LXRvLXNvbWV0aGluZy1zZWN1cmUtYW5kLXVuaXF1ZQ==
+      - APP_DEBUG=true
       - APP_URL=https://crm.oficialmed.com.br
+      - ASSET_URL=https://crm.oficialmed.com.br
+      - FORCE_HTTPS=true
+      - TRUSTED_PROXIES=*
 
       ## 📧 Mail Configuration (configure conforme necessário)
       - MAIL_MAILER=smtp
@@ -111,8 +115,8 @@ services:
       - TZ=America/Sao_Paulo
 
     depends_on:
-      - postgres-kgrain
-      - redis-kgrain
+      - postgres-krayin
+      - redis-krayin
 
     deploy:
       mode: replicated
@@ -123,27 +127,32 @@ services:
       labels:
         - traefik.enable=true
 
-        # Router principal (HTTPS) - KGRain CRM
-        - traefik.http.routers.kgrain-crm.rule=Host(`crm.oficialmed.com.br`)
-        - traefik.http.routers.kgrain-crm.entrypoints=websecure
-        - traefik.http.routers.kgrain-crm.tls.certresolver=letsencryptresolver
-        - traefik.http.routers.kgrain-crm.service=kgrain-crm
-        - traefik.http.services.kgrain-crm.loadbalancer.server.port=80
-        - traefik.http.services.kgrain-crm.loadbalancer.passHostHeader=true
+        # Router principal (HTTPS) - Krayin CRM
+        - traefik.http.routers.krayin-crm.rule=Host(`crm.oficialmed.com.br`)
+        - traefik.http.routers.krayin-crm.entrypoints=websecure
+        - traefik.http.routers.krayin-crm.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.krayin-crm.service=krayin-crm
+        - traefik.http.routers.krayin-crm.middlewares=secure-headers
+        - traefik.http.services.krayin-crm.loadbalancer.server.port=80
+        - traefik.http.services.krayin-crm.loadbalancer.passHostHeader=true
+        - traefik.http.middlewares.secure-headers.headers.customRequestHeaders.X-Forwarded-Proto=https
+        - traefik.http.middlewares.secure-headers.headers.customRequestHeaders.X-Forwarded-Port=443
+        - traefik.http.middlewares.secure-headers.headers.forceSTSHeader=true
+        - traefik.http.middlewares.secure-headers.headers.stsSeconds=31536000
 
-        # Redirecionar HTTP -> HTTPS - KGRain CRM
-        - traefik.http.routers.kgrain-crm-http.rule=Host(`crm.oficialmed.com.br`)
-        - traefik.http.routers.kgrain-crm-http.entrypoints=web
-        - traefik.http.routers.kgrain-crm-http.middlewares=force-https
+        # Redirecionar HTTP -> HTTPS - Krayin CRM
+        - traefik.http.routers.krayin-crm-http.rule=Host(`crm.oficialmed.com.br`)
+        - traefik.http.routers.krayin-crm-http.entrypoints=web
+        - traefik.http.routers.krayin-crm-http.middlewares=force-https
         - traefik.http.middlewares.force-https.redirectscheme.scheme=https
 
-        # (Opcional) redirecionar www -> raiz - KGRain CRM
-        - traefik.http.routers.kgrain-crm-www.rule=Host(`www.crm.oficialmed.com.br`)
-        - traefik.http.routers.kgrain-crm-www.entrypoints=websecure
-        - traefik.http.routers.kgrain-crm-www.tls.certresolver=letsencryptresolver
-        - traefik.http.routers.kgrain-crm-www.middlewares=kgrain-crm-www2root
-        - traefik.http.middlewares.kgrain-crm-www2root.redirectregex.regex=^https://www\\.(.*)
-        - traefik.http.middlewares.kgrain-crm-www2root.redirectregex.replacement=https://$${1}
+        # (Opcional) redirecionar www -> raiz - Krayin CRM
+        - traefik.http.routers.krayin-crm-www.rule=Host(`www.crm.oficialmed.com.br`)
+        - traefik.http.routers.krayin-crm-www.entrypoints=websecure
+        - traefik.http.routers.krayin-crm-www.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.krayin-crm-www.middlewares=krayin-crm-www2root
+        - traefik.http.middlewares.krayin-crm-www2root.redirectregex.regex=^https://www\\.(.*)
+        - traefik.http.middlewares.krayin-crm-www2root.redirectregex.replacement=https://$${1}
       resources:
         limits:
           cpus: "1.0"
@@ -152,13 +161,15 @@ services:
 ## --------------------------- VOLUMES --------------------------- ##
 
 volumes:
-  postgres_kgrain_data:
+  postgres_krayin_data:
     driver: local
-  redis_kgrain_data:
+  redis_krayin_data:
     driver: local
-  kgrain_crm_data:
+  krayin_crm_data:
     driver: local
-  kgrain_crm_uploads:
+  krayin_crm_uploads:
+    driver: local
+  krayin_crm_public:
     driver: local
 
 ## --------------------------- NETWORKS --------------------------- ##
