@@ -11,6 +11,7 @@ services:
       - VITE_SUPABASE_SCHEMA_FILE=/run/secrets/VITE_SUPABASE_SCHEMA
     secrets:
       - VITE_SUPABASE_URL
+      - VITE_SUPABASE_URL_CORRETO
       - VITE_SUPABASE_SERVICE_ROLE_KEY
       - VITE_SUPABASE_SCHEMA
     deploy:
@@ -51,6 +52,8 @@ networks:
 
 secrets:
   VITE_SUPABASE_URL:
+    external: true
+  VITE_SUPABASE_URL_CORRETO:
     external: true
   VITE_SUPABASE_SERVICE_ROLE_KEY:
     external: true
