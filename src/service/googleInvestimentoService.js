@@ -1,4 +1,5 @@
 import { getTodayDateSP, getStartOfDaySP, getEndOfDaySP } from '../utils/utils'
+import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
 
 /**
  * Service para buscar investimento em mídia paga (Google) no Supabase
@@ -13,7 +14,6 @@ export const googleInvestimentoService = {
    * @returns {Promise<{ total: number, items: Array }>} total em BRL
    */
   async getInvestimentoTotal(startDate = null, endDate = null) {
-    import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
 
     // CORREÇÃO: Usar exatamente a mesma lógica do OportunidadesGanhasService
     const hoje = new Date().toISOString().split('T')[0];

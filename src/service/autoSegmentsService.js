@@ -4,6 +4,7 @@
  */
 
 import { getSupabaseWithSchema } from './supabase.js';
+import { supabaseUrl } from '../config/supabase.js';
 
 // ==================== FUNÇÕES DE CONFIGURAÇÃO ====================
 
@@ -199,7 +200,6 @@ export async function executarTodosSegmentosAutomaticos(onProgress = null) {
   try {
     if (onProgress) onProgress('🚀 Executando todos os segmentos automáticos...');
     
-    import { supabaseUrl } from '../config/supabase.js';
     const response = await fetch(`${supabaseUrl}/functions/v1/process-auto-segments`, {
       method: 'POST',
       headers: {
