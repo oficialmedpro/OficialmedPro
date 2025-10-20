@@ -93,3 +93,4 @@ secrets:
 
 Me confirme quando estiver na tela de "Build a new image" no Portainer.
 
+

@@ -58,7 +58,7 @@ services:
       - OficialMed
     environment:
       - NODE_ENV=production
-      - VITE_SUPABASE_URL_FILE=/run/secrets/VITE_SUPABASE_URL
+      - VITE_SUPABASE_URL_FILE=/run/secrets/VITE_SUPABASE_URL_CORRETO
       - VITE_SUPABASE_SERVICE_ROLE_KEY_FILE=/run/secrets/VITE_SUPABASE_SERVICE_ROLE_KEY
       - VITE_SUPABASE_SCHEMA_FILE=/run/secrets/VITE_SUPABASE_SCHEMA
       - VITE_SPRINTHUB_BASE_URL=sprinthub-api-master.sprinthub.app
@@ -66,7 +66,7 @@ services:
       - VITE_SPRINTHUB_INSTANCE=oficialmed
       - ENABLE_BACKEND_SCHEDULER=true
     secrets:
-      - VITE_SUPABASE_URL
+      - VITE_SUPABASE_URL_CORRETO
       - VITE_SUPABASE_SERVICE_ROLE_KEY
       - VITE_SUPABASE_SCHEMA
     command: sh -c "apk add --no-cache git && git clone https://github.com/oficialmedpro/OficialmedPro.git /app && cd /app && npm install && node api/server.js"
@@ -95,3 +95,4 @@ secrets:
     external: true
   VITE_SUPABASE_SCHEMA:
     external: true
+

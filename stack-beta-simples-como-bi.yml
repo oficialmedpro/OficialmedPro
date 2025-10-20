@@ -1,0 +1,43 @@
+version: "3.7"
+
+services:
+  beta:
+    image: oficialmedpro/oficialmed-pwa:latest
+    networks:
+      - OficialMed
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - traefik.enable=true
+
+        # Router principal (HTTPS)
+        - traefik.http.routers.beta.rule=Host(`beta.oficialmed.com.br`)
+        - traefik.http.routers.beta.entrypoints=websecure
+        - traefik.http.routers.beta.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.beta.service=beta
+        - traefik.http.services.beta.loadbalancer.server.port=80
+        - traefik.http.services.beta.loadbalancer.passHostHeader=true
+
+        # Redirecionar HTTP -> HTTPS
+        - traefik.http.routers.beta-http.rule=Host(`beta.oficialmed.com.br`)
+        - traefik.http.routers.beta-http.entrypoints=web
+        - traefik.http.routers.beta-http.middlewares=force-https
+        - traefik.http.middlewares.force-https.redirectscheme.scheme=https
+
+        # (Opcional) redirecionar www -> raiz
+        - traefik.http.routers.beta-www.rule=Host(`www.beta.oficialmed.com.br`)
+        - traefik.http.routers.beta-www.entrypoints=websecure
+        - traefik.http.routers.beta-www.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.beta-www.middlewares=beta-www2root
+        - traefik.http.middlewares.beta-www2root.redirectregex.regex=^https://www\\.(.*)
+        - traefik.http.middlewares.beta-www2root.redirectregex.replacement=https://$${1}
+
+networks:
+  OficialMed:
+    external: true
+    name: OficialMed
+
