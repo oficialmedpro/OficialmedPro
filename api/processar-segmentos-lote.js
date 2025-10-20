@@ -3,6 +3,17 @@ const router = express.Router();
 
 // Endpoint para processar segmentos em lote (100 leads por vez)
 // Domínio de produção: https://bi.oficialmed.com.br/api/processar-segmentos-lote
+
+// GET para teste
+router.get('/processar-segmentos-lote', async (req, res) => {
+  res.json({
+    success: true,
+    message: 'Endpoint funcionando! Use POST para executar.',
+    method: 'GET',
+    timestamp: new Date().toISOString()
+  });
+});
+
 router.post('/processar-segmentos-lote', async (req, res) => {
   // Verificar token de autenticação
   const authToken = req.headers['x-auth-token'];
