@@ -133,7 +133,20 @@ const TopMenuBar = ({
     try {
       const SUPABASE_URL = supabaseUrl;
       const SUPABASE_KEY = supabaseServiceKey;
-      if (!SUPABASE_URL || !SUPABASE_KEY) return;
+      
+      // Debug específico para o erro 401
+      console.log('🔍 DEBUG sync_status - Configuração:', {
+        hasUrl: !!SUPABASE_URL,
+        hasKey: !!SUPABASE_KEY,
+        urlStart: SUPABASE_URL?.substring(0, 30) + '...',
+        keyStart: SUPABASE_KEY?.substring(0, 20) + '...',
+        keyLength: SUPABASE_KEY?.length
+      });
+      
+      if (!SUPABASE_URL || !SUPABASE_KEY) {
+        console.error('❌ sync_status: URL ou KEY não encontradas');
+        return;
+      }
       
       // Buscar status da sincronização automática (cronjob)
       const resp = await fetch(
@@ -147,7 +160,14 @@ const TopMenuBar = ({
         }
       );
       
-      if (!resp.ok) return;
+      if (!resp.ok) {
+        console.error('❌ sync_status: Erro na resposta:', {
+          status: resp.status,
+          statusText: resp.statusText,
+          url: resp.url
+        });
+        return;
+      }
       const arr = await resp.json();
       
       if (Array.isArray(arr) && arr.length > 0) {
