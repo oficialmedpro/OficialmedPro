@@ -96,3 +96,8 @@ secrets:
   VITE_SUPABASE_SCHEMA:
     external: true
 
+
+
+
+
+

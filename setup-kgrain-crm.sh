@@ -155,3 +155,8 @@ echo "- Configure o firewall para permitir as portas 80 e 443"
 echo "- Faça backup regular dos volumes Docker"
 
 log "Configuração do KGRain CRM concluída! 🎉"
+
+
+
+
+

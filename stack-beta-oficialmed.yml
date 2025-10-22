@@ -7,20 +7,29 @@ services:
     image: oficialmedpro/oficialmed-pwa:latest
     networks:
       - OficialMed
-    
     environment:
-      - VITE_SUPABASE_URL_FILE=/run/secrets/VITE_SUPABASE_URL_CORRETO
+      - VITE_SUPABASE_URL_FILE=/run/secrets/VITE_SUPABASE_URL
       - VITE_SUPABASE_SERVICE_ROLE_KEY_FILE=/run/secrets/VITE_SUPABASE_SERVICE_ROLE_KEY
       - VITE_SUPABASE_SCHEMA_FILE=/run/secrets/VITE_SUPABASE_SCHEMA
+      - VITE_SPRINTHUB_BASE_URL_FILE=/run/secrets/VITE_SPRINTHUB_BASE_URL
+      - VITE_SPRINTHUB_API_TOKEN_FILE=/run/secrets/VITE_SPRINTHUB_API_TOKEN
+      - VITE_SPRINTHUB_INSTANCE_FILE=/run/secrets/VITE_SPRINTHUB_INSTANCE
+      - VITE_CALLIX_API_TOKEN_FILE=/run/secrets/VITE_CALLIX_API_TOKEN
+      - CRON_AUTH_TOKEN=meu-token-super-secreto-2024
 
     secrets:
+      - VITE_SUPABASE_URL
       - VITE_SUPABASE_URL_CORRETO
       - VITE_SUPABASE_SERVICE_ROLE_KEY
       - VITE_SUPABASE_SCHEMA
+      - VITE_SPRINTHUB_BASE_URL
+      - VITE_SPRINTHUB_API_TOKEN
+      - VITE_SPRINTHUB_INSTANCE
+      - VITE_CALLIX_API_TOKEN
       
     deploy:
       mode: replicated
-      replicas: 1            # pode subir para 2+ depois
+      replicas: 1
       placement:
         constraints:
           - node.role == manager
@@ -52,8 +61,8 @@ services:
         - traefik.http.middlewares.beta-www2root.redirectregex.replacement=https://$${1}
 
   ## --------------------------- API NODE.JS --------------------------- ##
-  api-beta:
-    image: node:18-alpine
+  beta-api:
+    image: oficialmedpro/oficialmed-api:latest
     networks:
       - OficialMed
     environment:
@@ -61,15 +70,21 @@ services:
       - VITE_SUPABASE_URL_FILE=/run/secrets/VITE_SUPABASE_URL
       - VITE_SUPABASE_SERVICE_ROLE_KEY_FILE=/run/secrets/VITE_SUPABASE_SERVICE_ROLE_KEY
       - VITE_SUPABASE_SCHEMA_FILE=/run/secrets/VITE_SUPABASE_SCHEMA
-      - VITE_SPRINTHUB_BASE_URL=sprinthub-api-master.sprinthub.app
-      - VITE_SPRINTHUB_API_TOKEN=9ad36c85-5858-4960-9935-e73c3698dd0c
-      - VITE_SPRINTHUB_INSTANCE=oficialmed
+      - VITE_SPRINTHUB_BASE_URL_FILE=/run/secrets/VITE_SPRINTHUB_BASE_URL
+      - VITE_SPRINTHUB_API_TOKEN_FILE=/run/secrets/VITE_SPRINTHUB_API_TOKEN
+      - VITE_SPRINTHUB_INSTANCE_FILE=/run/secrets/VITE_SPRINTHUB_INSTANCE
+      - VITE_CALLIX_API_TOKEN_FILE=/run/secrets/VITE_CALLIX_API_TOKEN
       - ENABLE_BACKEND_SCHEDULER=true
+      - CRON_AUTH_TOKEN=meu-token-super-secreto-2024
     secrets:
       - VITE_SUPABASE_URL
+      - VITE_SUPABASE_URL_CORRETO
       - VITE_SUPABASE_SERVICE_ROLE_KEY
       - VITE_SUPABASE_SCHEMA
-    command: sh -c "apk add --no-cache git && git clone https://github.com/oficialmedpro/OficialmedPro.git /app && cd /app && npm install && node api/server.js"
+      - VITE_SPRINTHUB_BASE_URL
+      - VITE_SPRINTHUB_API_TOKEN
+      - VITE_SPRINTHUB_INSTANCE
+      - VITE_CALLIX_API_TOKEN
     deploy:
       mode: replicated
       replicas: 1
@@ -78,10 +93,10 @@ services:
           - node.role == manager
       labels:
         - traefik.enable=true
-        - traefik.http.routers.api-beta.rule=Host(`beta.oficialmed.com.br`) && PathPrefix(`/api`)
-        - traefik.http.routers.api-beta.entrypoints=websecure
-        - traefik.http.routers.api-beta.tls.certresolver=letsencryptresolver
-        - traefik.http.services.api-beta.loadbalancer.server.port=3002
+        - traefik.http.routers.beta-api.rule=Host(`beta.oficialmed.com.br`) && PathPrefix(`/api`)
+        - traefik.http.routers.beta-api.entrypoints=websecure
+        - traefik.http.routers.beta-api.tls.certresolver=letsencryptresolver
+        - traefik.http.services.beta-api.loadbalancer.server.port=3002
         
 networks:
   OficialMed:
@@ -89,9 +104,19 @@ networks:
     name: OficialMed
 
 secrets:
+  VITE_SUPABASE_URL:
+    external: true
   VITE_SUPABASE_URL_CORRETO:
     external: true
   VITE_SUPABASE_SERVICE_ROLE_KEY:
     external: true
   VITE_SUPABASE_SCHEMA:
+    external: true
+  VITE_SPRINTHUB_BASE_URL:
+    external: true
+  VITE_SPRINTHUB_API_TOKEN:
+    external: true
+  VITE_SPRINTHUB_INSTANCE:
+    external: true
+  VITE_CALLIX_API_TOKEN:
     external: true
