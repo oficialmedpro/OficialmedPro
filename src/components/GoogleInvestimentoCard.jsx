@@ -42,8 +42,8 @@ const GoogleInvestimentoCard = ({
         setLoading(true)
         setError(null)
         
-          // USAR MODO HÍBRIDO: Tenta banco primeiro, depois API Google Ads
-          const result = await googleInvestimentoService.getInvestimentoHybrid(startDate, endDate)
+          // USAR MODO TEMPO REAL: Busca diretamente da API Google Ads
+          const result = await googleInvestimentoService.getInvestimentoRealTime(startDate, endDate)
         
         if (isMounted) {
           setTotal(result.total)

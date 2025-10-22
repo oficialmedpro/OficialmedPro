@@ -404,9 +404,9 @@ async function handleGetCampaigns(status: string, customCustomerId?: string, sta
         metrics.conversions,
         metrics.conversions_value
       FROM campaign
-      ${whereClause}
-      ${dateFilterClause}
-      ORDER BY campaign.id
+      WHERE campaign.status IN ('ENABLED', 'PAUSED')
+        ${dateFilterClause}
+      ORDER BY campaign.name
       LIMIT 1000
     `
     
@@ -475,7 +475,7 @@ async function handleGetCampaigns(status: string, customCustomerId?: string, sta
       
       existingCampaign.metrics.impressions += parseInt(metrics.impressions) || 0
       existingCampaign.metrics.clicks += parseInt(metrics.clicks) || 0
-      existingCampaign.metrics.cost_micros += parseInt(metrics.cost_micros) || 0
+      existingCampaign.metrics.cost_micros += parseInt(metrics.costMicros) || 0
       existingCampaign.metrics.conversions += parseFloat(metrics.conversions) || 0
       existingCampaign.metrics.conversions_value += parseFloat(metrics.conversions_value) || 0
       
