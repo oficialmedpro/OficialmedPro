@@ -14,7 +14,7 @@ const getSupabaseConfig = () => {
 
   let supabaseServiceKey = window.ENV?.VITE_SUPABASE_SERVICE_ROLE_KEY ||
                           import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
-                          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxNzUyNTUzNSwiZXhwIjoyMDMzMTAxNTM1fQ.gxoHQn-5MwRqgMgXoFOyGCcFrCH7GzHE4ZQXQPNIRV4';
+                          'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDQ1MzY2NiwiZXhwIjoyMDY2MDI5NjY2fQ.grInwGHFAH2WYvYerwfHkUsM08wXCJASg4CPMD2cTaA';
 
   let supabaseSchema = window.ENV?.VITE_SUPABASE_SCHEMA ||
                        import.meta.env.VITE_SUPABASE_SCHEMA ||
@@ -29,7 +29,7 @@ const getSupabaseConfig = () => {
 
   if (!supabaseServiceKey || supabaseServiceKey === 'undefined' || supabaseServiceKey === 'null') {
     console.warn('⚠️ VITE_SUPABASE_SERVICE_ROLE_KEY não encontrada, usando fallback');
-    supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTcxNzUyNTUzNSwiZXhwIjoyMDMzMTAxNTM1fQ.gxoHQn-5MwRqgMgXoFOyGCcFrCH7GzHE4ZQXQPNIRV4';
+    supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDQ1MzY2NiwiZXhwIjoyMDY2MDI5NjY2fQ.grInwGHFAH2WYvYerwfHkUsM08wXCJASg4CPMD2cTaA';
   }
 
   // Log de debug para entender o que está acontecendo

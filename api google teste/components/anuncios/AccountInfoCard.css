@@ -1,0 +1,214 @@
+.accountInfoCard {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(0, 212, 255, 0.1) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.accountInfoCard:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 8px 32px rgba(139, 92, 246, 0.1);
+}
+
+.accountHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.accountIcon {
+  background: linear-gradient(135deg, #8b5cf6 0%, #00d4ff 100%);
+  border-radius: 12px;
+  padding: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.accountTitle {
+  flex: 1;
+  min-width: 200px;
+}
+
+.accountTitle h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 0.25rem 0;
+}
+
+.accountSubtitle {
+  font-size: 0.875rem;
+  color: #a1a1aa;
+  margin: 0;
+}
+
+.accountStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.accountDetails {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: rgba(139, 92, 246, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.detailLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #a1a1aa;
+  font-weight: 500;
+}
+
+.detailLabel svg {
+  color: #8b5cf6;
+  flex-shrink: 0;
+}
+
+.detailValue {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffffff;
+  text-align: right;
+}
+
+.detailValue code {
+  background: rgba(139, 92, 246, 0.1);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.8rem;
+  color: #8b5cf6;
+}
+
+.accountFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(139, 92, 246, 0.1);
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.connectionStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #10b981;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.connectionStatus svg {
+  color: #10b981;
+}
+
+.lastSync {
+  font-size: 0.75rem;
+  color: #71717a;
+  font-style: italic;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .accountInfoCard {
+    padding: 1rem;
+  }
+
+  .accountHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .accountStatus {
+    align-self: flex-start;
+  }
+
+  .accountDetails {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .detailRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .detailValue {
+    text-align: left;
+  }
+
+  .accountFooter {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .accountInfoCard {
+    padding: 0.75rem;
+  }
+
+  .accountTitle h3 {
+    font-size: 1.125rem;
+  }
+
+  .accountSubtitle {
+    font-size: 0.8rem;
+  }
+
+  .detailRow {
+    padding: 0.5rem;
+  }
+
+  .detailLabel {
+    font-size: 0.8rem;
+  }
+
+  .detailValue {
+    font-size: 0.8rem;
+  }
+
+  .connectionStatus {
+    font-size: 0.8rem;
+  }
+
+  .lastSync {
+    font-size: 0.7rem;
+  }
+}
+

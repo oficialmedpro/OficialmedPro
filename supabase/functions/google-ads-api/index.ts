@@ -135,7 +135,7 @@ async function queryGoogleAds(credentials: any, query: string) {
     const managerCustomerId = Deno.env.get('VITE_GOOGLE_LOGIN_CUSTOMER_ID')?.replace(/-/g, '')
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${accessToken}`,
-      'Developer-Token': credentials.developer_token,
+      'developer-token': credentials.developer_token,
       'Content-Type': 'application/json',
     }
     
@@ -154,7 +154,6 @@ async function queryGoogleAds(credentials: any, query: string) {
         headers: headers,
         body: JSON.stringify({
           query: query
-          // ✅ Sem pageSize - o endpoint search tem tamanho fixo de 10.000 linhas
         })
       }
     )
@@ -165,9 +164,9 @@ async function queryGoogleAds(credentials: any, query: string) {
       throw new Error(`Google Ads API error: ${response.status} - ${errorText}`)
     }
 
-    // ✅ Endpoint :search retorna JSON direto (não streaming)
+    // ✅ Endpoint :search retorna JSON direto
     const data = await response.json()
-    console.log('🔍 Resposta da API Google Ads:', JSON.stringify(data, null, 2))
+    console.log('🔍 Resposta da API Google Ads (v17):', JSON.stringify(data, null, 2))
     
     // Debug específico para custos
     if (data.results && data.results.length > 0) {
@@ -931,22 +930,137 @@ async function handleGetStats(startDate: string | null, endDate: string | null) 
 
     console.log(`📅 Período ajustado para fuso SP: ${start} a ${end}`)
 
-    const results = await queryGoogleAds(credentials, `
+    // Primeiro, vamos testar uma query mais simples para verificar se há custos
+    console.log(`🔍 TESTANDO QUERY SIMPLES PARA CUSTOS:`)
+    const simpleResults = await queryGoogleAds(credentials, `
       SELECT 
-        metrics.clicks,
-        metrics.impressions,
-        metrics.cost_micros,
-        metrics.conversions
+        metrics.cost_micros
       FROM campaign
       WHERE segments.date BETWEEN '${start}' AND '${end}'
     `)
+    
+    console.log(`🔍 RESULTADO QUERY SIMPLES:`)
+    console.log(`🔍 Número de resultados: ${simpleResults.length}`)
+    if (simpleResults.length > 0) {
+      console.log(`🔍 Primeiro resultado simples:`, JSON.stringify(simpleResults[0], null, 2))
+      const hasAnyCost = simpleResults.some(r => r.metrics?.cost_micros > 0)
+      console.log(`🔍 Tem algum custo: ${hasAnyCost}`)
+      
+      // Se não tem custos, testar com período mais amplo
+      if (!hasAnyCost) {
+        console.log(`🔍 TESTANDO COM PERÍODO MAIS AMPLO (últimos 30 dias):`)
+        const broadResults = await queryGoogleAds(credentials, `
+          SELECT 
+            metrics.cost_micros,
+            segments.date
+          FROM campaign
+          WHERE segments.date DURING LAST_30_DAYS
+        `)
+        console.log(`🔍 Resultados últimos 30 dias: ${broadResults.length}`)
+        const hasAnyCostBroad = broadResults.some(r => r.metrics?.cost_micros > 0)
+        console.log(`🔍 Tem custos nos últimos 30 dias: ${hasAnyCostBroad}`)
+        if (hasAnyCostBroad) {
+          const withCosts = broadResults.filter(r => r.metrics?.cost_micros > 0)
+          console.log(`🔍 Resultados com custos: ${withCosts.length}`)
+          withCosts.slice(0, 3).forEach(r => {
+            console.log(`🔍 - ${r.segments?.date}: ${r.metrics?.cost_micros} micros = R$ ${(r.metrics?.cost_micros / 1000000).toFixed(2)}`)
+          })
+        }
+      }
+    }
 
-    // Calcular métricas agregadas
+    // Teste específico para verificar se a conta tem custos
+    console.log(`🔍 TESTE ESPECÍFICO DE CUSTOS:`)
+    const costTestResults = await queryGoogleAds(credentials, `
+      SELECT 
+        campaign.id,
+        campaign.name,
+        segments.date,
+        metrics.cost_micros,
+        metrics.clicks,
+        metrics.impressions
+      FROM campaign
+      WHERE segments.date DURING LAST_7_DAYS
+    `)
+    
+    console.log(`🔍 TESTE CUSTOS - Resultados: ${costTestResults.length}`)
+    if (costTestResults.length > 0) {
+      const hasAnyCost = costTestResults.some(r => r.metrics?.cost_micros > 0)
+      console.log(`🔍 TESTE CUSTOS - Tem custos: ${hasAnyCost}`)
+      if (hasAnyCost) {
+        const withCosts = costTestResults.filter(r => r.metrics?.cost_micros > 0)
+        console.log(`🔍 TESTE CUSTOS - Resultados com custos: ${withCosts.length}`)
+        withCosts.forEach(r => {
+          console.log(`🔍 TESTE CUSTOS - ${r.campaign?.name} (${r.segments?.date}): ${r.metrics?.cost_micros} micros = R$ ${(r.metrics?.cost_micros / 1000000).toFixed(2)}`)
+        })
+      } else {
+        console.log(`🔍 TESTE CUSTOS - NENHUM CUSTO ENCONTRADO!`)
+        console.log(`🔍 TESTE CUSTOS - Primeiro resultado:`, JSON.stringify(costTestResults[0], null, 2))
+      }
+    }
+
+    const results = await queryGoogleAds(credentials, `
+      SELECT 
+        campaign.id,
+        campaign.name,
+        campaign.status,
+        campaign.advertising_channel_type,
+        segments.date,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.ctr,
+        metrics.average_cpc,
+        metrics.cost_micros,
+        metrics.conversions,
+        metrics.conversions_value,
+        metrics.all_conversions,
+        metrics.all_conversions_value
+      FROM campaign
+      WHERE campaign.status IN ('ENABLED', 'PAUSED')
+        AND segments.date >= '${start}'
+        AND segments.date <= '${end}'
+      ORDER BY campaign.name
+      LIMIT 100
+    `)
+
+    // Debug detalhado dos resultados
+    console.log(`🔍 RESULTADOS BRUTOS DA API:`)
+    console.log(`🔍 Número de resultados: ${results.length}`)
+    if (results.length > 0) {
+      console.log(`🔍 Primeiro resultado:`, JSON.stringify(results[0], null, 2))
+      console.log(`🔍 Cost micros do primeiro resultado: ${results[0].metrics?.cost_micros}`)
+      console.log(`🔍 Campaign ID: ${results[0].campaign?.id}`)
+      console.log(`🔍 Campaign Name: ${results[0].campaign?.name}`)
+      console.log(`🔍 Date: ${results[0].segments?.date}`)
+      console.log(`🔍 Currency Code: ${results[0].customer?.currency_code}`)
+      
+      // Verificar se há custos em qualquer resultado
+      const hasCosts = results.some(r => r.metrics?.cost_micros > 0)
+      console.log(`🔍 Tem custos em algum resultado: ${hasCosts}`)
+      
+      if (hasCosts) {
+        const withCosts = results.filter(r => r.metrics?.cost_micros > 0)
+        console.log(`🔍 Resultados com custos: ${withCosts.length}`)
+        withCosts.forEach(r => {
+          console.log(`🔍 - ${r.campaign?.name}: ${r.metrics?.cost_micros} micros = R$ ${(r.metrics?.cost_micros / 1000000).toFixed(2)}`)
+        })
+      }
+    }
+
+    // Calcular métricas agregadas (seguindo padrão que funciona)
     const aggregatedStats = results.reduce((acc: any, row: any) => {
-      acc.totalClicks += parseInt(row.metrics.clicks) || 0
-      acc.totalImpressions += parseInt(row.metrics.impressions) || 0
-      acc.totalCost += (parseInt(row.metrics.cost_micros) || 0) / 1000000 // Converter micros para reais
-      acc.totalConversions += parseFloat(row.metrics.conversions) || 0
+      const campaign = row.campaign
+      const metrics = row.metrics
+      
+      const costMicros = parseInt(metrics?.costMicros) || 0
+      const costInReais = costMicros / 1000000 // Converter micros para reais
+      
+      console.log(`🔍 Processando: ${campaign?.name} - Cost Micros: ${costMicros} - Cost Reais: ${costInReais}`)
+      
+      acc.totalClicks += parseInt(metrics?.clicks) || 0
+      acc.totalImpressions += parseInt(metrics?.impressions) || 0
+      acc.totalCost += costInReais
+      acc.totalConversions += parseFloat(metrics?.conversions) || 0
       return acc
     }, {
       totalClicks: 0,
