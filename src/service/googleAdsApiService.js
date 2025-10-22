@@ -73,10 +73,17 @@ class GoogleAdsApiService {
   /**
    * Busca campanhas do Google Ads
    */
-  async getCampaigns(status = 'active') {
+  async getCampaigns(startDate = null, endDate = null, status = 'active') {
     try {
       console.log(`🔍 Buscando campanhas (${status})...`);
-      const response = await this.fetchFromBackend(`/campaigns?status=${status}`);
+      
+      const params = new URLSearchParams();
+      if (status) params.append('status', status);
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      
+      const endpoint = `/campaigns${params.toString() ? '?' + params.toString() : ''}`;
+      const response = await this.fetchFromBackend(endpoint);
       
       if (response.success) {
         console.log(`✅ ${response.count} campanhas encontradas`);
