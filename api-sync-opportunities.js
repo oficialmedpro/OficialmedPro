@@ -88,7 +88,16 @@ async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = 
     const url = `https://${SPRINTHUB_CONFIG.baseUrl}/crm/opportunities/${funnelId}?apitoken=${SPRINTHUB_CONFIG.apiToken}&i=${SPRINTHUB_CONFIG.instance}`;
     
     try {
-        const postData = JSON.stringify({ page, limit, columnId: stageId });
+        // Tentar usar filtros incrementais, quando suportados pelo SprintHub
+        const incrementalHints = {};
+        if (globalThis.__LAST_UPDATE_PER_STAGE && globalThis.__LAST_UPDATE_PER_STAGE[`${funnelId}:${stageId}`]) {
+            const since = globalThis.__LAST_UPDATE_PER_STAGE[`${funnelId}:${stageId}`];
+            // Alguns backends usam nomes diferentes; enviamos todos de maneira inofensiva
+            incrementalHints.updatedSince = since;
+            incrementalHints.modifiedSince = since;
+            incrementalHints.lastUpdate = since;
+        }
+        const postData = JSON.stringify({ page, limit, columnId: stageId, ...incrementalHints });
         
         const response = await fetch(url, {
             method: 'POST',
@@ -181,6 +190,36 @@ async function syncOpportunities() {
     let totalUpdated = 0;  // estimado
     let totalErrors = 0;
     
+    // Carregar last_update por etapa do Supabase para tentar incremental na origem
+    globalThis.__LAST_UPDATE_PER_STAGE = {};
+    try {
+        const { data: lastStages } = await supabase
+            .from('oportunidade_sprint')
+            .select('crm_column, funil_id, update_date')
+            .order('update_date', { ascending: false })
+            .limit(1);
+        // consulta simples acima é só para aquecer a conexão; abaixo, faremos por etapa
+    } catch {}
+
+    const stageLastUpdateCache = async (funnelId, stageId) => {
+        const key = `${funnelId}:${stageId}`;
+        if (globalThis.__LAST_UPDATE_PER_STAGE[key]) return globalThis.__LAST_UPDATE_PER_STAGE[key];
+        try {
+            const { data, error } = await supabase
+                .from('oportunidade_sprint')
+                .select('update_date')
+                .eq('funil_id', funnelId)
+                .eq('crm_column', stageId)
+                .order('update_date', { ascending: false })
+                .limit(1);
+            if (!error && data && data.length > 0 && data[0].update_date) {
+                const since = new Date(data[0].update_date).toISOString();
+                globalThis.__LAST_UPDATE_PER_STAGE[key] = since;
+            }
+        } catch {}
+        return globalThis.__LAST_UPDATE_PER_STAGE[key];
+    };
+
     // Processar cada funil
     for (const [funnelId, funnelConfig] of Object.entries(FUNIS_CONFIG)) {
         console.log(`\n📊 Processando Funil ${funnelId}: ${funnelConfig.name}`);
@@ -189,6 +228,7 @@ async function syncOpportunities() {
         // Processar cada etapa do funil
         for (const stageId of funnelConfig.stages) {
             console.log(`\n   🔄 Etapa ${stageId}...`);
+            await stageLastUpdateCache(Number(funnelId), stageId);
             let page = 0;
             let hasMore = true;
             
