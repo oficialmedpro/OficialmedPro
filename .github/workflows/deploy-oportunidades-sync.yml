@@ -37,7 +37,7 @@ jobs:
         tags: |
           oficialmedpro/oportunidades-sync-api:latest
           oficialmedpro/oportunidades-sync-api:${{ github.sha }}
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64
         cache-from: type=gha
         cache-to: type=gha,mode=max
         
