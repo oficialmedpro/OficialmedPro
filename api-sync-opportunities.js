@@ -556,6 +556,9 @@ app.get('/health', (req, res) => {
 app.get('/oportunidades/metrics', (_req, res) => {
     res.json({ running: isSyncRunning, last: lastRun });
 });
+app.get('/metrics', (_req, res) => {
+    res.json({ running: isSyncRunning, last: lastRun });
+});
 
 // Orquestrador sequencial com lock
 app.get('/sync/all', async (_req, res) => {
