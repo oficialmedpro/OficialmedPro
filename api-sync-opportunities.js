@@ -18,6 +18,10 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 app.use(express.json());
 
+// Controle simples de lock e métricas em memória (réplica única)
+let isSyncRunning = false;
+let lastRun = { resource: null, start: null, end: null, status: 'idle', durationMs: 0 };
+
 // 🔐 FUNÇÃO PARA LER SECRETS (seguindo padrão prime-sync-api)
 function readSecret(envVarFile, fallbackEnvVar) {
     try {
@@ -56,6 +60,28 @@ console.log(`   Instância: ${SPRINTHUB_INSTANCE}`);
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     db: { schema: 'api' }
 });
+// Helpers de log (api.sync_runs)
+async function logRunStart(resource) {
+    try {
+        const { data, error } = await supabase
+            .from('sync_runs')
+            .insert({ resource, status: 'running' })
+            .select('id')
+            .single();
+        if (!error && data) return data.id;
+    } catch {}
+    return null;
+}
+
+async function logRunFinish(runId, payload) {
+    if (!runId) return;
+    try {
+        await supabase
+            .from('sync_runs')
+            .update({ ...payload, finished_at: new Date().toISOString() })
+            .eq('id', runId);
+    } catch {}
+}
 
 // Configuração SprintHub
 const SPRINTHUB_CONFIG = {
@@ -63,6 +89,157 @@ const SPRINTHUB_CONFIG = {
     instance: SPRINTHUB_INSTANCE,
     apiToken: SPRINTHUB_TOKEN
 };
+
+// =============== LEADS (mesmo serviço) ==================
+const LEADS_PAGE_LIMIT = 100;
+let LEADS_DELAY_BETWEEN_PAGES = 500;
+
+async function fetchLeadsFromSprintHub(page = 0, limit = LEADS_PAGE_LIMIT) {
+    const url = `https://${SPRINTHUB_CONFIG.baseUrl}/leads?i=${SPRINTHUB_CONFIG.instance}&page=${page}&limit=${limit}&apitoken=${SPRINTHUB_CONFIG.apiToken}`;
+    try {
+        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        // Suportar formatos diferentes
+        if (Array.isArray(data)) return data;
+        if (data?.data?.leads) return data.data.leads;
+        return [];
+    } catch (e) {
+        console.error(`❌ Erro ao buscar leads página ${page + 1}:`, e.message);
+        return [];
+    }
+}
+
+function mapLeadToSupabase(lead) {
+    return {
+        id: lead.id,
+        firstname: lead.firstname || null,
+        lastname: lead.lastname || null,
+        email: lead.email || null,
+        phone: lead.phone || null,
+        mobile: lead.mobile || null,
+        whatsapp: lead.whatsapp || null,
+        address: lead.address || null,
+        city: lead.city || null,
+        state: lead.state || null,
+        zipcode: lead.zipcode || null,
+        country: lead.country || null,
+        company: lead.company || null,
+        status: lead.status || null,
+        origem: lead.origin || null,
+        categoria: lead.category || null,
+        segmento: lead.segment || null,
+        stage: lead.stage || null,
+        observacao: lead.observation || null,
+        produto: lead.product || null,
+        create_date: lead.createDate ? new Date(lead.createDate).toISOString() : null,
+        updated_date: lead.updateDate ? new Date(lead.updateDate).toISOString() : null,
+        synced_at: new Date().toISOString()
+    };
+}
+
+async function upsertLeadsBatch(rows) {
+    try {
+        const { error } = await supabase.from('leads').upsert(rows, { onConflict: 'id', ignoreDuplicates: false });
+        if (error) return { success: false, error: error.message };
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+}
+
+async function syncLeads() {
+    const runId = await logRunStart('leads');
+    let page = 0;
+    let processed = 0, errors = 0;
+    while (true) {
+        const batch = await fetchLeadsFromSprintHub(page);
+        if (!batch || batch.length === 0) break;
+        const mapped = batch.map(mapLeadToSupabase);
+        processed += mapped.length;
+        const r = await upsertLeadsBatch(mapped);
+        if (!r.success) {
+            errors += mapped.length;
+            LEADS_DELAY_BETWEEN_PAGES = Math.min(LEADS_DELAY_BETWEEN_PAGES * 2, 8000);
+        } else {
+            LEADS_DELAY_BETWEEN_PAGES = Math.max(Math.floor(LEADS_DELAY_BETWEEN_PAGES / 2), 400);
+        }
+        page++;
+        await sleep(LEADS_DELAY_BETWEEN_PAGES);
+    }
+    await logRunFinish(runId, {
+        status: errors > 0 ? 'success_with_errors' : 'success',
+        total_processed: processed,
+        total_errors: errors
+    });
+    return { totalProcessed: processed, totalErrors: errors };
+}
+
+app.get('/leads', async (_req, res) => {
+    try {
+        const result = await syncLeads();
+        res.json({ success: true, data: result });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+app.get('/leads/status', async (_req, res) => {
+    try {
+        const { count } = await supabase.from('leads').select('*', { count: 'exact', head: true });
+        res.json({ success: true, data: { totalLeads: count, lastCheck: new Date().toISOString() } });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    }
+});
+
+// =============== SEGMENTOS (básico) ==================
+async function fetchSegments(page = 0, limit = 100) {
+    const url = `https://${SPRINTHUB_CONFIG.baseUrl}/segments?i=${SPRINTHUB_CONFIG.instance}&page=${page}&limit=${limit}&apitoken=${SPRINTHUB_CONFIG.apiToken}`;
+    try {
+        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (Array.isArray(data)) return data;
+        if (data?.data?.segments) return data.data.segments;
+        return [];
+    } catch (e) {
+        console.warn('⚠️ Segments endpoint possivelmente indisponível:', e.message);
+        return [];
+    }
+}
+
+async function upsertSegments(rows) {
+    try {
+        const { error } = await supabase.from('segmentos').upsert(rows, { onConflict: 'id', ignoreDuplicates: false });
+        if (error) return { success: false, error: error.message };
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+}
+
+async function syncSegments() {
+    const runId = await logRunStart('segmentos');
+    let page = 0, processed = 0, errors = 0;
+    while (true) {
+        const batch = await fetchSegments(page);
+        if (!batch || batch.length === 0) break;
+        const mapped = batch.map((s) => ({ id: s.id, name: s.name || s.title || null, synced_at: new Date().toISOString() }));
+        processed += mapped.length;
+        const r = await upsertSegments(mapped);
+        if (!r.success) errors += mapped.length;
+        page++;
+        await sleep(500);
+    }
+    await logRunFinish(runId, { status: errors > 0 ? 'success_with_errors' : 'success', total_processed: processed, total_errors: errors });
+    return { totalProcessed: processed, totalErrors: errors };
+}
+
+app.get('/segmentos', async (_req, res) => {
+    try { const result = await syncSegments(); res.json({ success: true, data: result }); }
+    catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
 
 // Configuração dos funis
 const FUNIS_CONFIG = {
@@ -184,6 +361,8 @@ const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 // Função principal de sincronização
 async function syncOpportunities() {
     console.log('🚀 Iniciando sincronização de oportunidades via API...');
+    const runId = await logRunStart('oportunidades');
+    lastRun = { resource: 'oportunidades', start: Date.now(), end: null, status: 'running', durationMs: 0 };
     
     let totalProcessed = 0;
     let totalInserted = 0; // estimado (não retornamos linhas)
@@ -277,12 +456,24 @@ async function syncOpportunities() {
         console.log(`✅ Funil ${funnelId} concluído`);
     }
     
-    return {
+    const result = {
         totalProcessed,
         totalInserted,
         totalUpdated,
         totalErrors
     };
+    await logRunFinish(runId, {
+        status: totalErrors > 0 ? 'success_with_errors' : 'success',
+        total_processed: totalProcessed,
+        total_inserted: totalInserted,
+        total_updated: totalUpdated,
+        total_errors: totalErrors,
+        details: { page_delay_ms: DELAY_BETWEEN_PAGES }
+    });
+    lastRun.end = Date.now();
+    lastRun.status = totalErrors > 0 ? 'success_with_errors' : 'success';
+    lastRun.durationMs = lastRun.end - lastRun.start;
+    return result;
 }
 
 // Endpoint principal (compatível com Traefik StripPrefix e sem StripPrefix)
@@ -310,6 +501,9 @@ const handleSync = async (req, res) => {
         
     } catch (error) {
         console.error('❌ Erro na sincronização de oportunidades:', error);
+        try {
+            await logRunFinish(undefined, {}); // no-op
+        } catch {}
         res.status(500).json({
             success: false,
             message: 'Erro na sincronização de oportunidades',
@@ -356,6 +550,28 @@ app.get('/health', (req, res) => {
         service: 'API Sync Opportunities',
         timestamp: new Date().toISOString()
     });
+});
+
+// Métricas e lock
+app.get('/oportunidades/metrics', (_req, res) => {
+    res.json({ running: isSyncRunning, last: lastRun });
+});
+
+// Orquestrador sequencial com lock
+app.get('/sync/all', async (_req, res) => {
+    if (isSyncRunning) return res.json({ success: true, message: 'Execução já em andamento' });
+    isSyncRunning = true;
+    try {
+        const results = {};
+        results.oportunidades = await syncOpportunities();
+        results.leads = await syncLeads();
+        results.segmentos = await syncSegments();
+        res.json({ success: true, data: results });
+    } catch (e) {
+        res.status(500).json({ success: false, message: e.message });
+    } finally {
+        isSyncRunning = false;
+    }
 });
 
 // Iniciar servidor
