@@ -239,8 +239,8 @@ async function syncOpportunities() {
     };
 }
 
-// Endpoint principal
-app.get('/oportunidades', async (req, res) => {
+// Endpoint principal (compatível com Traefik StripPrefix e sem StripPrefix)
+const handleSync = async (req, res) => {
     const startTime = new Date();
     console.log(`\n🕒 [${startTime.toISOString()}] Iniciando sincronização de oportunidades...`);
     
@@ -271,10 +271,12 @@ app.get('/oportunidades', async (req, res) => {
             timestamp: new Date().toISOString()
         });
     }
-});
+};
+app.get('/oportunidades', handleSync);
+app.get('/', handleSync);
 
-// Endpoint de status
-app.get('/oportunidades/status', async (req, res) => {
+// Endpoint de status (compatível com Traefik StripPrefix)
+const handleStatus = async (req, res) => {
     try {
         const { count, error } = await supabase.from('oportunidade_sprint').select('*', { count: 'exact', head: true });
         
@@ -297,7 +299,9 @@ app.get('/oportunidades/status', async (req, res) => {
             error: error.message
         });
     }
-});
+};
+app.get('/oportunidades/status', handleStatus);
+app.get('/status', handleStatus);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -312,8 +316,8 @@ app.get('/health', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 API de sincronização de oportunidades rodando na porta ${PORT}`);
     console.log(`📡 Endpoints disponíveis:`);
-    console.log(`   GET /oportunidades - Sincronizar oportunidades`);
-    console.log(`   GET /oportunidades/status - Status das oportunidades`);
+    console.log(`   GET /oportunidades  | /  - Sincronizar oportunidades`);
+    console.log(`   GET /oportunidades/status  | /status - Status das oportunidades`);
     console.log(`   GET /health - Health check`);
 });
 
