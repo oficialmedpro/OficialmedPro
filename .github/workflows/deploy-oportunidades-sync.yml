@@ -1,0 +1,46 @@
+name: Deploy Oportunidades Sync API to Docker Hub
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'api-sync-opportunities.js'
+      - 'Dockerfile.sync-opportunities'
+      - 'package-sync-apis.json'
+      - '.github/workflows/deploy-oportunidades-sync.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        
+    - name: Build and push Oportunidades Sync API
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile.sync-opportunities
+        push: true
+        tags: |
+          oficialmedpro/oportunidades-sync-api:latest
+          oficialmedpro/oportunidades-sync-api:${{ github.sha }}
+        platforms: linux/amd64,linux/arm64
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        
+    - name: Image digest
+      run: echo "Image pushed successfully!"
+
