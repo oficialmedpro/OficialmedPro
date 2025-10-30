@@ -1,0 +1,80 @@
+version: '3.8'
+
+services:
+  # API de Sincronização de Leads
+  sync-leads-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.sync-leads
+    container_name: sync-leads-api
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_SERVICE_ROLE_KEY=${VITE_SUPABASE_SERVICE_ROLE_KEY}
+      - VITE_SPRINTHUB_BASE_URL=${VITE_SPRINTHUB_BASE_URL}
+      - VITE_SPRINTHUB_INSTANCE=${VITE_SPRINTHUB_INSTANCE}
+      - VITE_SPRINTHUB_API_TOKEN=${VITE_SPRINTHUB_API_TOKEN}
+    networks:
+      - sync-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # API de Sincronização de Oportunidades
+  sync-opportunities-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.sync-opportunities
+    container_name: sync-opportunities-api
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_SERVICE_ROLE_KEY=${VITE_SUPABASE_SERVICE_ROLE_KEY}
+      - VITE_SPRINTHUB_BASE_URL=${VITE_SPRINTHUB_BASE_URL}
+      - VITE_SPRINTHUB_INSTANCE=${VITE_SPRINTHUB_INSTANCE}
+      - VITE_SPRINTHUB_API_TOKEN=${VITE_SPRINTHUB_API_TOKEN}
+    networks:
+      - sync-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx Reverse Proxy
+  nginx-sync:
+    image: nginx:alpine
+    container_name: nginx-sync
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-sync.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - sync-leads-api
+      - sync-opportunities-api
+    networks:
+      - sync-network
+
+networks:
+  sync-network:
+    driver: bridge
+
+volumes:
+  ssl-certs:
+    external: true
+

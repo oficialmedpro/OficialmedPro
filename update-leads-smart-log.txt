@@ -1,0 +1,1906 @@
+[dotenv@17.2.2] injecting env (13) from .env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+🔄 ATUALIZANDO leads_exportados_sprinthub com matching inteligente...
+
+📊 Buscando oportunidades da tabela oportunidade_sprint...
+📦 Batch 1: 1000 oportunidades | Total: 1000
+📦 Batch 2: 1000 oportunidades | Total: 2000
+📦 Batch 3: 1000 oportunidades | Total: 3000
+📦 Batch 4: 1000 oportunidades | Total: 4000
+📦 Batch 5: 1000 oportunidades | Total: 5000
+📦 Batch 6: 1000 oportunidades | Total: 6000
+📦 Batch 7: 1000 oportunidades | Total: 7000
+📦 Batch 8: 1000 oportunidades | Total: 8000
+📦 Batch 9: 1000 oportunidades | Total: 9000
+📦 Batch 10: 1000 oportunidades | Total: 10000
+📦 Batch 11: 1000 oportunidades | Total: 11000
+📦 Batch 12: 1000 oportunidades | Total: 12000
+📦 Batch 13: 1000 oportunidades | Total: 13000
+📦 Batch 14: 1000 oportunidades | Total: 14000
+📦 Batch 15: 1000 oportunidades | Total: 15000
+📦 Batch 16: 1000 oportunidades | Total: 16000
+📦 Batch 17: 1000 oportunidades | Total: 17000
+📦 Batch 18: 1000 oportunidades | Total: 18000
+📦 Batch 19: 1000 oportunidades | Total: 19000
+📦 Batch 20: 1000 oportunidades | Total: 20000
+📦 Batch 21: 1000 oportunidades | Total: 21000
+📦 Batch 22: 1000 oportunidades | Total: 22000
+📦 Batch 23: 1000 oportunidades | Total: 23000
+📦 Batch 24: 1000 oportunidades | Total: 24000
+📦 Batch 25: 1000 oportunidades | Total: 25000
+📦 Batch 26: 1000 oportunidades | Total: 26000
+📦 Batch 27: 1000 oportunidades | Total: 27000
+📦 Batch 28: 1000 oportunidades | Total: 28000
+📦 Batch 29: 1000 oportunidades | Total: 29000
+📦 Batch 30: 1000 oportunidades | Total: 30000
+📦 Batch 31: 1000 oportunidades | Total: 31000
+📦 Batch 32: 1000 oportunidades | Total: 32000
+📦 Batch 33: 1000 oportunidades | Total: 33000
+📦 Batch 34: 1000 oportunidades | Total: 34000
+📦 Batch 35: 1000 oportunidades | Total: 35000
+📦 Batch 36: 1000 oportunidades | Total: 36000
+📦 Batch 37: 1000 oportunidades | Total: 37000
+📦 Batch 38: 1000 oportunidades | Total: 38000
+📦 Batch 39: 1000 oportunidades | Total: 39000
+📦 Batch 40: 1000 oportunidades | Total: 40000
+📦 Batch 41: 1000 oportunidades | Total: 41000
+📦 Batch 42: 100 oportunidades | Total: 41100
+
+📊 Total de oportunidades processadas: 41100
+
+🔗 Criando mapa com telefones normalizados para comparação...
+📊 Mapa de telefones normalizados: 21761 entradas
+📊 Mapa de Email: 7074 entradas
+
+📊 Buscando leads da tabela leads_exportados_sprinthub...
+📦 Batch 1: 1000 leads | Total: 1000
+📦 Batch 2: 1000 leads | Total: 2000
+📦 Batch 3: 1000 leads | Total: 3000
+📦 Batch 4: 1000 leads | Total: 4000
+📦 Batch 5: 1000 leads | Total: 5000
+📦 Batch 6: 1000 leads | Total: 6000
+📦 Batch 7: 1000 leads | Total: 7000
+📦 Batch 8: 1000 leads | Total: 8000
+📦 Batch 9: 1000 leads | Total: 9000
+📦 Batch 10: 1000 leads | Total: 10000
+📦 Batch 11: 1000 leads | Total: 11000
+📦 Batch 12: 1000 leads | Total: 12000
+📦 Batch 13: 1000 leads | Total: 13000
+📦 Batch 14: 1000 leads | Total: 14000
+📦 Batch 15: 1000 leads | Total: 15000
+📦 Batch 16: 1000 leads | Total: 16000
+📦 Batch 17: 1000 leads | Total: 17000
+📦 Batch 18: 1000 leads | Total: 18000
+📦 Batch 19: 1000 leads | Total: 19000
+📦 Batch 20: 1000 leads | Total: 20000
+📦 Batch 21: 1000 leads | Total: 21000
+📦 Batch 22: 1000 leads | Total: 22000
+📦 Batch 23: 1000 leads | Total: 23000
+📦 Batch 24: 1000 leads | Total: 24000
+📦 Batch 25: 1000 leads | Total: 25000
+📦 Batch 26: 1000 leads | Total: 26000
+📦 Batch 27: 1000 leads | Total: 27000
+📦 Batch 28: 1000 leads | Total: 28000
+📦 Batch 29: 1000 leads | Total: 29000
+📦 Batch 30: 1000 leads | Total: 30000
+📦 Batch 31: 1000 leads | Total: 31000
+📦 Batch 32: 1000 leads | Total: 32000
+📦 Batch 33: 1000 leads | Total: 33000
+📦 Batch 34: 1000 leads | Total: 34000
+📦 Batch 35: 1000 leads | Total: 35000
+📦 Batch 36: 1000 leads | Total: 36000
+📦 Batch 37: 1000 leads | Total: 37000
+📦 Batch 38: 1000 leads | Total: 38000
+📦 Batch 39: 1000 leads | Total: 39000
+📦 Batch 40: 1000 leads | Total: 40000
+📦 Batch 41: 1000 leads | Total: 41000
+📦 Batch 42: 1000 leads | Total: 42000
+📦 Batch 43: 1000 leads | Total: 43000
+📦 Batch 44: 1000 leads | Total: 44000
+📦 Batch 45: 1000 leads | Total: 45000
+📦 Batch 46: 1000 leads | Total: 46000
+📦 Batch 47: 1000 leads | Total: 47000
+📦 Batch 48: 1000 leads | Total: 48000
+📦 Batch 49: 1000 leads | Total: 49000
+📦 Batch 50: 1000 leads | Total: 50000
+📦 Batch 51: 1000 leads | Total: 51000
+📦 Batch 52: 1000 leads | Total: 52000
+📦 Batch 53: 1000 leads | Total: 53000
+📦 Batch 54: 1000 leads | Total: 54000
+📦 Batch 55: 1000 leads | Total: 55000
+📦 Batch 56: 1000 leads | Total: 56000
+📦 Batch 57: 1000 leads | Total: 57000
+📦 Batch 58: 1000 leads | Total: 58000
+📦 Batch 59: 1000 leads | Total: 59000
+📦 Batch 60: 1000 leads | Total: 60000
+📦 Batch 61: 1000 leads | Total: 61000
+📦 Batch 62: 1000 leads | Total: 62000
+📦 Batch 63: 1000 leads | Total: 63000
+📦 Batch 64: 1000 leads | Total: 64000
+📦 Batch 65: 1000 leads | Total: 65000
+📦 Batch 66: 1000 leads | Total: 66000
+📦 Batch 67: 1000 leads | Total: 67000
+📦 Batch 68: 1000 leads | Total: 68000
+📦 Batch 69: 1000 leads | Total: 69000
+📦 Batch 70: 1000 leads | Total: 70000
+📦 Batch 71: 1000 leads | Total: 71000
+📦 Batch 72: 1000 leads | Total: 72000
+📦 Batch 73: 1000 leads | Total: 73000
+📦 Batch 74: 257 leads | Total: 73257
+
+📊 Total de leads exportados processados: 73257
+
+🔗 Processando matches com normalização inteligente...
+
+📦 Processando lote 1/733 (100 leads)
+
+📦 Processando lote 2/733 (100 leads)
+✅ 100 leads atualizados...
+
+📦 Processando lote 3/733 (100 leads)
+✅ 200 leads atualizados...
+
+📦 Processando lote 4/733 (100 leads)
+✅ 300 leads atualizados...
+
+📦 Processando lote 5/733 (100 leads)
+✅ 400 leads atualizados...
+
+📦 Processando lote 6/733 (100 leads)
+✅ 500 leads atualizados...
+
+📦 Processando lote 7/733 (100 leads)
+✅ 600 leads atualizados...
+
+📦 Processando lote 8/733 (100 leads)
+✅ 700 leads atualizados...
+
+📦 Processando lote 9/733 (100 leads)
+✅ 800 leads atualizados...
+
+📦 Processando lote 10/733 (100 leads)
+✅ 900 leads atualizados...
+📊 Progresso: 1000/73257 | Matches: 922 | Atualizados: 922
+
+📦 Processando lote 11/733 (100 leads)
+✅ 1000 leads atualizados...
+
+📦 Processando lote 12/733 (100 leads)
+✅ 1100 leads atualizados...
+
+📦 Processando lote 13/733 (100 leads)
+✅ 1200 leads atualizados...
+
+📦 Processando lote 14/733 (100 leads)
+✅ 1300 leads atualizados...
+
+📦 Processando lote 15/733 (100 leads)
+✅ 1400 leads atualizados...
+
+📦 Processando lote 16/733 (100 leads)
+
+📦 Processando lote 17/733 (100 leads)
+✅ 1500 leads atualizados...
+
+📦 Processando lote 18/733 (100 leads)
+✅ 1600 leads atualizados...
+
+📦 Processando lote 19/733 (100 leads)
+✅ 1700 leads atualizados...
+
+📦 Processando lote 20/733 (100 leads)
+✅ 1800 leads atualizados...
+📊 Progresso: 2000/73257 | Matches: 1842 | Atualizados: 1842
+
+📦 Processando lote 21/733 (100 leads)
+✅ 1900 leads atualizados...
+
+📦 Processando lote 22/733 (100 leads)
+✅ 2000 leads atualizados...
+
+📦 Processando lote 23/733 (100 leads)
+✅ 2100 leads atualizados...
+
+📦 Processando lote 24/733 (100 leads)
+✅ 2200 leads atualizados...
+
+📦 Processando lote 25/733 (100 leads)
+
+📦 Processando lote 26/733 (100 leads)
+
+📦 Processando lote 27/733 (100 leads)
+
+📦 Processando lote 28/733 (100 leads)
+
+📦 Processando lote 29/733 (100 leads)
+
+📦 Processando lote 30/733 (100 leads)
+📊 Progresso: 3000/73257 | Matches: 2280 | Atualizados: 2280
+
+📦 Processando lote 31/733 (100 leads)
+
+📦 Processando lote 32/733 (100 leads)
+
+📦 Processando lote 33/733 (100 leads)
+
+📦 Processando lote 34/733 (100 leads)
+
+📦 Processando lote 35/733 (100 leads)
+
+📦 Processando lote 36/733 (100 leads)
+
+📦 Processando lote 37/733 (100 leads)
+
+📦 Processando lote 38/733 (100 leads)
+
+📦 Processando lote 39/733 (100 leads)
+
+📦 Processando lote 40/733 (100 leads)
+📊 Progresso: 4000/73257 | Matches: 2280 | Atualizados: 2280
+
+📦 Processando lote 41/733 (100 leads)
+
+📦 Processando lote 42/733 (100 leads)
+
+📦 Processando lote 43/733 (100 leads)
+
+📦 Processando lote 44/733 (100 leads)
+
+📦 Processando lote 45/733 (100 leads)
+
+📦 Processando lote 46/733 (100 leads)
+
+📦 Processando lote 47/733 (100 leads)
+
+📦 Processando lote 48/733 (100 leads)
+
+📦 Processando lote 49/733 (100 leads)
+
+📦 Processando lote 50/733 (100 leads)
+📊 Progresso: 5000/73257 | Matches: 2280 | Atualizados: 2280
+
+📦 Processando lote 51/733 (100 leads)
+
+📦 Processando lote 52/733 (100 leads)
+
+📦 Processando lote 53/733 (100 leads)
+
+📦 Processando lote 54/733 (100 leads)
+
+📦 Processando lote 55/733 (100 leads)
+
+📦 Processando lote 56/733 (100 leads)
+
+📦 Processando lote 57/733 (100 leads)
+
+📦 Processando lote 58/733 (100 leads)
+
+📦 Processando lote 59/733 (100 leads)
+
+📦 Processando lote 60/733 (100 leads)
+📊 Progresso: 6000/73257 | Matches: 2280 | Atualizados: 2280
+
+📦 Processando lote 61/733 (100 leads)
+
+📦 Processando lote 62/733 (100 leads)
+
+📦 Processando lote 63/733 (100 leads)
+
+📦 Processando lote 64/733 (100 leads)
+
+📦 Processando lote 65/733 (100 leads)
+
+📦 Processando lote 66/733 (100 leads)
+
+📦 Processando lote 67/733 (100 leads)
+
+📦 Processando lote 68/733 (100 leads)
+
+📦 Processando lote 69/733 (100 leads)
+
+📦 Processando lote 70/733 (100 leads)
+📊 Progresso: 7000/73257 | Matches: 2280 | Atualizados: 2280
+
+📦 Processando lote 71/733 (100 leads)
+
+📦 Processando lote 72/733 (100 leads)
+
+📦 Processando lote 73/733 (100 leads)
+
+📦 Processando lote 74/733 (100 leads)
+
+📦 Processando lote 75/733 (100 leads)
+
+📦 Processando lote 76/733 (100 leads)
+
+📦 Processando lote 77/733 (100 leads)
+
+📦 Processando lote 78/733 (100 leads)
+
+📦 Processando lote 79/733 (100 leads)
+
+📦 Processando lote 80/733 (100 leads)
+📊 Progresso: 8000/73257 | Matches: 2280 | Atualizados: 2280
+
+📦 Processando lote 81/733 (100 leads)
+
+📦 Processando lote 82/733 (100 leads)
+
+📦 Processando lote 83/733 (100 leads)
+
+📦 Processando lote 84/733 (100 leads)
+
+📦 Processando lote 85/733 (100 leads)
+
+📦 Processando lote 86/733 (100 leads)
+
+📦 Processando lote 87/733 (100 leads)
+
+📦 Processando lote 88/733 (100 leads)
+
+📦 Processando lote 89/733 (100 leads)
+
+📦 Processando lote 90/733 (100 leads)
+📊 Progresso: 9000/73257 | Matches: 2280 | Atualizados: 2280
+
+📦 Processando lote 91/733 (100 leads)
+
+📦 Processando lote 92/733 (100 leads)
+
+📦 Processando lote 93/733 (100 leads)
+
+📦 Processando lote 94/733 (100 leads)
+
+📦 Processando lote 95/733 (100 leads)
+
+📦 Processando lote 96/733 (100 leads)
+
+📦 Processando lote 97/733 (100 leads)
+
+📦 Processando lote 98/733 (100 leads)
+
+📦 Processando lote 99/733 (100 leads)
+
+📦 Processando lote 100/733 (100 leads)
+📊 Progresso: 10000/73257 | Matches: 2284 | Atualizados: 2284
+
+📦 Processando lote 101/733 (100 leads)
+
+📦 Processando lote 102/733 (100 leads)
+
+📦 Processando lote 103/733 (100 leads)
+
+📦 Processando lote 104/733 (100 leads)
+
+📦 Processando lote 105/733 (100 leads)
+
+📦 Processando lote 106/733 (100 leads)
+
+📦 Processando lote 107/733 (100 leads)
+
+📦 Processando lote 108/733 (100 leads)
+
+📦 Processando lote 109/733 (100 leads)
+
+📦 Processando lote 110/733 (100 leads)
+📊 Progresso: 11000/73257 | Matches: 2284 | Atualizados: 2284
+
+📦 Processando lote 111/733 (100 leads)
+
+📦 Processando lote 112/733 (100 leads)
+
+📦 Processando lote 113/733 (100 leads)
+
+📦 Processando lote 114/733 (100 leads)
+
+📦 Processando lote 115/733 (100 leads)
+
+📦 Processando lote 116/733 (100 leads)
+
+📦 Processando lote 117/733 (100 leads)
+
+📦 Processando lote 118/733 (100 leads)
+
+📦 Processando lote 119/733 (100 leads)
+
+📦 Processando lote 120/733 (100 leads)
+📊 Progresso: 12000/73257 | Matches: 2284 | Atualizados: 2284
+
+📦 Processando lote 121/733 (100 leads)
+
+📦 Processando lote 122/733 (100 leads)
+
+📦 Processando lote 123/733 (100 leads)
+
+📦 Processando lote 124/733 (100 leads)
+
+📦 Processando lote 125/733 (100 leads)
+
+📦 Processando lote 126/733 (100 leads)
+
+📦 Processando lote 127/733 (100 leads)
+
+📦 Processando lote 128/733 (100 leads)
+
+📦 Processando lote 129/733 (100 leads)
+
+📦 Processando lote 130/733 (100 leads)
+📊 Progresso: 13000/73257 | Matches: 2284 | Atualizados: 2284
+
+📦 Processando lote 131/733 (100 leads)
+
+📦 Processando lote 132/733 (100 leads)
+
+📦 Processando lote 133/733 (100 leads)
+
+📦 Processando lote 134/733 (100 leads)
+
+📦 Processando lote 135/733 (100 leads)
+
+📦 Processando lote 136/733 (100 leads)
+
+📦 Processando lote 137/733 (100 leads)
+
+📦 Processando lote 138/733 (100 leads)
+
+📦 Processando lote 139/733 (100 leads)
+
+📦 Processando lote 140/733 (100 leads)
+📊 Progresso: 14000/73257 | Matches: 2291 | Atualizados: 2291
+
+📦 Processando lote 141/733 (100 leads)
+
+📦 Processando lote 142/733 (100 leads)
+
+📦 Processando lote 143/733 (100 leads)
+
+📦 Processando lote 144/733 (100 leads)
+
+📦 Processando lote 145/733 (100 leads)
+
+📦 Processando lote 146/733 (100 leads)
+
+📦 Processando lote 147/733 (100 leads)
+
+📦 Processando lote 148/733 (100 leads)
+
+📦 Processando lote 149/733 (100 leads)
+
+📦 Processando lote 150/733 (100 leads)
+📊 Progresso: 15000/73257 | Matches: 2291 | Atualizados: 2291
+
+📦 Processando lote 151/733 (100 leads)
+
+📦 Processando lote 152/733 (100 leads)
+
+📦 Processando lote 153/733 (100 leads)
+
+📦 Processando lote 154/733 (100 leads)
+
+📦 Processando lote 155/733 (100 leads)
+
+📦 Processando lote 156/733 (100 leads)
+
+📦 Processando lote 157/733 (100 leads)
+
+📦 Processando lote 158/733 (100 leads)
+
+📦 Processando lote 159/733 (100 leads)
+
+📦 Processando lote 160/733 (100 leads)
+📊 Progresso: 16000/73257 | Matches: 2299 | Atualizados: 2299
+
+📦 Processando lote 161/733 (100 leads)
+
+📦 Processando lote 162/733 (100 leads)
+✅ 2300 leads atualizados...
+
+📦 Processando lote 163/733 (100 leads)
+
+📦 Processando lote 164/733 (100 leads)
+
+📦 Processando lote 165/733 (100 leads)
+
+📦 Processando lote 166/733 (100 leads)
+
+📦 Processando lote 167/733 (100 leads)
+
+📦 Processando lote 168/733 (100 leads)
+
+📦 Processando lote 169/733 (100 leads)
+
+📦 Processando lote 170/733 (100 leads)
+📊 Progresso: 17000/73257 | Matches: 2305 | Atualizados: 2305
+
+📦 Processando lote 171/733 (100 leads)
+
+📦 Processando lote 172/733 (100 leads)
+
+📦 Processando lote 173/733 (100 leads)
+
+📦 Processando lote 174/733 (100 leads)
+
+📦 Processando lote 175/733 (100 leads)
+
+📦 Processando lote 176/733 (100 leads)
+✅ 2400 leads atualizados...
+
+📦 Processando lote 177/733 (100 leads)
+
+📦 Processando lote 178/733 (100 leads)
+
+📦 Processando lote 179/733 (100 leads)
+
+📦 Processando lote 180/733 (100 leads)
+✅ 2500 leads atualizados...
+📊 Progresso: 18000/73257 | Matches: 2502 | Atualizados: 2502
+
+📦 Processando lote 181/733 (100 leads)
+
+📦 Processando lote 182/733 (100 leads)
+
+📦 Processando lote 183/733 (100 leads)
+
+📦 Processando lote 184/733 (100 leads)
+✅ 2600 leads atualizados...
+
+📦 Processando lote 185/733 (100 leads)
+✅ 2700 leads atualizados...
+
+📦 Processando lote 186/733 (100 leads)
+
+📦 Processando lote 187/733 (100 leads)
+✅ 2800 leads atualizados...
+
+📦 Processando lote 188/733 (100 leads)
+✅ 2900 leads atualizados...
+
+📦 Processando lote 189/733 (100 leads)
+✅ 3000 leads atualizados...
+
+📦 Processando lote 190/733 (100 leads)
+📊 Progresso: 19000/73257 | Matches: 3071 | Atualizados: 3071
+
+📦 Processando lote 191/733 (100 leads)
+✅ 3100 leads atualizados...
+
+📦 Processando lote 192/733 (100 leads)
+
+📦 Processando lote 193/733 (100 leads)
+✅ 3200 leads atualizados...
+
+📦 Processando lote 194/733 (100 leads)
+✅ 3300 leads atualizados...
+
+📦 Processando lote 195/733 (100 leads)
+
+📦 Processando lote 196/733 (100 leads)
+✅ 3400 leads atualizados...
+
+📦 Processando lote 197/733 (100 leads)
+
+📦 Processando lote 198/733 (100 leads)
+✅ 3500 leads atualizados...
+
+📦 Processando lote 199/733 (100 leads)
+
+📦 Processando lote 200/733 (100 leads)
+📊 Progresso: 20000/73257 | Matches: 3578 | Atualizados: 3578
+
+📦 Processando lote 201/733 (100 leads)
+✅ 3600 leads atualizados...
+
+📦 Processando lote 202/733 (100 leads)
+
+📦 Processando lote 203/733 (100 leads)
+✅ 3700 leads atualizados...
+
+📦 Processando lote 204/733 (100 leads)
+
+📦 Processando lote 205/733 (100 leads)
+
+📦 Processando lote 206/733 (100 leads)
+✅ 3800 leads atualizados...
+
+📦 Processando lote 207/733 (100 leads)
+
+📦 Processando lote 208/733 (100 leads)
+✅ 3900 leads atualizados...
+
+📦 Processando lote 209/733 (100 leads)
+
+📦 Processando lote 210/733 (100 leads)
+✅ 4000 leads atualizados...
+📊 Progresso: 21000/73257 | Matches: 4062 | Atualizados: 4062
+
+📦 Processando lote 211/733 (100 leads)
+✅ 4100 leads atualizados...
+
+📦 Processando lote 212/733 (100 leads)
+
+📦 Processando lote 213/733 (100 leads)
+
+📦 Processando lote 214/733 (100 leads)
+
+📦 Processando lote 215/733 (100 leads)
+
+📦 Processando lote 216/733 (100 leads)
+
+📦 Processando lote 217/733 (100 leads)
+✅ 4200 leads atualizados...
+
+📦 Processando lote 218/733 (100 leads)
+✅ 4300 leads atualizados...
+
+📦 Processando lote 219/733 (100 leads)
+
+📦 Processando lote 220/733 (100 leads)
+📊 Progresso: 22000/73257 | Matches: 4352 | Atualizados: 4352
+
+📦 Processando lote 221/733 (100 leads)
+
+📦 Processando lote 222/733 (100 leads)
+
+📦 Processando lote 223/733 (100 leads)
+
+📦 Processando lote 224/733 (100 leads)
+
+📦 Processando lote 225/733 (100 leads)
+
+📦 Processando lote 226/733 (100 leads)
+
+📦 Processando lote 227/733 (100 leads)
+
+📦 Processando lote 228/733 (100 leads)
+
+📦 Processando lote 229/733 (100 leads)
+
+📦 Processando lote 230/733 (100 leads)
+📊 Progresso: 23000/73257 | Matches: 4375 | Atualizados: 4375
+
+📦 Processando lote 231/733 (100 leads)
+
+📦 Processando lote 232/733 (100 leads)
+
+📦 Processando lote 233/733 (100 leads)
+
+📦 Processando lote 234/733 (100 leads)
+
+📦 Processando lote 235/733 (100 leads)
+
+📦 Processando lote 236/733 (100 leads)
+
+📦 Processando lote 237/733 (100 leads)
+
+📦 Processando lote 238/733 (100 leads)
+
+📦 Processando lote 239/733 (100 leads)
+
+📦 Processando lote 240/733 (100 leads)
+📊 Progresso: 24000/73257 | Matches: 4387 | Atualizados: 4387
+
+📦 Processando lote 241/733 (100 leads)
+
+📦 Processando lote 242/733 (100 leads)
+
+📦 Processando lote 243/733 (100 leads)
+
+📦 Processando lote 244/733 (100 leads)
+
+📦 Processando lote 245/733 (100 leads)
+
+📦 Processando lote 246/733 (100 leads)
+✅ 4400 leads atualizados...
+
+📦 Processando lote 247/733 (100 leads)
+✅ 4500 leads atualizados...
+
+📦 Processando lote 248/733 (100 leads)
+
+📦 Processando lote 249/733 (100 leads)
+✅ 4600 leads atualizados...
+
+📦 Processando lote 250/733 (100 leads)
+📊 Progresso: 25000/73257 | Matches: 4623 | Atualizados: 4623
+
+📦 Processando lote 251/733 (100 leads)
+
+📦 Processando lote 252/733 (100 leads)
+
+📦 Processando lote 253/733 (100 leads)
+
+📦 Processando lote 254/733 (100 leads)
+
+📦 Processando lote 255/733 (100 leads)
+
+📦 Processando lote 256/733 (100 leads)
+✅ 4700 leads atualizados...
+
+📦 Processando lote 257/733 (100 leads)
+
+📦 Processando lote 258/733 (100 leads)
+✅ 4800 leads atualizados...
+
+📦 Processando lote 259/733 (100 leads)
+
+📦 Processando lote 260/733 (100 leads)
+📊 Progresso: 26000/73257 | Matches: 4802 | Atualizados: 4802
+
+📦 Processando lote 261/733 (100 leads)
+
+📦 Processando lote 262/733 (100 leads)
+
+📦 Processando lote 263/733 (100 leads)
+
+📦 Processando lote 264/733 (100 leads)
+
+📦 Processando lote 265/733 (100 leads)
+✅ 4900 leads atualizados...
+
+📦 Processando lote 266/733 (100 leads)
+
+📦 Processando lote 267/733 (100 leads)
+✅ 5000 leads atualizados...
+
+📦 Processando lote 268/733 (100 leads)
+
+📦 Processando lote 269/733 (100 leads)
+✅ 5100 leads atualizados...
+
+📦 Processando lote 270/733 (100 leads)
+✅ 5200 leads atualizados...
+📊 Progresso: 27000/73257 | Matches: 5222 | Atualizados: 5222
+
+📦 Processando lote 271/733 (100 leads)
+
+📦 Processando lote 272/733 (100 leads)
+✅ 5300 leads atualizados...
+
+📦 Processando lote 273/733 (100 leads)
+✅ 5400 leads atualizados...
+
+📦 Processando lote 274/733 (100 leads)
+
+📦 Processando lote 275/733 (100 leads)
+✅ 5500 leads atualizados...
+
+📦 Processando lote 276/733 (100 leads)
+✅ 5600 leads atualizados...
+
+📦 Processando lote 277/733 (100 leads)
+✅ 5700 leads atualizados...
+
+📦 Processando lote 278/733 (100 leads)
+
+📦 Processando lote 279/733 (100 leads)
+✅ 5800 leads atualizados...
+
+📦 Processando lote 280/733 (100 leads)
+✅ 5900 leads atualizados...
+📊 Progresso: 28000/73257 | Matches: 5901 | Atualizados: 5901
+
+📦 Processando lote 281/733 (100 leads)
+
+📦 Processando lote 282/733 (100 leads)
+✅ 6000 leads atualizados...
+
+📦 Processando lote 283/733 (100 leads)
+✅ 6100 leads atualizados...
+
+📦 Processando lote 284/733 (100 leads)
+
+📦 Processando lote 285/733 (100 leads)
+✅ 6200 leads atualizados...
+
+📦 Processando lote 286/733 (100 leads)
+
+📦 Processando lote 287/733 (100 leads)
+✅ 6300 leads atualizados...
+
+📦 Processando lote 288/733 (100 leads)
+✅ 6400 leads atualizados...
+
+📦 Processando lote 289/733 (100 leads)
+
+📦 Processando lote 290/733 (100 leads)
+✅ 6500 leads atualizados...
+📊 Progresso: 29000/73257 | Matches: 6525 | Atualizados: 6525
+
+📦 Processando lote 291/733 (100 leads)
+
+📦 Processando lote 292/733 (100 leads)
+✅ 6600 leads atualizados...
+
+📦 Processando lote 293/733 (100 leads)
+
+📦 Processando lote 294/733 (100 leads)
+✅ 6700 leads atualizados...
+
+📦 Processando lote 295/733 (100 leads)
+✅ 6800 leads atualizados...
+
+📦 Processando lote 296/733 (100 leads)
+✅ 6900 leads atualizados...
+
+📦 Processando lote 297/733 (100 leads)
+
+📦 Processando lote 298/733 (100 leads)
+✅ 7000 leads atualizados...
+
+📦 Processando lote 299/733 (100 leads)
+✅ 7100 leads atualizados...
+
+📦 Processando lote 300/733 (100 leads)
+📊 Progresso: 30000/73257 | Matches: 7190 | Atualizados: 7190
+
+📦 Processando lote 301/733 (100 leads)
+✅ 7200 leads atualizados...
+
+📦 Processando lote 302/733 (100 leads)
+✅ 7300 leads atualizados...
+
+📦 Processando lote 303/733 (100 leads)
+✅ 7400 leads atualizados...
+
+📦 Processando lote 304/733 (100 leads)
+✅ 7500 leads atualizados...
+
+📦 Processando lote 305/733 (100 leads)
+✅ 7600 leads atualizados...
+
+📦 Processando lote 306/733 (100 leads)
+
+📦 Processando lote 307/733 (100 leads)
+✅ 7700 leads atualizados...
+
+📦 Processando lote 308/733 (100 leads)
+✅ 7800 leads atualizados...
+
+📦 Processando lote 309/733 (100 leads)
+
+📦 Processando lote 310/733 (100 leads)
+✅ 7900 leads atualizados...
+📊 Progresso: 31000/73257 | Matches: 7921 | Atualizados: 7921
+
+📦 Processando lote 311/733 (100 leads)
+
+📦 Processando lote 312/733 (100 leads)
+✅ 8000 leads atualizados...
+
+📦 Processando lote 313/733 (100 leads)
+✅ 8100 leads atualizados...
+
+📦 Processando lote 314/733 (100 leads)
+
+📦 Processando lote 315/733 (100 leads)
+✅ 8200 leads atualizados...
+
+📦 Processando lote 316/733 (100 leads)
+
+📦 Processando lote 317/733 (100 leads)
+✅ 8300 leads atualizados...
+
+📦 Processando lote 318/733 (100 leads)
+
+📦 Processando lote 319/733 (100 leads)
+
+📦 Processando lote 320/733 (100 leads)
+📊 Progresso: 32000/73257 | Matches: 8339 | Atualizados: 8339
+
+📦 Processando lote 321/733 (100 leads)
+
+📦 Processando lote 322/733 (100 leads)
+
+📦 Processando lote 323/733 (100 leads)
+
+📦 Processando lote 324/733 (100 leads)
+✅ 8400 leads atualizados...
+
+📦 Processando lote 325/733 (100 leads)
+
+📦 Processando lote 326/733 (100 leads)
+
+📦 Processando lote 327/733 (100 leads)
+✅ 8500 leads atualizados...
+
+📦 Processando lote 328/733 (100 leads)
+
+📦 Processando lote 329/733 (100 leads)
+✅ 8600 leads atualizados...
+
+📦 Processando lote 330/733 (100 leads)
+✅ 8700 leads atualizados...
+📊 Progresso: 33000/73257 | Matches: 8703 | Atualizados: 8703
+
+📦 Processando lote 331/733 (100 leads)
+
+📦 Processando lote 332/733 (100 leads)
+
+📦 Processando lote 333/733 (100 leads)
+
+📦 Processando lote 334/733 (100 leads)
+
+📦 Processando lote 335/733 (100 leads)
+
+📦 Processando lote 336/733 (100 leads)
+
+📦 Processando lote 337/733 (100 leads)
+
+📦 Processando lote 338/733 (100 leads)
+✅ 8800 leads atualizados...
+
+📦 Processando lote 339/733 (100 leads)
+✅ 8900 leads atualizados...
+
+📦 Processando lote 340/733 (100 leads)
+📊 Progresso: 34000/73257 | Matches: 8987 | Atualizados: 8987
+
+📦 Processando lote 341/733 (100 leads)
+✅ 9000 leads atualizados...
+
+📦 Processando lote 342/733 (100 leads)
+
+📦 Processando lote 343/733 (100 leads)
+✅ 9100 leads atualizados...
+
+📦 Processando lote 344/733 (100 leads)
+
+📦 Processando lote 345/733 (100 leads)
+
+📦 Processando lote 346/733 (100 leads)
+
+📦 Processando lote 347/733 (100 leads)
+
+📦 Processando lote 348/733 (100 leads)
+
+📦 Processando lote 349/733 (100 leads)
+
+📦 Processando lote 350/733 (100 leads)
+📊 Progresso: 35000/73257 | Matches: 9134 | Atualizados: 9134
+
+📦 Processando lote 351/733 (100 leads)
+
+📦 Processando lote 352/733 (100 leads)
+
+📦 Processando lote 353/733 (100 leads)
+
+📦 Processando lote 354/733 (100 leads)
+
+📦 Processando lote 355/733 (100 leads)
+
+📦 Processando lote 356/733 (100 leads)
+
+📦 Processando lote 357/733 (100 leads)
+
+📦 Processando lote 358/733 (100 leads)
+
+📦 Processando lote 359/733 (100 leads)
+
+📦 Processando lote 360/733 (100 leads)
+📊 Progresso: 36000/73257 | Matches: 9146 | Atualizados: 9146
+
+📦 Processando lote 361/733 (100 leads)
+
+📦 Processando lote 362/733 (100 leads)
+
+📦 Processando lote 363/733 (100 leads)
+
+📦 Processando lote 364/733 (100 leads)
+
+📦 Processando lote 365/733 (100 leads)
+
+📦 Processando lote 366/733 (100 leads)
+
+📦 Processando lote 367/733 (100 leads)
+
+📦 Processando lote 368/733 (100 leads)
+
+📦 Processando lote 369/733 (100 leads)
+
+📦 Processando lote 370/733 (100 leads)
+📊 Progresso: 37000/73257 | Matches: 9175 | Atualizados: 9175
+
+📦 Processando lote 371/733 (100 leads)
+
+📦 Processando lote 372/733 (100 leads)
+
+📦 Processando lote 373/733 (100 leads)
+
+📦 Processando lote 374/733 (100 leads)
+✅ 9200 leads atualizados...
+
+📦 Processando lote 375/733 (100 leads)
+
+📦 Processando lote 376/733 (100 leads)
+
+📦 Processando lote 377/733 (100 leads)
+
+📦 Processando lote 378/733 (100 leads)
+
+📦 Processando lote 379/733 (100 leads)
+
+📦 Processando lote 380/733 (100 leads)
+📊 Progresso: 38000/73257 | Matches: 9245 | Atualizados: 9245
+
+📦 Processando lote 381/733 (100 leads)
+
+📦 Processando lote 382/733 (100 leads)
+
+📦 Processando lote 383/733 (100 leads)
+
+📦 Processando lote 384/733 (100 leads)
+
+📦 Processando lote 385/733 (100 leads)
+
+📦 Processando lote 386/733 (100 leads)
+
+📦 Processando lote 387/733 (100 leads)
+
+📦 Processando lote 388/733 (100 leads)
+
+📦 Processando lote 389/733 (100 leads)
+
+📦 Processando lote 390/733 (100 leads)
+📊 Progresso: 39000/73257 | Matches: 9256 | Atualizados: 9256
+
+📦 Processando lote 391/733 (100 leads)
+
+📦 Processando lote 392/733 (100 leads)
+
+📦 Processando lote 393/733 (100 leads)
+
+📦 Processando lote 394/733 (100 leads)
+
+📦 Processando lote 395/733 (100 leads)
+
+📦 Processando lote 396/733 (100 leads)
+
+📦 Processando lote 397/733 (100 leads)
+
+📦 Processando lote 398/733 (100 leads)
+
+📦 Processando lote 399/733 (100 leads)
+
+📦 Processando lote 400/733 (100 leads)
+📊 Progresso: 40000/73257 | Matches: 9291 | Atualizados: 9291
+
+📦 Processando lote 401/733 (100 leads)
+
+📦 Processando lote 402/733 (100 leads)
+
+📦 Processando lote 403/733 (100 leads)
+✅ 9300 leads atualizados...
+
+📦 Processando lote 404/733 (100 leads)
+
+📦 Processando lote 405/733 (100 leads)
+
+📦 Processando lote 406/733 (100 leads)
+
+📦 Processando lote 407/733 (100 leads)
+
+📦 Processando lote 408/733 (100 leads)
+
+📦 Processando lote 409/733 (100 leads)
+
+📦 Processando lote 410/733 (100 leads)
+📊 Progresso: 41000/73257 | Matches: 9336 | Atualizados: 9336
+
+📦 Processando lote 411/733 (100 leads)
+
+📦 Processando lote 412/733 (100 leads)
+
+📦 Processando lote 413/733 (100 leads)
+
+📦 Processando lote 414/733 (100 leads)
+
+📦 Processando lote 415/733 (100 leads)
+
+📦 Processando lote 416/733 (100 leads)
+
+📦 Processando lote 417/733 (100 leads)
+
+📦 Processando lote 418/733 (100 leads)
+
+📦 Processando lote 419/733 (100 leads)
+
+📦 Processando lote 420/733 (100 leads)
+📊 Progresso: 42000/73257 | Matches: 9381 | Atualizados: 9381
+
+📦 Processando lote 421/733 (100 leads)
+
+📦 Processando lote 422/733 (100 leads)
+
+📦 Processando lote 423/733 (100 leads)
+✅ 9400 leads atualizados...
+
+📦 Processando lote 424/733 (100 leads)
+
+📦 Processando lote 425/733 (100 leads)
+✅ 9500 leads atualizados...
+
+📦 Processando lote 426/733 (100 leads)
+✅ 9600 leads atualizados...
+
+📦 Processando lote 427/733 (100 leads)
+✅ 9700 leads atualizados...
+
+📦 Processando lote 428/733 (100 leads)
+✅ 9800 leads atualizados...
+
+📦 Processando lote 429/733 (100 leads)
+✅ 9900 leads atualizados...
+
+📦 Processando lote 430/733 (100 leads)
+✅ 10000 leads atualizados...
+📊 Progresso: 43000/73257 | Matches: 10026 | Atualizados: 10026
+
+📦 Processando lote 431/733 (100 leads)
+✅ 10100 leads atualizados...
+
+📦 Processando lote 432/733 (100 leads)
+✅ 10200 leads atualizados...
+
+📦 Processando lote 433/733 (100 leads)
+✅ 10300 leads atualizados...
+
+📦 Processando lote 434/733 (100 leads)
+✅ 10400 leads atualizados...
+
+📦 Processando lote 435/733 (100 leads)
+✅ 10500 leads atualizados...
+
+📦 Processando lote 436/733 (100 leads)
+✅ 10600 leads atualizados...
+
+📦 Processando lote 437/733 (100 leads)
+✅ 10700 leads atualizados...
+
+📦 Processando lote 438/733 (100 leads)
+✅ 10800 leads atualizados...
+
+📦 Processando lote 439/733 (100 leads)
+✅ 10900 leads atualizados...
+
+📦 Processando lote 440/733 (100 leads)
+✅ 11000 leads atualizados...
+📊 Progresso: 44000/73257 | Matches: 11014 | Atualizados: 11014
+
+📦 Processando lote 441/733 (100 leads)
+✅ 11100 leads atualizados...
+
+📦 Processando lote 442/733 (100 leads)
+✅ 11200 leads atualizados...
+
+📦 Processando lote 443/733 (100 leads)
+✅ 11300 leads atualizados...
+
+📦 Processando lote 444/733 (100 leads)
+✅ 11400 leads atualizados...
+
+📦 Processando lote 445/733 (100 leads)
+✅ 11500 leads atualizados...
+
+📦 Processando lote 446/733 (100 leads)
+✅ 11600 leads atualizados...
+
+📦 Processando lote 447/733 (100 leads)
+✅ 11700 leads atualizados...
+
+📦 Processando lote 448/733 (100 leads)
+
+📦 Processando lote 449/733 (100 leads)
+✅ 11800 leads atualizados...
+
+📦 Processando lote 450/733 (100 leads)
+✅ 11900 leads atualizados...
+📊 Progresso: 45000/73257 | Matches: 11994 | Atualizados: 11994
+
+📦 Processando lote 451/733 (100 leads)
+✅ 12000 leads atualizados...
+
+📦 Processando lote 452/733 (100 leads)
+✅ 12100 leads atualizados...
+
+📦 Processando lote 453/733 (100 leads)
+✅ 12200 leads atualizados...
+
+📦 Processando lote 454/733 (100 leads)
+✅ 12300 leads atualizados...
+
+📦 Processando lote 455/733 (100 leads)
+✅ 12400 leads atualizados...
+
+📦 Processando lote 456/733 (100 leads)
+✅ 12500 leads atualizados...
+
+📦 Processando lote 457/733 (100 leads)
+✅ 12600 leads atualizados...
+
+📦 Processando lote 458/733 (100 leads)
+✅ 12700 leads atualizados...
+
+📦 Processando lote 459/733 (100 leads)
+✅ 12800 leads atualizados...
+
+📦 Processando lote 460/733 (100 leads)
+✅ 12900 leads atualizados...
+📊 Progresso: 46000/73257 | Matches: 12982 | Atualizados: 12982
+
+📦 Processando lote 461/733 (100 leads)
+✅ 13000 leads atualizados...
+
+📦 Processando lote 462/733 (100 leads)
+✅ 13100 leads atualizados...
+
+📦 Processando lote 463/733 (100 leads)
+✅ 13200 leads atualizados...
+
+📦 Processando lote 464/733 (100 leads)
+✅ 13300 leads atualizados...
+
+📦 Processando lote 465/733 (100 leads)
+✅ 13400 leads atualizados...
+
+📦 Processando lote 466/733 (100 leads)
+
+📦 Processando lote 467/733 (100 leads)
+✅ 13500 leads atualizados...
+
+📦 Processando lote 468/733 (100 leads)
+✅ 13600 leads atualizados...
+
+📦 Processando lote 469/733 (100 leads)
+
+📦 Processando lote 470/733 (100 leads)
+📊 Progresso: 47000/73257 | Matches: 13699 | Atualizados: 13699
+
+📦 Processando lote 471/733 (100 leads)
+✅ 13700 leads atualizados...
+
+📦 Processando lote 472/733 (100 leads)
+✅ 13800 leads atualizados...
+
+📦 Processando lote 473/733 (100 leads)
+
+📦 Processando lote 474/733 (100 leads)
+
+📦 Processando lote 475/733 (100 leads)
+
+📦 Processando lote 476/733 (100 leads)
+✅ 13900 leads atualizados...
+
+📦 Processando lote 477/733 (100 leads)
+✅ 14000 leads atualizados...
+
+📦 Processando lote 478/733 (100 leads)
+
+📦 Processando lote 479/733 (100 leads)
+✅ 14100 leads atualizados...
+
+📦 Processando lote 480/733 (100 leads)
+📊 Progresso: 48000/73257 | Matches: 14176 | Atualizados: 14176
+
+📦 Processando lote 481/733 (100 leads)
+✅ 14200 leads atualizados...
+
+📦 Processando lote 482/733 (100 leads)
+
+📦 Processando lote 483/733 (100 leads)
+
+📦 Processando lote 484/733 (100 leads)
+
+📦 Processando lote 485/733 (100 leads)
+
+📦 Processando lote 486/733 (100 leads)
+
+📦 Processando lote 487/733 (100 leads)
+
+📦 Processando lote 488/733 (100 leads)
+
+📦 Processando lote 489/733 (100 leads)
+
+📦 Processando lote 490/733 (100 leads)
+📊 Progresso: 49000/73257 | Matches: 14229 | Atualizados: 14229
+
+📦 Processando lote 491/733 (100 leads)
+
+📦 Processando lote 492/733 (100 leads)
+
+📦 Processando lote 493/733 (100 leads)
+
+📦 Processando lote 494/733 (100 leads)
+
+📦 Processando lote 495/733 (100 leads)
+
+📦 Processando lote 496/733 (100 leads)
+
+📦 Processando lote 497/733 (100 leads)
+
+📦 Processando lote 498/733 (100 leads)
+
+📦 Processando lote 499/733 (100 leads)
+
+📦 Processando lote 500/733 (100 leads)
+📊 Progresso: 50000/73257 | Matches: 14250 | Atualizados: 14250
+
+📦 Processando lote 501/733 (100 leads)
+
+📦 Processando lote 502/733 (100 leads)
+
+📦 Processando lote 503/733 (100 leads)
+
+📦 Processando lote 504/733 (100 leads)
+
+📦 Processando lote 505/733 (100 leads)
+✅ 14300 leads atualizados...
+
+📦 Processando lote 506/733 (100 leads)
+
+📦 Processando lote 507/733 (100 leads)
+
+📦 Processando lote 508/733 (100 leads)
+
+📦 Processando lote 509/733 (100 leads)
+
+📦 Processando lote 510/733 (100 leads)
+📊 Progresso: 51000/73257 | Matches: 14355 | Atualizados: 14355
+
+📦 Processando lote 511/733 (100 leads)
+
+📦 Processando lote 512/733 (100 leads)
+
+📦 Processando lote 513/733 (100 leads)
+
+📦 Processando lote 514/733 (100 leads)
+
+📦 Processando lote 515/733 (100 leads)
+
+📦 Processando lote 516/733 (100 leads)
+
+📦 Processando lote 517/733 (100 leads)
+
+📦 Processando lote 518/733 (100 leads)
+
+📦 Processando lote 519/733 (100 leads)
+
+📦 Processando lote 520/733 (100 leads)
+📊 Progresso: 52000/73257 | Matches: 14355 | Atualizados: 14355
+
+📦 Processando lote 521/733 (100 leads)
+
+📦 Processando lote 522/733 (100 leads)
+
+📦 Processando lote 523/733 (100 leads)
+
+📦 Processando lote 524/733 (100 leads)
+
+📦 Processando lote 525/733 (100 leads)
+
+📦 Processando lote 526/733 (100 leads)
+
+📦 Processando lote 527/733 (100 leads)
+
+📦 Processando lote 528/733 (100 leads)
+
+📦 Processando lote 529/733 (100 leads)
+
+📦 Processando lote 530/733 (100 leads)
+📊 Progresso: 53000/73257 | Matches: 14355 | Atualizados: 14355
+
+📦 Processando lote 531/733 (100 leads)
+
+📦 Processando lote 532/733 (100 leads)
+
+📦 Processando lote 533/733 (100 leads)
+
+📦 Processando lote 534/733 (100 leads)
+
+📦 Processando lote 535/733 (100 leads)
+
+📦 Processando lote 536/733 (100 leads)
+
+📦 Processando lote 537/733 (100 leads)
+
+📦 Processando lote 538/733 (100 leads)
+
+📦 Processando lote 539/733 (100 leads)
+
+📦 Processando lote 540/733 (100 leads)
+📊 Progresso: 54000/73257 | Matches: 14356 | Atualizados: 14356
+
+📦 Processando lote 541/733 (100 leads)
+
+📦 Processando lote 542/733 (100 leads)
+
+📦 Processando lote 543/733 (100 leads)
+
+📦 Processando lote 544/733 (100 leads)
+
+📦 Processando lote 545/733 (100 leads)
+
+📦 Processando lote 546/733 (100 leads)
+
+📦 Processando lote 547/733 (100 leads)
+
+📦 Processando lote 548/733 (100 leads)
+
+📦 Processando lote 549/733 (100 leads)
+
+📦 Processando lote 550/733 (100 leads)
+📊 Progresso: 55000/73257 | Matches: 14356 | Atualizados: 14356
+
+📦 Processando lote 551/733 (100 leads)
+
+📦 Processando lote 552/733 (100 leads)
+
+📦 Processando lote 553/733 (100 leads)
+
+📦 Processando lote 554/733 (100 leads)
+
+📦 Processando lote 555/733 (100 leads)
+
+📦 Processando lote 556/733 (100 leads)
+
+📦 Processando lote 557/733 (100 leads)
+
+📦 Processando lote 558/733 (100 leads)
+
+📦 Processando lote 559/733 (100 leads)
+
+📦 Processando lote 560/733 (100 leads)
+📊 Progresso: 56000/73257 | Matches: 14356 | Atualizados: 14356
+
+📦 Processando lote 561/733 (100 leads)
+
+📦 Processando lote 562/733 (100 leads)
+
+📦 Processando lote 563/733 (100 leads)
+
+📦 Processando lote 564/733 (100 leads)
+
+📦 Processando lote 565/733 (100 leads)
+
+📦 Processando lote 566/733 (100 leads)
+
+📦 Processando lote 567/733 (100 leads)
+
+📦 Processando lote 568/733 (100 leads)
+
+📦 Processando lote 569/733 (100 leads)
+
+📦 Processando lote 570/733 (100 leads)
+📊 Progresso: 57000/73257 | Matches: 14356 | Atualizados: 14356
+
+📦 Processando lote 571/733 (100 leads)
+
+📦 Processando lote 572/733 (100 leads)
+
+📦 Processando lote 573/733 (100 leads)
+
+📦 Processando lote 574/733 (100 leads)
+
+📦 Processando lote 575/733 (100 leads)
+
+📦 Processando lote 576/733 (100 leads)
+
+📦 Processando lote 577/733 (100 leads)
+
+📦 Processando lote 578/733 (100 leads)
+
+📦 Processando lote 579/733 (100 leads)
+
+📦 Processando lote 580/733 (100 leads)
+📊 Progresso: 58000/73257 | Matches: 14356 | Atualizados: 14356
+
+📦 Processando lote 581/733 (100 leads)
+
+📦 Processando lote 582/733 (100 leads)
+
+📦 Processando lote 583/733 (100 leads)
+
+📦 Processando lote 584/733 (100 leads)
+
+📦 Processando lote 585/733 (100 leads)
+
+📦 Processando lote 586/733 (100 leads)
+
+📦 Processando lote 587/733 (100 leads)
+
+📦 Processando lote 588/733 (100 leads)
+
+📦 Processando lote 589/733 (100 leads)
+
+📦 Processando lote 590/733 (100 leads)
+📊 Progresso: 59000/73257 | Matches: 14356 | Atualizados: 14356
+
+📦 Processando lote 591/733 (100 leads)
+
+📦 Processando lote 592/733 (100 leads)
+
+📦 Processando lote 593/733 (100 leads)
+
+📦 Processando lote 594/733 (100 leads)
+
+📦 Processando lote 595/733 (100 leads)
+
+📦 Processando lote 596/733 (100 leads)
+
+📦 Processando lote 597/733 (100 leads)
+
+📦 Processando lote 598/733 (100 leads)
+
+📦 Processando lote 599/733 (100 leads)
+
+📦 Processando lote 600/733 (100 leads)
+📊 Progresso: 60000/73257 | Matches: 14356 | Atualizados: 14356
+
+📦 Processando lote 601/733 (100 leads)
+
+📦 Processando lote 602/733 (100 leads)
+
+📦 Processando lote 603/733 (100 leads)
+
+📦 Processando lote 604/733 (100 leads)
+
+📦 Processando lote 605/733 (100 leads)
+
+📦 Processando lote 606/733 (100 leads)
+
+📦 Processando lote 607/733 (100 leads)
+
+📦 Processando lote 608/733 (100 leads)
+
+📦 Processando lote 609/733 (100 leads)
+
+📦 Processando lote 610/733 (100 leads)
+📊 Progresso: 61000/73257 | Matches: 14356 | Atualizados: 14356
+
+📦 Processando lote 611/733 (100 leads)
+
+📦 Processando lote 612/733 (100 leads)
+
+📦 Processando lote 613/733 (100 leads)
+
+📦 Processando lote 614/733 (100 leads)
+
+📦 Processando lote 615/733 (100 leads)
+
+📦 Processando lote 616/733 (100 leads)
+
+📦 Processando lote 617/733 (100 leads)
+
+📦 Processando lote 618/733 (100 leads)
+
+📦 Processando lote 619/733 (100 leads)
+
+📦 Processando lote 620/733 (100 leads)
+✅ 14400 leads atualizados...
+📊 Progresso: 62000/73257 | Matches: 14413 | Atualizados: 14413
+
+📦 Processando lote 621/733 (100 leads)
+
+📦 Processando lote 622/733 (100 leads)
+✅ 14500 leads atualizados...
+
+📦 Processando lote 623/733 (100 leads)
+
+📦 Processando lote 624/733 (100 leads)
+
+📦 Processando lote 625/733 (100 leads)
+
+📦 Processando lote 626/733 (100 leads)
+
+📦 Processando lote 627/733 (100 leads)
+
+📦 Processando lote 628/733 (100 leads)
+
+📦 Processando lote 629/733 (100 leads)
+
+📦 Processando lote 630/733 (100 leads)
+📊 Progresso: 63000/73257 | Matches: 14528 | Atualizados: 14528
+
+📦 Processando lote 631/733 (100 leads)
+
+📦 Processando lote 632/733 (100 leads)
+
+📦 Processando lote 633/733 (100 leads)
+
+📦 Processando lote 634/733 (100 leads)
+
+📦 Processando lote 635/733 (100 leads)
+✅ 14600 leads atualizados...
+
+📦 Processando lote 636/733 (100 leads)
+
+📦 Processando lote 637/733 (100 leads)
+✅ 14700 leads atualizados...
+
+📦 Processando lote 638/733 (100 leads)
+
+📦 Processando lote 639/733 (100 leads)
+
+📦 Processando lote 640/733 (100 leads)
+✅ 14800 leads atualizados...
+📊 Progresso: 64000/73257 | Matches: 14838 | Atualizados: 14838
+
+📦 Processando lote 641/733 (100 leads)
+
+📦 Processando lote 642/733 (100 leads)
+✅ 14900 leads atualizados...
+
+📦 Processando lote 643/733 (100 leads)
+
+📦 Processando lote 644/733 (100 leads)
+✅ 15000 leads atualizados...
+
+📦 Processando lote 645/733 (100 leads)
+
+📦 Processando lote 646/733 (100 leads)
+✅ 15100 leads atualizados...
+
+📦 Processando lote 647/733 (100 leads)
+
+📦 Processando lote 648/733 (100 leads)
+
+📦 Processando lote 649/733 (100 leads)
+✅ 15200 leads atualizados...
+
+📦 Processando lote 650/733 (100 leads)
+✅ 15300 leads atualizados...
+📊 Progresso: 65000/73257 | Matches: 15325 | Atualizados: 15325
+
+📦 Processando lote 651/733 (100 leads)
+✅ 15400 leads atualizados...
+
+📦 Processando lote 652/733 (100 leads)
+
+📦 Processando lote 653/733 (100 leads)
+✅ 15500 leads atualizados...
+
+📦 Processando lote 654/733 (100 leads)
+✅ 15600 leads atualizados...
+
+📦 Processando lote 655/733 (100 leads)
+✅ 15700 leads atualizados...
+
+📦 Processando lote 656/733 (100 leads)
+✅ 15800 leads atualizados...
+
+📦 Processando lote 657/733 (100 leads)
+✅ 15900 leads atualizados...
+
+📦 Processando lote 658/733 (100 leads)
+
+📦 Processando lote 659/733 (100 leads)
+✅ 16000 leads atualizados...
+
+📦 Processando lote 660/733 (100 leads)
+✅ 16100 leads atualizados...
+📊 Progresso: 66000/73257 | Matches: 16157 | Atualizados: 16157
+
+📦 Processando lote 661/733 (100 leads)
+✅ 16200 leads atualizados...
+
+📦 Processando lote 662/733 (100 leads)
+✅ 16300 leads atualizados...
+
+📦 Processando lote 663/733 (100 leads)
+✅ 16400 leads atualizados...
+
+📦 Processando lote 664/733 (100 leads)
+
+📦 Processando lote 665/733 (100 leads)
+✅ 16500 leads atualizados...
+
+📦 Processando lote 666/733 (100 leads)
+✅ 16600 leads atualizados...
+
+📦 Processando lote 667/733 (100 leads)
+
+📦 Processando lote 668/733 (100 leads)
+✅ 16700 leads atualizados...
+
+📦 Processando lote 669/733 (100 leads)
+✅ 16800 leads atualizados...
+
+📦 Processando lote 670/733 (100 leads)
+✅ 16900 leads atualizados...
+📊 Progresso: 67000/73257 | Matches: 16930 | Atualizados: 16930
+
+📦 Processando lote 671/733 (100 leads)
+✅ 17000 leads atualizados...
+
+📦 Processando lote 672/733 (100 leads)
+✅ 17100 leads atualizados...
+
+📦 Processando lote 673/733 (100 leads)
+✅ 17200 leads atualizados...
+
+📦 Processando lote 674/733 (100 leads)
+
+📦 Processando lote 675/733 (100 leads)
+✅ 17300 leads atualizados...
+
+📦 Processando lote 676/733 (100 leads)
+✅ 17400 leads atualizados...
+
+📦 Processando lote 677/733 (100 leads)
+✅ 17500 leads atualizados...
+
+📦 Processando lote 678/733 (100 leads)
+✅ 17600 leads atualizados...
+
+📦 Processando lote 679/733 (100 leads)
+
+📦 Processando lote 680/733 (100 leads)
+✅ 17700 leads atualizados...
+📊 Progresso: 68000/73257 | Matches: 17753 | Atualizados: 17753
+
+📦 Processando lote 681/733 (100 leads)
+✅ 17800 leads atualizados...
+
+📦 Processando lote 682/733 (100 leads)
+✅ 17900 leads atualizados...
+
+📦 Processando lote 683/733 (100 leads)
+
+📦 Processando lote 684/733 (100 leads)
+✅ 18000 leads atualizados...
+
+📦 Processando lote 685/733 (100 leads)
+✅ 18100 leads atualizados...
+
+📦 Processando lote 686/733 (100 leads)
+✅ 18200 leads atualizados...
+
+📦 Processando lote 687/733 (100 leads)
+✅ 18300 leads atualizados...
+
+📦 Processando lote 688/733 (100 leads)
+✅ 18400 leads atualizados...
+
+📦 Processando lote 689/733 (100 leads)
+✅ 18500 leads atualizados...
+
+📦 Processando lote 690/733 (100 leads)
+✅ 18600 leads atualizados...
+📊 Progresso: 69000/73257 | Matches: 18625 | Atualizados: 18625
+
+📦 Processando lote 691/733 (100 leads)
+✅ 18700 leads atualizados...
+
+📦 Processando lote 692/733 (100 leads)
+✅ 18800 leads atualizados...
+
+📦 Processando lote 693/733 (100 leads)
+
+📦 Processando lote 694/733 (100 leads)
+✅ 18900 leads atualizados...
+
+📦 Processando lote 695/733 (100 leads)
+✅ 19000 leads atualizados...
+
+📦 Processando lote 696/733 (100 leads)
+✅ 19100 leads atualizados...
+
+📦 Processando lote 697/733 (100 leads)
+
+📦 Processando lote 698/733 (100 leads)
+✅ 19200 leads atualizados...
+
+📦 Processando lote 699/733 (100 leads)
+✅ 19300 leads atualizados...
+
+📦 Processando lote 700/733 (100 leads)
+✅ 19400 leads atualizados...
+📊 Progresso: 70000/73257 | Matches: 19426 | Atualizados: 19426
+
+📦 Processando lote 701/733 (100 leads)
+✅ 19500 leads atualizados...
+
+📦 Processando lote 702/733 (100 leads)
+✅ 19600 leads atualizados...
+
+📦 Processando lote 703/733 (100 leads)
+
+📦 Processando lote 704/733 (100 leads)
+✅ 19700 leads atualizados...
+
+📦 Processando lote 705/733 (100 leads)
+✅ 19800 leads atualizados...
+
+📦 Processando lote 706/733 (100 leads)
+✅ 19900 leads atualizados...
+
+📦 Processando lote 707/733 (100 leads)
+✅ 20000 leads atualizados...
+
+📦 Processando lote 708/733 (100 leads)
+✅ 20100 leads atualizados...
+
+📦 Processando lote 709/733 (100 leads)
+
+📦 Processando lote 710/733 (100 leads)
+✅ 20200 leads atualizados...
+📊 Progresso: 71000/73257 | Matches: 20279 | Atualizados: 20279
+
+📦 Processando lote 711/733 (100 leads)
+✅ 20300 leads atualizados...
+
+📦 Processando lote 712/733 (100 leads)
+✅ 20400 leads atualizados...
+
+📦 Processando lote 713/733 (100 leads)
+✅ 20500 leads atualizados...
+
+📦 Processando lote 714/733 (100 leads)
+✅ 20600 leads atualizados...
+
+📦 Processando lote 715/733 (100 leads)
+✅ 20700 leads atualizados...
+
+📦 Processando lote 716/733 (100 leads)
+✅ 20800 leads atualizados...
+
+📦 Processando lote 717/733 (100 leads)
+
+📦 Processando lote 718/733 (100 leads)
+✅ 20900 leads atualizados...
+
+📦 Processando lote 719/733 (100 leads)
+✅ 21000 leads atualizados...
+
+📦 Processando lote 720/733 (100 leads)
+✅ 21100 leads atualizados...
+📊 Progresso: 72000/73257 | Matches: 21127 | Atualizados: 21127
+
+📦 Processando lote 721/733 (100 leads)
+✅ 21200 leads atualizados...
+
+📦 Processando lote 722/733 (100 leads)
+
+📦 Processando lote 723/733 (100 leads)
+✅ 21300 leads atualizados...
+
+📦 Processando lote 724/733 (100 leads)
+✅ 21400 leads atualizados...
+
+📦 Processando lote 725/733 (100 leads)
+✅ 21500 leads atualizados...
+
+📦 Processando lote 726/733 (100 leads)
+
+📦 Processando lote 727/733 (100 leads)
+✅ 21600 leads atualizados...
+
+📦 Processando lote 728/733 (100 leads)
+✅ 21700 leads atualizados...
+
+📦 Processando lote 729/733 (100 leads)
+✅ 21800 leads atualizados...
+
+📦 Processando lote 730/733 (100 leads)
+✅ 21900 leads atualizados...
+📊 Progresso: 73000/73257 | Matches: 21915 | Atualizados: 21915
+
+📦 Processando lote 731/733 (100 leads)
+
+📦 Processando lote 732/733 (100 leads)
+✅ 22000 leads atualizados...
+
+📦 Processando lote 733/733 (57 leads)
+
+🎉 ATUALIZAÇÃO CONCLUÍDA COM MATCHING INTELIGENTE!
+📊 Leads exportados processados: 73257
+🔗 Matches encontrados: 22090
+✅ Leads atualizados: 22090
+❌ Erros: 0
+
+📈 Métodos de match utilizados:
+  - whatsapp_normalized: 22002 matches
+  - email: 88 matches
+
+📊 Verificando resultado final...
+📊 Total de leads exportados: 73257
+🎯 Leads com id_sprint preenchido: 22093
+📈 Percentual de leads com id_sprint: 30.2%

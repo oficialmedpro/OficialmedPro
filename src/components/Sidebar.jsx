@@ -114,7 +114,8 @@ const Sidebar = ({
       label: translations.Ferramentas,
       icon: 'funil-recompra',
       subItems: [
-        { icon: 'funil-recompra', label: 'Integração Callix', path: '/callix', active: false }
+        { icon: 'funil-recompra', label: 'Integração Callix', path: '/callix', active: false },
+        { icon: 'funil-recompra', label: 'Clientes Consolidados', path: '/clientes-consolidados', active: false }
       ]
     }
   ];

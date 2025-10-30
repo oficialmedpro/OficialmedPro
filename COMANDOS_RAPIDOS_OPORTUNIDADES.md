@@ -296,3 +296,4 @@ SELECT * FROM api.sync_oportunidades_log ORDER BY executed_at DESC LIMIT 5;
 
 **Última atualização:** Janeiro 2025
 
+

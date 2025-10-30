@@ -1,0 +1,915 @@
+[dotenv@17.2.2] injecting env (13) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+🚀 PROCESSANDO TODOS OS 70 MIL LEADS - VERSÃO FINAL!
+⏰ Início: 25/10/2025, 08:16:44
+
+🔍 Buscando TODOS os leads exportados...
+📦 Batch 1: 1000 leads | Total: 1000
+📦 Batch 2: 1000 leads | Total: 2000
+📦 Batch 3: 1000 leads | Total: 3000
+📦 Batch 4: 1000 leads | Total: 4000
+📦 Batch 5: 1000 leads | Total: 5000
+📦 Batch 6: 1000 leads | Total: 6000
+📦 Batch 7: 1000 leads | Total: 7000
+📦 Batch 8: 1000 leads | Total: 8000
+📦 Batch 9: 1000 leads | Total: 9000
+📦 Batch 10: 1000 leads | Total: 10000
+📦 Batch 11: 1000 leads | Total: 11000
+📦 Batch 12: 1000 leads | Total: 12000
+📦 Batch 13: 1000 leads | Total: 13000
+📦 Batch 14: 1000 leads | Total: 14000
+📦 Batch 15: 1000 leads | Total: 15000
+📦 Batch 16: 1000 leads | Total: 16000
+📦 Batch 17: 1000 leads | Total: 17000
+📦 Batch 18: 1000 leads | Total: 18000
+📦 Batch 19: 1000 leads | Total: 19000
+📦 Batch 20: 1000 leads | Total: 20000
+📦 Batch 21: 1000 leads | Total: 21000
+📦 Batch 22: 1000 leads | Total: 22000
+📦 Batch 23: 1000 leads | Total: 23000
+📦 Batch 24: 1000 leads | Total: 24000
+📦 Batch 25: 1000 leads | Total: 25000
+📦 Batch 26: 1000 leads | Total: 26000
+📦 Batch 27: 1000 leads | Total: 27000
+📦 Batch 28: 1000 leads | Total: 28000
+📦 Batch 29: 1000 leads | Total: 29000
+📦 Batch 30: 1000 leads | Total: 30000
+📦 Batch 31: 1000 leads | Total: 31000
+📦 Batch 32: 1000 leads | Total: 32000
+📦 Batch 33: 1000 leads | Total: 33000
+📦 Batch 34: 1000 leads | Total: 34000
+📦 Batch 35: 1000 leads | Total: 35000
+📦 Batch 36: 1000 leads | Total: 36000
+📦 Batch 37: 1000 leads | Total: 37000
+📦 Batch 38: 1000 leads | Total: 38000
+📦 Batch 39: 1000 leads | Total: 39000
+📦 Batch 40: 1000 leads | Total: 40000
+📦 Batch 41: 1000 leads | Total: 41000
+📦 Batch 42: 1000 leads | Total: 42000
+📦 Batch 43: 1000 leads | Total: 43000
+📦 Batch 44: 1000 leads | Total: 44000
+📦 Batch 45: 1000 leads | Total: 45000
+📦 Batch 46: 1000 leads | Total: 46000
+📦 Batch 47: 1000 leads | Total: 47000
+📦 Batch 48: 1000 leads | Total: 48000
+📦 Batch 49: 1000 leads | Total: 49000
+📦 Batch 50: 1000 leads | Total: 50000
+📦 Batch 51: 1000 leads | Total: 51000
+📦 Batch 52: 1000 leads | Total: 52000
+📦 Batch 53: 1000 leads | Total: 53000
+📦 Batch 54: 1000 leads | Total: 54000
+📦 Batch 55: 1000 leads | Total: 55000
+📦 Batch 56: 1000 leads | Total: 56000
+📦 Batch 57: 1000 leads | Total: 57000
+📦 Batch 58: 1000 leads | Total: 58000
+📦 Batch 59: 1000 leads | Total: 59000
+📦 Batch 60: 1000 leads | Total: 60000
+📦 Batch 61: 1000 leads | Total: 61000
+📦 Batch 62: 1000 leads | Total: 62000
+📦 Batch 63: 1000 leads | Total: 63000
+📦 Batch 64: 1000 leads | Total: 64000
+📦 Batch 65: 1000 leads | Total: 65000
+📦 Batch 66: 1000 leads | Total: 66000
+📦 Batch 67: 1000 leads | Total: 67000
+📦 Batch 68: 1000 leads | Total: 68000
+📦 Batch 69: 1000 leads | Total: 69000
+📦 Batch 70: 1000 leads | Total: 70000
+📦 Batch 71: 1000 leads | Total: 71000
+📦 Batch 72: 1000 leads | Total: 72000
+📦 Batch 73: 1000 leads | Total: 73000
+📦 Batch 74: 202 leads | Total: 73202
+
+📊 TOTAL DE LEADS EXPORTADOS ENCONTRADOS: 73202
+
+🔄 Buscando dados da API do SprintHub...
+📄 Página 1: 100 leads | Total API: 100
+📄 Página 51: 100 leads | Total API: 5100
+📄 Página 101: 100 leads | Total API: 10100
+📄 Página 151: 100 leads | Total API: 15100
+📄 Página 201: 100 leads | Total API: 20100
+📄 Página 251: 100 leads | Total API: 25100
+📄 Página 301: 100 leads | Total API: 30100
+📄 Página 351: 100 leads | Total API: 35100
+📄 Página 401: 100 leads | Total API: 40100
+📄 Página 451: 100 leads | Total API: 45100
+📊 Total de leads da API: 50000
+
+🔗 Processando TODOS os matches...
+
+📦 Processando lote 1/147 (500 leads)
+✅ Match 100: MAURICIO -> ID 3048
+✅ Match 200: JANAINA FERNANDES DA SILVA CHIAMPI -> ID 46310
+
+📦 Processando lote 2/147 (500 leads)
+📊 Progresso: 1000/73202 | Matches: 268 | Atualizados: 268
+
+📦 Processando lote 3/147 (500 leads)
+
+📦 Processando lote 4/147 (500 leads)
+📊 Progresso: 2000/73202 | Matches: 292 | Atualizados: 292
+
+📦 Processando lote 5/147 (500 leads)
+✅ Match 300: MARCELA  -> ID 3922
+
+📦 Processando lote 6/147 (500 leads)
+📊 Progresso: 3000/73202 | Matches: 315 | Atualizados: 315
+
+📦 Processando lote 7/147 (500 leads)
+
+📦 Processando lote 8/147 (500 leads)
+📊 Progresso: 4000/73202 | Matches: 337 | Atualizados: 337
+
+📦 Processando lote 9/147 (500 leads)
+
+📦 Processando lote 10/147 (500 leads)
+📊 Progresso: 5000/73202 | Matches: 361 | Atualizados: 361
+
+📦 Processando lote 11/147 (500 leads)
+
+📦 Processando lote 12/147 (500 leads)
+📊 Progresso: 6000/73202 | Matches: 388 | Atualizados: 388
+
+📦 Processando lote 13/147 (500 leads)
+
+📦 Processando lote 14/147 (500 leads)
+✅ Match 400: TATIANA  -> ID 7428
+✅ Match 500: Carlos Ferrari Fox -> ID 12285
+📊 Progresso: 7000/73202 | Matches: 513 | Atualizados: 513
+
+📦 Processando lote 15/147 (500 leads)
+✅ Match 600: ELOAH GOMES -> ID 37896
+✅ Match 700: FARMACIA MAX POPULAR LTDA  -> ID 45277
+✅ Match 800: JOSE AUGUSTO ALVES  -> ID 64289
+
+📦 Processando lote 16/147 (500 leads)
+✅ Match 900: ALINE NAVARRO  -> ID 37378
+📊 Progresso: 8000/73202 | Matches: 913 | Atualizados: 913
+
+📦 Processando lote 17/147 (500 leads)
+
+📦 Processando lote 18/147 (500 leads)
+📊 Progresso: 9000/73202 | Matches: 942 | Atualizados: 942
+
+📦 Processando lote 19/147 (500 leads)
+
+📦 Processando lote 20/147 (500 leads)
+📊 Progresso: 10000/73202 | Matches: 963 | Atualizados: 963
+
+📦 Processando lote 21/147 (500 leads)
+
+📦 Processando lote 22/147 (500 leads)
+✅ Match 1000: RAUL ANSIOTO -> ID 44728
+📊 Progresso: 11000/73202 | Matches: 1066 | Atualizados: 1066
+
+📦 Processando lote 23/147 (500 leads)
+✅ Match 1100: FRANCIELE BARREIRA -> ID 40539
+✅ Match 1200: Luiz Antonio Prado Reis ANTONIO PRADO REIS -> ID 2146
+✅ Match 1300: Geyson Batista  -> ID 2254
+✅ Match 1400: Andrey Barneche Teixeira  -> ID 2346
+✅ Match 1500: Claudia Estevão  -> ID 2469
+
+📦 Processando lote 24/147 (500 leads)
+✅ Match 1600: Omar Claro Junior  -> ID 2563
+✅ Match 1700: Luciana Caldeira  -> ID 2673
+✅ Match 1800: Fabio Wanderson borges Leonel  -> ID 2778
+✅ Match 1900: Fabiana Rozan  -> ID 2900
+✅ Match 2000: William Frank Lin  -> ID 2997
+📊 Progresso: 12000/73202 | Matches: 2011 | Atualizados: 2011
+
+📦 Processando lote 25/147 (500 leads)
+✅ Match 2100: Jaime Martins  -> ID 3115
+✅ Match 2200: Gabriel Costa  -> ID 3223
+✅ Match 2300: Marquinhos Eva  -> ID 3319
+✅ Match 2400: Thell de Viveiros  -> ID 3439
+✅ Match 2500: Fabiane Clóvis Orlandi  -> ID 3535
+
+📦 Processando lote 26/147 (500 leads)
+✅ Match 2600: Rander Junio  -> ID 3650
+✅ Match 2700: Jean Paul  -> ID 3759
+✅ Match 2800: Raul  -> ID 3861
+✅ Match 2900: Alison Camargo  -> ID 4013
+✅ Match 3000: MARCELO OLIVEIRA -> ID 3869
+📊 Progresso: 13000/73202 | Matches: 3011 | Atualizados: 3011
+
+📦 Processando lote 27/147 (500 leads)
+✅ Match 3100: Pedro  -> ID 6305
+✅ Match 3200: Laercio Mattos  -> ID 7060
+✅ Match 3300: Rebeca Fajolle  -> ID 7204
+✅ Match 3400: Eduardo Tsukamoto  -> ID 7542
+✅ Match 3500: Ademir Brun  -> ID 8955
+
+📦 Processando lote 28/147 (500 leads)
+✅ Match 3600: Alvaro Bernardo de Almeida Jr.  -> ID 9263
+✅ Match 3700: Dra Amanda Maia - Nutricionista em Fortaleza  -> ID 9493
+✅ Match 3800: Dra. Tina Martinelli  -> ID 9603
+✅ Match 3900: Supplement Truck - loja de suplementos  -> ID 9736
+✅ Match 4000: Medicina e Cirurgia Center  -> ID 9876
+📊 Progresso: 14000/73202 | Matches: 4011 | Atualizados: 4011
+
+📦 Processando lote 29/147 (500 leads)
+✅ Match 4100: Sports Nutrition Blumenau  -> ID 9981
+✅ Match 4200: Piu Piu Clínica e Hospital Veterinário 24H  -> ID 10079
+✅ Match 4300: Clínica Radius - Medicina Diagnóstica  -> ID 10209
+✅ Match 4400: Camila Lobato - Nutricionista  -> ID 10323
+✅ Match 4500: Raquel Maria Nutricionista Clinica e Emagrecimento  -> ID 10448
+
+📦 Processando lote 30/147 (500 leads)
+✅ Match 4600: Emagrecimento Natural | NaturalClin  -> ID 10562
+✅ Match 4700: 220 Nutrition  -> ID 10669
+✅ Match 4800: Kfit Santa Ursula  -> ID 10778
+✅ Match 4900: Dr. Tiago Ferolla Nunes  -> ID 10873
+✅ Match 5000: Nutricionista Regina Rudolpho -> ID 10969
+📊 Progresso: 15000/73202 | Matches: 5011 | Atualizados: 5011
+
+📦 Processando lote 31/147 (500 leads)
+✅ Match 5100: Dra Susy Lima -> ID 11146
+✅ Match 5200: Katia  -> ID 11261
+✅ Match 5300: Camila Garcia -> ID 11621
+✅ Match 5400: Vitória  -> ID 11514
+✅ Match 5500: Carol França -> ID 11740
+
+📦 Processando lote 32/147 (500 leads)
+✅ Match 5600: Simone # Daviris❤️💙 -> ID 11736
+✅ Match 5700: Rodrigues  -> ID 11965
+✅ Match 5800: rafaela AZIN JORGE -> ID 12071
+✅ Match 5900: Romils  -> ID 12184
+✅ Match 6000: Marcia  -> ID 9287
+📊 Progresso: 16000/73202 | Matches: 6011 | Atualizados: 6011
+
+📦 Processando lote 33/147 (500 leads)
+✅ Match 6100: DIANA  -> ID 9143
+✅ Match 6200: Cristina Fernandes -> ID 12655
+✅ Match 6300: MERCADO DA MOTO -> ID 12526
+✅ Match 6400: Maria  -> ID 12110
+✅ Match 6500: Leonilde M Silva -> ID 12890
+
+📦 Processando lote 34/147 (500 leads)
+✅ Match 6600: Nice  -> ID 12883
+✅ Match 6700: Tânia Santos ❤️❤️❤️ -> ID 13230
+✅ Match 6800: 📿  -> ID 13140
+✅ Match 6900: Suelen 🖤 -> ID 13244
+✅ Match 7000: RENATA  -> ID 13345
+📊 Progresso: 17000/73202 | Matches: 7011 | Atualizados: 7011
+
+📦 Processando lote 35/147 (500 leads)
+✅ Match 7100: Marceli Rodrigues -> ID 13695
+✅ Match 7200: Victor Bartholomeu -> ID 4137
+✅ Match 7300: Maurício  -> ID 13817
+✅ Match 7400: Montenegro  -> ID 13912
+✅ Match 7500: Elisangela Mara de Alencar -> ID 13936
+
+📦 Processando lote 36/147 (500 leads)
+✅ Match 7600: Claudia Roberta -> ID 14023
+✅ Match 7700: Cindia Camargo -> ID 3778
+✅ Match 7800: Rafael Malkut -> ID 3371
+✅ Match 7900: Danila  -> ID 14390
+✅ Match 8000: Dalles Campanati - Carvão Cooperlipto -> ID 14486
+📊 Progresso: 18000/73202 | Matches: 8011 | Atualizados: 8011
+
+📦 Processando lote 37/147 (500 leads)
+✅ Match 8100: Washington Gomes da Costa -> ID 14833
+✅ Match 8200: Eduardo Benedeti -> ID 2892
+✅ Match 8300: Elaine Altea -> ID 14854
+✅ Match 8400: Rafael M. -> ID 14940
+✅ Match 8500: Eliza Dora da Silva Campos-CONTAGEM -mg -> ID 2515
+
+📦 Processando lote 38/147 (500 leads)
+✅ Match 8600: Manú Novaes -> ID 2284
+✅ Match 8700: JUCENIA  -> ID 15293
+✅ Match 8800: 554799217967  -> ID 15405
+✅ Match 8900: Daniel Henriques -> ID 15512
+✅ Match 9000: Eduzão  -> ID 15863
+📊 Progresso: 19000/73202 | Matches: 9011 | Atualizados: 9011
+
+📦 Processando lote 39/147 (500 leads)
+✅ Match 9100: ‎Maliboo Uniformes -> ID 15748
+✅ Match 9200: Valmir Cavalcante  -> ID 15897
+✅ Match 9300: Adolfo Jose Cardoso Reis  -> ID 25983
+✅ Match 9400: Alexandre Junior  -> ID 26126
+✅ Match 9500: Andre Alves Franco  -> ID 26273
+
+📦 Processando lote 40/147 (500 leads)
+✅ Match 9600: Arthur Rodrigues Correa Frota Gomes  -> ID 26426
+✅ Match 9700: Bruno Nascimento Silva  -> ID 26570
+✅ Match 9800: Cecilia da Costa Reis Goncalves Abreu  -> ID 26733
+✅ Match 9900: Daniel Cintra dos Santos  -> ID 26871
+✅ Match 10000: Delyan Sulyvan de Paula  -> ID 27004
+📊 Progresso: 20000/73202 | Matches: 10011 | Atualizados: 10011
+
+📦 Processando lote 41/147 (500 leads)
+✅ Match 10100: Douglas candido de paula  -> ID 27106
+✅ Match 10200: Eduardo Lins Rodrigues  -> ID 27199
+✅ Match 10300: Erick Afonso de Moura  -> ID 27309
+✅ Match 10400: Fabio Carlos Brambila  -> ID 27401
+✅ Match 10500: Felipe Ferreira Ramos  -> ID 27510
+
+📦 Processando lote 42/147 (500 leads)
+✅ Match 10600: Fernando Ferreira Agea  -> ID 27608
+✅ Match 10700: Frederico Timoteo de Castro  -> ID 27714
+✅ Match 10800: Gerson da costa junior  -> ID 27809
+✅ Match 10900: Guilherme Henrique Ferro  -> ID 27916
+✅ Match 11000: Gustavo Pegorari Ribeiro  -> ID 28018
+📊 Progresso: 21000/73202 | Matches: 11011 | Atualizados: 11011
+
+📦 Processando lote 43/147 (500 leads)
+✅ Match 11100: HIAGO MARTINS FURLAN  -> ID 28113
+✅ Match 11200: Italo Gandhi Olimpio da SIlva  -> ID 28219
+✅ Match 11300: Jefferson Jose Furlaneto  -> ID 28317
+✅ Match 11400: Joao Paulo Pereira de Lima Silva  -> ID 28422
+✅ Match 11500: Jose Andre botteon  -> ID 28526
+
+📦 Processando lote 44/147 (500 leads)
+✅ Match 11600: Juliano Ligeski de Ramos  -> ID 28630
+✅ Match 11700: LEANDRO de Alcantara SKOWRONSKI  -> ID 28731
+✅ Match 11800: Leonardo Resende  -> ID 28834
+✅ Match 11900: Lucas Guilherme Borscheid  -> ID 28935
+✅ Match 12000: Luiz Paulo da Silva  -> ID 29138
+📊 Progresso: 22000/73202 | Matches: 12011 | Atualizados: 12011
+
+📦 Processando lote 45/147 (500 leads)
+✅ Match 12100: Marcelo Mancuso  -> ID 29238
+✅ Match 12200: MARCIO EIDT  -> ID 29265
+✅ Match 12300: Marcos Oliveira  -> ID 13187
+✅ Match 12400: MATHEUS ABREU MACHADO  -> ID 29450
+✅ Match 12500: Michel sousa  -> ID 29577
+
+📦 Processando lote 46/147 (500 leads)
+✅ Match 12600: Nilcemar Alves Cabral Junior  -> ID 29659
+✅ Match 12700: Paulo Pereira  -> ID 29785
+✅ Match 12800: Protasio Lisboa  -> ID 29889
+✅ Match 12900: Rafael Pizzolato  -> ID 29971
+✅ Match 13000: Renato de Araujo Souza  -> ID 30098
+📊 Progresso: 23000/73202 | Matches: 13011 | Atualizados: 13011
+
+📦 Processando lote 47/147 (500 leads)
+✅ Match 13100: Robert Bacelar  -> ID 30205
+✅ Match 13200: Rodrigo gigoski  -> ID 30306
+✅ Match 13300: Rony Starling Junior  -> ID 30409
+✅ Match 13400: SIDNEI SIEWERS  -> ID 30510
+✅ Match 13500: Thiago de Almeida Ramos  -> ID 30610
+
+📦 Processando lote 48/147 (500 leads)
+✅ Match 13600: TIAGO MARQUES NUNES  -> ID 30710
+✅ Match 13700: Victor Sobral  -> ID 30813
+✅ Match 13800: Vitor Hugo de Souza  -> ID 30917
+✅ Match 13900: Wesley Wesley  -> ID 31017
+✅ Match 14000: Liah Souza -> ID 31208
+📊 Progresso: 24000/73202 | Matches: 14011 | Atualizados: 14011
+
+📦 Processando lote 49/147 (500 leads)
+✅ Match 14100: Bruno Dantas  -> ID 31331
+✅ Match 14200: Elisandra Simionatto  -> ID 31433
+✅ Match 14300: Jeferson Ferreira  -> ID 28304
+✅ Match 14400: Matheus de Morais Richeri  -> ID 31632
+✅ Match 14500: Renata Ramalho  -> ID 31728
+
+📦 Processando lote 50/147 (500 leads)
+✅ Match 14600: Walter Savaglia  -> ID 31830
+✅ Match 14700: Marcos Sousa  -> ID 31963
+✅ Match 14800: Katiaalves@wasaby.com.br  -> ID 32344
+✅ Match 14900: Jéssica  -> ID 32482
+✅ Match 15000: Ottmar Paraschin  -> ID 32604
+📊 Progresso: 25000/73202 | Matches: 15011 | Atualizados: 15011
+
+📦 Processando lote 51/147 (500 leads)
+✅ Match 15100: Sarah Melo - Nutricionista de emagrecimento em Jundiaí -> ID 10971
+✅ Match 15200: ney  -> ID 32979
+✅ Match 15300: Aline Belizário -> ID 33117
+✅ Match 15400: CAROLINE FIT -> ID 33328
+✅ Match 15500: Caiane Cavalcante 🌻 -> ID 33518
+
+📦 Processando lote 52/147 (500 leads)
+✅ Match 15600: Abel Leal  -> ID 33662
+✅ Match 15700: Luzia  -> ID 12715
+✅ Match 15800: Gabi Moreira -> ID 33965
+✅ Match 15900: FERNANDO BATISTA -> ID 34074
+✅ Match 16000: ISABELLA REGINA DA COSTA FONSECA Fonseca -> ID 34188
+📊 Progresso: 26000/73202 | Matches: 16011 | Atualizados: 16011
+
+📦 Processando lote 53/147 (500 leads)
+✅ Match 16100: paula  -> ID 11950
+✅ Match 16200: VANUSA DE SOUZA BOCZON -> ID 34447
+✅ Match 16300: Felipe Montini De Abreu -> ID 34675
+✅ Match 16400: Adaltin Bernardes da Silva Junior -> ID 34806
+✅ Match 16500: ANDERSON BATISTA NICHIO -> ID 34944
+
+📦 Processando lote 54/147 (500 leads)
+✅ Match 16600: Fábio Alessandro Ferrara  -> ID 35073
+✅ Match 16700: Ana Carolina -> ID 12418
+✅ Match 16800: Kassia Coutinho -> ID 35305
+✅ Match 16900: Elizabeth  -> ID 14914
+✅ Match 17000: VICTORIA REGINA DE OLIVEIRA  -> ID 35538
+📊 Progresso: 27000/73202 | Matches: 17011 | Atualizados: 17011
+
+📦 Processando lote 55/147 (500 leads)
+✅ Match 17100: Luciano  -> ID 15604
+✅ Match 17200: Rose  -> ID 11752
+✅ Match 17300: David Adriano justino da silva -> ID 35886
+✅ Match 17400: Jean Pyerre Pires de Camargo  -> ID 35991
+✅ Match 17500: DANIELA  -> ID 13374
+
+📦 Processando lote 56/147 (500 leads)
+✅ Match 17600: Ana Luiza Acelino dos santos  -> ID 36211
+✅ Match 17700: Luiz rocha  -> ID 36490
+✅ Match 17800: Sabrina Garbelotto  -> ID 36733
+✅ Match 17900: Luiz Carlos Quirino  -> ID 36858
+✅ Match 18000: Elisângela Christiane Lamim Marchi  -> ID 37022
+📊 Progresso: 28000/73202 | Matches: 18011 | Atualizados: 18011
+
+📦 Processando lote 57/147 (500 leads)
+✅ Match 18100: Ailma  -> ID 37398
+✅ Match 18200: Dilma  -> ID 37609
+✅ Match 18300: LUCIANO GOMES -> ID 37776
+✅ Match 18400: Reginaldo  -> ID 35773
+✅ Match 18500: Rosimeire Teixeira Prado  -> ID 38168
+
+📦 Processando lote 58/147 (500 leads)
+✅ Match 18600: Carla  -> ID 11686
+✅ Match 18700: Kátia  -> ID 14275
+✅ Match 18800: Ozon Solution -> ID 38764
+✅ Match 18900: Elga da Silva Rocha  -> ID 38988
+✅ Match 19000: Debora Melo -> ID 39174
+📊 Progresso: 29000/73202 | Matches: 19011 | Atualizados: 19011
+
+📦 Processando lote 59/147 (500 leads)
+✅ Match 19100: Rogério aparecido Alves  -> ID 39379
+✅ Match 19200: DIEGO ARELI  -> ID 39811
+✅ Match 19300: Maiara Carolini -> ID 39978
+✅ Match 19400: IGOR BUDNE -> ID 40199
+✅ Match 19500: Isaías Soares  -> ID 40369
+
+📦 Processando lote 60/147 (500 leads)
+✅ Match 19600: EDUARDO ADRIANO DE ROCCO  -> ID 40561
+✅ Match 19700: Marlene  -> ID 13092
+✅ Match 19800: HELLEN CRISTINA DE SOUZA  -> ID 40935
+✅ Match 19900: Lucas Agide -> ID 41120
+✅ Match 20000: Bárbara Mucciolo Cucick  -> ID 41615
+📊 Progresso: 30000/73202 | Matches: 20011 | Atualizados: 20011
+
+📦 Processando lote 61/147 (500 leads)
+✅ Match 20100: Luciana Cherubini -> ID 41819
+✅ Match 20200: Lucilene  -> ID 13266
+✅ Match 20300: Maria das Graças  -> ID 42699
+✅ Match 20400: Flavia Campos Farias  -> ID 42946
+✅ Match 20500: JANAINA FRANCIELE FANCONY  -> ID 43264
+
+📦 Processando lote 62/147 (500 leads)
+✅ Match 20600: HENRIQUE BARROS  -> ID 28076
+✅ Match 20700: SAMANTHA REGERT CERUTTI  -> ID 43543
+✅ Match 20800: RODENEY LAMERS  -> ID 13914
+✅ Match 20900: HELEN PATRICIA DA SILVA  -> ID 43851
+✅ Match 21000: FRANCISCO CHAMBO  -> ID 32721
+📊 Progresso: 31000/73202 | Matches: 21011 | Atualizados: 21011
+
+📦 Processando lote 63/147 (500 leads)
+✅ Match 21100: Marcos Marochi -> ID 44157
+✅ Match 21200: WANDERLEY FERREIRA DA PAZ  -> ID 44134
+✅ Match 21300: GABRIELE MARQUES DA SILVA  -> ID 44308
+✅ Match 21400: Arq Isabela -> ID 44704
+✅ Match 21500: WDR FARMACIA LTDA  -> ID 45253
+
+📦 Processando lote 64/147 (500 leads)
+✅ Match 21600: .  -> ID 2952
+✅ Match 21700: Renato Monteiro -> ID 30111
+✅ Match 21800: Rafael Rigoto Martins -> ID 29978
+✅ Match 21900: Claudia Miramaia -> ID 45884
+✅ Match 22000: Andreia Aparecida Bueno da Silva  -> ID 46069
+📊 Progresso: 32000/73202 | Matches: 22011 | Atualizados: 22011
+
+📦 Processando lote 65/147 (500 leads)
+✅ Match 22100: Luiz Carlos -> ID 2251
+✅ Match 22200: MARINA YOSHIHIRO -> ID 46374
+✅ Match 22300: LICIO APARECIDO DE SOUZA  -> ID 46471
+✅ Match 22400: VIVIANE SECCI  -> ID 46600
+✅ Match 22500: FRANCIELE PENHA DE SOUZA  -> ID 46695
+
+📦 Processando lote 66/147 (500 leads)
+✅ Match 22600: RAYANNA SANTOS  -> ID 46820
+✅ Match 22700: SALETE MATE  -> ID 46910
+✅ Match 22800: Domingas Francisco -> ID 47083
+✅ Match 22900: Ma Ramos -> ID 47242
+✅ Match 23000: thamiresamandados  -> ID 47430
+📊 Progresso: 33000/73202 | Matches: 23011 | Atualizados: 23011
+
+📦 Processando lote 67/147 (500 leads)
+✅ Match 23100: Marcia Lina Farias Cardos -> ID 47666
+✅ Match 23200: DANIELLA BASSO -> ID 47902
+✅ Match 23300: ALCIR FRANCISCO KANARSKI  -> ID 48081
+✅ Match 23400: Bileski Cabeleireros  -> ID 48443
+✅ Match 23500: DAVID CAMARGO  -> ID 48774
+
+📦 Processando lote 68/147 (500 leads)
+✅ Match 23600: FERNANDA CAMARGO  -> ID 49136
+✅ Match 23700: Jamyla  -> ID 49554
+✅ Match 23800: LARISSA ALINE PENINANI  -> ID 49937
+✅ Match 23900: MARCELA FABIANE KOZECZEN  -> ID 13127
+✅ Match 24000: Nereide Dias  -> ID 50710
+📊 Progresso: 34000/73202 | Matches: 24011 | Atualizados: 24011
+
+📦 Processando lote 69/147 (500 leads)
+✅ Match 24100: Rosangela  -> ID 13330
+✅ Match 24200: VICTOR PIETRO FRANCA MANTOVANI REIS  -> ID 51458
+✅ Match 24300: ??  -> ID 47941
+✅ Match 24400: ??????????..  -> ID 51863
+✅ Match 24500: 11920045275  -> ID 52066
+
+📦 Processando lote 70/147 (500 leads)
+✅ Match 24600: 11954309237  -> ID 52233
+✅ Match 24700: 11973282179  -> ID 52395
+✅ Match 24800: 11989723537  -> ID 52562
+✅ Match 24900: 13974257681  -> ID 52709
+✅ Match 25000: 19 99817-6596  -> ID 52877
+📊 Progresso: 35000/73202 | Matches: 25011 | Atualizados: 25011
+
+📦 Processando lote 71/147 (500 leads)
+✅ Match 25100: 4192150747  -> ID 53105
+✅ Match 25200: 4199544897  -> ID 53282
+✅ Match 25300: 4298256684  -> ID 53456
+✅ Match 25400: 42998407787  -> ID 53610
+✅ Match 25500: 4396206011  -> ID 53785
+
+📦 Processando lote 72/147 (500 leads)
+✅ Match 25600: 43996139690  -> ID 53957
+✅ Match 25700: 44991050524  -> ID 54191
+✅ Match 25800: 4788850816  -> ID 54403
+✅ Match 25900: 4888036000  -> ID 54592
+✅ Match 26000: 67 9228-4834  -> ID 54783
+📊 Progresso: 36000/73202 | Matches: 26011 | Atualizados: 26011
+
+📦 Processando lote 73/147 (500 leads)
+✅ Match 26100: Ademir  -> ID 54973
+✅ Match 26200: ADRIANE  -> ID 14591
+✅ Match 26300: Ale  -> ID 11714
+✅ Match 26400: alexandro franciscf665  -> ID 55525
+✅ Match 26500: ALLYSON AP VOLPE  -> ID 55707
+
+📦 Processando lote 74/147 (500 leads)
+✅ Match 26600: Ana  -> ID 11195
+✅ Match 26700: ANA LUIZA LEAL XAVIER  -> ID 56091
+✅ Match 26800: ANDERSON DE SOUZA RIBEIRO  -> ID 56273
+✅ Match 26900: ANDREIA ASSIS  -> ID 56486
+✅ Match 27000: Anelise Agioletti Parma  -> ID 56633
+📊 Progresso: 37000/73202 | Matches: 27011 | Atualizados: 27011
+
+📦 Processando lote 75/147 (500 leads)
+✅ Match 27100: ANTONIO RIZZO DE BORGES SALAMANE RIZZO -> ID 56901
+✅ Match 27200: B Rafa ??  -> ID 57113
+✅ Match 27300: Bluane  -> ID 57318
+✅ Match 27400: BRUNO FERNANDO  -> ID 57493
+✅ Match 27500: CARINA MENDONCA MULLER  -> ID 57695
+
+📦 Processando lote 76/147 (500 leads)
+✅ Match 27600: Carol Pires  -> ID 57903
+✅ Match 27700: Celia Amorim  -> ID 58061
+✅ Match 27800: CLARA CAFFARO  -> ID 58280
+✅ Match 27900: CLAUDIO MARCIO PEREIRA STORINO  -> ID 58485
+✅ Match 28000: CLEVERSON KURUNCI KURUNCI -> ID 58642
+📊 Progresso: 38000/73202 | Matches: 28011 | Atualizados: 28011
+
+📦 Processando lote 77/147 (500 leads)
+✅ Match 28100: CRISTIANE MARCIA AMARAL  -> ID 58819
+✅ Match 28200: DALVA  -> ID 35138
+✅ Match 28300: DANIELE EPIFANIO PAGLIUCA  -> ID 59172
+✅ Match 28400: Débora  -> ID 12125
+✅ Match 28500: devsoncosta  -> ID 59634
+
+📦 Processando lote 78/147 (500 leads)
+✅ Match 28600: DORALICE COMAZZI COLOMBO  -> ID 59815
+✅ Match 28700: EDERSON  -> ID 42857
+✅ Match 28800: Edu Moreira  -> ID 60185
+✅ Match 28900: Elen Moitinho  -> ID 60366
+✅ Match 29000: ELIAS  -> ID 37720
+📊 Progresso: 39000/73202 | Matches: 29011 | Atualizados: 29011
+
+📦 Processando lote 79/147 (500 leads)
+✅ Match 29100: ELIZABETE GONÇALVES DE CARVALHO  -> ID 60706
+✅ Match 29200: ERIC  -> ID 60919
+✅ Match 29300: Eusa Harumi  -> ID 61095
+✅ Match 29400: FABIO ELIAS REIS VITORINO  -> ID 61328
+✅ Match 29500: FERNANDA  -> ID 11234
+
+📦 Processando lote 80/147 (500 leads)
+✅ Match 29600: Flavia  -> ID 12335
+✅ Match 29700: Francisco Bento de Sousa  -> ID 61907
+✅ Match 29800: Geisa Gabrielle Basilio  -> ID 62109
+✅ Match 29900: GIOVANA  -> ID 13290
+✅ Match 30000: GRACIELA  -> ID 2051
+📊 Progresso: 40000/73202 | Matches: 30011 | Atualizados: 30011
+
+📦 Processando lote 81/147 (500 leads)
+✅ Match 30100: Helen Tobias  -> ID 62768
+✅ Match 30200: IDAMAR BOCHNIA  -> ID 62992
+✅ Match 30300: ISABELA ARMANHI ALVES  -> ID 63187
+✅ Match 30400: IVONE SANTIN  -> ID 63360
+✅ Match 30500: JAMILLE  -> ID 63513
+
+📦 Processando lote 82/147 (500 leads)
+✅ Match 30600: JEAN  -> ID 14443
+✅ Match 30700: Jesuel  -> ID 63917
+✅ Match 30800: JOEL DRABECKI  -> ID 64140
+✅ Match 30900: José Mahado  -> ID 64338
+✅ Match 31000: JULIA PAULIS  -> ID 64593
+📊 Progresso: 41000/73202 | Matches: 31011 | Atualizados: 31011
+
+📦 Processando lote 83/147 (500 leads)
+✅ Match 31100: Julio  -> ID 37024
+✅ Match 31200: Karolay  -> ID 64965
+✅ Match 31300: Kemilly Eduarda  -> ID 65159
+✅ Match 31400: Laura Lima  -> ID 65374
+✅ Match 31500: Leninha Personalizados??  -> ID 65537
+
+📦 Processando lote 84/147 (500 leads)
+✅ Match 31600: Lidiane  -> ID 65736
+✅ Match 31700: Loh  -> ID 65896
+✅ Match 31800: Luciana Vidal  -> ID 66068
+✅ Match 31900: Francis - Country  -> ID 66192
+✅ Match 32000: Mari  -> ID 12344
+📊 Progresso: 42000/73202 | Matches: 32011 | Atualizados: 32011
+
+📦 Processando lote 85/147 (500 leads)
+✅ Match 32100: Thainara Megafitness  -> ID 66438
+✅ Match 32200: Amarilda Sanches  -> ID 66582
+✅ Match 32300: Igreja  -> ID 66723
+✅ Match 32400: Soccer Brindes  -> ID 66855
+✅ Match 32500: Camila Celso  -> ID 66988
+
+📦 Processando lote 86/147 (500 leads)
+✅ Match 32600: Joao Franciscon/ Engenheiro  -> ID 67112
+✅ Match 32700: Cláudia Master Toy  -> ID 67242
+✅ Match 32800: Rosângela Teodorio vieira  -> ID 67390
+✅ Match 32900: Gleisy  -> ID 67518
+✅ Match 33000: Fernando Filho Celso  -> ID 67638
+📊 Progresso: 43000/73202 | Matches: 33011 | Atualizados: 33011
+
+📦 Processando lote 87/147 (500 leads)
+✅ Match 33100: Priscila Bassil  -> ID 67774
+✅ Match 33200: Cynthia Barbosa  -> ID 67895
+✅ Match 33300: Alessandra Sítio  -> ID 68033
+✅ Match 33400: Ana Paula Monteiro  -> ID 68167
+✅ Match 33500: Ângelo Abefarma  -> ID 68293
+
+📦 Processando lote 88/147 (500 leads)
+✅ Match 33600: Bruno Léo  -> ID 68419
+✅ Match 33700: Cintia F4  -> ID 68592
+✅ Match 33800: Cristiane Farm São João  -> ID 68724
+✅ Match 33900: Dayane  -> ID 11452
+✅ Match 34000: Doroty  -> ID 68977
+📊 Progresso: 44000/73202 | Matches: 34011 | Atualizados: 34011
+
+📦 Processando lote 89/147 (500 leads)
+✅ Match 34100: Eliana Porto1  -> ID 69117
+✅ Match 34200: Fabiany  -> ID 69263
+✅ Match 34300: Gabi Fatore  -> ID 69406
+✅ Match 34400: Henrique TAKEDA  -> ID 69548
+✅ Match 34500: Jeferson Manutenção Elevador  -> ID 69690
+
+📦 Processando lote 90/147 (500 leads)
+✅ Match 34600: Julia Irmã Da Patrícia  -> ID 69824
+✅ Match 34700: Laércio Vietro  -> ID 69970
+✅ Match 34800: Luan Matheus De Oliveira  -> ID 70109
+✅ Match 34900: Luzia Moreira  -> ID 70240
+✅ Match 35000: Margarete Cliente  -> ID 70366
+📊 Progresso: 45000/73202 | Matches: 35011 | Atualizados: 35011
+
+📦 Processando lote 91/147 (500 leads)
+✅ Match 35100: Marisa Mãe Da Quesia  -> ID 70484
+✅ Match 35200: Miriam CRF  -> ID 70607
+✅ Match 35300: Nívea Irmã Da Zana  -> ID 70741
+✅ Match 35400: Pesqueiro Ranche Alegre  -> ID 70878
+✅ Match 35500: Reinaldinho Copel  -> ID 71000
+
+📦 Processando lote 92/147 (500 leads)
+✅ Match 35600: Rosângela Cliente  -> ID 71119
+✅ Match 35700: Sandra Sobrinha Andreia  -> ID 71236
+✅ Match 35800: Simone Capelari  -> ID 71351
+✅ Match 35900: Tainá Venturini  -> ID 71483
+✅ Match 36000: Tiago Cordeiro  -> ID 30687
+📊 Progresso: 46000/73202 | Matches: 36011 | Atualizados: 36011
+
+📦 Processando lote 93/147 (500 leads)
+✅ Match 36100: Vivabem  -> ID 71727
+✅ Match 36200: Carol Ramos Ribeiro -> ID 71882
+✅ Match 36300: Pérolas Manzini -> ID 72055
+✅ Match 36400: (67) 99945-3311 -> ID 72227
+✅ Match 36500: Amanda de Alencar garrido  -> ID 72356
+
+📦 Processando lote 94/147 (500 leads)
+✅ Match 36600: Solaine Razotto🌹⭐ -> ID 72577
+✅ Match 36700: Su Labriola -> ID 72728
+✅ Match 36800: Liih🥰  -> ID 72900
+✅ Match 36900: Luiz Fernando -> ID 29107
+✅ Match 37000: docedemedica  -> ID 73165
+📊 Progresso: 47000/73202 | Matches: 37011 | Atualizados: 37011
+
+📦 Processando lote 95/147 (500 leads)
+✅ Match 37100: Cristina💓  -> ID 73332
+✅ Match 37200: Loja Humana Alimentar -> ID 73483
+✅ Match 37300: CD Ozonteck Guarulhos -> ID 73579
+✅ Match 37400: Kethien  -> ID 73705
+✅ Match 37500: Leonice  -> ID 13336
+
+📦 Processando lote 96/147 (500 leads)
+✅ Match 37600: Nelson Dos Santos -> ID 74012
+✅ Match 37700: Vanessa Poscai -> ID 74164
+✅ Match 37800: Aline  -> ID 13107
+✅ Match 37900: Marisa Franco  -> ID 74452
+✅ Match 38000: Angelica  -> ID 11331
+📊 Progresso: 48000/73202 | Matches: 38011 | Atualizados: 38011
+
+📦 Processando lote 97/147 (500 leads)
+✅ Match 38100: Gilberto Carlos Abreu  -> ID 74663
+✅ Match 38200: ANNY  -> ID 56823
+✅ Match 38300: Jéssica  -> ID 32482
+✅ Match 38400: Sueli  -> ID 15441
+✅ Match 38500: Everton Lopes Pereira  -> ID 75089
+
+📦 Processando lote 98/147 (500 leads)
+✅ Match 38600: Sandra  -> ID 11938
+✅ Match 38700: Ana Maria Yoshida  -> ID 75322
+✅ Match 38800: JOAO  -> ID 12887
+✅ Match 38900: Junior  -> ID 2663
+📊 Progresso: 49000/73202 | Matches: 38942 | Atualizados: 38942
+
+📦 Processando lote 99/147 (500 leads)
+✅ Match 39000: Liliane  -> ID 34566
+✅ Match 39100: Claudia  -> ID 4046
+
+📦 Processando lote 100/147 (500 leads)
+✅ Match 39200: Jaqueline  -> ID 12070
+✅ Match 39300: eduardo  -> ID 2077
+📊 Progresso: 50000/73202 | Matches: 39370 | Atualizados: 39370
+
+📦 Processando lote 101/147 (500 leads)
+✅ Match 39400: Roseli  -> ID 12021
+✅ Match 39500: Carla  -> ID 11686
+✅ Match 39600: ELOISA  -> ID 35060
+
+📦 Processando lote 102/147 (500 leads)
+✅ Match 39700: Giovana  -> ID 13290
+📊 Progresso: 51000/73202 | Matches: 39777 | Atualizados: 39777
+
+📦 Processando lote 103/147 (500 leads)
+
+📦 Processando lote 104/147 (500 leads)
+✅ Match 39800: ANA PAULA RIBEIRO  -> ID 11184
+📊 Progresso: 52000/73202 | Matches: 39806 | Atualizados: 39806
+
+📦 Processando lote 105/147 (500 leads)
+
+📦 Processando lote 106/147 (500 leads)
+📊 Progresso: 53000/73202 | Matches: 39827 | Atualizados: 39827
+
+📦 Processando lote 107/147 (500 leads)
+
+📦 Processando lote 108/147 (500 leads)
+📊 Progresso: 54000/73202 | Matches: 39843 | Atualizados: 39843
+
+📦 Processando lote 109/147 (500 leads)
+
+📦 Processando lote 110/147 (500 leads)
+📊 Progresso: 55000/73202 | Matches: 39857 | Atualizados: 39857
+
+📦 Processando lote 111/147 (500 leads)
+
+📦 Processando lote 112/147 (500 leads)
+📊 Progresso: 56000/73202 | Matches: 39873 | Atualizados: 39873
+
+📦 Processando lote 113/147 (500 leads)
+
+📦 Processando lote 114/147 (500 leads)
+📊 Progresso: 57000/73202 | Matches: 39894 | Atualizados: 39894
+
+📦 Processando lote 115/147 (500 leads)
+✅ Match 39900: MARCELO  -> ID 3220
+
+📦 Processando lote 116/147 (500 leads)
+📊 Progresso: 58000/73202 | Matches: 39910 | Atualizados: 39910
+
+📦 Processando lote 117/147 (500 leads)
+
+📦 Processando lote 118/147 (500 leads)
+📊 Progresso: 59000/73202 | Matches: 39921 | Atualizados: 39921
+
+📦 Processando lote 119/147 (500 leads)
+
+📦 Processando lote 120/147 (500 leads)
+📊 Progresso: 60000/73202 | Matches: 39935 | Atualizados: 39935
+
+📦 Processando lote 121/147 (500 leads)
+
+📦 Processando lote 122/147 (500 leads)
+📊 Progresso: 61000/73202 | Matches: 39949 | Atualizados: 39949
+
+📦 Processando lote 123/147 (500 leads)
+
+📦 Processando lote 124/147 (500 leads)
+✅ Match 40000: Giovanna  -> ID 62327
+📊 Progresso: 62000/73202 | Matches: 40027 | Atualizados: 40027
+
+📦 Processando lote 125/147 (500 leads)
+✅ Match 40100: Aline  -> ID 13107
+✅ Match 40200: Aparecida  -> ID 36186
+
+📦 Processando lote 126/147 (500 leads)
+✅ Match 40300: ROSANA  -> ID 12189
+✅ Match 40400: Kátia  -> ID 14275
+📊 Progresso: 63000/73202 | Matches: 40492 | Atualizados: 40492
+
+📦 Processando lote 127/147 (500 leads)
+✅ Match 40500: Elizabete Silva  -> ID 60708
+✅ Match 40600: Fabio  -> ID 3852
+✅ Match 40700: Enrico  -> ID 34176
+
+📦 Processando lote 128/147 (500 leads)
+✅ Match 40800: Fabio  -> ID 3852
+✅ Match 40900: Tamires  -> ID 47172
+✅ Match 41000: MARIA Luci Zanlorensi  -> ID 15688
+📊 Progresso: 64000/73202 | Matches: 41040 | Atualizados: 41040
+
+📦 Processando lote 129/147 (500 leads)
+✅ Match 41100: Natália garcia  -> ID 41657
+✅ Match 41200: Aline Brito  -> ID 15356
+✅ Match 41300: Vera lucia  -> ID 12550
+
+📦 Processando lote 130/147 (500 leads)
+✅ Match 41400: lucas  -> ID 2332
+📊 Progresso: 65000/73202 | Matches: 41475 | Atualizados: 41475
+
+📦 Processando lote 131/147 (500 leads)
+✅ Match 41500: Camila  -> ID 13340
+✅ Match 41600: Julia  -> ID 35399
+
+📦 Processando lote 132/147 (500 leads)
+✅ Match 41700: Janete  -> ID 49564
+📊 Progresso: 66000/73202 | Matches: 41729 | Atualizados: 41729
+
+📦 Processando lote 133/147 (500 leads)
+✅ Match 41800: Luciana Grott -> ID 36887
+
+📦 Processando lote 134/147 (500 leads)
+✅ Match 41900: Maria  -> ID 12110
+📊 Progresso: 67000/73202 | Matches: 41977 | Atualizados: 41977
+
+📦 Processando lote 135/147 (500 leads)
+✅ Match 42000: Iracema  -> ID 37508
+✅ Match 42100: Eliane  -> ID 12310
+
+📦 Processando lote 136/147 (500 leads)
+✅ Match 42200: Ana  -> ID 11195
+📊 Progresso: 68000/73202 | Matches: 42265 | Atualizados: 42265
+
+📦 Processando lote 137/147 (500 leads)
+✅ Match 42300: José Aparecido -> ID 14620
+
+📦 Processando lote 138/147 (500 leads)
+✅ Match 42400: Valdete  -> ID 42732
+✅ Match 42500: Rosa Maria -> ID 11126
+📊 Progresso: 69000/73202 | Matches: 42525 | Atualizados: 42525
+
+📦 Processando lote 139/147 (500 leads)
+✅ Match 42600: DEUS É FIEL -> ID 59613
+
+📦 Processando lote 140/147 (500 leads)
+✅ Match 42700: ANDRESSA APARECIDA DA CRUZ -> ID 56558
+✅ Match 42800: Henrique  -> ID 37729
+📊 Progresso: 70000/73202 | Matches: 42815 | Atualizados: 42815
+
+📦 Processando lote 141/147 (500 leads)
+✅ Match 42900: Sandra  -> ID 11938
+
+📦 Processando lote 142/147 (500 leads)
+✅ Match 43000: Natalia  -> ID 12889
+📊 Progresso: 71000/73202 | Matches: 43093 | Atualizados: 43093
+
+📦 Processando lote 143/147 (500 leads)
+✅ Match 43100: Verônica  -> ID 12726
+✅ Match 43200: Bruno  -> ID 33032
+
+📦 Processando lote 144/147 (500 leads)
+✅ Match 43300: JOSE ELOIR  -> ID 72310
+✅ Match 43400: CLODOALDO  -> ID 58663
+📊 Progresso: 72000/73202 | Matches: 43414 | Atualizados: 43414
+
+📦 Processando lote 145/147 (500 leads)
+✅ Match 43500: Thiago  -> ID 3900
+
+📦 Processando lote 146/147 (500 leads)
+✅ Match 43600: Lu  -> ID 11703
+📊 Progresso: 73000/73202 | Matches: 43655 | Atualizados: 43655
+
+📦 Processando lote 147/147 (202 leads)
+
+🎉 PROCESSO COMPLETO FINALIZADO!
+⏰ Duração total: 0 minutos
+📊 Leads exportados processados: 73202
+🔗 Matches encontrados: 43699
+✅ Leads inseridos/atualizados: 43699
+❌ Erros: 0
+
+📈 Métodos de match utilizados:
+  - email: 54 matches
+  - nome_completo: 43645 matches
+
+📊 Verificando resultado final...
+📊 Total de leads na tabela: 9797
+🎯 Leads com id_sprinthub: 7970
+📈 Percentual de leads com ID SprintHub: 81.4%

@@ -21,3 +21,4 @@ create index if not exists idx_sync_runs_resource on api.sync_runs (resource, st
 
 comment on table api.sync_runs is 'Logs de execuções das sincronizações (oportunidades, leads, segmentos)';
 
+

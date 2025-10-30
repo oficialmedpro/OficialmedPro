@@ -216,3 +216,4 @@ Para instruções detalhadas, consultar: **[DEPLOY_OPORTUNIDADES_SYNC.md](./DEPL
 **Data:** Janeiro 2025  
 **Stack Base:** Segue padrão da `prime-sync-api` ✅
 
+

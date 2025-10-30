@@ -1,0 +1,27 @@
+{
+  "name": "greatpage-leads-import",
+  "version": "1.0.0",
+  "description": "Script para importar leads das planilhas Greatpages para Supabase",
+  "main": "import-greatpage-leads.js",
+  "scripts": {
+    "import": "node import-greatpage-leads.js",
+    "import-folder": "node import-greatpage-leads.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "csv-parser": "^3.0.0",
+    "dotenv": "^16.3.1"
+  },
+  "keywords": [
+    "supabase",
+    "csv",
+    "leads",
+    "greatpages",
+    "import"
+  ],
+  "author": "OficialMed",
+  "license": "MIT"
+}
+
+

@@ -1,0 +1,88 @@
+version: "3.7"
+
+services:
+  sync-leads-api:
+    image: oficialmedpro/sync-leads-api:latest
+    networks:
+      - OficialMed
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+
+      # Supabase (via secrets)
+      - SUPABASE_URL_FILE=/run/secrets/SYNC_SUPABASE_URL
+      - SUPABASE_KEY_FILE=/run/secrets/SYNC_SUPABASE_KEY
+
+      # SprintHub (via secrets)
+      - SPRINTHUB_BASE_URL_FILE=/run/secrets/SYNC_SPRINTHUB_BASE_URL
+      - SPRINTHUB_INSTANCE_FILE=/run/secrets/SYNC_SPRINTHUB_INSTANCE
+      - SPRINTHUB_TOKEN_FILE=/run/secrets/SYNC_SPRINTHUB_TOKEN
+
+      # API Token (direto, sem secret)
+      - API_TOKEN=sync-leads-2025-aB3cD7eF9gH2jK5mN8pQ1rS4tU7vW0xY
+
+    secrets:
+      - SYNC_SUPABASE_URL
+      - SYNC_SUPABASE_KEY
+      - SYNC_SPRINTHUB_BASE_URL
+      - SYNC_SPRINTHUB_INSTANCE
+      - SYNC_SPRINTHUB_TOKEN
+
+    deploy:
+      mode: replicated
+      replicas: 1
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      labels:
+        - traefik.enable=true
+
+        # Router para /leads (HTTPS)
+        - traefik.http.routers.sync-leads.rule=Host(`sincro.oficialmed.com.br`) && PathPrefix(`/leads`)
+        - traefik.http.routers.sync-leads.entrypoints=websecure
+        - traefik.http.routers.sync-leads.tls.certresolver=letsencryptresolver
+
+        # Serviço apontando para a porta 3001 do container
+        - traefik.http.services.sync-leads.loadbalancer.server.port=3001
+        - traefik.http.services.sync-leads.loadbalancer.passHostHeader=true
+        - traefik.http.routers.sync-leads.service=sync-leads
+
+        # Middleware para remover /leads do path
+        - traefik.http.routers.sync-leads.middlewares=leads-stripprefix
+        - traefik.http.middlewares.leads-stripprefix.stripprefix.prefixes=/leads
+
+        # Health check
+        - traefik.http.routers.sync-leads-health.rule=Host(`sincro.oficialmed.com.br`) && Path(`/leads/health`)
+        - traefik.http.routers.sync-leads-health.entrypoints=websecure
+        - traefik.http.routers.sync-leads-health.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.sync-leads-health.service=sync-leads
+
+networks:
+  OficialMed:
+    external: true
+    name: OficialMed
+
+secrets:
+  SYNC_SUPABASE_URL:
+    external: true
+  SYNC_SUPABASE_KEY:
+    external: true
+  SYNC_SPRINTHUB_BASE_URL:
+    external: true
+  SYNC_SPRINTHUB_INSTANCE:
+    external: true
+  SYNC_SPRINTHUB_TOKEN:
+    external: true
+

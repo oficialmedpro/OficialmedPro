@@ -346,3 +346,4 @@ RAISE NOTICE '✅ Cronjob de sincronização de oportunidades configurado com su
 RAISE NOTICE '📊 Job agendado para executar a cada 30 minutos';
 RAISE NOTICE '🔍 Monitore os logs em: SELECT * FROM api.sync_oportunidades_log ORDER BY executed_at DESC;';
 
+

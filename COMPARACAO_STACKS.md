@@ -379,3 +379,4 @@ docker service update --force --image oficialmedpro/oportunidades-sync-api:lates
 **Data:** Janeiro 2025  
 **Versão:** 1.0.0
 
+

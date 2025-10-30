@@ -1,0 +1,8 @@
+# Configurações do Supabase para importação de leads Greatpages
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_ANON_KEY=sua-chave-anonima-aqui
+
+# Opcional: Configurações adicionais
+# SUPABASE_SERVICE_ROLE_KEY=sua-chave-service-role-aqui
+
+

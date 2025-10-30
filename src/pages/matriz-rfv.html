@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matriz RFV - Segmentação de Clientes</title>
+    <style>
+        :root {
+            --bg: #f5f5f7;
+            --surface: #fff;
+            --text: #1d1d1f;
+            --muted: #6e6e73;
+            --border: #e6e6eb;
+            --radius: 18px;
+            --shadow: 0 8px 30px rgba(0,0,0,.06);
+            --blue: #007aff;
+            --green: #34c759;
+            --orange: #ff9500;
+            --red: #ff3b30;
+            --purple: #af52de;
+        }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 32px auto;
+            padding: 0 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin: 0;
+            color: var(--text);
+        }
+
+        .back-btn {
+            background: var(--blue);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .back-btn:hover {
+            background: #0056b3;
+        }
+
+        .rfv-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .rfv-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s ease;
+        }
+
+        .rfv-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .rfv-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .rfv-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-right: 16px;
+        }
+
+        .rfv-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .rfv-description {
+            color: var(--muted);
+            font-size: 14px;
+            margin: 8px 0 0 0;
+        }
+
+        .rfv-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 16px;
+            background: var(--bg);
+            border-radius: 12px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--muted);
+            text-transform: uppercase;
+        }
+
+        .rfv-actions {
+            margin-top: 20px;
+        }
+
+        .btn {
+            background: var(--blue);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            margin-right: 12px;
+            margin-bottom: 8px;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg);
+        }
+
+        .clients-list {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            box-shadow: var(--shadow);
+            margin-top: 24px;
+        }
+
+        .clients-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .clients-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .search-box {
+            position: relative;
+            width: 300px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 16px 12px 40px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead th {
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            padding: 12px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        tbody td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr:hover {
+            background: var(--bg);
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-ativacao {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .status-reativacao {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .status-monitoramento {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--muted);
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: var(--red);
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            gap: 8px;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .pagination button:hover {
+            background: var(--bg);
+        }
+
+        .pagination button.active {
+            background: var(--blue);
+            color: white;
+            border-color: var(--blue);
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Matriz RFV - Segmentação de Clientes</h1>
+            <a href="/src/pages/dashboard-clientes-pedidos.html" class="back-btn">← Voltar ao Dashboard</a>
+        </header>
+
+        <div class="rfv-grid">
+            <!-- ATIVAÇÃO -->
+            <div class="rfv-card">
+                <div class="rfv-header">
+                    <div class="rfv-icon" style="background: #ffebee; color: #c62828;">
+                        🎯
+                    </div>
+                    <div>
+                        <h3 class="rfv-title">ATIVAÇÃO</h3>
+                        <p class="rfv-description">Clientes que nunca compraram</p>
+                    </div>
+                </div>
+                <div class="rfv-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="ativacao-total">-</div>
+                        <div class="stat-label">Total Clientes</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="ativacao-potencial">-</div>
+                        <div class="stat-label">Potencial</div>
+                    </div>
+                </div>
+                <div class="rfv-actions">
+                    <button class="btn" onclick="verClientesAtivacao()">Ver Clientes</button>
+                    <button class="btn btn-secondary" onclick="exportarAtivacao()">Exportar</button>
+                </div>
+            </div>
+
+            <!-- REATIVAÇÃO -->
+            <div class="rfv-card">
+                <div class="rfv-header">
+                    <div class="rfv-icon" style="background: #fff3e0; color: #ef6c00;">
+                        🔄
+                    </div>
+                    <div>
+                        <h3 class="rfv-title">REATIVAÇÃO</h3>
+                        <p class="rfv-description">Não compram há mais de 90 dias</p>
+                    </div>
+                </div>
+                <div class="rfv-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="reativacao-total">-</div>
+                        <div class="stat-label">Total Clientes</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="reativacao-perdidos">-</div>
+                        <div class="stat-label">Em Risco</div>
+                    </div>
+                </div>
+                <div class="rfv-actions">
+                    <button class="btn" onclick="verClientesReativacao()">Ver Clientes</button>
+                    <button class="btn btn-secondary" onclick="exportarReativacao()">Exportar</button>
+                </div>
+            </div>
+
+            <!-- MONITORAMENTO -->
+            <div class="rfv-card">
+                <div class="rfv-header">
+                    <div class="rfv-icon" style="background: #e8f5e8; color: #2e7d32;">
+                        📊
+                    </div>
+                    <div>
+                        <h3 class="rfv-title">MONITORAMENTO</h3>
+                        <p class="rfv-description">Compraram recentemente</p>
+                    </div>
+                </div>
+                <div class="rfv-stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="monitoramento-15-30">-</div>
+                        <div class="stat-label">15-30 dias</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="monitoramento-30-60">-</div>
+                        <div class="stat-label">30-60 dias</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="monitoramento-60-90">-</div>
+                        <div class="stat-label">60-90 dias</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="monitoramento-total">-</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                </div>
+                <div class="rfv-actions">
+                    <button class="btn" onclick="verClientesMonitoramento()">Ver Clientes</button>
+                    <button class="btn btn-secondary" onclick="exportarMonitoramento()">Exportar</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="clients-list" id="clients-list" style="display: none;">
+            <div class="clients-header">
+                <h3 class="clients-title" id="clients-title">Lista de Clientes</h3>
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="client-search" placeholder="Buscar cliente...">
+                </div>
+            </div>
+            <div id="clients-table">
+                <div class="loading">Carregando clientes...</div>
+            </div>
+            <div class="pagination" id="clients-pagination"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { primeClientesService } from '../service/primeClientesService.js';
+        import { primePedidosService } from '../service/primePedidosService.js';
+
+        let currentSegment = null;
+        let currentPage = 1;
+        let currentSearch = '';
+
+        // Carregar estatísticas da matriz RFV
+        async function carregarEstatisticasRFV() {
+            try {
+                console.log('📊 Carregando estatísticas da matriz RFV...');
+                
+                const response = await primeClientesService.getEstatisticasRFV();
+                if (response.success) {
+                    const stats = response.data;
+                    
+                    // Atualizar cards
+                    document.getElementById('ativacao-total').textContent = stats.ativacao.total.toLocaleString();
+                    document.getElementById('ativacao-potencial').textContent = stats.ativacao.potencial.toLocaleString();
+                    
+                    document.getElementById('reativacao-total').textContent = stats.reativacao.total.toLocaleString();
+                    document.getElementById('reativacao-perdidos').textContent = stats.reativacao.perdidos.toLocaleString();
+                    
+                    document.getElementById('monitoramento-15-30').textContent = stats.monitoramento.periodo15_30.toLocaleString();
+                    document.getElementById('monitoramento-30-60').textContent = stats.monitoramento.periodo30_60.toLocaleString();
+                    document.getElementById('monitoramento-60-90').textContent = stats.monitoramento.periodo60_90.toLocaleString();
+                    document.getElementById('monitoramento-total').textContent = stats.monitoramento.total.toLocaleString();
+                }
+            } catch (error) {
+                console.error('Erro ao carregar estatísticas RFV:', error);
+            }
+        }
+
+        // Ver clientes de ativação
+        window.verClientesAtivacao = async function() {
+            currentSegment = 'ativacao';
+            currentPage = 1;
+            currentSearch = '';
+            document.getElementById('clients-list').style.display = 'block';
+            document.getElementById('clients-title').textContent = 'Clientes - ATIVAÇÃO (Nunca Compraram)';
+            await carregarClientesSegmento();
+        };
+
+        // Ver clientes de reativação
+        window.verClientesReativacao = async function() {
+            currentSegment = 'reativacao';
+            currentPage = 1;
+            currentSearch = '';
+            document.getElementById('clients-list').style.display = 'block';
+            document.getElementById('clients-title').textContent = 'Clientes - REATIVAÇÃO (Mais de 90 dias)';
+            await carregarClientesSegmento();
+        };
+
+        // Ver clientes de monitoramento
+        window.verClientesMonitoramento = async function() {
+            currentSegment = 'monitoramento';
+            currentPage = 1;
+            currentSearch = '';
+            document.getElementById('clients-list').style.display = 'block';
+            document.getElementById('clients-title').textContent = 'Clientes - MONITORAMENTO (Compraram Recentemente)';
+            await carregarClientesSegmento();
+        };
+
+        // Carregar clientes do segmento
+        async function carregarClientesSegmento() {
+            try {
+                const container = document.getElementById('clients-table');
+                container.innerHTML = '<div class="loading">Carregando clientes...</div>';
+
+                const response = await primeClientesService.getClientesPorSegmentoRFV(currentSegment, {
+                    page: currentPage,
+                    pageSize: 20,
+                    search: currentSearch
+                });
+
+                if (response.success) {
+                    renderClientesRFV(response.data, response.pagination);
+                } else {
+                    container.innerHTML = '<div class="error">Erro ao carregar clientes</div>';
+                }
+            } catch (error) {
+                console.error('Erro ao carregar clientes do segmento:', error);
+                document.getElementById('clients-table').innerHTML = '<div class="error">Erro ao carregar clientes</div>';
+            }
+        }
+
+        // Renderizar lista de clientes RFV
+        function renderClientesRFV(clientes, pagination) {
+            const container = document.getElementById('clients-table');
+            
+            if (!clientes || clientes.length === 0) {
+                container.innerHTML = '<div class="loading">Nenhum cliente encontrado</div>';
+                return;
+            }
+
+            let html = `
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>CPF/CNPJ</th>
+                                <th>Email</th>
+                                <th>Telefone</th>
+                                <th>Última Compra</th>
+                                <th>Dias Sem Comprar</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            clientes.forEach(cliente => {
+                const ultimaCompra = cliente.ultima_compra 
+                    ? new Date(cliente.ultima_compra).toLocaleDateString('pt-BR')
+                    : 'Nunca';
+                
+                const diasSemComprar = cliente.dias_sem_comprar || 0;
+                
+                let statusClass = '';
+                let statusText = '';
+                
+                if (currentSegment === 'ativacao') {
+                    statusClass = 'status-ativacao';
+                    statusText = 'Nunca Comprou';
+                } else if (currentSegment === 'reativacao') {
+                    statusClass = 'status-reativacao';
+                    statusText = 'Em Risco';
+                } else if (currentSegment === 'monitoramento') {
+                    statusClass = 'status-monitoramento';
+                    if (diasSemComprar <= 30) {
+                        statusText = 'Ativo';
+                    } else if (diasSemComprar <= 60) {
+                        statusText = 'Atenção';
+                    } else {
+                        statusText = 'Monitorar';
+                    }
+                }
+                
+                html += `
+                    <tr>
+                        <td><strong>${cliente.nome || 'N/A'}</strong></td>
+                        <td>${cliente.cpf_cnpj || 'N/A'}</td>
+                        <td>${cliente.email || 'N/A'}</td>
+                        <td>${cliente.telefone || 'N/A'}</td>
+                        <td>${ultimaCompra}</td>
+                        <td>${diasSemComprar} dias</td>
+                        <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                        <td>
+                            <button class="btn btn-secondary" onclick="verDetalhesCliente(${cliente.id})">
+                                Ver Detalhes
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            container.innerHTML = html;
+            renderPagination(pagination);
+        }
+
+        // Renderizar paginação
+        function renderPagination(pagination) {
+            const container = document.getElementById('clients-pagination');
+            
+            if (pagination.totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+            
+            // Botão anterior
+            html += `<button ${pagination.page === 1 ? 'disabled' : ''} onclick="mudarPagina(${pagination.page - 1})">« Anterior</button>`;
+            
+            // Páginas
+            const startPage = Math.max(1, pagination.page - 2);
+            const endPage = Math.min(pagination.totalPages, pagination.page + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button class="${i === pagination.page ? 'active' : ''}" onclick="mudarPagina(${i})">${i}</button>`;
+            }
+            
+            // Botão próximo
+            html += `<button ${pagination.page === pagination.totalPages ? 'disabled' : ''} onclick="mudarPagina(${pagination.page + 1})">Próximo »</button>`;
+            
+            container.innerHTML = html;
+        }
+
+        // Mudar página
+        window.mudarPagina = async function(page) {
+            currentPage = page;
+            await carregarClientesSegmento();
+        };
+
+        // Ver detalhes do cliente
+        window.verDetalhesCliente = function(clienteId) {
+            // Implementar modal com detalhes do cliente
+            console.log('Ver detalhes do cliente:', clienteId);
+        };
+
+        // Funções de exportação
+        window.exportarAtivacao = function() {
+            console.log('Exportar clientes de ativação');
+        };
+
+        window.exportarReativacao = function() {
+            console.log('Exportar clientes de reativação');
+        };
+
+        window.exportarMonitoramento = function() {
+            console.log('Exportar clientes de monitoramento');
+        };
+
+        // Event listener para busca
+        document.getElementById('client-search').addEventListener('input', debounce(() => {
+            currentSearch = document.getElementById('client-search').value;
+            currentPage = 1;
+            carregarClientesSegmento();
+        }, 500));
+
+        // Função debounce
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Inicializar página
+        document.addEventListener('DOMContentLoaded', () => {
+            carregarEstatisticasRFV();
+        });
+    </script>
+</body>
+</html>
+
+

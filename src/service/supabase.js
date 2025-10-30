@@ -22,25 +22,39 @@ export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 })
 
 // Função para obter o cliente com schema específico
+// Cache de clientes Supabase para evitar múltiplas instâncias
+const supabaseClients = new Map();
+
 export const getSupabaseWithSchema = (schema) => {
-  console.log('🔧 Criando cliente Supabase com schema:', schema)
-  return createClient(supabaseUrl, supabaseServiceKey, {
+  const schemaKey = schema || 'api';
+  
+  // Verificar se já existe um cliente para este schema
+  if (supabaseClients.has(schemaKey)) {
+    return supabaseClients.get(schemaKey);
+  }
+  
+  console.log('🔧 Criando cliente Supabase com schema:', schemaKey)
+  const client = createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
     },
     // Define o schema do PostgREST corretamente
     db: {
-      schema: schema || 'api'
+      schema: schemaKey
     },
     // Garante os headers também (algumas versões do SDK dependem desses)
     global: {
       headers: {
-        'Accept-Profile': schema || 'api',
-        'Content-Profile': schema || 'api'
+        'Accept-Profile': schemaKey,
+        'Content-Profile': schemaKey
       }
     }
-  })
+  });
+  
+  // Armazenar no cache
+  supabaseClients.set(schemaKey, client);
+  return client;
 }
 
 // Função para testar a conexão
