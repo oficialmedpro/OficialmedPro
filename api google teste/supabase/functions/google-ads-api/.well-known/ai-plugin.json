@@ -1,0 +1,18 @@
+{
+  "schema_version": "v1",
+  "name_for_model": "google_ads_api",
+  "name_for_human": "Google Ads API Integration",
+  "description_for_model": "Integration with Google Ads API for campaign management",
+  "description_for_human": "Google Ads API integration for managing campaigns and retrieving analytics data",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://vkrkrskfitxrjjnvbdvt.supabase.co/functions/v1/google-ads-api/openapi.json"
+  },
+  "logo_url": "https://developers.google.com/ads/images/ads-icon.svg",
+  "contact_email": "support@example.com",
+  "legal_info_url": "https://example.com/legal"
+}
+

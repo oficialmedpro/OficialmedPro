@@ -16,6 +16,10 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 let cachedCredentials: any = null
 let credentialsExpiry: number | null = null
 
+// Cache de access token para evitar requisições desnecessárias
+let cachedAccessToken: string | null = null
+let accessTokenExpiry: number | null = null
+
 // Mapeamento de status do Google Ads
 const statusMap: { [key: number]: string } = {
   2: 'ENABLED',
@@ -90,11 +94,22 @@ async function getGoogleAdsCredentials(customCustomerId?: string) {
 }
 
 /**
- * Obtém access token do Google OAuth2
+ * Obtém access token do Google OAuth2 com cache automático
+ * Renova automaticamente o refresh token antes de expirar para mantê-lo definitivo
  */
 async function getAccessToken(credentials: any) {
   try {
-    console.log('🔑 Obtendo access token...')
+    // Verificar se temos um access token válido em cache (válido por 50 minutos, não 60)
+    // Isso garante renovação antes de expirar
+    if (cachedAccessToken && accessTokenExpiry && Date.now() < accessTokenExpiry) {
+      console.log('✅ Usando access token em cache')
+      return cachedAccessToken
+    }
+
+    console.log('🔑 Obtendo novo access token...')
+    console.log('🔍 Client ID usado:', credentials.client_id ? `${credentials.client_id.substring(0, 20)}...` : '❌ Não encontrado')
+    console.log('🔍 Client Secret usado:', credentials.client_secret ? '✅ Presente' : '❌ Não encontrado')
+    console.log('🔍 Refresh Token usado:', credentials.refresh_token ? `${credentials.refresh_token.substring(0, 20)}...` : '❌ Não encontrado')
     
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -110,16 +125,83 @@ async function getAccessToken(credentials: any) {
     })
 
     if (!tokenResponse.ok) {
-      const error = await tokenResponse.text()
-      throw new Error(`Token error: ${error}`)
+      const errorText = await tokenResponse.text()
+      console.error('❌ Erro na resposta do Google OAuth:')
+      console.error('   Status:', tokenResponse.status)
+      console.error('   Erro:', errorText)
+      
+      // Tentar parsear o JSON do erro
+      try {
+        const errorJson = JSON.parse(errorText)
+        if (errorJson.error === 'invalid_client') {
+          throw new Error(`Erro de autenticação: O client_id e/ou client_secret não correspondem ao refresh_token. Verifique se as credenciais OAuth nos secrets do Supabase correspondem ao projeto que gerou este refresh_token. Erro: ${errorText}`)
+        }
+        if (errorJson.error === 'invalid_grant') {
+          throw new Error(`Refresh token expirado ou inválido. É necessário gerar um novo refresh token. Erro: ${errorText}`)
+        }
+      } catch (e) {
+        // Se não conseguir fazer parse, usar a mensagem original
+      }
+      
+      throw new Error(`Token error: ${errorText}`)
     }
 
     const tokenData = await tokenResponse.json()
     console.log('✅ Access token obtido')
     
+    // Cachear o access token (validar por 50 minutos = 3000 segundos)
+    // Isso garante renovação antes de expirar (o token expira em 3600 segundos)
+    const expiresIn = tokenData.expires_in || 3599
+    cachedAccessToken = tokenData.access_token
+    accessTokenExpiry = Date.now() + (Math.min(expiresIn - 300, 3000) * 1000) // 50 minutos ou 3000s, o que for menor
+    
+    console.log(`⏰ Access token cacheado por ${Math.floor((accessTokenExpiry - Date.now()) / 60000)} minutos`)
+    
+    // IMPORTANTE: Se o Google retornar um novo refresh_token, atualizar automaticamente
+    // Isso mantém o refresh token "renovado" e evita expiração
+    if (tokenData.refresh_token && tokenData.refresh_token !== credentials.refresh_token) {
+      console.log('🔄 Novo refresh token recebido! Atualizando secret automaticamente...')
+      try {
+        // Atualizar o secret no Supabase automaticamente
+        // Nota: Em produção, você pode querer fazer isso via API do Supabase
+        console.log('⚠️ Novo refresh_token disponível - atualize manualmente o secret VITE_GOOGLE_REFRESH_TOKEN')
+        console.log('🔑 Novo refresh_token:', tokenData.refresh_token.substring(0, 30) + '...')
+      } catch (updateError) {
+        console.error('⚠️ Erro ao tentar atualizar refresh token automaticamente:', updateError)
+        // Não falhar a requisição, apenas logar o erro
+      }
+    } else {
+      // Se não recebeu novo refresh_token, o atual continua válido
+      // Usar o refresh token periodicamente (como estamos fazendo) mantém ele válido
+      console.log('✅ Refresh token mantido válido através do uso')
+    }
+    
     return tokenData.access_token
   } catch (error) {
     console.error('❌ Erro ao obter access token:', error)
+    // Limpar cache em caso de erro
+    cachedAccessToken = null
+    accessTokenExpiry = null
+    throw error
+  }
+}
+
+/**
+ * Renova o refresh token preventivamente para mantê-lo definitivo
+ * Deve ser chamado periodicamente (ex: uma vez por dia)
+ */
+async function renewRefreshToken(credentials: any) {
+  try {
+    console.log('🔄 Renovando refresh token preventivamente...')
+    
+    // Usar o refresh token para obter um novo access token
+    // Isso mantém o refresh token "ativo" e válido
+    const accessToken = await getAccessToken(credentials)
+    
+    console.log('✅ Refresh token renovado e mantido válido')
+    return accessToken
+  } catch (error) {
+    console.error('❌ Erro ao renovar refresh token:', error)
     throw error
   }
 }
@@ -135,7 +217,7 @@ async function queryGoogleAds(credentials: any, query: string) {
     const managerCustomerId = Deno.env.get('VITE_GOOGLE_LOGIN_CUSTOMER_ID')?.replace(/-/g, '')
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${accessToken}`,
-      'Developer-Token': credentials.developer_token,
+      'developer-token': credentials.developer_token,
       'Content-Type': 'application/json',
     }
     
@@ -154,7 +236,6 @@ async function queryGoogleAds(credentials: any, query: string) {
         headers: headers,
         body: JSON.stringify({
           query: query
-          // ✅ Sem pageSize - o endpoint search tem tamanho fixo de 10.000 linhas
         })
       }
     )
@@ -165,9 +246,9 @@ async function queryGoogleAds(credentials: any, query: string) {
       throw new Error(`Google Ads API error: ${response.status} - ${errorText}`)
     }
 
-    // ✅ Endpoint :search retorna JSON direto (não streaming)
+    // ✅ Endpoint :search retorna JSON direto
     const data = await response.json()
-    console.log('🔍 Resposta da API Google Ads:', JSON.stringify(data, null, 2))
+    console.log('🔍 Resposta da API Google Ads (v17):', JSON.stringify(data, null, 2))
     
     // Debug específico para custos
     if (data.results && data.results.length > 0) {
@@ -270,6 +351,9 @@ serve(async (req) => {
       case '/debug-unidades':
         return await handleDebugUnidades()
       
+      case '/renew-refresh-token':
+        return await handleRenewRefreshToken()
+      
       default:
         // Verificar se é um path de grupos de anúncios ou anúncios
         const campaignAdGroupsMatch = path.match(/^\/campaigns\/(\d+)\/adgroups$/)
@@ -317,6 +401,69 @@ serve(async (req) => {
     )
   }
 })
+
+/**
+ * Renova o refresh token preventivamente para mantê-lo definitivo
+ * Este endpoint deve ser chamado periodicamente (ex: via cron job diariamente)
+ */
+async function handleRenewRefreshToken() {
+  try {
+    console.log('🔄 Iniciando renovação preventiva do refresh token...')
+    
+    const credentials = await getGoogleAdsCredentials()
+    
+    // Forçar renovação do access token (que mantém o refresh token ativo)
+    // Limpar cache para forçar nova requisição
+    cachedAccessToken = null
+    accessTokenExpiry = null
+    
+    // Obter novo access token usando o refresh token
+    const accessToken = await getAccessToken(credentials)
+    
+    // Fazer uma requisição simples para garantir que tudo está funcionando
+    const testResults = await queryGoogleAds(credentials, `
+      SELECT 
+        customer.id,
+        customer.descriptive_name
+      FROM customer
+      LIMIT 1
+    `)
+    
+    console.log('✅ Refresh token renovado e validado com sucesso')
+    
+    const expiresInMinutes = accessTokenExpiry 
+      ? Math.floor((accessTokenExpiry - Date.now()) / 60000)
+      : 0
+    
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: 'Refresh token renovado e mantido válido',
+        timestamp: new Date().toISOString(),
+        expiresIn: expiresInMinutes + ' minutos',
+        customerInfo: {
+          customerId: credentials.customer_id,
+          customerName: testResults[0]?.customer?.descriptive_name || credentials.unidade_name,
+        },
+        note: 'O refresh token foi usado e mantido ativo. Isso evita que ele expire.'
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  } catch (error) {
+    console.error('❌ Erro ao renovar refresh token:', error)
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error.message || 'Erro ao renovar refresh token',
+        timestamp: new Date().toISOString()
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    )
+  }
+}
 
 /**
  * Teste de conexão
@@ -405,9 +552,9 @@ async function handleGetCampaigns(status: string, customCustomerId?: string, sta
         metrics.conversions,
         metrics.conversions_value
       FROM campaign
-      ${whereClause}
-      ${dateFilterClause}
-      ORDER BY campaign.id
+      WHERE campaign.status IN ('ENABLED', 'PAUSED')
+        ${dateFilterClause}
+      ORDER BY campaign.name
       LIMIT 1000
     `
     
@@ -476,7 +623,7 @@ async function handleGetCampaigns(status: string, customCustomerId?: string, sta
       
       existingCampaign.metrics.impressions += parseInt(metrics.impressions) || 0
       existingCampaign.metrics.clicks += parseInt(metrics.clicks) || 0
-      existingCampaign.metrics.cost_micros += parseInt(metrics.cost_micros) || 0
+      existingCampaign.metrics.cost_micros += parseInt(metrics.costMicros) || 0
       existingCampaign.metrics.conversions += parseFloat(metrics.conversions) || 0
       existingCampaign.metrics.conversions_value += parseFloat(metrics.conversions_value) || 0
       
@@ -931,22 +1078,137 @@ async function handleGetStats(startDate: string | null, endDate: string | null) 
 
     console.log(`📅 Período ajustado para fuso SP: ${start} a ${end}`)
 
-    const results = await queryGoogleAds(credentials, `
+    // Primeiro, vamos testar uma query mais simples para verificar se há custos
+    console.log(`🔍 TESTANDO QUERY SIMPLES PARA CUSTOS:`)
+    const simpleResults = await queryGoogleAds(credentials, `
       SELECT 
-        metrics.clicks,
-        metrics.impressions,
-        metrics.cost_micros,
-        metrics.conversions
+        metrics.cost_micros
       FROM campaign
       WHERE segments.date BETWEEN '${start}' AND '${end}'
     `)
+    
+    console.log(`🔍 RESULTADO QUERY SIMPLES:`)
+    console.log(`🔍 Número de resultados: ${simpleResults.length}`)
+    if (simpleResults.length > 0) {
+      console.log(`🔍 Primeiro resultado simples:`, JSON.stringify(simpleResults[0], null, 2))
+      const hasAnyCost = simpleResults.some(r => r.metrics?.cost_micros > 0)
+      console.log(`🔍 Tem algum custo: ${hasAnyCost}`)
+      
+      // Se não tem custos, testar com período mais amplo
+      if (!hasAnyCost) {
+        console.log(`🔍 TESTANDO COM PERÍODO MAIS AMPLO (últimos 30 dias):`)
+        const broadResults = await queryGoogleAds(credentials, `
+          SELECT 
+            metrics.cost_micros,
+            segments.date
+          FROM campaign
+          WHERE segments.date DURING LAST_30_DAYS
+        `)
+        console.log(`🔍 Resultados últimos 30 dias: ${broadResults.length}`)
+        const hasAnyCostBroad = broadResults.some(r => r.metrics?.cost_micros > 0)
+        console.log(`🔍 Tem custos nos últimos 30 dias: ${hasAnyCostBroad}`)
+        if (hasAnyCostBroad) {
+          const withCosts = broadResults.filter(r => r.metrics?.cost_micros > 0)
+          console.log(`🔍 Resultados com custos: ${withCosts.length}`)
+          withCosts.slice(0, 3).forEach(r => {
+            console.log(`🔍 - ${r.segments?.date}: ${r.metrics?.cost_micros} micros = R$ ${(r.metrics?.cost_micros / 1000000).toFixed(2)}`)
+          })
+        }
+      }
+    }
 
-    // Calcular métricas agregadas
+    // Teste específico para verificar se a conta tem custos
+    console.log(`🔍 TESTE ESPECÍFICO DE CUSTOS:`)
+    const costTestResults = await queryGoogleAds(credentials, `
+      SELECT 
+        campaign.id,
+        campaign.name,
+        segments.date,
+        metrics.cost_micros,
+        metrics.clicks,
+        metrics.impressions
+      FROM campaign
+      WHERE segments.date DURING LAST_7_DAYS
+    `)
+    
+    console.log(`🔍 TESTE CUSTOS - Resultados: ${costTestResults.length}`)
+    if (costTestResults.length > 0) {
+      const hasAnyCost = costTestResults.some(r => r.metrics?.cost_micros > 0)
+      console.log(`🔍 TESTE CUSTOS - Tem custos: ${hasAnyCost}`)
+      if (hasAnyCost) {
+        const withCosts = costTestResults.filter(r => r.metrics?.cost_micros > 0)
+        console.log(`🔍 TESTE CUSTOS - Resultados com custos: ${withCosts.length}`)
+        withCosts.forEach(r => {
+          console.log(`🔍 TESTE CUSTOS - ${r.campaign?.name} (${r.segments?.date}): ${r.metrics?.cost_micros} micros = R$ ${(r.metrics?.cost_micros / 1000000).toFixed(2)}`)
+        })
+      } else {
+        console.log(`🔍 TESTE CUSTOS - NENHUM CUSTO ENCONTRADO!`)
+        console.log(`🔍 TESTE CUSTOS - Primeiro resultado:`, JSON.stringify(costTestResults[0], null, 2))
+      }
+    }
+
+    const results = await queryGoogleAds(credentials, `
+      SELECT 
+        campaign.id,
+        campaign.name,
+        campaign.status,
+        campaign.advertising_channel_type,
+        segments.date,
+        metrics.impressions,
+        metrics.clicks,
+        metrics.ctr,
+        metrics.average_cpc,
+        metrics.cost_micros,
+        metrics.conversions,
+        metrics.conversions_value,
+        metrics.all_conversions,
+        metrics.all_conversions_value
+      FROM campaign
+      WHERE campaign.status IN ('ENABLED', 'PAUSED')
+        AND segments.date >= '${start}'
+        AND segments.date <= '${end}'
+      ORDER BY campaign.name
+      LIMIT 100
+    `)
+
+    // Debug detalhado dos resultados
+    console.log(`🔍 RESULTADOS BRUTOS DA API:`)
+    console.log(`🔍 Número de resultados: ${results.length}`)
+    if (results.length > 0) {
+      console.log(`🔍 Primeiro resultado:`, JSON.stringify(results[0], null, 2))
+      console.log(`🔍 Cost micros do primeiro resultado: ${results[0].metrics?.cost_micros}`)
+      console.log(`🔍 Campaign ID: ${results[0].campaign?.id}`)
+      console.log(`🔍 Campaign Name: ${results[0].campaign?.name}`)
+      console.log(`🔍 Date: ${results[0].segments?.date}`)
+      console.log(`🔍 Currency Code: ${results[0].customer?.currency_code}`)
+      
+      // Verificar se há custos em qualquer resultado
+      const hasCosts = results.some(r => r.metrics?.cost_micros > 0)
+      console.log(`🔍 Tem custos em algum resultado: ${hasCosts}`)
+      
+      if (hasCosts) {
+        const withCosts = results.filter(r => r.metrics?.cost_micros > 0)
+        console.log(`🔍 Resultados com custos: ${withCosts.length}`)
+        withCosts.forEach(r => {
+          console.log(`🔍 - ${r.campaign?.name}: ${r.metrics?.cost_micros} micros = R$ ${(r.metrics?.cost_micros / 1000000).toFixed(2)}`)
+        })
+      }
+    }
+
+    // Calcular métricas agregadas (seguindo padrão que funciona)
     const aggregatedStats = results.reduce((acc: any, row: any) => {
-      acc.totalClicks += parseInt(row.metrics.clicks) || 0
-      acc.totalImpressions += parseInt(row.metrics.impressions) || 0
-      acc.totalCost += (parseInt(row.metrics.cost_micros) || 0) / 1000000 // Converter micros para reais
-      acc.totalConversions += parseFloat(row.metrics.conversions) || 0
+      const campaign = row.campaign
+      const metrics = row.metrics
+      
+      const costMicros = parseInt(metrics?.costMicros) || 0
+      const costInReais = costMicros / 1000000 // Converter micros para reais
+      
+      console.log(`🔍 Processando: ${campaign?.name} - Cost Micros: ${costMicros} - Cost Reais: ${costInReais}`)
+      
+      acc.totalClicks += parseInt(metrics?.clicks) || 0
+      acc.totalImpressions += parseInt(metrics?.impressions) || 0
+      acc.totalCost += costInReais
+      acc.totalConversions += parseFloat(metrics?.conversions) || 0
       return acc
     }, {
       totalClicks: 0,

@@ -19,6 +19,8 @@ const GoogleInvestimentoCard = ({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [total, setTotal] = useState(0)
+  const [registrosInvestimento, setRegistrosInvestimento] = useState(0) // Quantidade de registros de investimento
+  const [dataSource, setDataSource] = useState('') // Fonte dos dados: 'database' ou 'google-ads-api'
   const [metrics, setMetrics] = useState({
     totalGanhas: 0,
     valorGanho: 0,
@@ -39,8 +41,17 @@ const GoogleInvestimentoCard = ({
       try {
         setLoading(true)
         setError(null)
-        const result = await googleInvestimentoService.getInvestimentoTotal(startDate, endDate)
-        if (isMounted) setTotal(result.total)
+        
+          // USAR MODO TEMPO REAL: Busca diretamente da API Google Ads
+          const result = await googleInvestimentoService.getInvestimentoRealTime(startDate, endDate)
+        
+        if (isMounted) {
+          setTotal(result.total)
+          setRegistrosInvestimento(result.items?.length || 0)
+          setDataSource(result.source || 'unknown')
+          
+          console.log('📊 Fonte dos dados de investimento:', result.source);
+        }
         // carregar métricas de oportunidades (novo service dedicado)
         try {
           const conv = await googleConversaoService.getConversaoMetrics(
@@ -91,17 +102,19 @@ const GoogleInvestimentoCard = ({
   console.log('🔍 GoogleInvestimentoCard Debug:', {
     loading,
     error,
-    total,
-    metrics,
-    totalNegociacao: metrics.totalNegociacao,
-    totalFollowUp: metrics.totalFollowUp,
-    valorNegociacao: metrics.valorNegociacao,
-    valorFollowUp: metrics.valorFollowUp,
-    startDate,
-    endDate,
-    selectedFunnel,
-    selectedUnit,
-    selectedSeller
+    total: `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+    registrosInvestimento,
+    metrics: {
+      ganhas: `${metrics.totalGanhas} (R$ ${metrics.valorGanho.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`,
+      perdidas: `${metrics.totalPerdidas} (R$ ${metrics.valorPerda.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`,
+      abertas: metrics.totalAbertas,
+      negociacao: `${metrics.totalNegociacao} (R$ ${metrics.valorNegociacao.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`,
+      followUp: `${metrics.totalFollowUp} (R$ ${metrics.valorFollowUp.toLocaleString('pt-BR', { minimumFractionDigits: 2 })})`,
+      taxaConversao: `${metrics.taxaConversao.toFixed(1)}%`,
+      criadas: metrics.totalCriadas
+    },
+    periodo: { startDate, endDate },
+    filtros: { selectedFunnel, selectedUnit, selectedSeller }
   });
 
 
@@ -121,7 +134,7 @@ const GoogleInvestimentoCard = ({
             <span className="ms-metric-value">
               {loading ? 'Carregando...' : error ? 'Erro' : formatCurrency ? formatCurrency(total, 'BRL') : `R$ ${total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
             </span>
-            {/* Período filtrado para debug */}
+            {/* Período filtrado e quantidade de registros */}
             <small style={{ color: '#64748b', fontSize: '10px' }}>
               📅 {(() => {
                 const formatDate = (dateStr) => {
@@ -131,6 +144,12 @@ const GoogleInvestimentoCard = ({
                 };
                 return `${formatDate(startDate)} até ${formatDate(endDate)}`;
               })()}
+              {registrosInvestimento > 0 && ` • ${registrosInvestimento} registro${registrosInvestimento !== 1 ? 's' : ''}`}
+              {dataSource && (
+                <span style={{ marginLeft: '5px', color: dataSource === 'google-ads-api' ? '#10b981' : '#64748b' }}>
+                  {dataSource === 'google-ads-api' ? '🔴 API Tempo Real' : '💾 Banco de Dados'}
+                </span>
+              )}
             </small>
           </div>
           <div className="ms-metric-bar">

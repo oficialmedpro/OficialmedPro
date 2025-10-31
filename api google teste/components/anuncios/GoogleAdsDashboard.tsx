@@ -16,6 +16,7 @@ import {
   ArrowUpDown
 } from 'lucide-react';
 import { useGoogleAds } from '../../hooks/useGoogleAds';
+import { googleAdsService } from '../../services/googleAdsService';
 import { useAuth } from '../../hooks/useAuth';
 import GoogleAdsChart from '../charts/GoogleAdsChart';
 import './GoogleAdsDashboard.css';
@@ -219,34 +220,19 @@ const GoogleAdsDashboard: React.FC<GoogleAdsDashboardProps> = ({
     validateConnection
   } = useGoogleAds();
 
-  // Usar campanhas do hook ou campanhas filtradas
-  const allCampaigns = campaigns || filteredCampaigns || [];
+  // Usar campanhas filtradas se fornecidas, caso contrário usar campanhas vazias
+  const campaigns = filteredCampaigns || [];
 
   // Calcular métricas principais
   const metrics = useMemo(() => {
-    // Se temos estatísticas do hook, usar elas
-    if (googleAdsStats) {
-      return {
-        totalSpent: googleAdsStats.gastoTotal || 0,
-        totalImpressions: googleAdsStats.impressions || 0,
-        totalClicks: googleAdsStats.clicks || 0,
-        totalConversions: googleAdsStats.totalConversions || 0,
-        ctr: googleAdsStats.ctr || 0,
-        cpc: googleAdsStats.cpc || 0,
-        conversionRate: googleAdsStats.conversionRate || 0,
-        costPerConversion: (googleAdsStats.totalConversions > 0) ? (googleAdsStats.gastoTotal / googleAdsStats.totalConversions) : 0
-      };
-    }
-
-    // Fallback para calcular das campanhas
-    const totalSpent = allCampaigns.reduce((sum, campaign) => {
+    const totalSpent = campaigns.reduce((sum, campaign) => {
       const cost = campaign.metrics?.cost_micros ? campaign.metrics.cost_micros / 1000000 : 0;
       return sum + cost;
     }, 0);
     
-    const totalImpressions = allCampaigns.reduce((sum, campaign) => sum + (campaign.metrics?.impressions || 0), 0);
-    const totalClicks = allCampaigns.reduce((sum, campaign) => sum + (campaign.metrics?.clicks || 0), 0);
-    const totalConversions = allCampaigns.reduce((sum, campaign) => sum + (campaign.metrics?.conversions || 0), 0);
+    const totalImpressions = campaigns.reduce((sum, campaign) => sum + (campaign.metrics?.impressions || 0), 0);
+    const totalClicks = campaigns.reduce((sum, campaign) => sum + (campaign.metrics?.clicks || 0), 0);
+    const totalConversions = campaigns.reduce((sum, campaign) => sum + (campaign.metrics?.conversions || 0), 0);
 
     const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
     const cpc = totalClicks > 0 ? totalSpent / totalClicks : 0;
@@ -263,11 +249,11 @@ const GoogleAdsDashboard: React.FC<GoogleAdsDashboardProps> = ({
       conversionRate,
       costPerConversion
     };
-  }, [allCampaigns, googleAdsStats]);
+  }, [campaigns]);
 
   // Top 5 campanhas por conversões
   const topAds = useMemo(() => {
-    return allCampaigns
+    return campaigns
       .filter(campaign => campaign.metrics?.conversions)
       .map(campaign => ({
         name: campaign.name && campaign.name.length > 30 ? campaign.name.substring(0, 30) + '...' : campaign.name || 'Sem nome',
@@ -276,7 +262,7 @@ const GoogleAdsDashboard: React.FC<GoogleAdsDashboardProps> = ({
       .filter(ad => ad.conversions > 0)
       .sort((a, b) => b.conversions - a.conversions)
       .slice(0, 5);
-  }, [allCampaigns]);
+  }, [campaigns]);
 
   // Calcular melhor dia baseado nos dados das campanhas (simulado)
   const bestDay = useMemo(() => {
@@ -333,39 +319,112 @@ const GoogleAdsDashboard: React.FC<GoogleAdsDashboardProps> = ({
     testing: false
   });
 
-  // Atualizar estatísticas quando os dados mudarem
+  // Calcular estatísticas baseadas nas campanhas filtradas
   useEffect(() => {
-    if (googleAdsStats) {
-      console.log('📊 Atualizando estatísticas com dados da API:', googleAdsStats);
-      
+    if (filteredCampaigns && filteredCampaigns.length > 0) {
+      const stats = filteredCampaigns.reduce((acc, campaign) => {
+        if (campaign.metrics) {
+          acc.totalSpent += (campaign.metrics.cost_micros || 0) / 1000000; // Converter micros para valor real
+          acc.totalImpressions += campaign.metrics.impressions || 0;
+          acc.totalClicks += campaign.metrics.clicks || 0;
+          acc.totalConversions += campaign.metrics.conversions || 0;
+        }
+        return acc;
+      }, {
+        totalSpent: 0,
+        totalImpressions: 0,
+        totalClicks: 0,
+        totalConversions: 0
+      });
+
       const newStatistics: GoogleAdsStatistics = {
+        ...stats,
+        averageCTR: stats.totalImpressions > 0 ? (stats.totalClicks / stats.totalImpressions) * 100 : 0,
+        averageCPC: stats.totalClicks > 0 ? stats.totalSpent / stats.totalClicks : 0,
+        averageConversionRate: stats.totalClicks > 0 ? (stats.totalConversions / stats.totalClicks) * 100 : 0,
+        totalCampaigns: filteredCampaigns.length
+      };
+
+      setStatistics(newStatistics);
+    } else if (googleAdsStats) {
+      // Usar estatísticas do hook se não houver campanhas filtradas
+      setStatistics({
         totalSpent: googleAdsStats.gastoTotal || 0,
         totalImpressions: googleAdsStats.impressions || 0,
         totalClicks: googleAdsStats.clicks || 0,
         totalConversions: googleAdsStats.totalConversions || 0,
         averageCTR: googleAdsStats.ctr || 0,
-        averageCPC: googleAdsStats.cpc || 0,
-        averageConversionRate: googleAdsStats.conversionRate || 0,
-        totalCampaigns: allCampaigns.length
-      };
-
-      setStatistics(newStatistics);
+        averageCPC: googleAdsStats.clicks > 0 ? (googleAdsStats.gastoTotal || 0) / googleAdsStats.clicks : 0,
+        averageConversionRate: googleAdsStats.clicks > 0 ? ((googleAdsStats.totalConversions || 0) / googleAdsStats.clicks) * 100 : 0,
+        totalCampaigns: googleAdsStats.dadosCampanhas?.total || 0
+      });
     }
-  }, [googleAdsStats, allCampaigns]);
+  }, [filteredCampaigns, googleAdsStats]);
 
+  // Estado para armazenar métricas detalhadas
+  const [detailedMetrics, setDetailedMetrics] = useState<any>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
 
-  // Carregar dados quando o intervalo de datas mudar
+  // Função para buscar métricas detalhadas via Google Ads Service
+  const fetchDetailedMetrics = async () => {
+    if (!dateRange.since || !dateRange.until) return;
+
+    setMetricsLoading(true);
+    try {
+      console.log('📊 Buscando métricas detalhadas via Google Ads Service...');
+      
+      // Usar o serviço do Google Ads para buscar estatísticas
+      const stats = await googleAdsService.getAllGoogleAdsStats(dateRange);
+      
+      console.log('✅ Estatísticas carregadas via Google Ads Service:', stats);
+      
+      // Calcular métricas detalhadas a partir das estatísticas
+      const totalCampaigns = filteredCampaigns.length;
+      const averageCTR = stats.impressions > 0 ? (stats.clicks / stats.impressions) * 100 : 0;
+      const averageCPC = stats.clicks > 0 ? stats.gastoTotal / stats.clicks : 0;
+      const averageConversionRate = stats.clicks > 0 ? (stats.totalConversions / stats.clicks) * 100 : 0;
+      
+      // Atualizar statistics com dados reais
+      setStatistics({
+        totalSpent: stats.gastoTotal,
+        totalImpressions: stats.impressions,
+        totalClicks: stats.clicks,
+        totalConversions: stats.totalConversions,
+        averageCTR: averageCTR,
+        averageCPC: averageCPC,
+        averageConversionRate: averageConversionRate,
+        totalCampaigns: totalCampaigns
+      });
+      
+      // Simular estrutura de dados para compatibilidade
+      setDetailedMetrics({
+        generalStats: {
+          totalCost: stats.gastoTotal,
+          totalImpressions: stats.impressions,
+          totalClicks: stats.clicks,
+          totalConversions: stats.totalConversions,
+          averageCtr: averageCTR,
+          averageCpc: averageCPC,
+          averageConversionRate: averageConversionRate,
+          campaignCount: totalCampaigns
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ Erro ao buscar métricas via Google Ads Service:', error);
+    } finally {
+      setMetricsLoading(false);
+    }
+  };
+
+  // Carregar métricas detalhadas quando o intervalo de datas mudar
   useEffect(() => {
     if (isConfigured && dateRange.since && dateRange.until) {
-      console.log('🔄 Carregando dados do Google Ads para período:', dateRange);
-      
-      // Carregar estatísticas
+      fetchDetailedMetrics();
+      // Manter chamada original como fallback
       getGoogleAdsStats(dateRange);
-      
-      // Carregar campanhas com métricas
-      getCampaignsWithMetrics(dateRange);
     }
-  }, [dateRange, isConfigured, getGoogleAdsStats, getCampaignsWithMetrics]);
+  }, [dateRange, isConfigured, getGoogleAdsStats]);
 
   const handleTestConnection = async () => {
     setConnectionStatus(prev => ({ ...prev, testing: true }));
@@ -386,6 +445,66 @@ const GoogleAdsDashboard: React.FC<GoogleAdsDashboardProps> = ({
     }
   };
 
+  const handleTestGoogleAdsAPI = async () => {
+    try {
+      console.log('🧪 INICIANDO TESTE BACKEND GOOGLE ADS API');
+      console.log('===========================================');
+      console.log('🔧 Usando APENAS Backend - Edge functions REMOVIDAS');
+      console.log('🌐 Backend deve estar rodando em localhost:3003');
+      
+      // Teste 1: Validação de Conexão via Hook
+      console.log('🔍 Teste 1: Validação de conexão via backend...');
+      const result1 = await validateGoogleConnection('ACCOUNT_1');
+      console.log('📊 Resultado Teste 1 (validateConnection):', result1);
+
+      // Teste 2: Buscar campanhas via Hook
+      console.log('🔍 Teste 2: Buscar campanhas via backend...');
+      await refreshGoogleCampaigns('ACCOUNT_1');
+      console.log('📊 Campanhas carregadas:', googleCampaigns.length);
+
+      // Teste 3: Buscar campanhas com métricas via Hook
+      console.log('🔍 Teste 3: Buscar campanhas com métricas via backend...');
+      
+      await refreshGoogleCampaignsWithMetrics(dateRange, 'ACCOUNT_1');
+      console.log('📊 Campanhas com métricas carregadas para período:', dateRange);
+
+      // Teste 4: Buscar estatísticas via Hook
+      console.log('🔍 Teste 4: Buscar estatísticas via backend...');
+      await getGoogleAdsStats(dateRange, undefined, 'ACCOUNT_1');
+      console.log('📊 Estatísticas carregadas:', googleAdsStats);
+
+      // Teste 5: Teste direto do endpoint backend
+      console.log('🔍 Teste 5: Teste direto do endpoint backend...');
+      try {
+        const response = await fetch('http://localhost:3003/api/google-ads/campaigns/metrics', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ dateRange })
+        });
+        
+        const data = await response.json();
+        console.log('📊 Resposta direta do backend:', {
+          success: data.success,
+          count: data.count,
+          hasData: !!data.data,
+          error: data.error
+        });
+      } catch (fetchError) {
+        console.log('❌ Teste direto do backend falhou:', fetchError.message);
+      }
+
+      console.log('✅ TESTE COMPLETO FINALIZADO');
+      console.log('📋 Resumo: Todos os testes foram executados via BACKEND');
+      console.log('🔧 O sistema agora usa APENAS o backend localhost:3003');
+      console.log('🚫 Edge functions foram REMOVIDAS completamente');
+      
+    } catch (error) {
+      console.error('💥 Erro durante o teste:', error);
+      console.log('💡 Certifique-se de que o backend está rodando em localhost:3003');
+    }
+  };
 
   // Verificar permissões
   if (userLevel === 'loja') {
@@ -434,7 +553,7 @@ const GoogleAdsDashboard: React.FC<GoogleAdsDashboardProps> = ({
         <div className="google-distribution-metrics">
           <h3>DISTRIBUIÇÃO</h3>
           <div className="google-metrics-grid">
-            {loading && allCampaigns.length === 0 ? (
+            {loading && campaigns.length === 0 ? (
               // Loading skeleton para cards
               Array.from({ length: 6 }, (_, i) => (
                 <div key={i} className="google-metric-card google-loading-card">
@@ -496,7 +615,7 @@ const GoogleAdsDashboard: React.FC<GoogleAdsDashboardProps> = ({
         <div className="google-left-content">
           {/* Gráfico temporal - usando o novo componente */}
           <GoogleAdsChart 
-            campaigns={allCampaigns}
+            campaigns={campaigns}
             dateRange={dateRange}
             loading={loading}
           />
@@ -504,7 +623,7 @@ const GoogleAdsDashboard: React.FC<GoogleAdsDashboardProps> = ({
 
         {/* Painel lateral direito */}
         <RightPanel
-          campaigns={allCampaigns}
+          campaigns={campaigns}
           topAds={topAds}
           bestDay={bestDay}
         />

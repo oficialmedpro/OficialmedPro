@@ -1,0 +1,265 @@
+.campaignFilters {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(0, 212, 255, 0.1) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  backdrop-filter: blur(10px);
+}
+
+.filtersHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.filtersHeader h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+}
+
+.filtersCount {
+  background: linear-gradient(135deg, #8b5cf6 0%, #00d4ff 100%);
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.filtersGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filterLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #a1a1aa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filterLabel svg {
+  color: #8b5cf6;
+}
+
+.searchInput,
+.filterSelect {
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem;
+  color: #ffffff;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+}
+
+.searchInput::placeholder {
+  color: #71717a;
+}
+
+.searchInput:focus,
+.filterSelect:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(139, 92, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.searchInput:hover,
+.filterSelect:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.filterSelect option {
+  background: #1a1a2e;
+  color: #ffffff;
+}
+
+.insightsControls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(139, 92, 246, 0.2);
+  flex-wrap: wrap;
+}
+
+.insightsToggle {
+  flex-shrink: 0;
+}
+
+.toggleButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(0, 212, 255, 0.1) 100%);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #ffffff;
+  padding: 0.75rem 1.5rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.toggleButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.2) 0%, rgba(0, 212, 255, 0.2) 100%);
+  border-color: rgba(139, 92, 246, 0.5);
+  transform: translateY(-2px);
+}
+
+.toggleButton.active {
+  background: linear-gradient(135deg, #8b5cf6 0%, #00d4ff 100%);
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+}
+
+.toggleButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dateRangeControl {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 300px;
+}
+
+.dateInputs {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dateInput {
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem;
+  color: #ffffff;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+  flex: 1;
+}
+
+.dateInput:focus {
+  outline: none;
+  border-color: rgba(139, 92, 246, 0.5);
+  background: rgba(139, 92, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.dateInput:hover {
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+.dateInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dateSeparator {
+  color: #a1a1aa;
+  font-size: 0.875rem;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.clearFilters {
+  display: flex;
+  justify-content: center;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(139, 92, 246, 0.1);
+}
+
+.clearButton {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #fca5a5;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.clearButton:hover {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fecaca;
+  transform: translateY(-1px);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .campaignFilters {
+    padding: 1rem;
+  }
+
+  .filtersGrid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .insightsControls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .dateRangeControl {
+    min-width: auto;
+  }
+
+  .dateInputs {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .dateSeparator {
+    align-self: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .campaignFilters {
+    padding: 0.75rem;
+  }
+
+  .filtersHeader {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+
+  .filtersCount {
+    align-self: center;
+  }
+
+  .toggleButton {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
