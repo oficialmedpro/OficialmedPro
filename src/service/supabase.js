@@ -30,10 +30,18 @@ export const getSupabaseWithSchema = (schema) => {
   
   // Verificar se já existe um cliente para este schema
   if (supabaseClients.has(schemaKey)) {
+    console.log('✅ [getSupabaseWithSchema] Cliente já existe no cache para schema:', schemaKey);
     return supabaseClients.get(schemaKey);
   }
   
-  console.log('🔧 Criando cliente Supabase com schema:', schemaKey)
+  console.log('🔧 [getSupabaseWithSchema] Criando novo cliente Supabase...');
+  console.log('🔍 [getSupabaseWithSchema] Configuração:', {
+    schema: schemaKey,
+    url: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'NÃO DEFINIDA',
+    hasServiceKey: !!supabaseServiceKey,
+    serviceKeyLength: supabaseServiceKey?.length || 0
+  });
+  
   const client = createClient(supabaseUrl, supabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
@@ -50,6 +58,12 @@ export const getSupabaseWithSchema = (schema) => {
         'Content-Profile': schemaKey
       }
     }
+  });
+  
+  console.log('✅ [getSupabaseWithSchema] Cliente criado com sucesso');
+  console.log('🔍 [getSupabaseWithSchema] Headers configurados:', {
+    'Accept-Profile': schemaKey,
+    'Content-Profile': schemaKey
   });
   
   // Armazenar no cache

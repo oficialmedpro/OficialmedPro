@@ -7,11 +7,13 @@ import Sidebar from '../components/Sidebar';
 import { translations } from '../data/translations';
 import { supabase } from '../service/supabase';
 import { updateMarketData } from '../utils/utils';
+import { useAuth } from '../hooks/useAuth';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 const ClientesConsolidadosPage = ({ onLogout }) => {
+  const { user } = useAuth();
   // Estados do dashboard
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -50,6 +52,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const [faltaNoPrimeData, setFaltaNoPrimeData] = useState([]);
   const [faltaNoSprintData, setFaltaNoSprintData] = useState([]);
   const [duplicadosData, setDuplicadosData] = useState([]);
+  const [dupType, setDupType] = useState('email'); // 'cpf' | 'email' | 'phone'
+  const [dupModalOpen, setDupModalOpen] = useState(false);
+  const [dupModalIds, setDupModalIds] = useState([]);
+  const [dupModalRows, setDupModalRows] = useState([]);
   const [qualidadeData, setQualidadeData] = useState([]);
   const [baixaQualidadeData, setBaixaQualidadeData] = useState([]);
   const [aniversariantesMesData, setAniversariantesMesData] = useState([]);
@@ -71,6 +77,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   
   // Estados de Ativação (Nunca Compraram)
   const [ativacaoGeralData, setAtivacaoGeralData] = useState(null);
+  const [duplicadosCount, setDuplicadosCount] = useState(0);
   const [ativacaoPrimeData, setAtivacaoPrimeData] = useState([]);
   const [ativacaoForaPrimeData, setAtivacaoForaPrimeData] = useState([]);
   const [ativacaoComOrcamentoData, setAtivacaoComOrcamentoData] = useState([]);
@@ -88,10 +95,11 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const [monitoramento129Data, setMonitoramento129Data] = useState([]);
   const [monitoramento3059Data, setMonitoramento3059Data] = useState([]);
   const [monitoramento6090Data, setMonitoramento6090Data] = useState([]);
+  const [ativacaoStats, setAtivacaoStats] = useState([]);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(100);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
   const [sortField, setSortField] = useState(null);
   const [sortDirection, setSortDirection] = useState('desc');
   const [filters, setFilters] = useState({
@@ -115,9 +123,19 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const [exportHistory, setExportHistory] = useState({}); // {leadId: [{motivo, observacao, data}]}
   const [exportFilter, setExportFilter] = useState('all'); // 'all' | 'exported' | 'never-exported'
   const [nameFilter, setNameFilter] = useState('all'); // 'all' | 'incomplete' | 'validated'
+  const [duplicatesFilter, setDuplicatesFilter] = useState('all'); // 'all' | 'with-duplicates' | 'no-duplicates'
+  const [isLoadingDuplicates, setIsLoadingDuplicates] = useState(false);
   const [validatedNames, setValidatedNames] = useState({}); // {clienteId: nome_validado}
   const [showNameModal, setShowNameModal] = useState(false);
   const [selectedClientForName, setSelectedClientForName] = useState(null);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedHistoryLead, setSelectedHistoryLead] = useState(null);
+  const [showQualityModal, setShowQualityModal] = useState(false);
+  const [selectedQualityClient, setSelectedQualityClient] = useState(null);
+  const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
+  const [selectedDuplicatesClient, setSelectedDuplicatesClient] = useState(null);
+  const [duplicatesData, setDuplicatesData] = useState({}); // {clientId: [duplicates]}
+  const [selectedMasterLead, setSelectedMasterLead] = useState(null);
 
   // Estados do FilterBar (necessários para habilitar seleção nos dropdowns)
   const [selectedUnit, setSelectedUnit] = useState('all');
@@ -264,7 +282,12 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   // Filtro cliente para endereço quando existir o campo
   const filterClientSideIfNeeded = (rows) => {
     if (!filters.hasEndereco) return rows;
-    return rows.filter(r => (r.endereco || r.endereco_completo || r.logradouro) && String(r.endereco || r.endereco_completo || r.logradouro).trim() !== '');
+    return rows.filter(r => {
+      const rua = r.endereco || r.endereco_completo || r.endereco_rua || r.logradouro;
+      const cidadeEstado = (r.cidade && String(r.cidade).trim() !== '') && (r.estado && String(r.estado).trim() !== '');
+      const temRua = rua && String(rua).trim() !== '';
+      return temRua || cidadeEstado;
+    });
   };
 
   // ===== DDDs disponíveis (amostragem leve do banco) =====
@@ -420,12 +443,38 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const loadDuplicados = async () => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
-    const { data, count } = await supabase
-      .from('relatorio_duplicados')
-      .select('*', { count: 'exact' })
-      .range(start, end);
+    const viewMap = {
+      cpf: 'vw_dups_por_cpf',
+      email: 'vw_dups_por_email',
+      phone: 'vw_dups_por_phone'
+    };
+    const viewName = viewMap[dupType] || 'vw_dups_por_email';
+    const { data, count } = await supabase.from(viewName).select('*', { count: 'exact' }).range(start, end);
     setDuplicadosData(data || []);
     setTotalCount(count || 0);
+  };
+
+  useEffect(() => {
+    // quando trocar o tipo de duplicado dentro da aba, recarrega
+    if (activeTab === 'duplicados') {
+      loadDuplicados();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dupType, currentPage]);
+
+  const openDupDetails = async (ids) => {
+    try {
+      setDupModalIds(ids);
+      setDupModalOpen(true);
+      const { data } = await supabase
+        .from('clientes_mestre')
+        .select('*')
+        .in('id', ids);
+      setDupModalRows(data || []);
+    } catch (e) {
+      console.error('Erro ao carregar detalhes dos duplicados:', e);
+      setDupModalRows([]);
+    }
   };
 
   const loadQualidade = async () => {
@@ -583,6 +632,297 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     setAtivacaoGeralData(data);
   };
 
+  // Carrega total de duplicados (clientes presentes em múltiplas origens)
+  const loadDuplicadosCount = async () => {
+    try {
+      const { count, error } = await supabase
+        .schema('api')
+        .from('relatorio_duplicados')
+        .select('*', { count: 'exact', head: true });
+      if (error) throw error;
+      setDuplicadosCount(count || 0);
+    } catch (e) {
+      console.error('Erro ao carregar duplicados:', { message: e?.message, details: e?.details, hint: e?.hint, code: e?.code });
+      setDuplicadosCount(0);
+    }
+  };
+
+  useEffect(() => {
+    loadDuplicadosCount();
+  }, []);
+
+  // Função helper para ordenar: Exportado DESC → Nome ASC
+  const sortByExportedThenName = (data) => {
+    return data.sort((a, b) => {
+      const leadIdA = a.id || a.id_lead || a.id_cliente;
+      const leadIdB = b.id || b.id_lead || b.id_cliente;
+
+      const hasExportA = exportHistory[leadIdA]?.length > 0 ? 1 : 0;
+      const hasExportB = exportHistory[leadIdB]?.length > 0 ? 1 : 0;
+
+      // Primeiro critério: exportado (DESC - exportados primeiro)
+      if (hasExportB !== hasExportA) {
+        return hasExportB - hasExportA;
+      }
+
+      // Segundo critério: nome (ASC - alfabética)
+      const nomeA = (a.nome_completo || '').toLowerCase();
+      const nomeB = (b.nome_completo || '').toLowerCase();
+      return nomeA.localeCompare(nomeB, 'pt-BR');
+    });
+  };
+
+  // Função para calcular critérios de qualidade detalhados
+  const calculateQualityCriteria = (client) => {
+    const criteria = [
+      {
+        label: 'Email preenchido',
+        check: !!client.email && client.email.trim().length > 0,
+        value: client.email || '—'
+      },
+      {
+        label: 'CPF válido',
+        check: !!client.cpf && client.cpf.trim().length >= 11,
+        value: client.cpf || '—'
+      },
+      {
+        label: 'WhatsApp preenchido',
+        check: !!client.whatsapp && client.whatsapp.trim().length > 0,
+        value: client.whatsapp || '—'
+      },
+      {
+        label: 'Telefone preenchido',
+        check: !!client.telefone && client.telefone.trim().length > 0,
+        value: client.telefone || '—'
+      },
+      {
+        label: 'Data de nascimento preenchida',
+        check: !!client.data_nascimento,
+        value: client.data_nascimento ? new Date(client.data_nascimento).toLocaleDateString('pt-BR') : '—'
+      },
+      {
+        label: 'Endereço completo',
+        check: !!client.rua && !!client.cidade && !!client.estado && !!client.cep,
+        value: [client.rua, client.numero, client.bairro, client.cidade, client.estado, client.cep]
+          .filter(Boolean)
+          .join(', ') || '—'
+      }
+    ];
+
+    const totalCriteria = criteria.length;
+    const metCriteria = criteria.filter(c => c.check).length;
+    const percentual = Math.round((metCriteria / totalCriteria) * 100);
+
+    return { criteria, totalCriteria, metCriteria, percentual };
+  };
+
+  // Renderizar badge de qualidade clicável
+  const renderQualityBadge = (row) => {
+    const score = row.qualidade_dados || 0;
+    const qualityClass = score >= 80 ? 'high' : score >= 60 ? 'medium' : 'low';
+
+    return (
+      <span
+        className={`cc-quality-badge cc-quality-${qualityClass}`}
+        onClick={() => {
+          setSelectedQualityClient(row);
+          setShowQualityModal(true);
+        }}
+        style={{ cursor: 'pointer' }}
+      >
+        {score}/100
+      </span>
+    );
+  };
+
+  // Função para detectar duplicatas de um cliente
+  const detectDuplicates = async (client) => {
+    try {
+      const clientId = client.id || client.id_cliente || client.id_cliente_mestre;
+      if (!clientId) return [];
+
+      const duplicates = [];
+      const checkedIds = new Set([clientId]);
+
+      // Normalizar dados do cliente atual
+      const normEmail = client.email?.toLowerCase().trim();
+      const normCpf = client.cpf?.replace(/\D/g, '');
+      const normWhatsapp = client.whatsapp?.replace(/\D/g, '');
+      const normTelefone = client.telefone?.replace(/\D/g, '');
+
+      // Buscar duplicatas por CPF
+      if (normCpf && normCpf.length >= 11) {
+        const { data } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('*')
+          .neq('id', clientId)
+          .ilike('cpf', `%${normCpf}%`)
+          .eq('ativo', true)
+          .limit(10);
+
+        data?.forEach(dup => {
+          if (!checkedIds.has(dup.id)) {
+            duplicates.push({ ...dup, matchField: 'CPF', matchValue: normCpf });
+            checkedIds.add(dup.id);
+          }
+        });
+      }
+
+      // Buscar duplicatas por Email
+      if (normEmail && normEmail.length > 3) {
+        const { data } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('*')
+          .neq('id', clientId)
+          .ilike('email', normEmail)
+          .eq('ativo', true)
+          .limit(10);
+
+        data?.forEach(dup => {
+          if (!checkedIds.has(dup.id)) {
+            duplicates.push({ ...dup, matchField: 'Email', matchValue: normEmail });
+            checkedIds.add(dup.id);
+          }
+        });
+      }
+
+      // Buscar duplicatas por WhatsApp
+      if (normWhatsapp && normWhatsapp.length >= 10) {
+        const { data } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('*')
+          .neq('id', clientId)
+          .or(`whatsapp.ilike.%${normWhatsapp}%,telefone.ilike.%${normWhatsapp}%`)
+          .eq('ativo', true)
+          .limit(10);
+
+        data?.forEach(dup => {
+          if (!checkedIds.has(dup.id)) {
+            duplicates.push({ ...dup, matchField: 'WhatsApp', matchValue: normWhatsapp });
+            checkedIds.add(dup.id);
+          }
+        });
+      }
+
+      // Buscar duplicatas por Telefone
+      if (normTelefone && normTelefone.length >= 10 && normTelefone !== normWhatsapp) {
+        const { data } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('*')
+          .neq('id', clientId)
+          .or(`telefone.ilike.%${normTelefone}%,whatsapp.ilike.%${normTelefone}%`)
+          .eq('ativo', true)
+          .limit(10);
+
+        data?.forEach(dup => {
+          if (!checkedIds.has(dup.id)) {
+            duplicates.push({ ...dup, matchField: 'Telefone', matchValue: normTelefone });
+            checkedIds.add(dup.id);
+          }
+        });
+      }
+
+      return duplicates;
+    } catch (error) {
+      console.error('Erro ao detectar duplicatas:', error);
+      return [];
+    }
+  };
+
+  // Carregar duplicatas para todos os clientes visíveis
+  const loadDuplicatesForClients = async (clients) => {
+    setIsLoadingDuplicates(true);
+    const newDuplicatesData = {};
+
+    console.log(`🔍 Detectando duplicatas em ${clients.length} clientes...`);
+    let duplicatesFound = 0;
+
+    for (const client of clients) {
+      const clientId = client.id || client.id_cliente || client.id_cliente_mestre;
+      if (clientId) {
+        const dups = await detectDuplicates(client);
+        if (dups.length > 0) {
+          newDuplicatesData[clientId] = dups;
+          duplicatesFound++;
+          console.log(`✅ Cliente ${client.nome_completo}: ${dups.length} duplicata(s)`);
+        }
+      }
+    }
+
+    console.log(`✅ Total: ${duplicatesFound} clientes com duplicatas`);
+    setDuplicatesData(prev => ({ ...prev, ...newDuplicatesData }));
+    setIsLoadingDuplicates(false);
+
+    if (duplicatesFound > 0) {
+      alert(`✅ Detecção concluída!\n\n${duplicatesFound} cliente(s) com duplicatas encontrado(s).`);
+    } else {
+      alert('Nenhuma duplicata encontrada nos clientes visíveis.');
+    }
+  };
+
+  // Função para filtrar dados por duplicatas
+  const filterRowsByDuplicates = (data) => {
+    if (duplicatesFilter === 'all') return data;
+
+    return data.filter(row => {
+      const clientId = row.id || row.id_cliente || row.id_cliente_mestre;
+      const hasDuplicates = duplicatesData[clientId]?.length > 0;
+
+      if (duplicatesFilter === 'with-duplicates') return hasDuplicates;
+      if (duplicatesFilter === 'no-duplicates') return !hasDuplicates;
+      return true;
+    });
+  };
+
+  // Renderizar ícone de duplicatas
+  const renderDuplicatesIcon = (row) => {
+    const clientId = row.id || row.id_cliente || row.id_cliente_mestre;
+    if (!clientId) return null;
+
+    const hasDuplicates = duplicatesData[clientId]?.length > 0;
+
+    return (
+      <span
+        onClick={async () => {
+          // Se já temos duplicatas carregadas, mostrar modal
+          if (hasDuplicates) {
+            setSelectedDuplicatesClient({ ...row, duplicates: duplicatesData[clientId] });
+            setShowDuplicatesModal(true);
+            return;
+          }
+
+          // Caso contrário, detectar duplicatas primeiro
+          console.log('🔍 Detectando duplicatas para:', row.nome_completo);
+          const dups = await detectDuplicates(row);
+
+          if (dups.length > 0) {
+            // Atualizar estado com duplicatas encontradas
+            setDuplicatesData(prev => ({ ...prev, [clientId]: dups }));
+            setSelectedDuplicatesClient({ ...row, duplicates: dups });
+            setShowDuplicatesModal(true);
+          } else {
+            alert('Nenhuma duplicata encontrada para este cliente.');
+          }
+        }}
+        style={{
+          cursor: 'pointer',
+          fontSize: '16px',
+          color: hasDuplicates ? '#f59e0b' : '#9ca3af',
+          transition: 'transform 0.2s'
+        }}
+        onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
+        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+        title={hasDuplicates ? `${duplicatesData[clientId].length} duplicata(s) encontrada(s)` : 'Clique para detectar duplicatas'}
+      >
+        🔗
+      </span>
+    );
+  };
+
   const loadAtivacaoPrime = async () => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
@@ -594,7 +934,9 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       query = query.order(sortField, { ascending: sortDirection === 'asc' });
     }
     const { data, count } = await query.range(start, end);
-    setAtivacaoPrimeData(filterClientSideIfNeeded(data || []));
+    const filtered = filterClientSideIfNeeded(data || []);
+    const sorted = sortByExportedThenName(filtered);
+    setAtivacaoPrimeData(sorted);
     setTotalCount(count || 0);
   };
 
@@ -609,7 +951,9 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       query = query.order(sortField, { ascending: sortDirection === 'asc' });
     }
     const { data, count } = await query.range(start, end);
-    setAtivacaoForaPrimeData(filterClientSideIfNeeded(data || []));
+    const filtered = filterClientSideIfNeeded(data || []);
+    const sorted = sortByExportedThenName(filtered);
+    setAtivacaoForaPrimeData(sorted);
     setTotalCount(count || 0);
   };
 
@@ -624,7 +968,9 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       query = query.order(sortField, { ascending: sortDirection === 'asc' });
     }
     const { data, count } = await query.range(start, end);
-    setAtivacaoComOrcamentoData(filterClientSideIfNeeded(data || []));
+    const filtered = filterClientSideIfNeeded(data || []);
+    const sorted = sortByExportedThenName(filtered);
+    setAtivacaoComOrcamentoData(sorted);
     setTotalCount(count || 0);
   };
 
@@ -639,7 +985,9 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       query = query.order(sortField, { ascending: sortDirection === 'asc' });
     }
     const { data, count } = await query.range(start, end);
-    setAtivacaoSemOrcamentoData(filterClientSideIfNeeded(data || []));
+    const filtered = filterClientSideIfNeeded(data || []);
+    const sorted = sortByExportedThenName(filtered);
+    setAtivacaoSemOrcamentoData(sorted);
     setTotalCount(count || 0);
   };
 
@@ -709,8 +1057,8 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
             </div>
             <div className="cc-filter-item">
               <span>Status Exportação:</span>
-              <select 
-                value={exportFilter} 
+              <select
+                value={exportFilter}
                 onChange={(e) => {
                   setExportFilter(e.target.value);
                   setCurrentPage(1);
@@ -721,6 +1069,18 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
                 <option value="all">Todos</option>
                 <option value="never-exported">Nunca Exportados</option>
                 <option value="exported">Já Exportados</option>
+              </select>
+            </div>
+            <div className="cc-filter-item">
+              <span>Duplicatas:</span>
+              <select
+                value={duplicatesFilter}
+                onChange={(e) => setDuplicatesFilter(e.target.value)}
+                className="cc-select cc-select-small"
+              >
+                <option value="all">Todos</option>
+                <option value="with-duplicates">Com Duplicatas</option>
+                <option value="no-duplicates">Sem Duplicatas</option>
               </select>
             </div>
             <div className="cc-filter-item" style={{ alignItems: 'flex-start' }}>
@@ -753,6 +1113,30 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
                 setCurrentPage(1);
                 loadTabData();
               }}>Limpar</button>
+              <button
+                className="cc-btn cc-btn-small"
+                onClick={() => {
+                  // Get current tab's data
+                  let currentData = [];
+                  if (activeTab === 'ativacao-prime') currentData = ativacaoPrimeData;
+                  else if (activeTab === 'ativacao-fora-prime') currentData = ativacaoForaPrimeData;
+                  else if (activeTab === 'ativacao-com-orcamento') currentData = ativacaoComOrcamentoData;
+                  else if (activeTab === 'ativacao-sem-orcamento') currentData = ativacaoSemOrcamentoData;
+
+                  if (currentData.length > 0) {
+                    loadDuplicatesForClients(currentData);
+                  } else {
+                    alert('Nenhum cliente disponível na aba atual.');
+                  }
+                }}
+                disabled={isLoadingDuplicates}
+                style={{
+                  backgroundColor: isLoadingDuplicates ? '#9ca3af' : '#f59e0b',
+                  color: 'white'
+                }}
+              >
+                {isLoadingDuplicates ? '🔍 Detectando...' : '🔗 Detectar Duplicatas'}
+              </button>
             </div>
           </div>
         </div>
@@ -763,19 +1147,20 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const renderExportStatusIcon = (row) => {
     const leadId = row.id || row.id_lead || row.id_cliente;
     if (!leadId) return null;
-    
+
     const history = exportHistory[leadId];
     if (!history || history.length === 0) return null;
-    
+
     const total = history.length;
-    const ultima = history[0];
-    const tooltip = `Exportado ${total}x\nÚltimo: ${ultima.motivo} - ${new Date(ultima.data_exportacao).toLocaleDateString('pt-BR')}\n${ultima.observacao || ''}`;
-    
+
     return (
-      <span 
-        className="cc-export-icon" 
-        title={tooltip}
-        style={{ cursor: 'help', fontSize: '16px' }}
+      <span
+        className="cc-export-icon"
+        onClick={() => {
+          setSelectedHistoryLead({ leadId, history, row });
+          setShowHistoryModal(true);
+        }}
+        style={{ cursor: 'pointer', fontSize: '16px' }}
       >
         ✅
       </span>
@@ -1121,16 +1506,44 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
 
   // ===== HISTÓRICO DE EXPORTAÇÃO =====
   const loadExportHistory = async (leadIds) => {
-    if (!leadIds || leadIds.length === 0) return {};
+    console.log('🔍 [LOAD_EXPORT_HISTORY] Iniciando carregamento de histórico...');
+    console.log('🔍 [LOAD_EXPORT_HISTORY] Lead IDs:', leadIds?.length || 0);
+    
+    if (!leadIds || leadIds.length === 0) {
+      console.warn('⚠️ [LOAD_EXPORT_HISTORY] Nenhum lead ID fornecido');
+      return {};
+    }
+    
     try {
-      const { data } = await supabase
+      // Usar a mesma estrutura que funciona no salvarEdicaoCampos
+      console.log('🔍 [LOAD_EXPORT_HISTORY] Executando SELECT na tabela historico_exportacoes...');
+      const { data, error } = await supabase
         .schema('api')
         .from('historico_exportacoes')
         .select('*')
         .in('id_lead', leadIds)
         .order('data_exportacao', { ascending: false });
       
-      if (!data) return {};
+      if (error) {
+        console.error('❌ [LOAD_EXPORT_HISTORY] Erro ao buscar histórico:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          status: error.status,
+          statusText: error.statusText
+        });
+        console.error('❌ [LOAD_EXPORT_HISTORY] Erro completo:', error);
+        return {};
+      }
+      
+      console.log('✅ [LOAD_EXPORT_HISTORY] SELECT realizado com sucesso');
+      console.log('🔍 [LOAD_EXPORT_HISTORY] Dados retornados:', data?.length || 0, 'registros');
+      
+      if (!data) {
+        console.warn('⚠️ [LOAD_EXPORT_HISTORY] Nenhum dado retornado');
+        return {};
+      }
       
       const history = {};
       leadIds.forEach(id => {
@@ -1139,38 +1552,105 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
           history[id] = exports;
         }
       });
+      
+      console.log('✅ [LOAD_EXPORT_HISTORY] Histórico processado:', Object.keys(history).length, 'leads com histórico');
       return history;
     } catch (error) {
-      console.error('Erro ao carregar histórico de exportação:', error);
+      console.error('❌ [LOAD_EXPORT_HISTORY] Erro capturado no catch:', error);
+      console.error('❌ [LOAD_EXPORT_HISTORY] Tipo do erro:', typeof error);
+      console.error('❌ [LOAD_EXPORT_HISTORY] Stack do erro:', error?.stack);
       return {};
     }
   };
 
   const registerExport = async (leadIds, motivo, observacao) => {
+    console.log('🔍 [REGISTER_EXPORT] Iniciando registro de exportação...');
+    console.log('🔍 [REGISTER_EXPORT] Parâmetros:', { 
+      leadIds: leadIds?.length || 0, 
+      motivo, 
+      observacao,
+      user: user ? { id: user.id, email: user.email } : null
+    });
+    
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const userId = user?.id || null;
+      // Obter ID do usuário do contexto de autenticação (da tabela api.users)
+      let userId = null;
+      if (user?.id) {
+        // Converter para string pois historico_exportacoes.usuario_id é text
+        userId = String(user.id);
+        console.log('🔍 [REGISTER_EXPORT] User ID obtido:', userId);
+      } else {
+        console.warn('⚠️ [REGISTER_EXPORT] Nenhum usuário logado, registro sem usuario_id');
+      }
       
-      const records = leadIds.map(id_lead => ({
-        id_lead,
-        motivo,
-        observacao: observacao.trim() || null,
-        usuario_id: userId
-      }));
+      const records = leadIds.map(id_lead => {
+        const record = {
+          id_lead,
+          motivo,
+          observacao: observacao?.trim() || null
+        };
+        // Só adiciona usuario_id se existir (corresponde ao id da tabela api.users)
+        if (userId) {
+          record.usuario_id = userId;
+        }
+        return record;
+      });
       
-      const { error } = await supabase
+      console.log('🔍 [REGISTER_EXPORT] Records preparados:', {
+        total: records.length,
+        exemplo: records[0],
+        todos_ids: records.map(r => r.id_lead).slice(0, 5)
+      });
+      
+      // Usar a mesma estrutura que funciona no salvarEdicaoCampos
+      // Usar o cliente supabase direto com .schema('api') - mesma estrutura que está funcionando
+      console.log('🔍 [REGISTER_EXPORT] Executando INSERT na tabela historico_exportacoes...');
+      console.log('🔍 [REGISTER_EXPORT] Records a inserir:', {
+        count: records.length,
+        exemplo: records[0]
+      });
+      
+      // INSERT simples - mesma estrutura do salvarEdicaoCampos (linha 1588-1592)
+      // O salvarEdicaoCampos funciona, então vamos usar exatamente a mesma estrutura
+      const { error: insertError } = await supabase
         .schema('api')
         .from('historico_exportacoes')
         .insert(records);
       
-      if (error) throw error;
+      if (insertError) {
+        console.error('❌ [REGISTER_EXPORT] Erro detalhado ao inserir:', {
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint,
+          code: insertError.code,
+          status: insertError.status,
+          statusText: insertError.statusText
+        });
+        console.error('❌ [REGISTER_EXPORT] Erro completo:', insertError);
+        console.error('❌ [REGISTER_EXPORT] Verificando se é problema de cache do PostgREST...');
+        throw insertError;
+      }
       
-      // Atualizar histórico local
+      console.log('✅ [REGISTER_EXPORT] INSERT realizado com sucesso');
+      
+      // Se o insert funcionou, atualizar histórico local
+      console.log('🔍 [REGISTER_EXPORT] Carregando histórico local...');
       const newHistory = await loadExportHistory(leadIds);
+      console.log('✅ [REGISTER_EXPORT] Histórico local carregado:', Object.keys(newHistory).length, 'leads');
+      
       setExportHistory(prev => ({ ...prev, ...newHistory }));
+      
+      console.log('✅ [REGISTER_EXPORT] Exportação registrada com sucesso no histórico');
+      return { success: true, history: newHistory };
     } catch (error) {
-      console.error('Erro ao registrar exportação:', error);
-      alert('Erro ao registrar exportação no histórico.');
+      console.error('❌ [REGISTER_EXPORT] Erro capturado no catch:', error);
+      console.error('❌ [REGISTER_EXPORT] Tipo do erro:', typeof error);
+      console.error('❌ [REGISTER_EXPORT] Erro é instance de Error?', error instanceof Error);
+      console.error('❌ [REGISTER_EXPORT] Stack do erro:', error?.stack);
+      
+      // Não bloquear o fluxo, apenas logar o erro
+      console.warn('⚠️ [REGISTER_EXPORT] Exportação registrada localmente, mas falhou ao salvar no histórico.');
+      return { success: false, error };
     }
   };
 
@@ -1191,15 +1671,30 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       alert('Nenhum registro selecionado.');
       return;
     }
-    const headers = Object.keys(rows[0] || {});
+    // Normalizar valores para exportação: arrays -> string, objetos -> JSON
+    const normalizeValue = (v) => {
+      if (v == null) return '';
+      if (Array.isArray(v)) return v.join(', ');
+      if (v instanceof Date) return v.toISOString();
+      if (typeof v === 'object') return JSON.stringify(v);
+      return v;
+    };
+    const normalizedRows = rows.map(r => {
+      const out = {};
+      Object.keys(r || {}).forEach(k => {
+        out[k] = normalizeValue(r[k]);
+      });
+      return out;
+    });
+    const headers = Object.keys(normalizedRows[0] || {});
     
     if (exportFormat === 'json') {
-      downloadBlob(JSON.stringify(rows, null, 2), `${baseName}.json`, 'application/json;charset=utf-8;');
+      downloadBlob(JSON.stringify(normalizedRows, null, 2), `${baseName}.json`, 'application/json;charset=utf-8;');
       return;
     }
     
     if (exportFormat === 'csv') {
-      const csvRows = [headers.join(','), ...rows.map(r => headers.map(h => {
+      const csvRows = [headers.join(','), ...normalizedRows.map(r => headers.map(h => {
         const val = r[h];
         if (val == null) return '';
         const s = String(val).replace(/"/g, '""');
@@ -1212,7 +1707,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     if (exportFormat === 'excel') {
       try {
         const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(rows);
+        const ws = XLSX.utils.json_to_sheet(normalizedRows);
         XLSX.utils.book_append_sheet(wb, ws, 'Dados');
         XLSX.writeFile(wb, `${baseName}.xls`);
       } catch (e) {
@@ -1225,7 +1720,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     if (exportFormat === 'xlsx') {
       try {
         const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.json_to_sheet(rows);
+        const ws = XLSX.utils.json_to_sheet(normalizedRows);
         XLSX.utils.book_append_sheet(wb, ws, 'Dados');
         XLSX.writeFile(wb, `${baseName}.xlsx`);
       } catch (e) {
@@ -1238,13 +1733,13 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     if (exportFormat === 'pdf') {
       try {
         const doc = new jsPDF({ orientation: 'landscape' });
-        const tableData = rows.map(r => headers.map(h => {
+        const tableData = normalizedRows.map(r => headers.map(h => {
           const val = r[h];
           if (val == null) return '';
           if (val instanceof Date) return val.toLocaleDateString('pt-BR');
           return String(val);
         }));
-        doc.autoTable({
+        autoTable(doc, {
           head: [headers],
           body: tableData,
           styles: { fontSize: 8 },
@@ -1404,7 +1899,22 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     if (!selectedClientForName || !editFields) return;
     const clientId = selectedClientForName.id;
     try {
-      const updates = { ...editFields, data_ultima_atualizacao: new Date().toISOString() };
+      const normalizeUpdates = (obj) => {
+        const out = { ...(obj || {}) };
+        // normaliza data_nascimento: aceita dd/mm/aaaa ou ISO; vazio => null
+        if (Object.prototype.hasOwnProperty.call(out, 'data_nascimento')) {
+          const v = (out.data_nascimento ?? '').toString().trim();
+          if (!v) {
+            out.data_nascimento = null;
+          } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) {
+            const [dd, mm, yyyy] = v.split('/');
+            const iso = `${yyyy}-${mm}-${dd}`; // yyyy-mm-dd
+            out.data_nascimento = iso;
+          }
+        }
+        return out;
+      };
+      const updates = { ...normalizeUpdates(editFields), data_ultima_atualizacao: new Date().toISOString() };
       const { error } = await supabase
         .schema('api')
         .from('clientes_mestre')
@@ -1582,6 +2092,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
             }}
             className="cc-select cc-select-small"
           >
+            <option value={50}>50</option>
             <option value={100}>100</option>
             <option value={250}>250</option>
             <option value={500}>500</option>
@@ -2122,37 +2633,86 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
 
   const renderDuplicados = () => (
     <div className="cc-list-container">
-      <div className="cc-list-header">
-        <h2>🔄 Clientes em Múltiplas Origens</h2>
-        <button
-          className="cc-btn cc-btn-export"
-          onClick={() => exportToCSV('duplicados', 'relatorio_duplicados')}
-          disabled={isLoading}
-        >
-          📥 Exportar CSV
-        </button>
+      <div className="cc-list-header" style={{ alignItems: 'center' }}>
+        <h2>🔄 Duplicados</h2>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <label className="cc-badge" style={{ cursor: 'pointer' }}>
+            <input type="radio" name="dupType" checked={dupType==='email'} onChange={()=>{setDupType('email'); setCurrentPage(1);}} /> Email
+          </label>
+          <label className="cc-badge" style={{ cursor: 'pointer' }}>
+            <input type="radio" name="dupType" checked={dupType==='phone'} onChange={()=>{setDupType('phone'); setCurrentPage(1);}} /> Telefone
+          </label>
+          <label className="cc-badge" style={{ cursor: 'pointer' }}>
+            <input type="radio" name="dupType" checked={dupType==='cpf'} onChange={()=>{setDupType('cpf'); setCurrentPage(1);}} /> CPF
+          </label>
+          <button
+            className="cc-btn cc-btn-export"
+            onClick={() => exportToCSV('duplicados_'+dupType, dupType==='email'?'vw_dups_por_email':dupType==='phone'?'vw_dups_por_phone':'vw_dups_por_cpf')}
+            disabled={isLoading}
+          >
+            📥 Exportar CSV
+          </button>
+        </div>
       </div>
 
-      {renderClientesTable(duplicadosData, [
-        { header: 'Nome', field: 'nome_completo' },
-        { header: 'Email', field: 'email' },
-        { header: 'WhatsApp', field: 'whatsapp' },
-        { header: 'Nº Origens', field: 'num_origens' },
-        { header: 'Sprint', field: 'no_sprint' },
-        { header: 'Prime', field: 'no_prime' },
-        { header: 'GreatPage', field: 'no_greatpage' },
-        { header: 'BlackLabs', field: 'no_blacklabs' },
-        {
-          header: 'Qualidade',
-          render: (row) => (
-            <span className={`cc-quality-badge cc-quality-${row.qualidade_dados >= 80 ? 'high' : row.qualidade_dados >= 60 ? 'medium' : 'low'}`}>
-              {row.qualidade_dados}/100
+      {dupType==='email' && renderClientesTable(duplicadosData, [
+        { header: 'Email', render: (r)=> r.email_normalizado || '-' },
+        { header: 'Total', field: 'total' },
+        { header: 'IDs', render: (r)=> (
+          Array.isArray(r.ids) ? (
+            <span className="cc-link" onClick={()=>openDupDetails(r.ids)} title="Abrir detalhes">
+              {r.ids.slice(0,5).join(', ')}{r.ids.length>5?'…':''}
             </span>
-          )
-        }
+          ) : '-'
+        ) }
+      ])}
+      {dupType==='phone' && renderClientesTable(duplicadosData, [
+        { header: 'Telefone', render: (r)=> r.phone_normalizado || '-' },
+        { header: 'Total', field: 'total' },
+        { header: 'IDs', render: (r)=> (
+          Array.isArray(r.ids) ? (
+            <span className="cc-link" onClick={()=>openDupDetails(r.ids)} title="Abrir detalhes">
+              {r.ids.slice(0,5).join(', ')}{r.ids.length>5?'…':''}
+            </span>
+          ) : '-'
+        ) }
+      ])}
+      {dupType==='cpf' && renderClientesTable(duplicadosData, [
+        { header: 'CPF', render: (r)=> r.cpf || '-' },
+        { header: 'Total', field: 'total' },
+        { header: 'IDs', render: (r)=> (
+          Array.isArray(r.ids) ? (
+            <span className="cc-link" onClick={()=>openDupDetails(r.ids)} title="Abrir detalhes">
+              {r.ids.slice(0,5).join(', ')}{r.ids.length>5?'…':''}
+            </span>
+          ) : '-'
+        ) }
       ])}
 
       {renderPagination()}
+      {dupModalOpen && (
+        <div className="cc-modal-overlay" onClick={()=>{setDupModalOpen(false); setDupModalRows([]);}}>
+          <div className="cc-modal" onClick={(e)=>e.stopPropagation()}>
+            <h3>Conflito ({dupModalIds.length} registros)</h3>
+            <div className="cc-modal-content" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              {dupModalRows.map((row)=> (
+                <div key={row.id} className="cc-dup-card">
+                  <div><strong>ID:</strong> {row.id}</div>
+                  <div><strong>Nome:</strong> {row.nome_completo || '-'}</div>
+                  <div><strong>Email:</strong> {row.email || '-'}</div>
+                  <div><strong>WhatsApp:</strong> {row.whatsapp || '-'}</div>
+                  <div><strong>Telefone:</strong> {row.telefone || '-'}</div>
+                  <div><strong>CPF:</strong> {row.cpf || '-'}</div>
+                  <div><strong>Origem:</strong> Prime:{row.id_prime||'-'} | Sprint:{row.id_sprinthub||'-'} | GreatPage:{row.id_greatpage||'-'} | BlackLabs:{row.id_blacklabs||'-'}</div>
+                </div>
+              ))}
+            </div>
+            <div className="cc-modal-actions">
+              <button className="cc-btn" onClick={()=>{setDupModalOpen(false); setDupModalRows([]);}}>Fechar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -2620,46 +3180,100 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const renderAtivacaoGeral = () => {
     if (!ativacaoGeralData) return null;
     return (
-      <div className="cc-dashboard-grid">
-        <div className="cc-card cc-card-highlight">
-          <h2>🚀 Dashboard Ativação</h2>
-          <div className="cc-stat-big">
-            <span className="cc-stat-label">Total Nunca Compraram</span>
-            <span className="cc-stat-value-large">{ativacaoGeralData.total_inativos?.toLocaleString()}</span>
+      <>
+      <div className="cc-dashboard-grid" style={{gridTemplateColumns:'repeat(5, minmax(0,1fr))'}}>
+          <div className="cc-card" style={{background:'#3b82f6', color:'#fff'}}>
+            <h3 style={{color:'#111'}}>🚀 Dashboard Ativação</h3>
+            <div className="cc-stat-value-large">{ativacaoGeralData.total_inativos?.toLocaleString()}</div>
+          </div>
+          <div className="cc-card">
+            <h3>🏢 No Prime</h3>
+            <div className="cc-stat-value-large">{ativacaoGeralData.inativos_prime?.toLocaleString()}</div>
+            <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('ativacao-prime')}>Ver Lista</button>
+          </div>
+          <div className="cc-card">
+            <h3>📭 Sem Orçamento</h3>
+            <div className="cc-stat-value-large">{ativacaoGeralData.sem_orcamento?.toLocaleString()}</div>
+            <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('ativacao-sem-orcamento')}>Ver Lista</button>
+          </div>
+          <div className="cc-card">
+            <h3>📋 Com Orçamento</h3>
+            <div className="cc-stat-value-large">{ativacaoGeralData.com_orcamento?.toLocaleString()}</div>
+            <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('ativacao-com-orcamento')}>Ver Lista</button>
+          </div>
+          <div className="cc-card">
+            <h3>🚫 Fora do Prime</h3>
+            <div className="cc-stat-value-large">{ativacaoGeralData.inativos_fora_prime?.toLocaleString()}</div>
+            <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('ativacao-fora-prime')}>Ver Lista</button>
+          </div>
+      </div>
+      <div style={{marginTop: '16px'}}>
+        <h3>📊 Qualidade por Grupo</h3>
+        {renderAtivacaoStats()}
+      </div>
+      <div style={{marginTop: '16px'}}>
+        <h3>Clientes fora desta lista</h3>
+        <div className="cc-dashboard-grid">
+          <div className="cc-card">
+            <h3>✅ Aprovados</h3>
+            <div className="cc-stat-value-large">{ativacaoGeralData.total_aprovados?.toLocaleString()}</div>
+          </div>
+          <div className="cc-card">
+            <h3>📦 Entregues</h3>
+            <div className="cc-stat-value-large">{ativacaoGeralData.total_entregues?.toLocaleString()}</div>
+          </div>
+          <div className="cc-card">
+            <h3>⏳ Pendentes</h3>
+            <div className="cc-stat-value-large">{ativacaoGeralData.total_pendentes?.toLocaleString()}</div>
           </div>
         </div>
-        <div className="cc-card">
-          <h3>🏢 No Prime</h3>
-          <div className="cc-stat-value-large">{ativacaoGeralData.inativos_prime?.toLocaleString()}</div>
-          <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('ativacao-prime')}>Ver Lista</button>
-        </div>
-        <div className="cc-card">
-          <h3>🚫 Fora do Prime</h3>
-          <div className="cc-stat-value-large">{ativacaoGeralData.inativos_fora_prime?.toLocaleString()}</div>
-          <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('ativacao-fora-prime')}>Ver Lista</button>
-        </div>
-        <div className="cc-card">
-          <h3>📋 Com Orçamento</h3>
-          <div className="cc-stat-value-large">{ativacaoGeralData.com_orcamento?.toLocaleString()}</div>
-          <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('ativacao-com-orcamento')}>Ver Lista</button>
-        </div>
-        <div className="cc-card">
-          <h3>📭 Sem Orçamento</h3>
-          <div className="cc-stat-value-large">{ativacaoGeralData.sem_orcamento?.toLocaleString()}</div>
-          <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('ativacao-sem-orcamento')}>Ver Lista</button>
-        </div>
-        <div className="cc-card">
-          <h3>✅ Aprovados</h3>
-          <div className="cc-stat-value-large">{ativacaoGeralData.total_aprovados?.toLocaleString()}</div>
-        </div>
-        <div className="cc-card">
-          <h3>📦 Entregues</h3>
-          <div className="cc-stat-value-large">{ativacaoGeralData.total_entregues?.toLocaleString()}</div>
-        </div>
-        <div className="cc-card">
-          <h3>⏳ Pendentes</h3>
-          <div className="cc-stat-value-large">{ativacaoGeralData.total_pendentes?.toLocaleString()}</div>
-        </div>
+      </div>
+      </>
+    );
+  };
+
+  useEffect(() => {
+    // carregar estatísticas de qualidade por grupo (dashboard de ativação)
+    const loadAtivacaoStats = async () => {
+      const { data } = await supabase.from('vw_ativacao_stats').select('*');
+      setAtivacaoStats(data || []);
+    };
+    loadAtivacaoStats();
+  }, []);
+
+  const renderAtivacaoStats = () => {
+    if (!ativacaoStats?.length) return null;
+    const label = {
+      no_prime: 'No Prime',
+      fora_prime: 'Fora do Prime',
+      com_orcamento: 'Com Orçamento',
+      sem_orcamento: 'Sem Orçamento'
+    };
+    const desiredOrder = ['no_prime','com_orcamento','sem_orcamento','fora_prime'];
+    const ordered = [...ativacaoStats].sort((a,b)=> desiredOrder.indexOf(a.grupo) - desiredOrder.indexOf(b.grupo));
+    return (
+      <div className="cc-dashboard-grid">
+        {ordered.map((g)=> (
+          <div key={g.grupo} className="cc-card">
+            <h3>📌 {label[g.grupo] || g.grupo}</h3>
+            <div className="cc-stat-row"><span>Total</span><span className="cc-stat-value">{g.total?.toLocaleString?.()||g.total}</span></div>
+            <div className="cc-stat-row"><span>Com E-mail</span><span>{g.com_email} ({Math.round(g.com_email*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span>Com WhatsApp</span><span>{g.com_whatsapp} ({Math.round(g.com_whatsapp*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span>Com CPF</span><span>{g.com_cpf} ({Math.round(g.com_cpf*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span>Com Data Nasc.</span><span>{g.com_dn} ({Math.round(g.com_dn*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span>Com Endereço</span><span>{g.com_endereco} ({Math.round(g.com_endereco*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span>Dados 100%</span><span>{g.dados_100} ({Math.round(g.dados_100*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span style={{color:'#dc2626'}}>Duplicados</span><span style={{color:'#dc2626'}}>{g.duplicados} ({(((g.duplicados||0)*100)/Math.max(g.total,1)).toFixed(1)}%)</span></div>
+            <div className="cc-tags" style={{marginTop: 8, display:'flex', gap:8, flexWrap:'wrap'}}>
+              <span className="cc-tag cc-tag-sprint">Sprint: {g.em_sprint} ({Math.round(g.em_sprint*100/Math.max(g.total,1))}%)</span>
+              <span className="cc-tag cc-tag-greatpage">GreatPage: {g.em_greatpage} ({Math.round(g.em_greatpage*100/Math.max(g.total,1))}%)</span>
+              <span className="cc-tag cc-tag-blacklabs">BlackLabs: {g.em_blacklabs} ({Math.round(g.em_blacklabs*100/Math.max(g.total,1))}%)</span>
+            </div>
+            <div style={{marginTop:8}}>
+              <button className="cc-btn cc-btn-small" onClick={()=> setActiveTab('duplicados')}>Ver Duplicados</button>
+            </div>
+          </div>
+        ))}
       </div>
     );
   };
@@ -2681,9 +3295,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         </div>
       </div>
       {renderFiltersBar()}
-      {renderClientesTable(filterRowsByNameStatus(ativacaoPrimeData), [
+      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(ativacaoPrimeData)), [
         { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
-        { header: 'Nome', render: (row) => (
+        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {renderNomePorOrigem(row)}
             {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
@@ -2704,7 +3319,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
         { header: 'Sexo', field: 'sexo' },
         { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
-        { header: 'Qualidade', sortField: 'qualidade_dados', render: (row) => <span className={`cc-quality-badge cc-quality-${row.qualidade_dados >= 80 ? 'high' : row.qualidade_dados >= 60 ? 'medium' : 'low'}`}>{row.qualidade_dados}/100</span> }
+        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
       ])}
       {renderPagination()}
     </div>
@@ -2727,9 +3342,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         </div>
       </div>
       {renderFiltersBar()}
-      {renderClientesTable(filterRowsByNameStatus(ativacaoForaPrimeData), [
+      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(ativacaoForaPrimeData)), [
         { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
-        { header: 'Nome', render: (row) => (
+        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {renderNomePorOrigem(row)}
             {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
@@ -2750,7 +3366,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
         { header: 'Sexo', field: 'sexo' },
         { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
-        { header: 'Qualidade', sortField: 'qualidade_dados', render: (row) => <span className={`cc-quality-badge cc-quality-${row.qualidade_dados >= 80 ? 'high' : row.qualidade_dados >= 60 ? 'medium' : 'low'}`}>{row.qualidade_dados}/100</span> }
+        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
       ])}
       {renderPagination()}
     </div>
@@ -2773,9 +3389,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         </div>
       </div>
       {renderFiltersBar()}
-      {renderClientesTable(filterRowsByNameStatus(ativacaoComOrcamentoData), [
+      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(ativacaoComOrcamentoData)), [
         { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
-        { header: 'Nome', render: (row) => (
+        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {renderNomePorOrigem(row)}
             {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
@@ -2796,7 +3413,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
         { header: 'Sexo', field: 'sexo' },
         { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
-        { header: 'Qualidade', sortField: 'qualidade_dados', render: (row) => <span className={`cc-quality-badge cc-quality-${row.qualidade_dados >= 80 ? 'high' : row.qualidade_dados >= 60 ? 'medium' : 'low'}`}>{row.qualidade_dados}/100</span> }
+        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
       ])}
       {renderPagination()}
     </div>
@@ -2819,9 +3436,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         </div>
       </div>
       {renderFiltersBar()}
-      {renderClientesTable(filterRowsByNameStatus(ativacaoSemOrcamentoData), [
+      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(ativacaoSemOrcamentoData)), [
         { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
-        { header: 'Nome', render: (row) => (
+        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {renderNomePorOrigem(row)}
             {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
@@ -2842,7 +3460,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
         { header: 'Sexo', field: 'sexo' },
         { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
-        { header: 'Qualidade', sortField: 'qualidade_dados', render: (row) => <span className={`cc-quality-badge cc-quality-${row.qualidade_dados >= 80 ? 'high' : row.qualidade_dados >= 60 ? 'medium' : 'low'}`}>{row.qualidade_dados}/100</span> }
+        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
       ])}
       {renderPagination()}
     </div>
@@ -3374,6 +3992,363 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
               >
                 Cancelar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Histórico de Exportações */}
+      {showHistoryModal && selectedHistoryLead && (
+        <div className="cc-modal-overlay" onClick={() => { setShowHistoryModal(false); setSelectedHistoryLead(null); }}>
+          <div className="cc-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <h3>📊 Histórico de Exportações</h3>
+            <div className="cc-modal-content">
+              <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: 'var(--background-secondary)', borderRadius: '8px' }}>
+                <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                  <strong>Cliente:</strong> {selectedHistoryLead.row.nome_completo || 'Sem nome'}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  <strong>WhatsApp:</strong> {selectedHistoryLead.row.whatsapp || '—'} |
+                  <strong> Email:</strong> {selectedHistoryLead.row.email || '—'}
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  <strong>Total de exportações:</strong> {selectedHistoryLead.history.length}x
+                </div>
+              </div>
+
+              <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                {selectedHistoryLead.history.map((exp, idx) => {
+                  const motivoColors = {
+                    'WHATSAPI': '#25D366',
+                    'SMS': '#FF6B35',
+                    'CALLIX': '#4285F4',
+                    'EMAIL': '#EA4335'
+                  };
+                  const cor = motivoColors[exp.motivo] || '#666';
+
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: '12px',
+                        marginBottom: '8px',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '8px',
+                        borderLeft: `4px solid ${cor}`,
+                        backgroundColor: idx === 0 ? 'var(--background-secondary)' : 'transparent'
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <span
+                          style={{
+                            padding: '4px 12px',
+                            borderRadius: '12px',
+                            backgroundColor: cor + '20',
+                            color: cor,
+                            fontSize: '13px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          {exp.motivo}
+                        </span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                          {new Date(exp.data_exportacao).toLocaleString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                      {exp.observacao && (
+                        <div style={{ fontSize: '13px', color: 'var(--text-primary)', marginTop: '6px' }}>
+                          {exp.observacao}
+                        </div>
+                      )}
+                      {exp.usuario_id && (
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', opacity: 0.7 }}>
+                          Por: Usuário {exp.usuario_id}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  className="cc-btn"
+                  onClick={() => { setShowHistoryModal(false); setSelectedHistoryLead(null); }}
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Detalhes de Qualidade */}
+      {showQualityModal && selectedQualityClient && (
+        <div className="cc-modal-overlay" onClick={() => { setShowQualityModal(false); setSelectedQualityClient(null); }}>
+          <div className="cc-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <h3>⭐ Detalhes de Qualidade do Cliente</h3>
+            <div className="cc-modal-content">
+              <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: 'var(--background-secondary)', borderRadius: '8px' }}>
+                <div style={{ fontSize: '14px', color: 'var(--text-primary)', marginBottom: '8px' }}>
+                  <strong>{selectedQualityClient.nome_completo || 'Sem nome'}</strong>
+                </div>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  <strong>Email:</strong> {selectedQualityClient.email || '—'} |
+                  <strong> WhatsApp:</strong> {selectedQualityClient.whatsapp || '—'}
+                </div>
+              </div>
+
+              {(() => {
+                const { criteria, metCriteria, totalCriteria } = calculateQualityCriteria(selectedQualityClient);
+                // Usar a nota da tabela (qualidade_dados) ao invés de recalcular
+                const score = selectedQualityClient.qualidade_dados || 0;
+                const qualityClass = score >= 80 ? 'high' : score >= 60 ? 'medium' : 'low';
+                const qualityColor = score >= 80 ? '#22c55e' : score >= 60 ? '#eab308' : '#ef4444';
+
+                return (
+                  <>
+                    <div style={{
+                      padding: '16px',
+                      marginBottom: '16px',
+                      backgroundColor: qualityColor + '15',
+                      border: `2px solid ${qualityColor}`,
+                      borderRadius: '8px',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '32px', fontWeight: 'bold', color: qualityColor }}>
+                        {score}/100
+                      </div>
+                      <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                        {metCriteria} de {totalCriteria} critérios básicos atendidos
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: '16px' }}>
+                      <h4 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 'bold' }}>
+                        Critérios Avaliados:
+                      </h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {criteria.map((criterion, idx) => (
+                          <div
+                            key={idx}
+                            style={{
+                              padding: '10px',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '6px',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: '12px',
+                              backgroundColor: criterion.check ? '#22c55e15' : '#ef444415'
+                            }}
+                          >
+                            <div style={{ fontSize: '20px', flexShrink: 0 }}>
+                              {criterion.check ? '✅' : '❌'}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontWeight: '500', fontSize: '13px', marginBottom: '4px' }}>
+                                {criterion.label}
+                              </div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
+                                {criterion.value}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
+
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  className="cc-btn"
+                  onClick={() => { setShowQualityModal(false); setSelectedQualityClient(null); }}
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Duplicatas e Mesclagem */}
+      {showDuplicatesModal && selectedDuplicatesClient && (
+        <div className="cc-modal-overlay" onClick={() => { setShowDuplicatesModal(false); setSelectedDuplicatesClient(null); setSelectedMasterLead(null); }}>
+          <div className="cc-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h3>🔗 Duplicatas Detectadas</h3>
+            <div className="cc-modal-content">
+              <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '8px' }}>
+                <div style={{ fontSize: '14px', color: '#92400e', fontWeight: 'bold', marginBottom: '4px' }}>
+                  ⚠️ {selectedDuplicatesClient.duplicates?.length} duplicata(s) encontrada(s) para:
+                </div>
+                <div style={{ fontSize: '13px', color: '#78350f' }}>
+                  <strong>{selectedDuplicatesClient.nome_completo || 'Sem nome'}</strong>
+                </div>
+              </div>
+
+              <div style={{ marginBottom: '16px' }}>
+                <h4 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 'bold' }}>
+                  Selecione qual cliente deve ser mantido como Principal:
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* Cliente Original */}
+                  <div
+                    onClick={() => setSelectedMasterLead(selectedDuplicatesClient)}
+                    style={{
+                      padding: '12px',
+                      border: `2px solid ${selectedMasterLead?.id === selectedDuplicatesClient.id ? '#3b82f6' : 'var(--border-color)'}`,
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      backgroundColor: selectedMasterLead?.id === selectedDuplicatesClient.id ? '#eff6ff' : 'transparent'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                      <input
+                        type="radio"
+                        name="masterLead"
+                        checked={selectedMasterLead?.id === selectedDuplicatesClient.id}
+                        onChange={() => setSelectedMasterLead(selectedDuplicatesClient)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <span style={{ padding: '2px 8px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
+                        ORIGINAL
+                      </span>
+                      <strong>{selectedDuplicatesClient.nome_completo || 'Sem nome'}</strong>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', fontSize: '12px', marginLeft: '28px' }}>
+                      <div><strong>ID:</strong> {selectedDuplicatesClient.id || '—'}</div>
+                      <div><strong>Email:</strong> {selectedDuplicatesClient.email || '—'}</div>
+                      <div><strong>WhatsApp:</strong> {selectedDuplicatesClient.whatsapp || '—'}</div>
+                      <div><strong>CPF:</strong> {selectedDuplicatesClient.cpf || '—'}</div>
+                      <div><strong>ID Prime:</strong> {selectedDuplicatesClient.id_prime || '—'}</div>
+                      <div><strong>ID Sprinthub:</strong> {selectedDuplicatesClient.id_sprinthub || '—'}</div>
+                      <div><strong>Origem:</strong> {selectedDuplicatesClient.origem_marcas?.join(', ') || '—'}</div>
+                      <div><strong>Criado em:</strong> {selectedDuplicatesClient.created_at ? new Date(selectedDuplicatesClient.created_at).toLocaleDateString('pt-BR') : '—'}</div>
+                    </div>
+                  </div>
+
+                  {/* Duplicatas Encontradas */}
+                  {selectedDuplicatesClient.duplicates?.map((dup, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setSelectedMasterLead(dup)}
+                      style={{
+                        padding: '12px',
+                        border: `2px solid ${selectedMasterLead?.id === dup.id ? '#3b82f6' : 'var(--border-color)'}`,
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        backgroundColor: selectedMasterLead?.id === dup.id ? '#eff6ff' : 'transparent'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                        <input
+                          type="radio"
+                          name="masterLead"
+                          checked={selectedMasterLead?.id === dup.id}
+                          onChange={() => setSelectedMasterLead(dup)}
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <span style={{ padding: '2px 8px', backgroundColor: '#f59e0b', color: 'white', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
+                          DUPLICATA - {dup.matchField}
+                        </span>
+                        <strong>{dup.nome_completo || 'Sem nome'}</strong>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', fontSize: '12px', marginLeft: '28px' }}>
+                        <div><strong>ID:</strong> {dup.id || '—'}</div>
+                        <div><strong>Email:</strong> {dup.email || '—'}</div>
+                        <div><strong>WhatsApp:</strong> {dup.whatsapp || '—'}</div>
+                        <div><strong>CPF:</strong> {dup.cpf || '—'}</div>
+                        <div><strong>ID Prime:</strong> {dup.id_prime || '—'}</div>
+                        <div><strong>ID Sprinthub:</strong> {dup.id_sprinthub || '—'}</div>
+                        <div><strong>Origem:</strong> {dup.origem_marcas?.join(', ') || '—'}</div>
+                        <div><strong>Criado em:</strong> {dup.created_at ? new Date(dup.created_at).toLocaleDateString('pt-BR') : '—'}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                <button
+                  className="cc-btn"
+                  onClick={() => { setShowDuplicatesModal(false); setSelectedDuplicatesClient(null); setSelectedMasterLead(null); }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="cc-btn"
+                  onClick={async () => {
+                    if (!selectedMasterLead) {
+                      alert('Selecione qual cliente deve ser mantido como principal.');
+                      return;
+                    }
+
+                    if (!confirm(`Tem certeza que deseja mesclar ${selectedDuplicatesClient.duplicates.length + 1} clientes?\n\nCliente principal: ${selectedMasterLead.nome_completo || 'Sem nome'}\n\nEsta ação NÃO pode ser desfeita!`)) {
+                      return;
+                    }
+
+                    try {
+                      console.log('🔄 Iniciando mesclagem...');
+                      const masterId = selectedMasterLead.id;
+                      const duplicateIds = [selectedDuplicatesClient.id, ...selectedDuplicatesClient.duplicates.map(d => d.id)]
+                        .filter(id => id !== masterId);
+
+                      console.log('Master ID:', masterId);
+                      console.log('IDs a mesclar:', duplicateIds);
+
+                      // Chamar RPC do Supabase para mesclagem
+                      const { data, error } = await supabase
+                        .schema('api')
+                        .rpc('merge_cliente', {
+                          master_id: masterId,
+                          loser_ids: duplicateIds,
+                          fields_json: {},
+                          executed_by: user?.id || 'sistema'
+                        });
+
+                      if (error) {
+                        console.error('Erro na mesclagem:', error);
+                        alert(`Erro ao mesclar clientes: ${error.message}`);
+                        return;
+                      }
+
+                      alert(`✅ Clientes mesclados com sucesso!\n\nCliente principal: ${selectedMasterLead.nome_completo}\n${duplicateIds.length} duplicata(s) mesclada(s).`);
+
+                      // Limpar estados e recarregar dados
+                      setShowDuplicatesModal(false);
+                      setSelectedDuplicatesClient(null);
+                      setSelectedMasterLead(null);
+                      setDuplicatesData(prev => {
+                        const newData = { ...prev };
+                        delete newData[selectedDuplicatesClient.id];
+                        duplicateIds.forEach(id => delete newData[id]);
+                        return newData;
+                      });
+
+                      loadTabData(); // Recarregar dados da tabela
+                    } catch (error) {
+                      console.error('Erro ao mesclar:', error);
+                      alert(`Erro inesperado: ${error.message}`);
+                    }
+                  }}
+                  disabled={!selectedMasterLead}
+                  style={{
+                    backgroundColor: selectedMasterLead ? '#3b82f6' : '#9ca3af',
+                    color: 'white'
+                  }}
+                >
+                  ✅ Mesclar Clientes
+                </button>
+              </div>
             </div>
           </div>
         </div>

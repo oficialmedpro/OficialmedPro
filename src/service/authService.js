@@ -6,16 +6,16 @@
 
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { SignJWT } from 'jose';
 
 const supabase = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.VITE_SUPABASE_SERVICE_ROLE_KEY
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY
 );
 
 class AuthService {
   constructor() {
-    this.JWT_SECRET = process.env.JWT_SECRET || 'oficialmed-jwt-secret-key';
+    this.JWT_SECRET = import.meta.env.VITE_JWT_SECRET || 'oficialmed-jwt-secret-key';
     this.JWT_EXPIRES_IN = '24h';
     this.SESSION_EXPIRES_IN = 24 * 60 * 60 * 1000; // 24 horas em ms
   }
@@ -121,10 +121,11 @@ class AuthService {
   async logout(token, userId) {
     try {
       // Invalidar sessão
+      const tokenHash = await this.hashToken(token);
       const { error } = await supabase
         .from('user_sessions')
         .delete()
-        .eq('token_hash', this.hashToken(token))
+        .eq('token_hash', tokenHash)
         .eq('user_id', userId);
 
       if (error) {
@@ -151,6 +152,7 @@ class AuthService {
   async verifyToken(token) {
     try {
       // Verificar se sessão existe e não expirou
+      const tokenHash = await this.hashToken(token);
       const { data: session, error } = await supabase
         .from('user_sessions')
         .select(`
@@ -160,7 +162,7 @@ class AuthService {
             user_types(name, description, level)
           )
         `)
-        .eq('token_hash', this.hashToken(token))
+        .eq('token_hash', tokenHash)
         .eq('expires_at', 'gt', new Date().toISOString())
         .single();
 
@@ -369,19 +371,26 @@ class AuthService {
    * Criar nova sessão
    */
   async createSession(userId, ipAddress, userAgent) {
-    const token = jwt.sign(
-      { userId, timestamp: Date.now() },
-      this.JWT_SECRET,
-      { expiresIn: this.JWT_EXPIRES_IN }
-    );
+    const JWT_SECRET = import.meta.env.VITE_JWT_SECRET || this.JWT_SECRET;
+    const secret = new TextEncoder().encode(JWT_SECRET);
+    
+    const token = await new SignJWT({ 
+      userId, 
+      timestamp: Date.now() 
+    })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime(this.JWT_EXPIRES_IN)
+      .sign(secret);
 
     const expiresAt = new Date(Date.now() + this.SESSION_EXPIRES_IN);
+    const tokenHash = await this.hashToken(token);
 
     const { data, error } = await supabase
       .from('user_sessions')
       .insert({
         user_id: userId,
-        token_hash: this.hashToken(token),
+        token_hash: tokenHash,
         ip_address: ipAddress,
         user_agent: userAgent,
         expires_at: expiresAt.toISOString()
@@ -403,8 +412,13 @@ class AuthService {
   /**
    * Hash do token para armazenamento seguro
    */
-  hashToken(token) {
-    return require('crypto').createHash('sha256').update(token).digest('hex');
+  async hashToken(token) {
+    // Usar Web Crypto API para fazer hash SHA-256 (compatível com browser)
+    const encoder = new TextEncoder();
+    const data = encoder.encode(token);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
   /**

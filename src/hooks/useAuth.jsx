@@ -14,7 +14,23 @@ const AuthContext = createContext(null);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth deve ser usado dentro de AuthProvider');
+    // Retornar valores padrão em vez de lançar erro (compatível com uso opcional)
+    return {
+      user: null,
+      loading: false,
+      permissions: {},
+      allowedUnits: [],
+      login: async () => ({ success: false, error: 'AuthProvider não disponível' }),
+      logout: async () => {},
+      hasPermission: () => false,
+      hasUnitAccess: () => false,
+      isUserType: () => false,
+      hasLevel: () => false,
+      getUserUnits: () => [],
+      getUserPermissions: () => ({}),
+      isAuthenticated: () => false,
+      getUser: () => null
+    };
   }
   return context;
 };
@@ -306,3 +322,4 @@ export const UnitAccessGate = ({
 };
 
 export default useAuth;
+
