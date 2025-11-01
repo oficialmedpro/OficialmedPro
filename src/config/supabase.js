@@ -8,18 +8,15 @@
 // Fallback para produção se as variáveis não estiverem disponíveis
 const getSupabaseConfig = () => {
   // Priorizar window.ENV (injetado pelo docker-entrypoint.sh) sobre import.meta.env
-  // Verificar se window existe (evita erro em build time)
-  const isBrowser = typeof window !== 'undefined';
-  
-  let supabaseUrl = (isBrowser && window.ENV?.VITE_SUPABASE_URL) ||
+  let supabaseUrl = window.ENV?.VITE_SUPABASE_URL ||
                     import.meta.env.VITE_SUPABASE_URL ||
                     'https://agdffspstbxeqhqtltvb.supabase.co';
 
-  let supabaseServiceKey = (isBrowser && window.ENV?.VITE_SUPABASE_SERVICE_ROLE_KEY) ||
+  let supabaseServiceKey = window.ENV?.VITE_SUPABASE_SERVICE_ROLE_KEY ||
                           import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY ||
                           'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDQ1MzY2NiwiZXhwIjoyMDY2MDI5NjY2fQ.grInwGHFAH2WYvYerwfHkUsM08wXCJASg4CPMD2cTaA';
 
-  let supabaseSchema = (isBrowser && window.ENV?.VITE_SUPABASE_SCHEMA) ||
+  let supabaseSchema = window.ENV?.VITE_SUPABASE_SCHEMA ||
                        import.meta.env.VITE_SUPABASE_SCHEMA ||
                        'api';
 
@@ -35,22 +32,20 @@ const getSupabaseConfig = () => {
     supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDQ1MzY2NiwiZXhwIjoyMDY2MDI5NjY2fQ.grInwGHFAH2WYvYerwfHkUsM08wXCJASg4CPMD2cTaA';
   }
 
-  // Log de debug para entender o que está acontecendo (apenas no browser)
-  if (isBrowser) {
-    console.log('🔧 Configuração Supabase:', {
-      hasUrl: !!supabaseUrl,
-      hasKey: !!supabaseServiceKey,
-      schema: supabaseSchema,
-      environment: import.meta.env.MODE,
-      urlStart: supabaseUrl?.substring(0, 30) + '...',
-      keyStart: supabaseServiceKey?.substring(0, 20) + '...',
-      source: {
-        fromWindowEnv: !!window.ENV?.VITE_SUPABASE_URL,
-        fromImportMeta: !!import.meta.env.VITE_SUPABASE_URL,
-        usingFallback: !window.ENV?.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL
-      }
-    });
-  }
+  // Log de debug para entender o que está acontecendo
+  console.log('🔧 Configuração Supabase:', {
+    hasUrl: !!supabaseUrl,
+    hasKey: !!supabaseServiceKey,
+    schema: supabaseSchema,
+    environment: import.meta.env.MODE,
+    urlStart: supabaseUrl?.substring(0, 30) + '...',
+    keyStart: supabaseServiceKey?.substring(0, 20) + '...',
+    source: {
+      fromWindowEnv: !!window.ENV?.VITE_SUPABASE_URL,
+      fromImportMeta: !!import.meta.env.VITE_SUPABASE_URL,
+      usingFallback: !window.ENV?.VITE_SUPABASE_URL && !import.meta.env.VITE_SUPABASE_URL
+    }
+  });
 
   return {
     supabaseUrl,

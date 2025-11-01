@@ -22,9 +22,7 @@ import UserManagementPage from './pages/UserManagementPage'
 import Login from './components/Login'
 import autoSyncService from './service/autoSyncService'
 import Callix from './pages/callix'
-import ClientesConsolidadosPage from './pages/clientes-consolidados'
-import HistoricoCompras from './pages/HistoricoCompras'
-import VendasPage from './pages/vendas/VendasPage'
+import ClientesConsolidados from './pages/clientes-consolidados'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -127,9 +125,7 @@ function App() {
         <Route path="/debug-ticket-ranking" element={<DebugTicketRankingPage onLogout={handleLogout} />} />
         <Route path="/usuarios" element={<UserManagementPage onLogout={handleLogout} />} />
         <Route path="/callix" element={<Callix onLogout={handleLogout} />} />
-        <Route path="/clientes-consolidados" element={<ClientesConsolidadosPage onLogout={handleLogout} />} />
-        <Route path="/historico-compras" element={<HistoricoCompras onLogout={handleLogout} />} />
-        <Route path="/vendas" element={<VendasPage onLogout={handleLogout} />} />
+        <Route path="/clientes-consolidados" element={<ClientesConsolidados onLogout={handleLogout} />} />
       </Routes>
     </Router>
   )
