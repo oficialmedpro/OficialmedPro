@@ -6,10 +6,12 @@ import axios from 'axios';
  */
 class MetaAdsService {
   constructor() {
-    // Ler credenciais das variáveis de ambiente
-    this.appId = import.meta.env.VITE_META_APP_ID;
-    this.businessId = import.meta.env.VITE_META_BUSINESS_ID;
-    this.accessToken = import.meta.env.VITE_META_ACCESS_TOKEN;
+    // Ler credenciais das variáveis de ambiente de forma segura
+    const getEnvVar = (key) => window.ENV?.[key] || import.meta.env[key];
+
+    this.appId = getEnvVar('VITE_META_APP_ID');
+    this.businessId = getEnvVar('VITE_META_BUSINESS_ID');
+    this.accessToken = getEnvVar('VITE_META_ACCESS_TOKEN');
     this.baseUrl = 'https://graph.facebook.com/v18.0';
     
     console.log('🔧 MetaAdsService inicializado com:', {
