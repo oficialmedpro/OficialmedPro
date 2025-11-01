@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>OficialMedPro · Funil Operacional</title>
+<link rel="icon" href="data:," />
+<style>
+/* ---------- Design System (minimalista, PWA-friendly) ---------- */
+:root{
+  --bg:#0b0d10;
+  --panel:#12161b;
+  --panel-2:#0f1317;
+  --text:#eef2f7;
+  --muted:#99a3ad;
+  --brand:#22d3a3;
+  --brand-2:#93e5ce;
+  --danger:#ff6b6b;
+  --warn:#fbbf24;
+  --ok:#34d399;
+  --info:#60a5fa;
+  --chip:#1b2128;
+  --ring:rgba(255,255,255,.06);
+  --grid-gap:14px;
+  --radius:14px;
+  --shadow:0 10px 30px rgba(0,0,0,.25);
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:linear-gradient(180deg,#0a0c0f, #0c1116 30%, #0b0d10);
+  color:var(--text); font-family:var(--font); letter-spacing:.1px;
+}
+.container{max-width:1200px;margin:0 auto;padding:20px}
+h1,h2,h3{margin:0 0 8px}
+h1{font-size:22px;font-weight:700}
+h2{font-size:16px;color:var(--muted)}
+a{color:inherit}
+
+.toolbar{
+  display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:16px;
+}
+.pill{
+  background:var(--chip);border:1px solid var(--ring);padding:10px 12px;border-radius:999px;
+  display:inline-flex;gap:8px;align-items:center;color:var(--text)
+}
+select,button,input{
+  background:var(--chip);border:1px solid var(--ring);color:var(--text);
+  padding:10px 12px;border-radius:12px;outline:none;
+}
+button.primary{background:var(--brand);border:none;color:#00140e;font-weight:700}
+button.ghost{background:transparent;border:1px solid var(--ring)}
+button.tiny{padding:6px 10px;border-radius:10px;font-size:12px}
+
+.tabs{display:flex;gap:8px;margin:6px 0 16px}
+.tab-btn{
+  background:var(--panel-2);border:1px solid var(--ring);color:var(--text);
+  padding:10px 14px;border-radius:12px;cursor:pointer
+}
+.tab-btn.active{outline:2px solid var(--brand);background:#0e151a}
+
+.grid{display:grid;gap:var(--grid-gap)}
+@media (min-width:720px){ .grid.cols-3{grid-template-columns:repeat(3,1fr)} }
+@media (min-width:960px){ .grid.cols-4{grid-template-columns:repeat(4,1fr)} }
+.card{
+  background:var(--panel); border:1px solid var(--ring); border-radius:var(--radius);
+  padding:16px; box-shadow:var(--shadow);
+}
+.card h3{font-size:14px;color:var(--muted);font-weight:600;margin-bottom:10px}
+.kpi{display:flex;align-items:baseline;gap:8px}
+.kpi .big{font-size:26px;font-weight:800}
+.kpi .unit{color:var(--muted);font-size:12px}
+
+/* progress meta */
+.progress{height:10px;background:#0a0f13;border-radius:10px;position:relative;overflow:hidden;border:1px solid var(--ring)}
+.progress>span{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand-2));border-right:2px solid rgba(255,255,255,.4)}
+.progress .mark{position:absolute;top:-6px;width:2px;height:22px;background:var(--warn);right:12%}
+
+/* chips list */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--chip);border:1px solid var(--ring);padding:8px 10px;border-radius:999px;font-size:12px;color:var(--muted)}
+.badge{padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700}
+.badge.ok{background:rgba(52,211,153,.15);color:var(--ok)}
+.badge.warn{background:rgba(251,191,36,.15);color:var(--warn)}
+.badge.danger{background:rgba(255,107,107,.18);color:var(--danger)}
+.badge.info{background:rgba(96,165,250,.15);color:var(--info)}
+
+/* table */
+.table{width:100%;border-collapse:separate;border-spacing:0 8px}
+.table th{color:var(--muted);font-size:12px;text-align:left;padding:6px 10px}
+.table td{padding:10px;background:var(--panel-2);border:1px solid var(--ring)}
+.table tr td:first-child{border-radius:10px 0 0 10px}
+.table tr td:last-child{border-radius:0 10px 10px 0}
+
+/* bars */
+.bar{height:10px;background:#0b0f13;border-radius:10px;position:relative;overflow:hidden;border:1px solid var(--ring)}
+.bar > i{position:absolute;left:0;top:0;bottom:0;background:var(--info)}
+
+/* role visibility */
+.supervisor-only{display:none}
+body[data-role="supervisor"] .supervisor-only{display:inline-flex}
+.hidden{display:none}
+
+/* celebration */
+.celebrate{margin-top:10px;padding:10px;border:1px solid var(--ring);background:var(--panel-2);border-radius:12px;display:none}
+.celebrate.show{display:block}
+.medal{display:inline-flex;align-items:center;gap:8px;margin-right:8px;font-weight:700}
+.medal i{font-style:normal}
+.medal.bronze i{filter:saturate(1.2)}
+.medal.prata i{filter:saturate(1.2)}
+.medal.ouro i{filter:saturate(1.2)}
+.medal.trofeu i{filter:saturate(1.2)}
+
+/* footer note */
+.note{color:var(--muted);font-size:12px;margin-top:8px}
+.hr{height:1px;background:var(--ring);margin:10px 0 14px}
+</style>
+</head>
+<body data-role="supervisor"><!-- altere para 'acolhimento', 'orcamentista', 'vendas' -->
+  <div class="container">
+    <div class="toolbar">
+      <div style="display:flex;gap:10px;align-items:center;">
+        <h1>OficialMedPro · Painel Operacional</h1>
+        <span class="pill">Período
+          <select id="period">
+            <option>Hoje</option><option>Esta semana</option><option>Este mês</option>
+          </select>
+        </span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span class="pill">Usuário: <strong id="who">Supervisor</strong></span>
+        <select id="role">
+          <option value="supervisor">Supervisor</option>
+          <option value="acolhimento">Acolhimento</option>
+          <option value="orcamentista">Orçamentista</option>
+          <option value="vendas">Vendas</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="tab-acolhimento">Acolhimento</button>
+      <button class="tab-btn" data-tab="tab-orcamento">Orçamentista</button>
+      <button class="tab-btn" data-tab="tab-vendas">Vendas</button>
+    </div>
+
+    <!-- ================== ACOLHIMENTO ================== -->
+    <section id="tab-acolhimento" class="tab card">
+      <h2>Acolhimento · Entrada → Acolhimento → Qualificados</h2>
+      <div class="hr"></div>
+
+      <div class="grid cols-4">
+        <div class="card">
+          <h3>Leads que entraram</h3>
+          <div class="kpi"><span class="big" data-bind="entrou">326</span><span class="unit">no período</span></div>
+          <div class="chips" style="margin-top:10px">
+            <span class="chip">Não lidas <strong data-bind="naoLidas">83</strong></span>
+            <span class="chip">Mensagens não lidas <strong data-bind="msgs">41</strong></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Metas (D / S / M)</h3>
+          <div class="kpi"><span class="big" data-bind="metaHoje">120</span><span class="unit">diário</span></div>
+          <div class="progress" style="margin:8px 0 10px">
+            <span style="width:65%" data-style="realHoje"></span>
+            <i class="mark" title="Meta diária"></i>
+          </div>
+          <div class="kpi" style="gap:16px">
+            <span><strong data-bind="semana">212</strong> / 400 <span class="badge warn">semana</span></span>
+          </div>
+          <div class="progress" style="margin:8px 0 10px">
+            <span style="width:53%" data-style="realSemana"></span>
+          </div>
+          <div class="kpi" style="gap:16px">
+            <span><strong data-bind="mes">2.033</strong> / 1.700 <span class="badge ok">mês</span></span>
+          </div>
+          <div class="progress" style="margin-top:8px">
+            <span style="width:100%" data-style="realMes"></span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="tiny supervisor-only" id="btnMeta">Editar metas</button>
+            <span class="note">Botão visível apenas para supervisores.</span>
+          </div>
+          <div class="celebrate" id="celebration-acolh"></div>
+        </div>
+
+        <div class="card">
+          <h3>Qualidade média do lead</h3>
+          <div class="kpi"><span class="big" data-bind="qualidade">78</span><span class="unit">/ 100</span></div>
+          <div class="chips" style="margin-top:10px">
+            <span class="chip">Telefone: <strong data-bind="telef">82%</strong></span>
+            <span class="chip">E-mail: <strong data-bind="email">64%</strong></span>
+            <span class="chip">Cidade: <strong data-bind="cidade">71%</strong></span>
+            <span class="chip">Intenção: <strong data-bind="intencao">56%</strong></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Taxas de passagem</h3>
+          <div class="kpi"><span class="big" data-bind="txEA">68%</span><span class="unit">Entrada→Acolh.</span></div>
+          <div class="bar" style="margin:8px 0 12px"><i style="width:68%"></i></div>
+          <div class="kpi"><span class="big" data-bind="txAQ">47%</span><span class="unit">Acolh.→Qualificados</span></div>
+          <div class="bar"><i style="width:47%"></i></div>
+        </div>
+      </div>
+
+      <div class="grid cols-3" style="margin-top:var(--grid-gap)">
+        <div class="card">
+          <h3>Tempo nas etapas</h3>
+          <div class="kpi"><span class="big" data-bind="tEntrada">31h</span><span class="unit">média em Entrada</span></div>
+          <div class="kpi" style="margin-top:6px"><span class="big" data-bind="tAcolh">2h59</span><span class="unit">média em Acolhimento</span></div>
+          <div class="chips" style="margin-top:10px">
+            <span class="badge danger">Atrasados: <strong data-bind="atr">12</strong></span>
+            <span class="badge info">Em fila: <strong data-bind="fila">86</strong></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Motivos de perda (Entrada↔Acolh.)</h3>
+          <table class="table">
+            <thead><tr><th>Motivo</th><th>%</th><th>Qtd</th></tr></thead>
+            <tbody>
+              <tr><td>Sem contato/NR</td><td><div class="bar"><i style="width:38%"></i></div></td><td>124</td></tr>
+              <tr><td>Dados insuficientes</td><td><div class="bar"><i style="width:22%"></i></div></td><td>70</td></tr>
+              <tr><td>Sem interesse</td><td><div class="bar"><i style="width:18%"></i></div></td><td>55</td></tr>
+              <tr><td>Concorrência</td><td><div class="bar"><i style="width:9%"></i></div></td><td>28</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>Fila com mensagens não lidas</h3>
+          <div class="kpi"><span class="big" data-bind="naoLidas">83</span><span class="unit">conversas</span></div>
+          <div class="chips" style="margin-top:10px">
+            <span class="badge warn">WhatsApp: 41</span>
+            <span class="badge info">E-mail: 29</span>
+            <span class="badge danger">Chat: 13</span>
+          </div>
+          <div class="note">Priorize não lidas + maior tempo em Entrada.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================== ORÇAMENTISTA ================== -->
+    <section id="tab-orcamento" class="tab card hidden">
+      <h2>Orçamentista · Qualificados → Orçamento → Negociação</h2>
+      <div class="hr"></div>
+
+      <div class="grid cols-4">
+        <div class="card">
+          <h3>Orçamentos gerados (R$)</h3>
+          <div class="kpi"><span class="big" data-bind="orc_val_dia">12.450</span><span class="unit">/ dia</span></div>
+          <div class="progress" style="margin:8px 0 6px"><span data-style="orc_perc_dia" style="width:0%"></span></div>
+          <div class="kpi"><strong data-bind="orc_val_semana">74.210</strong> / semana</div>
+          <div class="progress" style="margin:8px 0 6px"><span data-style="orc_perc_semana" style="width:0%"></span></div>
+          <div class="kpi"><strong data-bind="orc_val_mes">312.980</strong> / mês</div>
+          <div class="progress" style="margin-top:8px"><span data-style="orc_perc_mes" style="width:0%"></span></div>
+          <div class="note">Metas: D <span data-bind="orc_meta_dia">15.000</span> · S <span data-bind="orc_meta_semana">80.000</span> · M <span data-bind="orc_meta_mes">300.000</span></div>
+          <div class="celebrate" id="celebration-orc"></div>
+        </div>
+
+        <div class="card">
+          <h3>Orçamentos gerados (Qtd)</h3>
+          <div class="kpi"><span class="big" data-bind="orc_qtd_dia">36</span><span class="unit">/ dia</span></div>
+          <div class="chips" style="margin-top:10px">
+            <span class="badge ok">Hoje: <strong data-bind="orc_qtd_dia_ok">36</strong></span>
+            <span class="badge info">Semana: <strong data-bind="orc_qtd_semana">156</strong></span>
+            <span class="badge warn">Mês: <strong data-bind="orc_qtd_mes">612</strong></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Ticket médio (R$)</h3>
+          <div class="kpi"><span class="big" data-bind="orc_ticket_dia">345</span><span class="unit">/ dia</span></div>
+          <div class="kpi" style="margin-top:6px"><span class="big" data-bind="orc_ticket_semana">476</span><span class="unit">/ semana</span></div>
+          <div class="kpi" style="margin-top:6px"><span class="big" data-bind="orc_ticket_mes">511</span><span class="unit">/ mês</span></div>
+        </div>
+
+        <div class="card">
+          <h3>Taxas de passagem</h3>
+          <div class="kpi"><span class="big">63%</span><span class="unit">Qualif.→Orçamento</span></div>
+          <div class="bar" style="margin:8px 0 12px"><i style="width:63%"></i></div>
+          <div class="kpi"><span class="big">48%</span><span class="unit">Orçamento→Negociação</span></div>
+          <div class="bar"><i style="width:48%"></i></div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="tiny supervisor-only" id="btnMetaOrc">Editar metas R$</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid cols-3" style="margin-top:var(--grid-gap)">
+        <div class="card">
+          <h3>Tempo para orçar</h3>
+          <div class="kpi"><span class="big">1h42</span><span class="unit">média</span></div>
+          <div class="chips" style="margin-top:10px">
+            <span class="badge ok">≤30min: 25%</span>
+            <span class="badge info">≤1h: 41%</span>
+            <span class="badge warn">≤2h: 71%</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Motivos de perda (Qualif.↔Orçamento)</h3>
+          <table class="table">
+            <thead><tr><th>Motivo</th><th>%</th><th>Qtd</th></tr></thead>
+            <tbody>
+              <tr><td>Sem retorno do cliente</td><td><div class="bar"><i style="width:34%"></i></div></td><td>58</td></tr>
+              <tr><td>Preço percebido alto</td><td><div class="bar"><i style="width:27%"></i></div></td><td>46</td></tr>
+              <tr><td>Dados clínicos insuf.</td><td><div class="bar"><i style="width:19%"></i></div></td><td>32</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>Ações rápidas</h3>
+          <div class="chips">
+            <button class="tiny">Fila por SLA</button>
+            <button class="tiny">Orçamentos reabertos</button>
+            <button class="tiny">Compendência faltante</button>
+          </div>
+          <div class="note">Atalhos para priorização tática.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================== VENDAS ================== -->
+    <section id="tab-vendas" class="tab card hidden">
+      <h2>Vendas · Negociação → Follow-up → Cadastro (Venda)</h2>
+      <div class="hr"></div>
+
+      <div class="grid cols-4">
+        <div class="card">
+          <h3>Vendas (R$)</h3>
+          <div class="kpi"><span class="big" data-bind="ven_val_dia">18.900</span><span class="unit">/ dia</span></div>
+          <div class="progress" style="margin:8px 0 6px"><span data-style="ven_perc_dia" style="width:0%"></span></div>
+          <div class="kpi"><strong data-bind="ven_val_semana">102.330</strong> / semana</div>
+          <div class="progress" style="margin:8px 0 6px"><span data-style="ven_perc_semana" style="width:0%"></span></div>
+          <div class="kpi"><strong data-bind="ven_val_quinzena">221.750</strong> / quinzena</div>
+          <div class="progress" style="margin-top:8px"><span data-style="ven_perc_quinzena" style="width:0%"></span></div>
+          <div class="note">Metas: D <span data-bind="ven_meta_dia">20.000</span> · S <span data-bind="ven_meta_semana">120.000</span> · QZ <span data-bind="ven_meta_quinzena">240.000</span></div>
+          <div class="celebrate" id="celebration-vendas"></div>
+        </div>
+
+        <div class="card">
+          <h3>Ticket médio (R$)</h3>
+          <div class="kpi"><span class="big" data-bind="ven_ticket_dia">612</span><span class="unit">/ dia</span></div>
+          <div class="kpi" style="margin-top:6px"><span class="big" data-bind="ven_ticket_semana">589</span><span class="unit">/ semana</span></div>
+          <div class="kpi" style="margin-top:6px"><span class="big" data-bind="ven_ticket_quinzena">574</span><span class="unit">/ quinzena</span></div>
+        </div>
+
+        <div class="card">
+          <h3>Taxas de passagem</h3>
+          <div class="kpi"><span class="big">54%</span><span class="unit">Negociação→Follow-up</span></div>
+          <div class="bar" style="margin:8px 0 12px"><i style="width:54%"></i></div>
+          <div class="kpi"><span class="big">61%</span><span class="unit">Follow-up→Cadastro</span></div>
+          <div class="bar"><i style="width:61%"></i></div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="tiny supervisor-only" id="btnMetaVen">Editar metas R$</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Follow-ups ativos</h3>
+          <div class="kpi"><span class="big">86</span><span class="unit">em acompanhamento</span></div>
+          <div class="note">Priorize tickets sem atualização &gt; 48h.</div>
+        </div>
+      </div>
+
+      <div class="grid cols-3" style="margin-top:var(--grid-gap)">
+        <div class="card">
+          <h3>Motivos de perda (Negociação)</h3>
+          <table class="table">
+            <thead><tr><th>Motivo</th><th>%</th><th>Qtd</th></tr></thead>
+            <tbody>
+              <tr><td>Preço/concorrente</td><td><div class="bar"><i style="width:31%"></i></div></td><td>77</td></tr>
+              <tr><td>Prazo/entrega</td><td><div class="bar"><i style="width:21%"></i></div></td><td>52</td></tr>
+              <tr><td>Sem decisão</td><td><div class="bar"><i style="width:19%"></i></div></td><td>47</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h3>Métricas de resposta</h3>
+          <div class="kpi"><span class="big">6m</span><span class="unit">1º contato</span></div>
+          <div class="chips" style="margin-top:10px">
+            <span class="badge ok">≤5min: 32%</span>
+            <span class="badge info">≤30min: 68%</span>
+            <span class="badge warn">&gt;12h: 4%</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Ações rápidas</h3>
+          <div class="chips">
+            <button class="tiny">Enviar lembrete</button>
+            <button class="tiny">Reforçar prova social</button>
+            <button class="tiny">Gerar link pagamento</button>
+          </div>
+          <div class="note">Foco em remover objeções e fechar.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="note" style="margin-top:14px">
+      Dica de uso: cada indicador tem um <em>data-bind</em> para você plugar sua API (Supabase/N8N/SprintHub).  
+      O layout é intencionalmente objetivo para guiar comportamento: <strong>priorização por fila e SLA</strong>, <strong>qualidade do cadastro</strong> e <strong>passagens do funil</strong>.
+    </div>
+  </div>
+
+<script>
+/* ---------- Tabs ---------- */
+const tabs = document.querySelectorAll('.tab-btn');
+const sections = document.querySelectorAll('.tab');
+tabs.forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    tabs.forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    sections.forEach(s=>s.classList.add('hidden'));
+    document.getElementById(btn.dataset.tab).classList.remove('hidden');
+  });
+});
+
+/* ---------- Role switching (controle de visibilidade) ---------- */
+const roleSel = document.getElementById('role');
+const who = document.getElementById('who');
+function setRole(val){
+  document.body.setAttribute('data-role', val);
+  who.textContent =
+    val==='supervisor'?'Supervisor':
+    val==='acolhimento'?'Acolhimento':
+    val==='orcamentista'?'Orçamentista':'Vendas';
+
+  // trava: usuário comum só vê a própria aba
+  if(val!=='supervisor'){
+    const map = {
+      acolhimento: 'tab-acolhimento',
+      orcamentista: 'tab-orcamento',
+      vendas: 'tab-vendas'
+    };
+    tabs.forEach(b=>b.classList.remove('active'));
+    sections.forEach(s=>s.classList.add('hidden'));
+    document.querySelector(`[data-tab="${map[val]}"]`).classList.add('active');
+    document.getElementById(map[val]).classList.remove('hidden');
+  }
+}
+roleSel.addEventListener('change', e=>setRole(e.target.value));
+
+/* ---------- Helpers: metas e celebrações ---------- */
+function pct(real, meta){
+  const r = Number(String(real).replace(/\./g,'').replace(',', '.'));
+  const m = Number(String(meta).replace(/\./g,'').replace(',', '.'));
+  if(!m) return 0; return Math.min(200, Math.round((r/m)*100));
+}
+function medalMarkup(per){
+  if(per>=150) return `<div class="medal trofeu"><i>🏆</i> Troféu de Superação (${per}%)</div>`;
+  if(per>=100) return `<div class="medal ouro"><i>🥇</i> Medalha de Ouro (${per}%)</div>`;
+  if(per>=75)  return `<div class="medal prata"><i>🥈</i> Medalha de Prata (${per}%)</div>`;
+  if(per>=50)  return `<div class="medal bronze"><i>🥉</i> Medalha de Bronze (${per}%)</div>`;
+  return `<div class="medal"><i>💪</i> Continue — ${per}% da meta</div>`;
+}
+function celebrate(el, per){
+  el.innerHTML = `<strong>Parabéns!</strong> ${medalMarkup(per)}`;
+  el.classList.add('show');
+}
+
+/* ---------- Editar metas (placeholders) ---------- */
+document.getElementById('btnMeta')?.addEventListener('click', ()=>{
+  const nova = prompt('Nova meta diária (número de atendimentos):', '140');
+  if(nova){
+    document.querySelector('[data-bind="metaHoje"]').textContent = nova;
+    alert('Meta atualizada (client-side). Conecte com sua API para persistir.');
+  }
+});
+
+document.getElementById('btnMetaOrc')?.addEventListener('click', ()=>{
+  const d = prompt('Meta diária de orçamento (R$):', '15000');
+  const s = prompt('Meta semanal de orçamento (R$):', '80000');
+  const m = prompt('Meta mensal de orçamento (R$):', '300000');
+  if(d&&s&&m){
+    document.querySelector('[data-bind="orc_meta_dia"]').textContent = Number(d).toLocaleString('pt-BR');
+    document.querySelector('[data-bind="orc_meta_semana"]').textContent = Number(s).toLocaleString('pt-BR');
+    document.querySelector('[data-bind="orc_meta_mes"]').textContent = Number(m).toLocaleString('pt-BR');
+  }
+});
+
+document.getElementById('btnMetaVen')?.addEventListener('click', ()=>{
+  const d = prompt('Meta diária de vendas (R$):', '20000');
+  const s = prompt('Meta semanal de vendas (R$):', '120000');
+  const q = prompt('Meta quinzenal de vendas (R$):', '240000');
+  if(d&&s&&q){
+    document.querySelector('[data-bind="ven_meta_dia"]').textContent = Number(d).toLocaleString('pt-BR');
+    document.querySelector('[data-bind="ven_meta_semana"]').textContent = Number(s).toLocaleString('pt-BR');
+    document.querySelector('[data-bind="ven_meta_quinzena"]').textContent = Number(q).toLocaleString('pt-BR');
+  }
+});
+
+/* ---------- Exemplo de binding rápido ---------- */
+const sample = {
+  entrou: 326, naoLidas: 83, msgs: 41,
+  metaHoje: 120, semana: 212, mes: 2033,
+  qualidade: 78, telef:'82%', email:'64%', cidade:'71%', intencao:'56%',
+  txEA:'68%', txAQ:'47%', tEntrada:'31h', tAcolh:'2h59', atr:12, fila:86,
+
+  // Orçamentista (R$ / Qtd / Ticket)
+  orc_val_dia: 12450, orc_val_semana: 74210, orc_val_mes: 312980,
+  orc_meta_dia: 15000, orc_meta_semana: 80000, orc_meta_mes: 300000,
+  orc_qtd_dia: 36, orc_qtd_semana: 156, orc_qtd_mes: 612,
+  orc_qtd_dia_ok: 36,
+  orc_ticket_dia: 345, orc_ticket_semana: 476, orc_ticket_mes: 511,
+
+  // Vendas
+  ven_val_dia: 18900, ven_val_semana: 102330, ven_val_quinzena: 221750,
+  ven_meta_dia: 20000, ven_meta_semana: 120000, ven_meta_quinzena: 240000,
+  ven_ticket_dia: 612, ven_ticket_semana: 589, ven_ticket_quinzena: 574
+};
+
+// Preenche textos
+for (const k in sample){
+  document.querySelectorAll(`[data-bind="${k}"]`).forEach(el=>{
+    const v = sample[k];
+    const isMoney = /(val_|meta_|ticket)/.test(k);
+    el.textContent = isMoney ? Number(v).toLocaleString('pt-BR') : v;
+  });
+}
+
+// Ajusta barras e medalhas — Orçamentista
+const orcDia = pct(sample.orc_val_dia, sample.orc_meta_dia);
+const orcSem = pct(sample.orc_val_semana, sample.orc_meta_semana);
+const orcMes = pct(sample.orc_val_mes, sample.orc_meta_mes);
+document.querySelectorAll('[data-style="orc_perc_dia"]').forEach(el=>el.style.width = orcDia+'%');
+document.querySelectorAll('[data-style="orc_perc_semana"]').forEach(el=>el.style.width = orcSem+'%');
+document.querySelectorAll('[data-style="orc_perc_mes"]').forEach(el=>el.style.width = orcMes+'%');
+if(orcDia>=50) celebrate(document.getElementById('celebration-orc'), orcDia);
+
+// Ajusta barras e medalhas — Vendas
+const venDia = pct(sample.ven_val_dia, sample.ven_meta_dia);
+const venSem = pct(sample.ven_val_semana, sample.ven_meta_semana);
+const venQz  = pct(sample.ven_val_quinzena, sample.ven_meta_quinzena);
+document.querySelectorAll('[data-style="ven_perc_dia"]').forEach(el=>el.style.width = venDia+'%');
+document.querySelectorAll('[data-style="ven_perc_semana"]').forEach(el=>el.style.width = venSem+'%');
+document.querySelectorAll('[data-style="ven_perc_quinzena"]').forEach(el=>el.style.width = venQz+'%');
+if(venDia>=50) celebrate(document.getElementById('celebration-vendas'), venDia);
+
+// Exemplo: também celebrando a meta de acolhimento quando diário >= 50%
+const acolhPer = 65; // placeholder da barra diária
+if(acolhPer>=50) celebrate(document.getElementById('celebration-acolh'), acolhPer);
+</script>
+</body>
+</html>
