@@ -11,7 +11,9 @@ class GoogleAdsApiProxy {
     const hasValidLocation = typeof window !== 'undefined' && 
                              window.location && 
                              window.location.protocol && 
-                             window.location.hostname;
+                             window.location.hostname &&
+                             window.location.protocol.trim() !== '' &&
+                             window.location.hostname.trim() !== '';
     
     const isProduction = hasValidLocation &&
                         window.location.hostname !== 'localhost' && 
@@ -20,12 +22,24 @@ class GoogleAdsApiProxy {
     
     // Validar URL antes de construir
     try {
-      this.baseUrl = isProduction 
-        ? `${window.location.protocol}//${window.location.hostname}/api/google-ads` // URL da VPS
-        : 'http://localhost:3001/api/google-ads'; // URL local
-      
-      // Validar URL construída
-      new URL(this.baseUrl);
+      if (isProduction && hasValidLocation) {
+        // Garantir que protocol e hostname são válidos
+        const protocol = window.location.protocol?.trim() || 'https:';
+        const hostname = window.location.hostname?.trim() || '';
+        
+        if (!hostname || hostname === '') {
+          throw new Error('hostname vazio');
+        }
+        
+        // Construir URL de forma segura
+        const constructedUrl = `${protocol}//${hostname}/api/google-ads`;
+        
+        // Validar URL construída
+        new URL(constructedUrl);
+        this.baseUrl = constructedUrl;
+      } else {
+        this.baseUrl = 'http://localhost:3001/api/google-ads';
+      }
     } catch (e) {
       console.warn('⚠️ Erro ao construir URL do GoogleAdsApiProxy, usando fallback:', e.message);
       this.baseUrl = 'http://localhost:3001/api/google-ads';
@@ -309,8 +323,24 @@ class GoogleAdsApiProxy {
   }
 }
 
-// Exportar instância única do serviço
-export const googleAdsApiProxy = new GoogleAdsApiProxy();
+// Lazy initialization - não criar instância automaticamente
+let _googleAdsApiProxyInstance = null;
+
+// Função para obter instância (lazy loading)
+export const getGoogleAdsApiProxy = () => {
+  if (!_googleAdsApiProxyInstance) {
+    _googleAdsApiProxyInstance = new GoogleAdsApiProxy();
+  }
+  return _googleAdsApiProxyInstance;
+};
+
+// Exportar instância única do serviço (para compatibilidade, mas só inicializa quando necessário)
+export const googleAdsApiProxy = new Proxy({}, {
+  get(target, prop) {
+    const instance = getGoogleAdsApiProxy();
+    return instance[prop];
+  }
+});
 
 // Exportar também a classe para casos específicos
 export default GoogleAdsApiProxy;
