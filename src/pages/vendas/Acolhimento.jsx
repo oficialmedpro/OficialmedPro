@@ -23,8 +23,11 @@ const Acolhimento = ({ contexto, role }) => {
     try {
       setIsLoading(true);
       
+      // Carregar serviço apenas quando necessário (lazy import)
+      const vendasService = await getVendasService();
+      
       // Buscar KPIs
-      const kpisData = await getKpisAcolhimento({
+      const kpisData = await vendasService.getKpisAcolhimento({
         unidadeId: contexto.unidadeId,
         funilId: contexto.funilId,
         vendedorId: contexto.vendedorId || undefined
@@ -33,7 +36,7 @@ const Acolhimento = ({ contexto, role }) => {
       setKpis(kpisData || {});
       
       // Buscar motivos de perda
-      const motivosData = await getMotivosPerda('acolhimento');
+      const motivosData = await vendasService.getMotivosPerda('acolhimento');
       setMotivosPerda(motivosData || []);
       
     } catch (error) {
