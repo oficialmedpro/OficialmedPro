@@ -4,7 +4,8 @@
  * Busca KPIs agregados das views do Postgres
  */
 
-import { supabase, getSupabaseWithSchema } from './supabase.js';
+// Usar supabase-vendas.js que é específico para vendas (sem dependências do Google Ads)
+import { supabase, getSupabaseWithSchema } from './supabase-vendas.js';
 import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
 
 /**
