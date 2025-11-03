@@ -23,6 +23,7 @@ import Login from './components/Login'
 import autoSyncService from './service/autoSyncService'
 import Callix from './pages/callix'
 import ClientesConsolidados from './pages/clientes-consolidados'
+import VendasPage from './pages/vendas/VendasPage'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -126,6 +127,7 @@ function App() {
         <Route path="/usuarios" element={<UserManagementPage onLogout={handleLogout} />} />
         <Route path="/callix" element={<Callix onLogout={handleLogout} />} />
         <Route path="/clientes-consolidados" element={<ClientesConsolidados onLogout={handleLogout} />} />
+        <Route path="/vendas" element={<VendasPage onLogout={handleLogout} />} />
       </Routes>
     </Router>
   )

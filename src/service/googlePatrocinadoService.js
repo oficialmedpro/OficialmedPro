@@ -9,8 +9,8 @@ class GooglePatrocinadoService {
     // Obter service key de forma segura (runtime ou build-time)
     this.getServiceKey = () => window.ENV?.VITE_SUPABASE_SERVICE_ROLE_KEY || import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
     
-    // Testar conexão automaticamente
-    this.testConnectionAndCampaigns();
+    // ❌ REMOVIDO: Teste automático desabilitado - só executar quando necessário (página de Google Ads)
+    // this.testConnectionAndCampaigns();
   }
   
   // Método para testar conexão e buscar campanhas automaticamente
