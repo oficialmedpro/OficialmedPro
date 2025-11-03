@@ -1,6 +1,14 @@
 import { getTodayDateSP, getStartOfDaySP, getEndOfDaySP } from '../utils/utils'
 import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
-import { googleAdsApiService } from './googleAdsApiService.js'
+
+// Lazy import do googleAdsApiService para evitar inicialização automática
+let googleAdsApiServicePromise = null;
+const getGoogleAdsApiService = async () => {
+  if (!googleAdsApiServicePromise) {
+    googleAdsApiServicePromise = import('./googleAdsApiService.js').then(module => module.googleAdsApiService);
+  }
+  return await googleAdsApiServicePromise;
+};
 
 /**
  * Service para buscar investimento em mídia paga (Google) no Supabase
@@ -246,6 +254,9 @@ export const googleInvestimentoService = {
     console.log('📅 Período:', startDate, 'até', endDate);
 
     try {
+      // Buscar serviço apenas quando necessário (lazy import)
+      const googleAdsApiService = await getGoogleAdsApiService();
+      
       // Buscar estatísticas da API do Google Ads
       const stats = await googleAdsApiService.getStats(startDate, endDate);
       

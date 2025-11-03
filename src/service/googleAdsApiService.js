@@ -251,6 +251,24 @@ class GoogleAdsApiService {
   }
 }
 
-// Exportar instância única
-export const googleAdsApiService = new GoogleAdsApiService();
+// Lazy initialization - não criar instância automaticamente
+let _googleAdsApiServiceInstance = null;
+
+// Função para obter instância (lazy loading)
+export const getGoogleAdsApiService = () => {
+  if (!_googleAdsApiServiceInstance) {
+    _googleAdsApiServiceInstance = new GoogleAdsApiService();
+  }
+  return _googleAdsApiServiceInstance;
+};
+
+// Exportar instância única (para compatibilidade, mas só inicializa quando necessário)
+export const googleAdsApiService = new Proxy({}, {
+  get(target, prop) {
+    const instance = getGoogleAdsApiService();
+    return instance[prop];
+  }
+});
+
+// Exportar também a classe para casos específicos
 export default GoogleAdsApiService;
