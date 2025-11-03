@@ -205,3 +205,6 @@ Se mesmo usando `:latest` não funcionar, pode ser que a imagem ainda não foi p
 
 2. **Ou verificar se há um GitHub Actions configurado** para fazer build automático
 
+
+
+

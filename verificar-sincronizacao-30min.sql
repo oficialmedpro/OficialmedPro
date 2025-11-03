@@ -125,3 +125,6 @@ LIMIT 5;
 -- ✅ 5. Cronjob deve estar ativo (active = true)
 -- ✅ 6. Últimas execuções do cronjob devem estar com status 'succeeded'
 
+
+
+

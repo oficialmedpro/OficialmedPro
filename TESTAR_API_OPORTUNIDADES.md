@@ -224,3 +224,6 @@ SELECT cron.schedule(
 ---
 
 **Status:** ✅ TUDO FUNCIONANDO!
+
+
+

@@ -94,3 +94,6 @@ npm run build
 **Conclusão**: A correção deve funcionar. Se ainda falhar no CI, verificar logs completos para identificar causa específica.
 
 
+
+
+

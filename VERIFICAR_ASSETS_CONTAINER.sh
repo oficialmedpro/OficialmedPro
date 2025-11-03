@@ -20,3 +20,6 @@ echo ""
 echo "🔍 Listando primeiros 10 arquivos em assets..."
 ls -lh /usr/share/nginx/html/assets/ | head -15
 
+
+
+

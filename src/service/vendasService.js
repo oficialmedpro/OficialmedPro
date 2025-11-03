@@ -1,6 +1,6 @@
 ﻿/**
- * ­ƒôè SERVI├çO PARA DADOS DO VENDAS PWA
- * 
+ * SERVICO PARA DADOS DO VENDAS PWA
+ *
  * Busca KPIs agregados das views do Postgres
  */
 
@@ -15,22 +15,22 @@ import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supab
  */
 export const getKpisAcolhimento = async (filtros = {}) => {
   try {
-    console.log('­ƒöì [vendasService] Buscando KPIs de Acolhimento:', filtros);
-    
+    console.log('[vendasService] Buscando KPIs de Acolhimento:', filtros);
+
     const supabaseWithSchema = getSupabaseWithSchema(supabaseSchema);
     let query = supabaseWithSchema.from('view_acolhimento_kpis').select('*');
-    
+
     if (filtros.unidadeId) query = query.eq('unidade_id', filtros.unidadeId);
     if (filtros.funilId) query = query.eq('funil_id', filtros.funilId);
     if (filtros.vendedorId) query = query.eq('user_id', filtros.vendedorId);
-    
+
     const { data, error } = await query;
-    
+
     if (error) throw error;
-    
-    console.log(`Ô£à [vendasService] KPIs Acolhimento encontrados:`, data?.length || 0);
-    
-    // Agregar todos os vendedores se n├úo filtrar por vendedor espec├¡fico
+
+    console.log('[vendasService] KPIs Acolhimento encontrados:', data?.length || 0);
+
+    // Agregar todos os vendedores se nao filtrar por vendedor especifico
     if (!filtros.vendedorId && Array.isArray(data) && data.length > 0) {
       return {
         entrou: data.reduce((sum, row) => sum + (row.entrou || 0), 0),
@@ -52,35 +52,35 @@ export const getKpisAcolhimento = async (filtros = {}) => {
       };
     }
     
-    // Retornar dados do primeiro vendedor se n├úo houver agrega├º├úo
+    // Retornar dados do primeiro vendedor se nao houver agregacao
     return data?.[0] || {};
   } catch (error) {
-    console.error('ÔØî [vendasService] Erro ao buscar KPIs Acolhimento:', error);
+    console.error('[vendasService] Erro ao buscar KPIs Acolhimento:', error);
     throw error;
   }
 };
 
 /**
- * Busca KPIs de Or├ºamentista
+ * Busca KPIs de Orcamentista
  * @param {Object} filtros - { unidadeId, funilId, vendedorId }
  * @returns {Promise<Object>} KPIs agregados
  */
 export const getKpisOrcamento = async (filtros = {}) => {
   try {
-    console.log('­ƒöì [vendasService] Buscando KPIs de Or├ºamento:', filtros);
-    
+    console.log('[vendasService] Buscando KPIs de Orcamento:', filtros);
+
     const supabaseWithSchema = getSupabaseWithSchema(supabaseSchema);
     let query = supabaseWithSchema.from('view_orcamento_kpis').select('*');
-    
+
     if (filtros.unidadeId) query = query.eq('unidade_id', filtros.unidadeId);
     if (filtros.funilId) query = query.eq('funil_id', filtros.funilId);
     if (filtros.vendedorId) query = query.eq('user_id', filtros.vendedorId);
-    
+
     const { data, error } = await query;
-    
+
     if (error) throw error;
-    
-    console.log(`Ô£à [vendasService] KPIs Or├ºamento encontrados:`, data?.length || 0);
+
+    console.log('[vendasService] KPIs Orcamento encontrados:', data?.length || 0);
     
     // Agregar todos os vendedores
     if (Array.isArray(data) && data.length > 0) {
@@ -101,7 +101,7 @@ export const getKpisOrcamento = async (filtros = {}) => {
     
     return {};
   } catch (error) {
-    console.error('ÔØî [vendasService] Erro ao buscar KPIs Or├ºamento:', error);
+    console.error('[vendasService] Erro ao buscar KPIs Orcamento:', error);
     throw error;
   }
 };
@@ -113,20 +113,20 @@ export const getKpisOrcamento = async (filtros = {}) => {
  */
 export const getKpisVendas = async (filtros = {}) => {
   try {
-    console.log('­ƒöì [vendasService] Buscando KPIs de Vendas:', filtros);
-    
+    console.log('[vendasService] Buscando KPIs de Vendas:', filtros);
+
     const supabaseWithSchema = getSupabaseWithSchema(supabaseSchema);
     let query = supabaseWithSchema.from('view_vendas_kpis').select('*');
-    
+
     if (filtros.unidadeId) query = query.eq('unidade_id', filtros.unidadeId);
     if (filtros.funilId) query = query.eq('funil_id', filtros.funilId);
     if (filtros.vendedorId) query = query.eq('user_id', filtros.vendedorId);
-    
+
     const { data, error } = await query;
-    
+
     if (error) throw error;
-    
-    console.log(`Ô£à [vendasService] KPIs Vendas encontrados:`, data?.length || 0);
+
+    console.log('[vendasService] KPIs Vendas encontrados:', data?.length || 0);
     
     // Agregar todos os vendedores
     if (Array.isArray(data) && data.length > 0) {
@@ -145,20 +145,20 @@ export const getKpisVendas = async (filtros = {}) => {
     
     return {};
   } catch (error) {
-    console.error('ÔØî [vendasService] Erro ao buscar KPIs Vendas:', error);
+    console.error('[vendasService] Erro ao buscar KPIs Vendas:', error);
     throw error;
   }
 };
 
 /**
  * Busca Top motivos de perda
- * @param {String} aba - 'acolhimento', 'or├ºamento', 'vendas'
+ * @param {String} aba - 'acolhimento', 'orcamento', 'vendas'
  * @returns {Promise<Array>} Lista de motivos
  */
 export const getMotivosPerda = async (aba) => {
   try {
-    console.log('­ƒöì [vendasService] Buscando motivos de perda para aba:', aba);
-    
+    console.log('[vendasService] Buscando motivos de perda para aba:', aba);
+
     const supabaseWithSchema = getSupabaseWithSchema(supabaseSchema);
     const { data, error } = await supabaseWithSchema
       .from('view_perdas_top_motivos')
@@ -166,14 +166,14 @@ export const getMotivosPerda = async (aba) => {
       .eq('aba', aba)
       .order('qtd', { ascending: false })
       .limit(5);
-    
+
     if (error) throw error;
-    
-    console.log(`Ô£à [vendasService] Motivos de perda encontrados:`, data?.length || 0);
-    
+
+    console.log('[vendasService] Motivos de perda encontrados:', data?.length || 0);
+
     return data || [];
   } catch (error) {
-    console.error('ÔØî [vendasService] Erro ao buscar motivos de perda:', error);
+    console.error('[vendasService] Erro ao buscar motivos de perda:', error);
     throw error;
   }
 };
@@ -185,25 +185,25 @@ export const getMotivosPerda = async (aba) => {
  */
 export const getMetas = async (filtros = {}) => {
   try {
-    console.log('­ƒöì [vendasService] Buscando metas:', filtros);
-    
+    console.log('[vendasService] Buscando metas:', filtros);
+
     const supabaseWithSchema = getSupabaseWithSchema(supabaseSchema);
     let query = supabaseWithSchema.from('metas').select('*').eq('ativo', true);
-    
+
     if (filtros.unidadeId) query = query.eq('unidade_franquia', filtros.unidadeId);
     if (filtros.funilId) query = query.eq('funil', filtros.funilId);
     if (filtros.vendedorId) query = query.eq('vendedor_id', filtros.vendedorId);
     if (filtros.tipoMeta) query = query.eq('tipo_meta', filtros.tipoMeta);
-    
+
     const { data, error } = await query;
-    
+
     if (error) throw error;
-    
-    console.log(`Ô£à [vendasService] Metas encontradas:`, data?.length || 0);
-    
+
+    console.log('[vendasService] Metas encontradas:', data?.length || 0);
+
     return data || [];
   } catch (error) {
-    console.error('ÔØî [vendasService] Erro ao buscar metas:', error);
+    console.error('[vendasService] Erro ao buscar metas:', error);
     throw error;
   }
 };

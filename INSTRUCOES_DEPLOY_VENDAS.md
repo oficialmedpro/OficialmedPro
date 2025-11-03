@@ -74,3 +74,6 @@ Quando o frontend estiver pronto, usar:
 **Status**: Stack pronta para deploy! ✅
 
 
+
+
+

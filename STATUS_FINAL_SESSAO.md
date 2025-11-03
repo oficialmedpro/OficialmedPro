@@ -117,3 +117,6 @@
 **Resumo**: Missão cumprida! Build principal funcionando, vendas pode ser implementado depois com abordagem diferente. 🚀
 
 
+
+
+

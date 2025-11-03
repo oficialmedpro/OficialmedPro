@@ -3,6 +3,14 @@ import { getTodayDateSP, getStartOfDaySP, getEndOfDaySP } from '../utils/utils.j
 // Configurações do Supabase - usando configuração centralizada
 import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
 
+// Validar e limpar URL antes de usar
+const cleanUrl = (url) => {
+  if (!url || typeof url !== 'string') return 'https://agdffspstbxeqhqtltvb.supabase.co';
+  return url.trim().replace(/[\r\n\t]/g, '');
+};
+
+const validSupabaseUrl = cleanUrl(supabaseUrl);
+
 // 🎯 Função para buscar unidades
 export const getUnidades = async () => {
   try {
@@ -10,7 +18,7 @@ export const getUnidades = async () => {
     
     // Primeiro, vamos ver quais tabelas existem no schema
     console.log('🔍 Verificando tabelas disponíveis...')
-    const tablesResponse = await fetch(`${supabaseUrl}/rest/v1/`, {
+    const tablesResponse = await fetch(`${validSupabaseUrl}/rest/v1/`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -28,7 +36,7 @@ export const getUnidades = async () => {
     }
     
     // Agora tentar buscar unidades (usando campos que realmente existem)
-    const response = await fetch(`${supabaseUrl}/rest/v1/unidades?select=id,unidade,codigo_sprint,status&status=eq.ativo&order=unidade.asc`, {
+    const response = await fetch(`${validSupabaseUrl}/rest/v1/unidades?select=id,unidade,codigo_sprint,status&status=eq.ativo&order=unidade.asc`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -64,7 +72,7 @@ export const getFunisPorUnidade = async (unidadeId = null) => {
   try {
     console.log('🔍 Buscando funis para unidade:', unidadeId)
     
-    let url = `${supabaseUrl}/rest/v1/funis?select=id_funil_sprint,nome_funil,unidade,tipo_funil&order=nome_funil.asc`
+    let url = `${validSupabaseUrl}/rest/v1/funis?select=id_funil_sprint,nome_funil,unidade,tipo_funil&order=nome_funil.asc`
     
     // Se uma unidade específica foi selecionada, filtrar por ela
     if (unidadeId && unidadeId !== 'all') {
@@ -107,7 +115,7 @@ export const getVendedores = async (unidadeId = null) => {
   try {
     console.log('🔍 Buscando vendedores para unidade:', unidadeId)
     
-    let url = `${supabaseUrl}/rest/v1/vendedores?select=id_sprint,nome,id_unidade&status=eq.ativo&order=nome.asc`
+    let url = `${validSupabaseUrl}/rest/v1/vendedores?select=id_sprint,nome,id_unidade&status=eq.ativo&order=nome.asc`
     
     // Se uma unidade específica foi selecionada, filtrar por ela
     if (unidadeId && unidadeId !== 'all') {
@@ -150,7 +158,7 @@ export const getOrigens = async () => {
   try {
     console.log('🔍 Buscando origens do schema:', supabaseSchema)
     
-    const response = await fetch(`${supabaseUrl}/rest/v1/origem_oportunidade?select=id,nome,ativo&ativo=eq.true&order=nome.asc`, {
+    const response = await fetch(`${validSupabaseUrl}/rest/v1/origem_oportunidade?select=id,nome,ativo&ativo=eq.true&order=nome.asc`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -194,7 +202,7 @@ export const getFunilCompraPorUnidade = async (unidadeId) => {
   try {
     console.log('🔍 Buscando funil de compra para unidade:', unidadeId)
 
-    const url = `${supabaseUrl}/rest/v1/funis?select=id_funil_sprint,nome_funil,unidade,tipo_funil&unidade=eq.${unidadeId}&tipo_funil=eq.compra`
+    const url = `${validSupabaseUrl}/rest/v1/funis?select=id_funil_sprint,nome_funil,unidade,tipo_funil&unidade=eq.${unidadeId}&tipo_funil=eq.compra`
 
     const response = await fetch(url, {
       method: 'GET',

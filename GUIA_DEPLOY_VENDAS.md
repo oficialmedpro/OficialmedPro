@@ -216,3 +216,6 @@ docker service logs vendas-oficialmed_vendas-pwa --tail 50 -f
 Após seguir esses passos, o dashboard de vendas estará funcionando perfeitamente em `https://vendas.oficialmed.com.br/vendas`!
 
 Qualquer dúvida, verifique os logs ou me avise! 🚀
+
+
+

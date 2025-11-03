@@ -8,22 +8,38 @@
 import { createClient } from '@supabase/supabase-js';
 import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
 
-// Validar URLs antes de criar cliente
-let validSupabaseUrl = supabaseUrl;
+// Função para limpar e validar URL
+const cleanAndValidateUrl = (url) => {
+  // Se não tiver URL ou não for string, usar fallback
+  if (!url || typeof url !== 'string') {
+    console.warn('⚠️ [supabase-vendas.js] URL não fornecida, usando fallback');
+    return 'https://agdffspstbxeqhqtltvb.supabase.co';
+  }
+
+  // Limpar espaços, quebras de linha e caracteres invisíveis
+  let cleanUrl = url.trim().replace(/[\r\n\t]/g, '');
+
+  // Verificar se começa com http
+  if (!cleanUrl.startsWith('http')) {
+    console.error('❌ [supabase-vendas.js] URL não começa com http:', cleanUrl);
+    return 'https://agdffspstbxeqhqtltvb.supabase.co';
+  }
+
+  // Tentar criar URL para validar formato
+  try {
+    new URL(cleanUrl);
+    console.log('✅ [supabase-vendas.js] URL válida:', cleanUrl.substring(0, 30) + '...');
+    return cleanUrl;
+  } catch (e) {
+    console.error('❌ [supabase-vendas.js] Erro ao validar URL:', e.message);
+    console.error('❌ [supabase-vendas.js] URL recebida:', cleanUrl);
+    return 'https://agdffspstbxeqhqtltvb.supabase.co';
+  }
+};
+
+// Validar e limpar URLs antes de criar cliente
+let validSupabaseUrl = cleanAndValidateUrl(supabaseUrl);
 let validSupabaseServiceKey = supabaseServiceKey;
-
-// Validar URL antes de usar
-if (!validSupabaseUrl || typeof validSupabaseUrl !== 'string' || !validSupabaseUrl.startsWith('http')) {
-  console.error('❌ [supabase-vendas.js] URL inválida:', validSupabaseUrl);
-  validSupabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
-}
-
-try {
-  new URL(validSupabaseUrl);
-} catch (e) {
-  console.error('❌ [supabase-vendas.js] Erro ao validar URL:', e.message);
-  validSupabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
-}
 
 // Cliente Supabase com service role key (permite acesso a todos os schemas)
 let supabase;
@@ -105,4 +121,7 @@ export { supabase };
 
 // Exportar configurações
 export { supabaseUrl, supabaseServiceKey, supabaseSchema };
+
+
+
 

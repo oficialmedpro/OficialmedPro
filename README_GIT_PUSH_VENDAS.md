@@ -84,3 +84,6 @@ docker pull oficialmedpro/oficialmed-pwa:latest
 **Próximo Ação**: Aguardar build completar e fazer deploy no Portainer! 🚀
 
 
+
+
+

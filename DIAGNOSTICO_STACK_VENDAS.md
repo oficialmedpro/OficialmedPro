@@ -119,3 +119,6 @@ cat /run/secrets/VITE_SUPABASE_URL_CORRETO | head -c 30
 - Os logs do `docker-entrypoint.sh` vão para stdout/stderr do container
 - 880 bytes é muito pequeno para um HTML completo de aplicação React
 
+
+
+

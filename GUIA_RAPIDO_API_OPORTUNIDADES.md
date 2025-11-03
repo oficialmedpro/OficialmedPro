@@ -180,3 +180,6 @@ curl https://sincro.oficialmed.com.br/oportunidades/sync/all
 - `Dockerfile.sync-opportunities` - Build da imagem
 - `stack-oportunidades-sync.yml` - Stack do Portainer
 
+
+
+

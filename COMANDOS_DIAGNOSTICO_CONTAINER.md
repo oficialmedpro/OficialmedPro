@@ -64,3 +64,6 @@ Se:
 
 **Então a stack está funcionando corretamente!** Os erros do Google Ads são esperados e não afetam o funcionamento principal.
 
+
+
+

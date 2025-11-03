@@ -215,3 +215,6 @@ ORDER BY tipo;
 -- ✅ Registros na tabela sync_runs
 -- ✅ Logs do cronjob com status 'success'
 
+
+
+

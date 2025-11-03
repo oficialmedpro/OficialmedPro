@@ -125,3 +125,6 @@ WHERE jobname = 'sync-sprinthub-completo-15min';
 --   SELECT cron.unschedule('sync-sprinthub-completo-15min');
 --
 
+
+
+

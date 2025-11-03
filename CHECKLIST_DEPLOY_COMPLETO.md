@@ -79,3 +79,6 @@ Quando o Portainer finalizar:
 **Status**: DNS ✅ | Stack ✅ | Ready to deploy! 🚀
 
 
+
+
+
