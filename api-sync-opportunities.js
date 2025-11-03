@@ -211,7 +211,8 @@ async function fetchSegments(page = 0, limit = 100) {
 
 async function upsertSegments(rows) {
     try {
-        const { error } = await supabase.from('segmentos').upsert(rows, { onConflict: 'id', ignoreDuplicates: false });
+        // Tabela correta é 'segmento' (singular), não 'segmentos' (plural)
+        const { error } = await supabase.from('segmento').upsert(rows, { onConflict: 'id', ignoreDuplicates: false });
         if (error) return { success: false, error: error.message };
         return { success: true };
     } catch (e) {
@@ -225,7 +226,18 @@ async function syncSegments() {
     while (true) {
         const batch = await fetchSegments(page);
         if (!batch || batch.length === 0) break;
-        const mapped = batch.map((s) => ({ id: s.id, name: s.name || s.title || null, synced_at: new Date().toISOString() }));
+        // Mapear para campos corretos da tabela 'segmento' (sem synced_at, usa create_date)
+        const mapped = batch.map((s) => ({ 
+            id: s.id, 
+            name: s.name || s.title || null,
+            alias: s.alias || null,
+            is_published: s.is_published || s.published || false,
+            create_date: s.create_date || s.createDate || new Date().toISOString(),
+            category_id: s.category_id || s.categoryId || null,
+            category_title: s.category_title || s.categoryTitle || s.category || null,
+            total_leads: s.total_leads || s.totalLeads || null,
+            last_lead_update: s.last_lead_update || s.lastLeadUpdate || null
+        }));
         processed += mapped.length;
         const r = await upsertSegments(mapped);
         if (!r.success) errors += mapped.length;
