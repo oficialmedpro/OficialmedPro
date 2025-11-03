@@ -181,10 +181,73 @@ const TopMenuBar = ({
         // Atualizar próxima sincronização
         if (status.proxima_sincronizacao) {
           setNextScheduledSync(new Date(status.proxima_sincronizacao));
+        } else {
+          // Se não tem próxima sincronização, calcular baseado no cronjob (a cada 15 minutos)
+          const now = new Date();
+          const nextSync = new Date(now);
+          nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 15) * 15);
+          if (nextSync <= now) {
+            nextSync.setMinutes(nextSync.getMinutes() + 15);
+          }
+          setNextScheduledSync(nextSync);
         }
+      } else {
+        // Se não há dados, calcular próxima sincronização baseado no cronjob (a cada 15 minutos)
+        const now = new Date();
+        const nextSync = new Date(now);
+        nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 15) * 15);
+        if (nextSync <= now) {
+          nextSync.setMinutes(nextSync.getMinutes() + 15);
+        }
+        setNextScheduledSync(nextSync);
       }
-    } catch (_) {
-      // silencioso para não poluir UI
+    } catch (error) {
+      // Log do erro para debug
+      console.error('❌ Erro ao buscar sync_status:', error);
+      // Se a view não retornar dados, tentar buscar diretamente da tabela sync_runs
+      try {
+        const fallbackResp = await fetch(
+          `${SUPABASE_URL}/rest/v1/sync_runs?select=started_at,finished_at,status&order=started_at.desc&limit=1`,
+          {
+            headers: {
+              'Authorization': `Bearer ${SUPABASE_KEY}`,
+              'apikey': SUPABASE_KEY,
+              'Accept-Profile': 'api'
+            }
+          }
+        );
+        
+        if (fallbackResp.ok) {
+          const fallbackArr = await fallbackResp.json();
+          if (Array.isArray(fallbackArr) && fallbackArr.length > 0) {
+            const sync = fallbackArr[0];
+            if (sync.started_at) {
+              setLastSyncTime(new Date(sync.started_at));
+            }
+            // Calcular próxima sincronização (15 minutos após a última ou próximo múltiplo de 15)
+            if (sync.finished_at) {
+              const lastSync = new Date(sync.finished_at);
+              const nextSync = new Date(lastSync);
+              nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 15) * 15);
+              if (nextSync <= lastSync) {
+                nextSync.setMinutes(nextSync.getMinutes() + 15);
+              }
+              setNextScheduledSync(nextSync);
+            } else {
+              // Se ainda está rodando, calcular a partir de agora
+              const now = new Date();
+              const nextSync = new Date(now);
+              nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 15) * 15);
+              if (nextSync <= now) {
+                nextSync.setMinutes(nextSync.getMinutes() + 15);
+              }
+              setNextScheduledSync(nextSync);
+            }
+          }
+        }
+      } catch (fallbackError) {
+        console.error('❌ Erro ao buscar fallback sync_runs:', fallbackError);
+      }
     }
   };
 
@@ -2353,7 +2416,17 @@ const TopMenuBar = ({
       logger.info(`   🔄 Atualizados: ${totalUpdated}`);
       logger.info(`   ❌ Erros: ${totalErrors}`);
       
+      // Atualizar tempo da última sincronização
       setLastSyncTime(new Date());
+      
+      // Calcular próxima sincronização (próximo múltiplo de 15 minutos)
+      const nowTime = new Date();
+      const nextSync = new Date(nowTime);
+      nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 15) * 15);
+      if (nextSync <= nowTime) {
+        nextSync.setMinutes(nextSync.getMinutes() + 15);
+      }
+      setNextScheduledSync(nextSync);
       
       alert(
         `⚡ SYNC AGORA CONCLUÍDO!\n\n` +

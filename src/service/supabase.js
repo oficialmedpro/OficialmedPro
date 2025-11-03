@@ -1,6 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import { getTodayDateSP, getStartOfDaySP, getEndOfDaySP } from '../utils/utils.js'
-import { getGoogleAdsOriginFilter } from './googleOriginFilter';
+// ❌ REMOVIDO: import { getGoogleAdsOriginFilter } from './googleOriginFilter';
+// O googleOriginFilter não é usado neste arquivo, então não precisa ser importado
+// Isso evita carregar dependências desnecessárias na página de vendas
 import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
 
 // Validar URLs antes de criar cliente
