@@ -7,13 +7,29 @@ import { supabase } from './supabase.js';
 class GoogleAdsApiProxy {
   constructor() {
     // Detectar ambiente automaticamente
-    const isProduction = window.location.hostname !== 'localhost' && 
+    // Verificar se window.location está disponível e válido
+    const hasValidLocation = typeof window !== 'undefined' && 
+                             window.location && 
+                             window.location.protocol && 
+                             window.location.hostname;
+    
+    const isProduction = hasValidLocation &&
+                        window.location.hostname !== 'localhost' && 
                         window.location.hostname !== '127.0.0.1' &&
                         !window.location.hostname.includes('192.168.');
     
-    this.baseUrl = isProduction 
-      ? `${window.location.protocol}//${window.location.hostname}/api/google-ads` // URL da VPS
-      : 'http://localhost:3001/api/google-ads'; // URL local
+    // Validar URL antes de construir
+    try {
+      this.baseUrl = isProduction 
+        ? `${window.location.protocol}//${window.location.hostname}/api/google-ads` // URL da VPS
+        : 'http://localhost:3001/api/google-ads'; // URL local
+      
+      // Validar URL construída
+      new URL(this.baseUrl);
+    } catch (e) {
+      console.warn('⚠️ Erro ao construir URL do GoogleAdsApiProxy, usando fallback:', e.message);
+      this.baseUrl = 'http://localhost:3001/api/google-ads';
+    }
     
     this.customerId = null;
     this.unidadeId = 1; // ID da unidade padrão

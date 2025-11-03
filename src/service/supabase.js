@@ -3,9 +3,26 @@ import { getTodayDateSP, getStartOfDaySP, getEndOfDaySP } from '../utils/utils.j
 import { getGoogleAdsOriginFilter } from './googleOriginFilter';
 import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
 
+// Validar URLs antes de criar cliente
+let validSupabaseUrl = supabaseUrl;
+let validSupabaseServiceKey = supabaseServiceKey;
+
+// Validar URL antes de usar
+if (!validSupabaseUrl || typeof validSupabaseUrl !== 'string' || !validSupabaseUrl.startsWith('http')) {
+  console.error('❌ [supabase.js] URL inválida:', validSupabaseUrl);
+  validSupabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
+}
+
+try {
+  new URL(validSupabaseUrl);
+} catch (e) {
+  console.error('❌ [supabase.js] Erro ao validar URL:', e.message);
+  validSupabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
+}
+
 // Cliente Supabase com service role key (permite acesso a todos os schemas)
 // Já configura o schema e os headers necessários para evitar erro 406 no PostgREST
-export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+export const supabase = createClient(validSupabaseUrl, validSupabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
@@ -37,12 +54,12 @@ export const getSupabaseWithSchema = (schema) => {
   console.log('🔧 [getSupabaseWithSchema] Criando novo cliente Supabase...');
   console.log('🔍 [getSupabaseWithSchema] Configuração:', {
     schema: schemaKey,
-    url: supabaseUrl ? `${supabaseUrl.substring(0, 30)}...` : 'NÃO DEFINIDA',
-    hasServiceKey: !!supabaseServiceKey,
-    serviceKeyLength: supabaseServiceKey?.length || 0
+    url: validSupabaseUrl ? `${validSupabaseUrl.substring(0, 30)}...` : 'NÃO DEFINIDA',
+    hasServiceKey: !!validSupabaseServiceKey,
+    serviceKeyLength: validSupabaseServiceKey?.length || 0
   });
   
-  const client = createClient(supabaseUrl, supabaseServiceKey, {
+  const client = createClient(validSupabaseUrl, validSupabaseServiceKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
