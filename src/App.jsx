@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 // Debug para verificar se as variáveis de ambiente estão chegando
 import './debug/buildInfo.js'
@@ -10,9 +10,10 @@ import RankingDePerformancePage from './pages/RankingDePerformancePage'
 import MatrizRFVPage from './pages/MatrizRFVPage'
 import MetasPage from './pages/MetasPage'
 import MapaDeCalorPage from './pages/MapaDeCalorPage'
-import DashGooglePatrocinadoPage from './pages/DashGooglePatrocinadoPage'
-import DashboardMetaAds from './pages/DashboardMetaAds'
-import DashboardGoogleAds from './pages/DashboardGoogleAds'
+// Lazy loading das páginas do Google Ads para não carregar serviços desnecessários na página de vendas
+const DashGooglePatrocinadoPage = lazy(() => import('./pages/DashGooglePatrocinadoPage'))
+const DashboardMetaAds = lazy(() => import('./pages/DashboardMetaAds'))
+const DashboardGoogleAds = lazy(() => import('./pages/DashboardGoogleAds'))
 import DailyPerformanceDebugPage from './pages/DailyPerformanceDebugPage'
 import LossReasonsDebugPage from './pages/LossReasonsDebugPage'
 import DebugRankingPage from './pages/DebugRankingPage'
@@ -106,29 +107,31 @@ function App() {
   // Se autenticado, mostrar dashboard
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<DashboardPage onLogout={handleLogout} />} />
-        <Route path="/dashboard" element={<DashboardPage onLogout={handleLogout} />} />
-        <Route path="/analise-funil" element={<DashboardPage onLogout={handleLogout} />} />
-        <Route path="/performance-diaria" element={<PerformanceDiariaPage onLogout={handleLogout} />} />
-        <Route path="/performance-ronda" element={<PerformanceRondaPage onLogout={handleLogout} />} />
-        <Route path="/ranking-de-performance" element={<RankingDePerformancePage onLogout={handleLogout} />} />
-        <Route path="/matriz-rfv" element={<MatrizRFVPage onLogout={handleLogout} />} />
-        <Route path="/metas" element={<MetasPage onLogout={handleLogout} />} />
-        <Route path="/mapa-de-calor" element={<MapaDeCalorPage onLogout={handleLogout} />} />
-        <Route path="/dashgooglepatrocinado" element={<DashGooglePatrocinadoPage onLogout={handleLogout} />} />
-        <Route path="/meta-ads" element={<DashboardMetaAds onLogout={handleLogout} />} />
-        <Route path="/google-ads" element={<DashboardGoogleAds onLogout={handleLogout} />} />
-        <Route path="/debug-daily-performance" element={<DailyPerformanceDebugPage onLogout={handleLogout} />} />
-        <Route path="/debug-loss-reasons" element={<LossReasonsDebugPage onLogout={handleLogout} />} />
-        <Route path="/debug-ranking" element={<DebugRankingPage onLogout={handleLogout} />} />
-        <Route path="/debug-seller-ranking" element={<DebugSellerRankingPage onLogout={handleLogout} />} />
-        <Route path="/debug-ticket-ranking" element={<DebugTicketRankingPage onLogout={handleLogout} />} />
-        <Route path="/usuarios" element={<UserManagementPage onLogout={handleLogout} />} />
-        <Route path="/callix" element={<Callix onLogout={handleLogout} />} />
-        <Route path="/clientes-consolidados" element={<ClientesConsolidados onLogout={handleLogout} />} />
-        <Route path="/vendas" element={<VendasPage onLogout={handleLogout} />} />
-      </Routes>
+      <Suspense fallback={<div style={{ textAlign: 'center', padding: 40 }}>Carregando...</div>}>
+        <Routes>
+          <Route path="/" element={<DashboardPage onLogout={handleLogout} />} />
+          <Route path="/dashboard" element={<DashboardPage onLogout={handleLogout} />} />
+          <Route path="/analise-funil" element={<DashboardPage onLogout={handleLogout} />} />
+          <Route path="/performance-diaria" element={<PerformanceDiariaPage onLogout={handleLogout} />} />
+          <Route path="/performance-ronda" element={<PerformanceRondaPage onLogout={handleLogout} />} />
+          <Route path="/ranking-de-performance" element={<RankingDePerformancePage onLogout={handleLogout} />} />
+          <Route path="/matriz-rfv" element={<MatrizRFVPage onLogout={handleLogout} />} />
+          <Route path="/metas" element={<MetasPage onLogout={handleLogout} />} />
+          <Route path="/mapa-de-calor" element={<MapaDeCalorPage onLogout={handleLogout} />} />
+          <Route path="/dashgooglepatrocinado" element={<DashGooglePatrocinadoPage onLogout={handleLogout} />} />
+          <Route path="/meta-ads" element={<DashboardMetaAds onLogout={handleLogout} />} />
+          <Route path="/google-ads" element={<DashboardGoogleAds onLogout={handleLogout} />} />
+          <Route path="/debug-daily-performance" element={<DailyPerformanceDebugPage onLogout={handleLogout} />} />
+          <Route path="/debug-loss-reasons" element={<LossReasonsDebugPage onLogout={handleLogout} />} />
+          <Route path="/debug-ranking" element={<DebugRankingPage onLogout={handleLogout} />} />
+          <Route path="/debug-seller-ranking" element={<DebugSellerRankingPage onLogout={handleLogout} />} />
+          <Route path="/debug-ticket-ranking" element={<DebugTicketRankingPage onLogout={handleLogout} />} />
+          <Route path="/usuarios" element={<UserManagementPage onLogout={handleLogout} />} />
+          <Route path="/callix" element={<Callix onLogout={handleLogout} />} />
+          <Route path="/clientes-consolidados" element={<ClientesConsolidados onLogout={handleLogout} />} />
+          <Route path="/vendas" element={<VendasPage onLogout={handleLogout} />} />
+        </Routes>
+      </Suspense>
     </Router>
   )
 }
