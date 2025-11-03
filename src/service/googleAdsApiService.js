@@ -5,6 +5,11 @@ class GoogleAdsApiService {
   constructor() {
     console.log('🚀 GoogleAdsApiService inicializado');
     console.log('🔗 API URL:', API_BASE_URL);
+    // Obter service key de forma segura (runtime ou build-time)
+    this.getServiceKey = () => {
+      return window.ENV?.VITE_SUPABASE_SERVICE_ROLE_KEY || 
+             import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+    };
   }
 
   /**
@@ -18,7 +23,7 @@ class GoogleAdsApiService {
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
+          'Authorization': `Bearer ${this.getServiceKey()}`,
           ...options.headers
         },
         ...options

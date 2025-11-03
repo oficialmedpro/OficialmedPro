@@ -82,6 +82,20 @@ else
     grep -o "window.ENV" /usr/share/nginx/html/index.html && echo "✅ window.ENV encontrado no HTML" || echo "❌ window.ENV NÃO encontrado no HTML"
 fi
 
+# Verificar se index.html existe e tem conteúdo
+echo "🔍 Verificando index.html final..."
+if [ -f "/usr/share/nginx/html/index.html" ]; then
+    FILE_SIZE=$(wc -c < /usr/share/nginx/html/index.html)
+    echo "✅ index.html existe - Tamanho: ${FILE_SIZE} bytes"
+    if [ "$FILE_SIZE" -lt 100 ]; then
+        echo "⚠️ AVISO: index.html muito pequeno (${FILE_SIZE} bytes) - pode estar incorreto!"
+    fi
+else
+    echo "❌ ERRO: index.html não existe em /usr/share/nginx/html/"
+    echo "📁 Listando conteúdo do diretório:"
+    ls -la /usr/share/nginx/html/ || echo "❌ Diretório não existe!"
+fi
+
 # Executar o comando original
-echo "🚀 Iniciando aplicação..."
+echo "🚀 Iniciando aplicação nginx..."
 exec "$@"

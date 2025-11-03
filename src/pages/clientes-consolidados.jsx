@@ -84,11 +84,12 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const [ativacaoSemOrcamentoData, setAtivacaoSemOrcamentoData] = useState([]);
   
   // Estados de Reativação (90+ dias)
-  const [reativacaoGeralData, setReativacaoGeralData] = useState([]);
+  const [reativacaoGeralData, setReativacaoGeralData] = useState(null);
   const [reativacao1xData, setReativacao1xData] = useState([]);
   const [reativacao2xData, setReativacao2xData] = useState([]);
   const [reativacao3xData, setReativacao3xData] = useState([]);
   const [reativacao3xPlusData, setReativacao3xPlusData] = useState([]);
+  const [reativacaoStats, setReativacaoStats] = useState([]);
   
   // Estados de Monitoramento (0-90 dias)
   const [monitoramentoGeralData, setMonitoramentoGeralData] = useState([]);
@@ -136,6 +137,9 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const [selectedDuplicatesClient, setSelectedDuplicatesClient] = useState(null);
   const [duplicatesData, setDuplicatesData] = useState({}); // {clientId: [duplicates]}
   const [selectedMasterLead, setSelectedMasterLead] = useState(null);
+  const [fieldSelection, setFieldSelection] = useState({}); // {fieldName: leadId} - qual lead fornece cada campo
+  const [primePedidosData, setPrimePedidosData] = useState({}); // {leadId: [{pedido}]} - pedidos do Prime por lead
+  const [loadingPrimeData, setLoadingPrimeData] = useState(false);
 
   // Estados do FilterBar (necessários para habilitar seleção nos dropdowns)
   const [selectedUnit, setSelectedUnit] = useState('all');
@@ -177,9 +181,15 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   // Carregar dados ao mudar de aba
   useEffect(() => {
     setCurrentPage(1); // Reset página
-    // Ordenação padrão por nome nas páginas de Ativação com lista
+    // Limpar dados completos ao mudar de aba (para não usar dados da aba anterior)
+    setAllDataForTab([]);
+    setDuplicatesFilter('all'); // Resetar filtro de duplicatas também
+    
+    // Ordenação padrão por nome nas páginas de Ativação e Reativação com lista
     const ativacaoListTabs = ['ativacao-prime', 'ativacao-fora-prime', 'ativacao-com-orcamento', 'ativacao-sem-orcamento'];
-    if (ativacaoListTabs.includes(activeTab)) {
+    const reativacaoListTabs = ['reativacao-1x', 'reativacao-2x', 'reativacao-3x', 'reativacao-3x-plus'];
+    const allListTabs = [...ativacaoListTabs, ...reativacaoListTabs];
+    if (allListTabs.includes(activeTab)) {
       setSortField('nome_completo');
       setSortDirection('asc');
     } else {
@@ -196,8 +206,8 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       ddd: '',
       origins: []
     });
-    // Carrega DDDs disponíveis (coletados por amostragem das visões de ativação)
-    if (ativacaoListTabs.includes(activeTab)) {
+    // Carrega DDDs disponíveis (coletados por amostragem das visões de ativação e reativação)
+    if (allListTabs.includes(activeTab)) {
       loadAvailableDDDs();
     } else {
       setDddOptions([]);
@@ -207,16 +217,181 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
 
   // Recarregar quando mudar página ou tamanho da página (para abas com paginação)
   useEffect(() => {
+    // Se filtro de duplicatas está ativo, não recarregar do backend (já temos todos os dados)
+    if (duplicatesFilter !== 'all' && allDataForTab.length > 0) {
+      // Apenas resetar seleções, os dados já estão carregados
+      setSelectedRows([]);
+      setLastClickedIndex(null);
+      return;
+    }
+    
+    // Caso contrário, recarregar do backend normalmente
     loadTabData();
     setSelectedRows([]);
     setLastClickedIndex(null);
-  }, [currentPage, itemsPerPage, sortField, sortDirection]);
+  }, [currentPage, itemsPerPage, sortField, sortDirection, duplicatesFilter]);
+
+  // Carregar TODOS os dados da aba atual (sem paginação) para detectar duplicatas
+  // Buscar TODAS as duplicatas da view atual usando SQL direto
+  // Quando o filtro "Com Duplicatas" ou "Sem Duplicatas" é selecionado, busca todas do banco e cria nova paginação
+  const loadAllDuplicatesFromTabView = async (filterType) => {
+    try {
+      const viewMap = {
+        'ativacao-prime': 'vw_inativos_prime',
+        'ativacao-fora-prime': 'vw_inativos_fora_prime',
+        'ativacao-com-orcamento': 'vw_inativos_com_orcamento',
+        'ativacao-sem-orcamento': 'vw_inativos_sem_orcamento',
+        'reativacao-1x': 'vw_reativacao_1x',
+        'reativacao-2x': 'vw_reativacao_2x',
+        'reativacao-3x': 'vw_reativacao_3x',
+        'reativacao-3x-plus': 'vw_reativacao_3x_plus'
+      };
+      
+      const viewName = viewMap[activeTab];
+      if (!viewName) {
+        console.warn(`⚠️ [FILTRO] View não encontrada para aba: ${activeTab}`);
+        return;
+      }
+      
+      console.log(`🔍 [FILTRO] Buscando TODAS as duplicatas da view: ${viewName}, filtro: ${filterType}`);
+      
+      // Primeiro, buscar IDs de duplicatas usando a view vw_ids_duplicados
+      const { data: duplicateIdsData, error: idsError } = await supabase
+        .schema('api')
+        .from('vw_ids_duplicados')
+        .select('id_cliente');
+      
+      if (idsError) {
+        console.error('❌ [FILTRO] Erro ao buscar IDs de duplicatas:', idsError);
+        throw idsError;
+      }
+      
+      if (!duplicateIdsData || duplicateIdsData.length === 0) {
+        console.log('✅ [FILTRO] Nenhuma duplicata encontrada no banco');
+        setAllDataForTab([]);
+        setTotalCount(0);
+        return;
+      }
+      
+      const duplicateIds = duplicateIdsData.map(row => row.id_cliente);
+      console.log(`✅ [FILTRO] ${duplicateIds.length} IDs de duplicatas encontrados`);
+      
+      // Agora, buscar TODOS os registros da view atual que têm ID em duplicateIds (se "with-duplicates")
+      // ou que NÃO têm ID em duplicateIds (se "no-duplicates")
+      let query = supabase
+        .schema('api')
+        .from(viewName)
+        .select('*', { count: 'exact' });
+      
+      // Aplicar filtros normais (unidade, vendedor, origem, etc.)
+      query = applyFiltersToQuery(query);
+      
+      // Aplicar ordenação
+      if (sortField) {
+        query = query.order(sortField, { ascending: sortDirection === 'asc' });
+      }
+      
+      if (filterType === 'with-duplicates') {
+        // Buscar apenas registros que têm ID em duplicateIds
+        // Usar .in() para filtrar por IDs de duplicatas
+        query = query.in('id', duplicateIds);
+      } else if (filterType === 'no-duplicates') {
+        // Buscar apenas registros que NÃO têm ID em duplicateIds
+        // Como não temos .notIn() direto, vamos buscar todos e filtrar depois
+        // Ou usar uma subquery
+        const { data: allData, error: allError } = await query;
+        
+        if (allError) {
+          throw allError;
+        }
+        
+        // Filtrar no frontend para remover IDs que estão em duplicateIds
+        const filtered = (allData || []).filter(row => {
+          const id = row.id || row.id_cliente || row.id_cliente_mestre;
+          return id && !duplicateIds.includes(Number(id)) && !duplicateIds.includes(String(id));
+        });
+        
+        console.log(`✅ [FILTRO] ${filtered.length} registros sem duplicatas carregados`);
+        setAllDataForTab(filtered);
+        setTotalCount(filtered.length);
+        return;
+      }
+      
+      // Para "with-duplicates", buscar todos os registros que têm duplicatas
+      // Como pode ser muitos, vamos buscar em lotes se necessário
+      const { data, error, count } = await query;
+      
+      if (error) {
+        console.error(`❌ [FILTRO] Erro ao buscar duplicatas da view:`, error);
+        throw error;
+      }
+      
+      console.log(`✅ [FILTRO] ${data?.length || 0} registros com duplicatas carregados (total no banco: ${count || 0})`);
+      
+      // Armazenar todos os dados em allDataForTab para paginação frontend
+      setAllDataForTab(data || []);
+      setTotalCount(count || 0);
+      
+      // Também atualizar duplicatesData para destacar essas linhas em vermelho
+      const newDuplicatesData = {};
+      (data || []).forEach(row => {
+        const id = String(row.id || row.id_cliente || row.id_cliente_mestre);
+        if (id) {
+          newDuplicatesData[id] = []; // Array vazio indica duplicatas
+        }
+      });
+      setDuplicatesData(prev => ({ ...prev, ...newDuplicatesData }));
+      
+    } catch (error) {
+      console.error('❌ [FILTRO] Erro ao carregar duplicatas do banco:', error);
+      throw error;
+    }
+  };
+
+  const loadAllDataForTab = async () => {
+    const viewMap = {
+      'ativacao-prime': 'vw_inativos_prime',
+      'ativacao-fora-prime': 'vw_inativos_fora_prime',
+      'ativacao-com-orcamento': 'vw_inativos_com_orcamento',
+      'ativacao-sem-orcamento': 'vw_inativos_sem_orcamento',
+      'reativacao-1x': 'vw_reativacao_1x',
+      'reativacao-2x': 'vw_reativacao_2x',
+      'reativacao-3x': 'vw_reativacao_3x',
+      'reativacao-3x-plus': 'vw_reativacao_3x_plus'
+    };
+    
+    const viewName = viewMap[activeTab];
+    if (!viewName) return [];
+    
+    try {
+      // Carregar TODOS os registros (sem paginação) aplicando apenas filtros básicos
+      let query = supabase
+        .schema('api')
+        .from(viewName)
+        .select('*');
+      
+      // Aplicar apenas filtros essenciais (origem, DDD, etc)
+      query = applyFiltersToQuery(query);
+      
+      // Limitar a 10000 registros para não sobrecarregar
+      const { data } = await query.limit(10000);
+      
+      console.log(`📊 [DUPLICADOS] Carregados ${data?.length || 0} registros da view ${viewName} para detecção de duplicatas`);
+      
+      return data || [];
+    } catch (error) {
+      console.error(`❌ [DUPLICADOS] Erro ao carregar todos os dados de ${viewName}:`, error);
+      return [];
+    }
+  };
 
   // Carregar histórico de exportação quando dados mudarem
   useEffect(() => {
     const loadHistory = async () => {
       const ativacaoTabs = ['ativacao-prime', 'ativacao-fora-prime', 'ativacao-com-orcamento', 'ativacao-sem-orcamento'];
-      if (!ativacaoTabs.includes(activeTab)) return;
+      const reativacaoTabs = ['reativacao-1x', 'reativacao-2x', 'reativacao-3x', 'reativacao-3x-plus'];
+      const allTabs = [...ativacaoTabs, ...reativacaoTabs];
+      if (!allTabs.includes(activeTab)) return;
       
       let data = [];
       switch (activeTab) {
@@ -224,6 +399,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         case 'ativacao-fora-prime': data = ativacaoForaPrimeData; break;
         case 'ativacao-com-orcamento': data = ativacaoComOrcamentoData; break;
         case 'ativacao-sem-orcamento': data = ativacaoSemOrcamentoData; break;
+        case 'reativacao-1x': data = reativacao1xData; break;
+        case 'reativacao-2x': data = reativacao2xData; break;
+        case 'reativacao-3x': data = reativacao3xData; break;
+        case 'reativacao-3x-plus': data = reativacao3xPlusData; break;
         default: return;
       }
       
@@ -236,7 +415,127 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       }
     };
     loadHistory();
-  }, [ativacaoPrimeData, ativacaoForaPrimeData, ativacaoComOrcamentoData, ativacaoSemOrcamentoData, activeTab]);
+  }, [ativacaoPrimeData, ativacaoForaPrimeData, ativacaoComOrcamentoData, ativacaoSemOrcamentoData, reativacao1xData, reativacao2xData, reativacao3xData, reativacao3xPlusData, activeTab]);
+
+  // Carregar TODAS as duplicatas de uma vez usando a view SQL
+  // Isso permite que o destaque vermelho apareça imediatamente ao abrir a página
+  const loadAllDuplicatesAtOnce = async () => {
+    try {
+      console.log('🔍 [DUPLICADOS] Carregando TODAS as duplicatas de uma vez via SQL...');
+      
+      // Usar a view vw_ids_duplicados para carregar todos os IDs de uma vez
+      const { data: duplicateIds, error } = await supabase
+        .schema('api')
+        .from('vw_ids_duplicados')
+        .select('id_cliente');
+      
+      if (error) {
+        console.error('❌ [DUPLICADOS] Erro ao carregar IDs duplicados:', error);
+        // Fallback: usar as views individuais
+        await loadDuplicatesFromViews();
+        return;
+      }
+      
+      if (!duplicateIds || duplicateIds.length === 0) {
+        console.log('✅ [DUPLICADOS] Nenhuma duplicata encontrada no banco');
+        return;
+      }
+      
+      console.log(`✅ [DUPLICADOS] ${duplicateIds.length} clientes com duplicatas encontrados`);
+      
+      // Criar objeto de duplicatas marcando todos os IDs encontrados
+      // Para cada ID, vamos buscar os detalhes das duplicatas
+      const newDuplicatesData = {};
+      
+      // Para cada ID duplicado, marcar como tendo duplicatas (array vazio por enquanto)
+      // Os detalhes completos serão carregados sob demanda quando necessário
+      duplicateIds.forEach(({ id_cliente }) => {
+        const id = String(id_cliente);
+        // Marcar como tendo duplicatas (será preenchido com detalhes quando necessário)
+        if (!newDuplicatesData[id]) {
+          newDuplicatesData[id] = []; // Array vazio indica que tem duplicatas, mas detalhes serão carregados sob demanda
+        }
+      });
+      
+      // Atualizar estado de uma vez
+      setDuplicatesData(prev => {
+        const updated = { ...prev };
+        // Adicionar todos os IDs encontrados
+        Object.keys(newDuplicatesData).forEach(id => {
+          // Se já não existe ou está vazio, marcar como tendo duplicatas
+          if (!updated[id] || updated[id].length === 0) {
+            updated[id] = []; // Array vazio indica duplicatas (detalhes carregados sob demanda)
+          }
+        });
+        console.log(`📊 [DUPLICADOS] Estado atualizado: ${Object.keys(updated).length} IDs marcados`);
+        return updated;
+      });
+      
+      console.log('✅ [DUPLICADOS] Todas as duplicatas carregadas e marcadas');
+    } catch (error) {
+      console.error('❌ [DUPLICADOS] Erro crítico ao carregar duplicatas:', error);
+      // Fallback para método anterior
+      await loadDuplicatesFromViews();
+    }
+  };
+
+  // Fallback: carregar duplicatas das views individuais
+  const loadDuplicatesFromViews = async () => {
+    try {
+      const [emailDups, phoneDups, cpfDups] = await Promise.all([
+        supabase.schema('api').from('vw_dups_por_email').select('ids').limit(1000),
+        supabase.schema('api').from('vw_dups_por_phone').select('ids').limit(1000),
+        supabase.schema('api').from('vw_dups_por_cpf').select('ids').limit(1000)
+      ]);
+      
+      const allIds = new Set();
+      
+      [emailDups.data, phoneDups.data, cpfDups.data].forEach(results => {
+        results?.forEach(row => {
+          if (row.ids && Array.isArray(row.ids)) {
+            row.ids.forEach(id => allIds.add(String(id)));
+          }
+        });
+      });
+      
+      const newDuplicatesData = {};
+      allIds.forEach(id => {
+        newDuplicatesData[id] = []; // Array vazio indica duplicatas
+      });
+      
+      setDuplicatesData(prev => ({ ...prev, ...newDuplicatesData }));
+      console.log(`✅ [DUPLICADOS] ${allIds.size} IDs duplicados carregados das views`);
+    } catch (error) {
+      console.error('❌ [DUPLICADOS] Erro no fallback:', error);
+    }
+  };
+
+  // Carregar TODAS as duplicatas quando a página abre (ATIVAÇÃO E REATIVAÇÃO)
+  useEffect(() => {
+    const ativacaoTabs = ['ativacao-prime', 'ativacao-fora-prime', 'ativacao-com-orcamento', 'ativacao-sem-orcamento'];
+    const reativacaoTabs = ['reativacao-1x', 'reativacao-2x', 'reativacao-3x', 'reativacao-3x-plus'];
+    const allTabs = [...ativacaoTabs, ...reativacaoTabs];
+    
+    if (!allTabs.includes(activeTab)) return;
+    
+    // Carregar todas as duplicatas imediatamente ao abrir a aba
+    // IMPORTANTE: Executar de forma assíncrona para não bloquear a renderização
+    console.log(`🔍 [DUPLICADOS] Carregando todas as duplicatas para aba: ${activeTab} (ATIVAÇÃO/REATIVAÇÃO)...`);
+    
+    // Marcar como carregando
+    setIsLoadingDuplicates(true);
+    
+    // Carregar duplicatas de forma assíncrona
+    loadAllDuplicatesAtOnce()
+      .then(() => {
+        console.log(`✅ [DUPLICADOS] Duplicatas carregadas para aba: ${activeTab}`);
+        setIsLoadingDuplicates(false);
+      })
+      .catch((error) => {
+        console.error(`❌ [DUPLICADOS] Erro ao carregar duplicatas para aba: ${activeTab}`, error);
+        setIsLoadingDuplicates(false);
+      });
+  }, [activeTab]); // Recarregar apenas quando mudar aba
 
   // ===== APLICAÇÃO DE FILTROS NAS CONSULTAS =====
   const applyFiltersToQuery = (query) => {
@@ -313,7 +612,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const loadAvailableDDDs = async () => {
     try {
       const limit = 2000; // amostragem leve por view
-      const views = ['vw_inativos_prime', 'vw_inativos_fora_prime', 'vw_inativos_com_orcamento', 'vw_inativos_sem_orcamento'];
+      const views = [
+        'vw_inativos_prime', 'vw_inativos_fora_prime', 'vw_inativos_com_orcamento', 'vw_inativos_sem_orcamento',
+        'vw_reativacao_1x', 'vw_reativacao_2x', 'vw_reativacao_3x', 'vw_reativacao_3x_plus'
+      ];
       const requests = views.map(v => supabase.from(v).select('whatsapp,telefone').limit(limit));
       const responses = await Promise.all(requests);
       const set = new Set();
@@ -735,12 +1037,122 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     );
   };
 
-  // Função para detectar duplicatas de um cliente
+  // Função para detectar duplicatas de um cliente (GLOBAL - independente de filtros)
+  // IMPORTANTE: Esta função é chamada sob demanda quando necessário (ex: ao clicar no ícone)
   const detectDuplicates = async (client) => {
     try {
       const clientId = client.id || client.id_cliente || client.id_cliente_mestre;
       if (!clientId) return [];
+      
+      // Se já temos duplicatas carregadas para este cliente, retornar
+      const clientIdStr = String(clientId);
+      if (duplicatesData[clientIdStr] !== undefined) {
+        // Se está marcado como tendo duplicatas mas array está vazio, carregar detalhes
+        if (duplicatesData[clientIdStr].length === 0) {
+          // Carregar detalhes das duplicatas
+          return await loadDuplicateDetails(client);
+        }
+        return duplicatesData[clientIdStr];
+      }
 
+      const duplicates = [];
+      const checkedIds = new Set([clientId]);
+
+      // Normalizar dados do cliente atual
+      const normEmail = client.email?.toLowerCase().trim();
+      const normCpf = client.cpf?.replace(/\D/g, '');
+      const normWhatsapp = client.whatsapp?.replace(/\D/g, '');
+      const normTelefone = client.telefone?.replace(/\D/g, '');
+
+      // Buscar duplicatas por CPF (REMOVIDO .eq('ativo', true) para buscar TODOS)
+      if (normCpf && normCpf.length >= 11) {
+        const { data } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('*')
+          .neq('id', clientId)
+          .ilike('cpf', `%${normCpf}%`)
+          // REMOVIDO: .eq('ativo', true) - buscar TODOS os duplicados independente de status
+          .limit(10);
+
+        data?.forEach(dup => {
+          if (!checkedIds.has(dup.id)) {
+            duplicates.push({ ...dup, matchField: 'CPF', matchValue: normCpf });
+            checkedIds.add(dup.id);
+          }
+        });
+      }
+
+      // Buscar duplicatas por Email (REMOVIDO .eq('ativo', true) para buscar TODOS)
+      if (normEmail && normEmail.length > 3) {
+        const { data } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('*')
+          .neq('id', clientId)
+          .ilike('email', normEmail)
+          // REMOVIDO: .eq('ativo', true) - buscar TODOS os duplicados independente de status
+          .limit(10);
+
+        data?.forEach(dup => {
+          if (!checkedIds.has(dup.id)) {
+            duplicates.push({ ...dup, matchField: 'Email', matchValue: normEmail });
+            checkedIds.add(dup.id);
+          }
+        });
+      }
+
+      // Buscar duplicatas por WhatsApp (REMOVIDO .eq('ativo', true) para buscar TODOS)
+      if (normWhatsapp && normWhatsapp.length >= 10) {
+        const { data } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('*')
+          .neq('id', clientId)
+          .or(`whatsapp.ilike.%${normWhatsapp}%,telefone.ilike.%${normWhatsapp}%`)
+          // REMOVIDO: .eq('ativo', true) - buscar TODOS os duplicados independente de status
+          .limit(10);
+
+        data?.forEach(dup => {
+          if (!checkedIds.has(dup.id)) {
+            duplicates.push({ ...dup, matchField: 'WhatsApp', matchValue: normWhatsapp });
+            checkedIds.add(dup.id);
+          }
+        });
+      }
+
+      // Buscar duplicatas por Telefone (REMOVIDO .eq('ativo', true) para buscar TODOS)
+      if (normTelefone && normTelefone.length >= 10 && normTelefone !== normWhatsapp) {
+        const { data } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('*')
+          .neq('id', clientId)
+          .or(`telefone.ilike.%${normTelefone}%,whatsapp.ilike.%${normTelefone}%`)
+          // REMOVIDO: .eq('ativo', true) - buscar TODOS os duplicados independente de status
+          .limit(10);
+
+        data?.forEach(dup => {
+          if (!checkedIds.has(dup.id)) {
+            duplicates.push({ ...dup, matchField: 'Telefone', matchValue: normTelefone });
+            checkedIds.add(dup.id);
+          }
+        });
+      }
+
+      return duplicates;
+    } catch (error) {
+      console.error('Erro ao detectar duplicatas:', error);
+      return [];
+    }
+  };
+
+  // Carregar detalhes das duplicatas para um cliente específico
+  const loadDuplicateDetails = async (client) => {
+    try {
+      const clientId = client.id || client.id_cliente || client.id_cliente_mestre;
+      if (!clientId) return [];
+      
       const duplicates = [];
       const checkedIds = new Set([clientId]);
 
@@ -758,7 +1170,6 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
           .select('*')
           .neq('id', clientId)
           .ilike('cpf', `%${normCpf}%`)
-          .eq('ativo', true)
           .limit(10);
 
         data?.forEach(dup => {
@@ -777,7 +1188,6 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
           .select('*')
           .neq('id', clientId)
           .ilike('email', normEmail)
-          .eq('ativo', true)
           .limit(10);
 
         data?.forEach(dup => {
@@ -796,7 +1206,6 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
           .select('*')
           .neq('id', clientId)
           .or(`whatsapp.ilike.%${normWhatsapp}%,telefone.ilike.%${normWhatsapp}%`)
-          .eq('ativo', true)
           .limit(10);
 
         data?.forEach(dup => {
@@ -815,7 +1224,6 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
           .select('*')
           .neq('id', clientId)
           .or(`telefone.ilike.%${normTelefone}%,whatsapp.ilike.%${normTelefone}%`)
-          .eq('ativo', true)
           .limit(10);
 
         data?.forEach(dup => {
@@ -826,84 +1234,375 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         });
       }
 
+      // Atualizar estado com detalhes
+      const clientIdStr = String(clientId);
+      setDuplicatesData(prev => ({ ...prev, [clientIdStr]: duplicates }));
+      
       return duplicates;
     } catch (error) {
-      console.error('Erro ao detectar duplicatas:', error);
+      console.error('Erro ao carregar detalhes das duplicatas:', error);
       return [];
     }
   };
 
-  // Carregar duplicatas para todos os clientes visíveis
+  // Carregar duplicatas para todos os clientes visíveis (automático e silencioso)
   const loadDuplicatesForClients = async (clients) => {
-    setIsLoadingDuplicates(true);
-    const newDuplicatesData = {};
+    if (clients.length === 0) return;
+    
+    try {
+      setIsLoadingDuplicates(true);
+      let newDuplicatesData = {};
 
-    console.log(`🔍 Detectando duplicatas em ${clients.length} clientes...`);
-    let duplicatesFound = 0;
+      console.log(`🔍 [DUPLICADOS] Detectando duplicatas em ${clients.length} clientes (background)...`);
+      let duplicatesFound = 0;
 
-    for (const client of clients) {
-      const clientId = client.id || client.id_cliente || client.id_cliente_mestre;
-      if (clientId) {
-        const dups = await detectDuplicates(client);
-        if (dups.length > 0) {
-          newDuplicatesData[clientId] = dups;
-          duplicatesFound++;
-          console.log(`✅ Cliente ${client.nome_completo}: ${dups.length} duplicata(s)`);
+      // Processar em lotes para não bloquear a UI
+      const batchSize = 20;
+      for (let i = 0; i < clients.length; i += batchSize) {
+        const batch = clients.slice(i, i + batchSize);
+        
+        // Usar Promise.allSettled para não quebrar se algum falhar
+        const results = await Promise.allSettled(
+          batch.map(async (client) => {
+            // Normalizar ID para sempre usar string (garante correspondência)
+            const rawId = client.id || client.id_cliente || client.id_cliente_mestre;
+            const clientId = rawId ? String(rawId) : null;
+            
+            if (!clientId) {
+              return { success: true, clientId: null, skipped: true, reason: 'no_id' };
+            }
+            
+            // Verificar se o cliente já foi verificado (existe no objeto duplicatesData)
+            // IMPORTANTE: Verificar se existe no objeto, não apenas se tem duplicatas
+            const wasChecked = duplicatesData.hasOwnProperty(clientId);
+            
+            if (!wasChecked) {
+              try {
+                const dups = await detectDuplicates(client);
+                // IMPORTANTE: Marcar TODOS os clientes verificados no estado (mesmo sem duplicatas)
+                // Isso permite que o filtro saiba quais clientes já foram verificados
+                // SEMPRE usar string para garantir correspondência
+                newDuplicatesData[clientId] = dups; // Array vazio se não tiver duplicatas
+                if (dups.length > 0) {
+                  duplicatesFound++;
+                  return { success: true, clientId, dups };
+                }
+                return { success: true, clientId, dups: [] };
+              } catch (error) {
+                // Silenciosamente logar erro, mas não quebrar o fluxo
+                console.warn(`⚠️ [DUPLICADOS] Erro ao detectar duplicatas para cliente ${clientId}:`, error.message);
+                return { success: false, clientId, error: error.message };
+              }
+            } else {
+              // Se já foi verificado, manter no resultado atual (não reprocessar)
+              const existingDups = duplicatesData[clientId] || [];
+              if (existingDups.length > 0) {
+                duplicatesFound++;
+              }
+              // Não adicionar ao newDuplicatesData pois já existe
+              return { success: true, clientId, skipped: true, reason: 'already_checked' };
+            }
+            return { success: true, clientId, skipped: true };
+          })
+        );
+        
+        // Log de resultados se houver falhas (apenas em dev)
+        const failures = results.filter(r => r.status === 'rejected' || (r.value && !r.value.success));
+        if (failures.length > 0 && process.env.NODE_ENV === 'development') {
+          console.warn(`⚠️ [DUPLICADOS] ${failures.length} clientes falharam na verificação`);
+        }
+        
+        // Atualizar estado incrementalmente para melhor UX
+        // IMPORTANTE: Atualizar mesmo se não tiver duplicatas encontradas
+        // porque isso marca os clientes como "verificados" para o filtro
+        if (Object.keys(newDuplicatesData).length > 0) {
+          setDuplicatesData(prev => {
+            const updated = { ...prev, ...newDuplicatesData };
+            // Log para debug - verificar se está atualizando corretamente
+            if (process.env.NODE_ENV === 'development') {
+              const withDups = Object.values(updated).filter(v => v && v.length > 0).length;
+              const total = Object.keys(updated).length;
+              console.log(`📊 [DUPLICADOS] Estado atualizado: ${withDups} com duplicatas de ${total} verificados`);
+            }
+            return updated;
+          });
+          // Limpar para próxima iteração
+          newDuplicatesData = {};
+        }
+        
+        // Pequena pausa para não sobrecarregar
+        if (i + batchSize < clients.length) {
+          await new Promise(resolve => setTimeout(resolve, 50));
         }
       }
-    }
 
-    console.log(`✅ Total: ${duplicatesFound} clientes com duplicatas`);
-    setDuplicatesData(prev => ({ ...prev, ...newDuplicatesData }));
-    setIsLoadingDuplicates(false);
+      // Atualizar estado final
+      if (Object.keys(newDuplicatesData).length > 0) {
+        setDuplicatesData(prev => {
+          const updated = { ...prev, ...newDuplicatesData };
+          console.log(`📊 [DUPLICADOS] Estado atualizado:`, {
+            antes: Object.keys(prev).length,
+            novos: Object.keys(newDuplicatesData).length,
+            depois: Object.keys(updated).length,
+            comDuplicatas: Object.values(updated).filter(v => v && v.length > 0).length,
+            semDuplicatas: Object.values(updated).filter(v => !v || v.length === 0).length
+          });
+          return updated;
+        });
+      }
 
-    if (duplicatesFound > 0) {
-      alert(`✅ Detecção concluída!\n\n${duplicatesFound} cliente(s) com duplicatas encontrado(s).`);
-    } else {
-      alert('Nenhuma duplicata encontrada nos clientes visíveis.');
+      console.log(`✅ [DUPLICADOS] Total: ${duplicatesFound} cliente(s) com duplicatas detectado(s) de ${clients.length} verificados`);
+    } catch (error) {
+      // Capturar erros globais e não quebrar a UI
+      console.error('❌ [DUPLICADOS] Erro crítico na detecção:', error);
+    } finally {
+      setIsLoadingDuplicates(false);
     }
+    
+    // SEM alertas - funciona silenciosamente em background
+  };
+
+  // Função para aplicar paginação no frontend (quando filtros de duplicatas estão ativos)
+  const applyPagination = (data, page, pageSize) => {
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    return {
+      paginated: data.slice(start, end),
+      total: data.length,
+      totalPages: Math.ceil(data.length / pageSize)
+    };
+  };
+
+  // Estado para armazenar TODOS os dados quando filtro de duplicatas está ativo
+  const [allDataForTab, setAllDataForTab] = useState([]);
+
+  // Função helper para aplicar filtros e paginação corretamente
+  const getFilteredAndPaginatedData = (currentData) => {
+    // Se filtro de duplicatas está ativo, usar dados completos
+    if (duplicatesFilter !== 'all' && allDataForTab.length > 0) {
+      // Verificar se ainda está carregando duplicatas
+      // Se ainda está carregando e não temos dados verificados suficientes, retornar array vazio
+      const totalData = allDataForTab.length;
+      const verifiedCount = Object.keys(duplicatesData).length;
+      const verificationProgress = verifiedCount / totalData;
+      
+      console.log(`🔍 [GET_FILTERED] Verificação: ${verifiedCount}/${totalData} (${Math.round(verificationProgress * 100)}%)`);
+      
+      // Se menos de 90% foi verificado e ainda está carregando, retornar vazio
+      // Isso mostra que ainda está carregando
+      if (isLoadingDuplicates && verificationProgress < 0.9) {
+        console.log(`⏳ [GET_FILTERED] Ainda verificando duplicatas... aguardando mais dados`);
+        return []; // Retorna vazio para mostrar loading
+      }
+      
+      console.log(`🔍 [GET_FILTERED] Usando dados completos (${allDataForTab.length} registros), filtro: ${duplicatesFilter}`);
+      console.log(`🔍 [GET_FILTERED] Estado duplicatesData:`, verifiedCount, 'clientes verificados');
+      
+      // Aplicar filtros nos dados completos
+      let filtered = filterRowsByNameStatus(allDataForTab);
+      filtered = filterRowsByDuplicates(filtered);
+      
+      console.log(`🔍 [GET_FILTERED] Após filtros: ${filtered.length} registros`);
+      
+      // Atualizar totalCount para paginação funcionar
+      const filteredTotal = filtered.length;
+      if (filteredTotal !== totalCount) {
+        setTotalCount(filteredTotal);
+        // Se a página atual ficou vazia após filtrar, voltar para página 1
+        const maxPage = Math.ceil(filteredTotal / itemsPerPage);
+        if (currentPage > maxPage && maxPage > 0) {
+          setCurrentPage(1);
+        }
+      }
+      
+      // Aplicar paginação no frontend
+      const pagination = applyPagination(filtered, currentPage, itemsPerPage);
+      console.log(`🔍 [GET_FILTERED] Paginação: página ${currentPage} de ${pagination.totalPages}, mostrando ${pagination.paginated.length} registros`);
+      return pagination.paginated;
+    }
+    
+    // Sem filtro de duplicatas, usar dados paginados do backend normalmente
+    let filtered = filterRowsByNameStatus(currentData);
+    filtered = filterRowsByDuplicates(filtered);
+    return filtered;
   };
 
   // Função para filtrar dados por duplicatas
   const filterRowsByDuplicates = (data) => {
-    if (duplicatesFilter === 'all') return data;
+    // Se filtro é "all", retornar todos sem filtrar
+    if (duplicatesFilter === 'all') {
+      return data;
+    }
 
-    return data.filter(row => {
-      const clientId = row.id || row.id_cliente || row.id_cliente_mestre;
-      const hasDuplicates = duplicatesData[clientId]?.length > 0;
-
-      if (duplicatesFilter === 'with-duplicates') return hasDuplicates;
-      if (duplicatesFilter === 'no-duplicates') return !hasDuplicates;
-      return true;
+    // Contar quantos têm duplicatas antes de filtrar (para debug)
+    let withDups = 0;
+    let withoutDups = 0;
+    let noId = 0;
+    let notChecked = 0; // Clientes que ainda não foram verificados
+    
+    const filtered = data.filter(row => {
+      // Normalizar ID para sempre usar string (garante correspondência)
+      const rawId = row.id || row.id_cliente || row.id_cliente_mestre;
+      const clientId = rawId ? String(rawId) : null;
+      
+      if (!clientId) {
+        noId++;
+        // Se não tem ID, excluir do resultado quando filtro é "with-duplicates"
+        if (duplicatesFilter === 'with-duplicates') {
+          return false;
+        }
+        // Para "no-duplicates", incluir se não tem ID
+        return true;
+      }
+      
+      // Verificar se tem duplicatas no estado global
+      // IMPORTANTE: duplicatesData é um objeto { clientId: [duplicates] }
+      // IDs sempre são strings no duplicatesData (normalizados ao salvar)
+      // IMPORTANTE: Array vazio [] também indica duplicatas (marcado mas detalhes não carregados)
+      const wasChecked = duplicatesData.hasOwnProperty(clientId);
+      
+      // Pegar o valor
+      // Se foi verificado e tem array (vazio ou não), significa que foi marcado
+      // Array vazio [] = marcado como tendo duplicatas (detalhes serão carregados sob demanda)
+      // Array com itens = tem duplicatas com detalhes carregados
+      const duplicatesArray = wasChecked ? duplicatesData[clientId] : null;
+      const hasDuplicates = wasChecked && Array.isArray(duplicatesArray); // Qualquer array = tem duplicatas
+      
+      if (!wasChecked) {
+        notChecked++;
+        // Se ainda não foi verificado:
+        // - Para "with-duplicates": EXCLUIR (só mostrar se confirmar que tem)
+        // - Para "no-duplicates": INCLUIR (assumir que não tem até confirmar que tem)
+        if (duplicatesFilter === 'with-duplicates') {
+          return false; // Não mostrar se ainda não foi verificado
+        } else {
+          // Para "no-duplicates", incluir clientes não verificados (assumir que não têm duplicatas)
+          return true;
+        }
+      }
+      
+      if (hasDuplicates) {
+        withDups++;
+        // Se filtro é "with-duplicates", INCLUIR
+        // Se filtro é "no-duplicates", EXCLUIR
+        return duplicatesFilter === 'with-duplicates';
+      } else {
+        withoutDups++;
+        // Se filtro é "with-duplicates", EXCLUIR
+        // Se filtro é "no-duplicates", INCLUIR
+        return duplicatesFilter === 'no-duplicates';
+      }
     });
+    
+    // Log detalhado para debug
+    console.log(`🔍 [FILTRO DUPLICADAS]`, {
+      filtro: duplicatesFilter,
+      totalEntrada: data.length,
+      comDups: withDups,
+      semDups: withoutDups,
+      semId: noId,
+      naoVerificado: notChecked,
+      saida: filtered.length,
+      totalDupData: Object.keys(duplicatesData).length,
+      isLoading: isLoadingDuplicates
+    });
+    
+    return filtered;
+  };
+
+  // Buscar pedidos do Prime para um cliente
+  const loadPrimePedidos = async (idPrime) => {
+    if (!idPrime) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .schema('api')
+        .from('prime_pedidos')
+        .select('id, data_criacao, status_aprovacao, status_geral, status_entrega, valor_total')
+        .eq('id_cliente', idPrime)
+        .order('data_criacao', { ascending: false });
+      
+      if (error) {
+        console.error('Erro ao buscar pedidos Prime:', error);
+        return [];
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error('Erro ao carregar pedidos Prime:', error);
+      return [];
+    }
+  };
+
+  // Carregar pedidos Prime para todos os leads duplicados
+  const loadPrimeDataForDuplicates = async (client, duplicates) => {
+    setLoadingPrimeData(true);
+    const pedidosMap = {};
+    
+    // Buscar pedidos para o cliente original
+    if (client.id_prime) {
+      const pedidos = await loadPrimePedidos(client.id_prime);
+      pedidosMap[client.id] = pedidos;
+    }
+    
+    // Buscar pedidos para cada duplicata
+    for (const dup of duplicates || []) {
+      if (dup.id_prime && !pedidosMap[dup.id]) {
+        const pedidos = await loadPrimePedidos(dup.id_prime);
+        pedidosMap[dup.id] = pedidos;
+      }
+    }
+    
+    setPrimePedidosData(pedidosMap);
+    setLoadingPrimeData(false);
+  };
+
+  // Formatar sexo: 1 -> MASC, 2 -> FEM, 0 ou null -> vazio
+  const formatSexo = (sexo) => {
+    if (!sexo && sexo !== 0 && sexo !== '0') return '—';
+    const sexoNum = parseInt(sexo);
+    if (sexoNum === 1) return 'MASC';
+    if (sexoNum === 2) return 'FEM';
+    if (sexoNum === 0 || sexo === '0') return '';
+    return sexo; // Caso tenha outro valor, retornar como está
   };
 
   // Renderizar ícone de duplicatas
   const renderDuplicatesIcon = (row) => {
-    const clientId = row.id || row.id_cliente || row.id_cliente_mestre;
+    // IMPORTANTE: Normalizar ID para string para garantir correspondência
+    const rawId = row.id || row.id_cliente || row.id_cliente_mestre;
+    const clientId = rawId ? String(rawId) : null;
     if (!clientId) return null;
 
-    const hasDuplicates = duplicatesData[clientId]?.length > 0;
+    // IMPORTANTE: Array vazio [] também indica duplicatas (detalhes carregados sob demanda)
+    const hasDuplicates = duplicatesData[clientId] !== undefined && Array.isArray(duplicatesData[clientId]);
 
     return (
       <span
         onClick={async () => {
           // Se já temos duplicatas carregadas, mostrar modal
           if (hasDuplicates) {
-            setSelectedDuplicatesClient({ ...row, duplicates: duplicatesData[clientId] });
+            const clientWithDups = { ...row, duplicates: duplicatesData[clientId] };
+            setSelectedDuplicatesClient(clientWithDups);
+            setSelectedMasterLead(null);
+            setFieldSelection({});
             setShowDuplicatesModal(true);
+            loadPrimeDataForDuplicates(clientWithDups, clientWithDups.duplicates);
             return;
           }
 
           // Caso contrário, detectar duplicatas primeiro
           console.log('🔍 Detectando duplicatas para:', row.nome_completo);
           const dups = await detectDuplicates(row);
-
+          
           if (dups.length > 0) {
-            // Atualizar estado com duplicatas encontradas
+            const clientWithDups = { ...row, duplicates: dups };
             setDuplicatesData(prev => ({ ...prev, [clientId]: dups }));
-            setSelectedDuplicatesClient({ ...row, duplicates: dups });
+            setSelectedDuplicatesClient(clientWithDups);
+            setSelectedMasterLead(null);
+            setFieldSelection({});
             setShowDuplicatesModal(true);
+            loadPrimeDataForDuplicates(clientWithDups, dups);
           } else {
             alert('Nenhuma duplicata encontrada para este cliente.');
           }
@@ -1057,8 +1756,8 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
             </div>
             <div className="cc-filter-item">
               <span>Status Exportação:</span>
-              <select
-                value={exportFilter}
+              <select 
+                value={exportFilter} 
                 onChange={(e) => {
                   setExportFilter(e.target.value);
                   setCurrentPage(1);
@@ -1075,7 +1774,31 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
               <span>Duplicatas:</span>
               <select
                 value={duplicatesFilter}
-                onChange={(e) => setDuplicatesFilter(e.target.value)}
+                onChange={async (e) => {
+                  const newFilter = e.target.value;
+                  setDuplicatesFilter(newFilter);
+                  setCurrentPage(1);
+                  
+                  // Se selecionou "Com Duplicatas" ou "Sem Duplicatas", buscar TODAS as duplicatas do banco
+                  if (newFilter === 'with-duplicates' || newFilter === 'no-duplicates') {
+                    console.log(`🔍 [FILTRO] Buscando TODAS as duplicatas do banco para filtro: ${newFilter}...`);
+                    setIsLoadingDuplicates(true);
+                    
+                    try {
+                      // Buscar TODAS as duplicatas da view atual usando SQL
+                      await loadAllDuplicatesFromTabView(newFilter);
+                      console.log(`✅ [FILTRO] Duplicatas carregadas do banco para filtro: ${newFilter}`);
+                    } catch (error) {
+                      console.error(`❌ [FILTRO] Erro ao carregar duplicatas do banco:`, error);
+                    } finally {
+                      setIsLoadingDuplicates(false);
+                    }
+                  } else {
+                    // Se voltou para "Todos", limpar dados completos e usar paginação normal
+                    setAllDataForTab([]);
+                    loadTabData(); // Recarregar dados normais
+                  }
+                }}
                 className="cc-select cc-select-small"
               >
                 <option value="all">Todos</option>
@@ -1147,15 +1870,15 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const renderExportStatusIcon = (row) => {
     const leadId = row.id || row.id_lead || row.id_cliente;
     if (!leadId) return null;
-
+    
     const history = exportHistory[leadId];
     if (!history || history.length === 0) return null;
-
+    
     const total = history.length;
-
+    
     return (
-      <span
-        className="cc-export-icon"
+      <span 
+        className="cc-export-icon" 
         onClick={() => {
           setSelectedHistoryLead({ leadId, history, row });
           setShowHistoryModal(true);
@@ -1370,57 +2093,75 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   // ===== FUNÇÕES DE CARREGAMENTO - REATIVAÇÃO (90+ DIAS) =====
 
   const loadReativacaoGeral = async () => {
-    const start = (currentPage - 1) * itemsPerPage;
-    const end = start + itemsPerPage - 1;
-    const { data, count } = await supabase
-      .from('vw_para_reativacao')
-      .select('*', { count: 'exact' })
-      .range(start, end);
-    setReativacaoGeralData(data || []);
-    setTotalCount(count || 0);
+    const { data } = await supabase.from('vw_dashboard_reativacao').select('*').single();
+    setReativacaoGeralData(data);
   };
 
   const loadReativacao1x = async () => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
-    const { data, count } = await supabase
+    let query = supabase
       .from('vw_reativacao_1x')
-      .select('*', { count: 'exact' })
-      .range(start, end);
-    setReativacao1xData(data || []);
+      .select('*', { count: 'exact' });
+    query = applyFiltersToQuery(query);
+    if (sortField) {
+      query = query.order(sortField, { ascending: sortDirection === 'asc' });
+    }
+    const { data, count } = await query.range(start, end);
+    const filtered = filterClientSideIfNeeded(data || []);
+    const sorted = sortByExportedThenName(filtered);
+    setReativacao1xData(sorted);
     setTotalCount(count || 0);
   };
 
   const loadReativacao2x = async () => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
-    const { data, count } = await supabase
+    let query = supabase
       .from('vw_reativacao_2x')
-      .select('*', { count: 'exact' })
-      .range(start, end);
-    setReativacao2xData(data || []);
+      .select('*', { count: 'exact' });
+    query = applyFiltersToQuery(query);
+    if (sortField) {
+      query = query.order(sortField, { ascending: sortDirection === 'asc' });
+    }
+    const { data, count } = await query.range(start, end);
+    const filtered = filterClientSideIfNeeded(data || []);
+    const sorted = sortByExportedThenName(filtered);
+    setReativacao2xData(sorted);
     setTotalCount(count || 0);
   };
 
   const loadReativacao3x = async () => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
-    const { data, count } = await supabase
+    let query = supabase
       .from('vw_reativacao_3x')
-      .select('*', { count: 'exact' })
-      .range(start, end);
-    setReativacao3xData(data || []);
+      .select('*', { count: 'exact' });
+    query = applyFiltersToQuery(query);
+    if (sortField) {
+      query = query.order(sortField, { ascending: sortDirection === 'asc' });
+    }
+    const { data, count } = await query.range(start, end);
+    const filtered = filterClientSideIfNeeded(data || []);
+    const sorted = sortByExportedThenName(filtered);
+    setReativacao3xData(sorted);
     setTotalCount(count || 0);
   };
 
   const loadReativacao3xPlus = async () => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
-    const { data, count } = await supabase
+    let query = supabase
       .from('vw_reativacao_3x_plus')
-      .select('*', { count: 'exact' })
-      .range(start, end);
-    setReativacao3xPlusData(data || []);
+      .select('*', { count: 'exact' });
+    query = applyFiltersToQuery(query);
+    if (sortField) {
+      query = query.order(sortField, { ascending: sortDirection === 'asc' });
+    }
+    const { data, count } = await query.range(start, end);
+    const filtered = filterClientSideIfNeeded(data || []);
+    const sorted = sortByExportedThenName(filtered);
+    setReativacao3xPlusData(sorted);
     setTotalCount(count || 0);
   };
 
@@ -1585,8 +2326,8 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       
       const records = leadIds.map(id_lead => {
         const record = {
-          id_lead,
-          motivo,
+        id_lead,
+        motivo,
           observacao: observacao?.trim() || null
         };
         // Só adiciona usuario_id se existir (corresponde ao id da tabela api.users)
@@ -2075,7 +2816,16 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
 
   // Componente de paginação reutilizável
   const renderPagination = () => {
-    const totalPages = Math.ceil(totalCount / itemsPerPage);
+    // Se filtro de duplicatas está ativo, calcular totalPages baseado nos dados filtrados
+    let calculatedTotal = totalCount;
+    if (duplicatesFilter !== 'all' && allDataForTab.length > 0) {
+      // Recalcular total baseado nos dados filtrados
+      let filtered = filterRowsByNameStatus(allDataForTab);
+      filtered = filterRowsByDuplicates(filtered);
+      calculatedTotal = filtered.length;
+    }
+    
+    const totalPages = Math.ceil(calculatedTotal / itemsPerPage);
     if (totalPages <= 1) return null;
 
     return (
@@ -2107,7 +2857,11 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
           ← Anterior
         </button>
         <span>
-          Página {currentPage} de {totalPages} | Total: {totalCount.toLocaleString()}
+          Página {currentPage} de {totalPages} | Total: {(duplicatesFilter !== 'all' && allDataForTab.length > 0 ? (() => {
+            let filtered = filterRowsByNameStatus(allDataForTab);
+            filtered = filterRowsByDuplicates(filtered);
+            return filtered.length;
+          })() : totalCount).toLocaleString()}
         </span>
         <button
           className="cc-btn cc-btn-small"
@@ -2169,13 +2923,89 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
           </tr>
         </thead>
         <tbody>
-          {data.map((row, idx) => (
-            <tr key={idx}>
+          {data.map((row, idx) => {
+            // Verificar se cliente tem duplicados (GLOBAL - independente de filtros)
+            // IMPORTANTE: Normalizar ID para string para garantir correspondência
+            const rawId = row.id || row.id_cliente || row.id_cliente_mestre;
+            const clientId = rawId ? String(rawId) : null;
+            
+            // Verificar duplicatas (usar ID normalizado como string)
+            // IMPORTANTE: Array vazio [] significa que TEM duplicatas (detalhes carregados sob demanda)
+            // Array com length > 0 significa que tem duplicatas com detalhes carregados
+            let hasDuplicates = false;
+            let duplicatesArray = null;
+            
+            if (clientId) {
+              // Tentar como string
+              if (duplicatesData.hasOwnProperty(clientId)) {
+                duplicatesArray = duplicatesData[clientId];
+                // IMPORTANTE: Array vazio [] ou array com itens ambos indicam duplicatas
+                // Array vazio = marcado como duplicado, detalhes serão carregados ao clicar
+                // Array com itens = detalhes já carregados
+                hasDuplicates = Array.isArray(duplicatesArray); // Qualquer array (vazio ou não) = tem duplicatas
+              }
+              // Tentar como número também (caso tenha sido salvo como número)
+              else if (duplicatesData.hasOwnProperty(Number(clientId))) {
+                duplicatesArray = duplicatesData[Number(clientId)];
+                hasDuplicates = Array.isArray(duplicatesArray);
+              }
+            }
+            
+            return (
+              <tr 
+                key={idx}
+                className={hasDuplicates ? 'cc-row-duplicate' : ''}
+                  style={hasDuplicates ? { 
+                    backgroundColor: '#f90808', 
+                    cursor: 'pointer',
+                    borderLeft: '4px solid #af6b6b'
+                  } : {}}
+                onClick={async (e) => {
+                  // Não abrir modal se clicar no checkbox ou em elementos interativos
+                  if (e.target.type === 'checkbox' || e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('button') || e.target.closest('input')) {
+                    return;
+                  }
+                  
+                    // Se tem duplicados carregados, mostrar modal
+                    if (hasDuplicates && duplicatesArray && clientId) {
+                      const clientWithDups = { ...row, duplicates: duplicatesArray };
+                      setSelectedDuplicatesClient(clientWithDups);
+                      setSelectedMasterLead(null);
+                      setFieldSelection({});
+                      setShowDuplicatesModal(true);
+                      loadPrimeDataForDuplicates(clientWithDups, duplicatesArray);
+                      return;
+                    }
+                    
+                    // Caso contrário, detectar duplicatas primeiro
+                    if (clientId) {
+                      console.log('🔍 Detectando duplicatas para:', row.nome_completo);
+                      const dups = await detectDuplicates(row);
+                      
+                      if (dups.length > 0) {
+                        // Atualizar estado com duplicatas encontradas (usar ID normalizado como string)
+                        const clientWithDups = { ...row, duplicates: dups };
+                        setDuplicatesData(prev => ({ ...prev, [clientId]: dups }));
+                        setSelectedDuplicatesClient(clientWithDups);
+                        setSelectedMasterLead(null);
+                        setFieldSelection({});
+                        setShowDuplicatesModal(true);
+                        loadPrimeDataForDuplicates(clientWithDups, dups);
+                      } else {
+                        // Marcar como verificado mesmo sem duplicatas (para evitar reprocessamento)
+                        setDuplicatesData(prev => ({ ...prev, [clientId]: [] }));
+                        alert('Nenhuma duplicata encontrada para este cliente.');
+                      }
+                    }
+                }}
+                title={hasDuplicates ? (duplicatesArray && duplicatesArray.length > 0 ? `${duplicatesArray.length} duplicata(s) encontrada(s) - Clique para ver detalhes` : 'Duplicata(s) encontrada(s) - Clique para ver detalhes') : 'Clique para verificar duplicatas'}
+              >
               <td>
                 <input
                   type="checkbox"
                   checked={selectedRows.includes(idx)}
                   onChange={(e) => {
+                      e.stopPropagation(); // Prevenir clique na linha
                     const willSelect = e.target.checked;
                     
                     // Sem Shift: toggle simples
@@ -2219,12 +3049,18 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
                 />
               </td>
               {columns.map((col, colIdx) => (
-                <td key={colIdx}>
+                  <td key={colIdx} onClick={(e) => {
+                    // Se clicar em elementos interativos (botões, links), não propagar
+                    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('button') || e.target.closest('a')) {
+                      e.stopPropagation();
+                    }
+                  }}>
                   {col.render ? col.render(row) : (row[col.field] ?? '-')}
                 </td>
               ))}
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -2645,13 +3481,13 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
           <label className="cc-badge" style={{ cursor: 'pointer' }}>
             <input type="radio" name="dupType" checked={dupType==='cpf'} onChange={()=>{setDupType('cpf'); setCurrentPage(1);}} /> CPF
           </label>
-          <button
-            className="cc-btn cc-btn-export"
+        <button
+          className="cc-btn cc-btn-export"
             onClick={() => exportToCSV('duplicados_'+dupType, dupType==='email'?'vw_dups_por_email':dupType==='phone'?'vw_dups_por_phone':'vw_dups_por_cpf')}
-            disabled={isLoading}
-          >
-            📥 Exportar CSV
-          </button>
+          disabled={isLoading}
+        >
+          📥 Exportar CSV
+        </button>
         </div>
       </div>
 
@@ -3185,27 +4021,27 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
           <div className="cc-card" style={{background:'#3b82f6', color:'#fff'}}>
             <h3 style={{color:'#111'}}>🚀 Dashboard Ativação</h3>
             <div className="cc-stat-value-large">{ativacaoGeralData.total_inativos?.toLocaleString()}</div>
-          </div>
-          <div className="cc-card">
-            <h3>🏢 No Prime</h3>
-            <div className="cc-stat-value-large">{ativacaoGeralData.inativos_prime?.toLocaleString()}</div>
-            <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('ativacao-prime')}>Ver Lista</button>
-          </div>
-          <div className="cc-card">
+        </div>
+        <div className="cc-card">
+          <h3>🏢 No Prime</h3>
+          <div className="cc-stat-value-large">{ativacaoGeralData.inativos_prime?.toLocaleString()}</div>
+          <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('ativacao-prime')}>Ver Lista</button>
+        </div>
+        <div className="cc-card">
             <h3>📭 Sem Orçamento</h3>
             <div className="cc-stat-value-large">{ativacaoGeralData.sem_orcamento?.toLocaleString()}</div>
             <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('ativacao-sem-orcamento')}>Ver Lista</button>
-          </div>
-          <div className="cc-card">
-            <h3>📋 Com Orçamento</h3>
-            <div className="cc-stat-value-large">{ativacaoGeralData.com_orcamento?.toLocaleString()}</div>
-            <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('ativacao-com-orcamento')}>Ver Lista</button>
-          </div>
-          <div className="cc-card">
+        </div>
+        <div className="cc-card">
+          <h3>📋 Com Orçamento</h3>
+          <div className="cc-stat-value-large">{ativacaoGeralData.com_orcamento?.toLocaleString()}</div>
+          <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('ativacao-com-orcamento')}>Ver Lista</button>
+        </div>
+        <div className="cc-card">
             <h3>🚫 Fora do Prime</h3>
             <div className="cc-stat-value-large">{ativacaoGeralData.inativos_fora_prime?.toLocaleString()}</div>
             <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('ativacao-fora-prime')}>Ver Lista</button>
-          </div>
+        </div>
       </div>
       <div style={{marginTop: '16px'}}>
         <h3>📊 Qualidade por Grupo</h3>
@@ -3239,6 +4075,13 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       setAtivacaoStats(data || []);
     };
     loadAtivacaoStats();
+
+    // carregar estatísticas de qualidade por grupo (dashboard de reativação)
+    const loadReativacaoStats = async () => {
+      const { data } = await supabase.from('vw_reativacao_stats').select('*');
+      setReativacaoStats(data || []);
+    };
+    loadReativacaoStats();
   }, []);
 
   const renderAtivacaoStats = () => {
@@ -3278,52 +4121,72 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     );
   };
 
-  const renderAtivacaoPrime = () => (
-    <div className="cc-list-container">
-      <div className="cc-list-header">
-        <h2>🏢 Ativação - No Prime</h2>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <select className="cc-select cc-select-small" value={exportFormat} onChange={(e)=>setExportFormat(e.target.value)}>
-            <option value="csv">CSV</option>
-            <option value="excel">Excel (.xls)</option>
-            <option value="xlsx">XLSX</option>
-            <option value="json">JSON</option>
-            <option value="pdf">PDF</option>
-          </select>
-          <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('ativacao_prime')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
-          <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('ativacao_prime', 'vw_inativos_prime')} disabled={isLoading}>Exportar Tudo (CSV)</button>
-        </div>
-      </div>
-      {renderFiltersBar()}
-      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(ativacaoPrimeData)), [
-        { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
-        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
-        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {renderNomePorOrigem(row)}
-            {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
-              <button
-                className="cc-btn-corrigir"
-                onClick={() => corrigirTelefoneNoNome(row.id || row.id_cliente_mestre, row.nome_completo)}
-                title="Corrigir telefone no nome"
-              >
-                🔧
-              </button>
-            )}
+  const renderAtivacaoPrime = () => {
+    // Se está carregando duplicatas e filtro está ativo, mostrar loading
+    const showLoading = duplicatesFilter !== 'all' && isLoadingDuplicates && allDataForTab.length > 0;
+    const verifiedCount = showLoading ? Object.keys(duplicatesData).length : 0;
+    const totalCountForLoading = showLoading ? allDataForTab.length : 0;
+    const progress = showLoading ? Math.round((verifiedCount / totalCountForLoading) * 100) : 0;
+    
+    return (
+      <div className="cc-list-container">
+        <div className="cc-list-header">
+          <h2>🏢 Ativação - No Prime</h2>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <select className="cc-select cc-select-small" value={exportFormat} onChange={(e)=>setExportFormat(e.target.value)}>
+              <option value="csv">CSV</option>
+              <option value="excel">Excel (.xls)</option>
+              <option value="xlsx">XLSX</option>
+              <option value="json">JSON</option>
+              <option value="pdf">PDF</option>
+            </select>
+            <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('ativacao_prime')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
+            <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('ativacao_prime', 'vw_inativos_prime')} disabled={isLoading}>Exportar Tudo (CSV)</button>
           </div>
-        ) },
-        { header: 'Email', field: 'email' },
-        { header: 'WhatsApp', field: 'whatsapp' },
-        { header: 'CPF', field: 'cpf' },
-        { header: 'Origens', render: (row) => renderOriginsBadges(row) },
-        { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
-        { header: 'Sexo', field: 'sexo' },
-        { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
-        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
-      ])}
-      {renderPagination()}
-    </div>
-  );
+        </div>
+        {renderFiltersBar()}
+        {showLoading ? (
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <div style={{ fontSize: '18px', marginBottom: '10px' }}>🔍 Verificando duplicatas...</div>
+            <div style={{ fontSize: '14px', opacity: 0.7 }}>{verifiedCount} de {totalCountForLoading} registros verificados ({progress}%)</div>
+            <div style={{ marginTop: '20px', width: '300px', height: '8px', backgroundColor: '#e5e7eb', borderRadius: '4px', margin: '20px auto' }}>
+              <div style={{ width: `${progress}%`, height: '100%', backgroundColor: '#3b82f6', borderRadius: '4px', transition: 'width 0.3s' }}></div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {renderClientesTable(getFilteredAndPaginatedData(ativacaoPrimeData), [
+              { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
+              { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+              { header: 'Nome', sortField: 'nome_completo', render: (row) => (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {renderNomePorOrigem(row)}
+                  {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
+                    <button
+                      className="cc-btn-corrigir"
+                      onClick={() => corrigirTelefoneNoNome(row.id || row.id_cliente_mestre, row.nome_completo)}
+                      title="Corrigir telefone no nome"
+                    >
+                      🔧
+                    </button>
+                  )}
+                </div>
+              ) },
+              { header: 'Email', field: 'email' },
+              { header: 'WhatsApp', field: 'whatsapp' },
+              { header: 'CPF', field: 'cpf' },
+              { header: 'Origens', render: (row) => renderOriginsBadges(row) },
+              { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
+              { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
+              { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
+              { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
+            ])}
+            {renderPagination()}
+          </>
+        )}
+      </div>
+    );
+  };
 
   const renderAtivacaoForaPrime = () => (
     <div className="cc-list-container">
@@ -3364,10 +4227,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         { header: 'CPF', field: 'cpf' },
         { header: 'Origens', render: (row) => renderOriginsBadges(row) },
         { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
-        { header: 'Sexo', field: 'sexo' },
+        { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
         { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
         { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
-      ])}
+            ])}
       {renderPagination()}
     </div>
   );
@@ -3411,10 +4274,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         { header: 'CPF', field: 'cpf' },
         { header: 'Origens', render: (row) => renderOriginsBadges(row) },
         { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
-        { header: 'Sexo', field: 'sexo' },
+        { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
         { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
         { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
-      ])}
+            ])}
       {renderPagination()}
     </div>
   );
@@ -3458,44 +4321,160 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         { header: 'CPF', field: 'cpf' },
         { header: 'Origens', render: (row) => renderOriginsBadges(row) },
         { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
-        { header: 'Sexo', field: 'sexo' },
+        { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
         { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
         { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
-      ])}
+            ])}
       {renderPagination()}
     </div>
   );
 
-  const renderReativacaoGeral = () => (
-    <div className="cc-list-container">
-      <div className="cc-list-header">
-        <h2>🔄 Dashboard Reativação</h2>
-        <button className="cc-btn cc-btn-export" onClick={() => exportToCSV('reativacao_geral', 'vw_para_reativacao')} disabled={isLoading}>📥 Exportar CSV</button>
+  const renderReativacaoGeral = () => {
+    if (!reativacaoGeralData) return null;
+    return (
+      <>
+      <div className="cc-dashboard-grid" style={{gridTemplateColumns:'repeat(5, minmax(0,1fr))'}}>
+          <div className="cc-card" style={{background:'#3b82f6', color:'#fff'}}>
+            <h3 style={{color:'#111'}}>🔄 Dashboard Reativação</h3>
+            <div className="cc-stat-value-large">{reativacaoGeralData.total_para_reativacao?.toLocaleString()}</div>
       </div>
-      {renderClientesTable(reativacaoGeralData, [
-        { header: 'Nome', field: 'nome_completo' },
-        { header: 'Email', field: 'email' },
-        { header: 'WhatsApp', field: 'whatsapp' },
-        { header: 'Total Compras', field: 'total_compras' },
-        { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' },
-        { header: 'Qualidade', render: (row) => <span className={`cc-quality-badge cc-quality-${row.qualidade_dados >= 80 ? 'high' : row.qualidade_dados >= 60 ? 'medium' : 'low'}`}>{row.qualidade_dados}/100</span> }
-      ])}
-      {renderPagination()}
+          <div className="cc-card">
+            <h3>1️⃣ Compraram 1x</h3>
+            <div className="cc-stat-value-large">{reativacaoGeralData.total_reativacao_1x?.toLocaleString()}</div>
+            <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('reativacao-1x')}>Ver Lista</button>
     </div>
-  );
+          <div className="cc-card">
+            <h3>2️⃣ Compraram 2x</h3>
+            <div className="cc-stat-value-large">{reativacaoGeralData.total_reativacao_2x?.toLocaleString()}</div>
+            <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('reativacao-2x')}>Ver Lista</button>
+          </div>
+          <div className="cc-card">
+            <h3>3️⃣ Compraram 3x</h3>
+            <div className="cc-stat-value-large">{reativacaoGeralData.total_reativacao_3x?.toLocaleString()}</div>
+            <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('reativacao-3x')}>Ver Lista</button>
+          </div>
+          <div className="cc-card">
+            <h3>🔥 Compraram 3+ vezes</h3>
+            <div className="cc-stat-value-large">{reativacaoGeralData.total_reativacao_3x_plus?.toLocaleString()}</div>
+            <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('reativacao-3x-plus')}>Ver Lista</button>
+          </div>
+      </div>
+      <div style={{marginTop: '16px'}}>
+        <h3>📊 Qualidade por Grupo</h3>
+        {renderReativacaoStats()}
+      </div>
+      </>
+    );
+  };
+
+  const renderReativacaoStats = () => {
+    if (!reativacaoStats?.length) return null;
+    const label = {
+      reativacao_1x: 'Compraram 1x',
+      reativacao_2x: 'Compraram 2x',
+      reativacao_3x: 'Compraram 3x',
+      reativacao_3x_plus: 'Compraram 3+ vezes'
+    };
+    const desiredOrder = ['reativacao_1x','reativacao_2x','reativacao_3x','reativacao_3x_plus'];
+    const ordered = [...reativacaoStats].sort((a,b)=> desiredOrder.indexOf(a.grupo) - desiredOrder.indexOf(b.grupo));
+    return (
+      <div className="cc-dashboard-grid">
+        {ordered.map((g)=> (
+          <div key={g.grupo} className="cc-card">
+            <h3>📌 {label[g.grupo] || g.grupo}</h3>
+            <div className="cc-stat-row"><span>Total</span><span className="cc-stat-value">{g.total?.toLocaleString?.()||g.total}</span></div>
+            <div className="cc-stat-row"><span>Com E-mail</span><span>{g.com_email} ({Math.round(g.com_email*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span>Com WhatsApp</span><span>{g.com_whatsapp} ({Math.round(g.com_whatsapp*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span>Com CPF</span><span>{g.com_cpf} ({Math.round(g.com_cpf*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span>Com Data Nasc.</span><span>{g.com_dn} ({Math.round(g.com_dn*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span>Com Endereço</span><span>{g.com_endereco} ({Math.round(g.com_endereco*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span>Dados 100%</span><span>{g.dados_100} ({Math.round(g.dados_100*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span style={{color:'#dc2626'}}>Duplicados</span><span style={{color:'#dc2626'}}>{g.duplicados || 0} ({(((g.duplicados||0)*100)/Math.max(g.total,1)).toFixed(1)}%)</span></div>
+            <div className="cc-tags" style={{marginTop: 8, display:'flex', gap:8, flexWrap:'wrap'}}>
+              <span className="cc-tag cc-tag-sprint">Sprint: {g.em_sprint || 0} ({Math.round((g.em_sprint||0)*100/Math.max(g.total,1))}%)</span>
+              <span className="cc-tag cc-tag-greatpage">GreatPage: {g.em_greatpage || 0} ({Math.round((g.em_greatpage||0)*100/Math.max(g.total,1))}%)</span>
+              <span className="cc-tag cc-tag-blacklabs">BlackLabs: {g.em_blacklabs || 0} ({Math.round((g.em_blacklabs||0)*100/Math.max(g.total,1))}%)</span>
+            </div>
+            <div style={{marginTop:8}}>
+              <button className="cc-btn cc-btn-small" onClick={()=> setActiveTab('duplicados')}>Ver Duplicados</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const renderReativacao1x = () => (
     <div className="cc-list-container">
       <div className="cc-list-header">
-        <h2>1️⃣ Reativação - 1x</h2>
-        <button className="cc-btn cc-btn-export" onClick={() => exportToCSV('reativacao_1x', 'vw_reativacao_1x')} disabled={isLoading}>📥 Exportar CSV</button>
+        <h2>1️⃣ Reativação - Compraram 1x</h2>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <select className="cc-select cc-select-small" value={exportFormat} onChange={(e)=>setExportFormat(e.target.value)}>
+            <option value="csv">CSV</option>
+            <option value="excel">Excel (.xls)</option>
+            <option value="xlsx">XLSX</option>
+            <option value="json">JSON</option>
+            <option value="pdf">PDF</option>
+          </select>
+          <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('reativacao_1x')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
+          <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('reativacao_1x', 'vw_reativacao_1x')} disabled={isLoading}>Exportar Tudo (CSV)</button>
       </div>
-      {renderClientesTable(reativacao1xData, [
-        { header: 'Nome', field: 'nome_completo' },
+      </div>
+      {renderFiltersBar()}
+      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(reativacao1xData)), [
+        { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
+        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {renderNomePorOrigem(row)}
+            {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
+              <button
+                className="cc-btn-corrigir"
+                onClick={() => corrigirTelefoneNoNome(row.id || row.id_cliente_mestre, row.nome_completo)}
+                title="Corrigir telefone no nome"
+              >
+                🔧
+              </button>
+            )}
+          </div>
+        ) },
         { header: 'Email', field: 'email' },
         { header: 'WhatsApp', field: 'whatsapp' },
-        { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' }
-      ])}
+        { header: 'CPF', field: 'cpf' },
+        { 
+          header: 'Total Compras', 
+          field: 'total_compras',
+          render: (row) => {
+            const totalCompras = row.total_compras || 0;
+            const idPrime = row.id_prime || row.id_cliente || row.id_cliente_mestre;
+            const nomeCliente = row.nome_completo || 'Cliente';
+            
+            if (!idPrime || totalCompras === 0) {
+              return <span>{totalCompras}</span>;
+            }
+            
+            return (
+              <span 
+                className="cc-total-compras-clickable"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}`;
+                  window.open(url, '_blank');
+                }}
+                title="Clique para ver histórico completo de compras"
+              >
+                {totalCompras}
+              </span>
+            );
+          }
+        },
+        { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' },
+        { header: 'Origens', render: (row) => renderOriginsBadges(row) },
+        { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
+        { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
+        { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
+        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
+            ])}
       {renderPagination()}
     </div>
   );
@@ -3503,15 +4482,74 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const renderReativacao2x = () => (
     <div className="cc-list-container">
       <div className="cc-list-header">
-        <h2>2️⃣ Reativação - 2x</h2>
-        <button className="cc-btn cc-btn-export" onClick={() => exportToCSV('reativacao_2x', 'vw_reativacao_2x')} disabled={isLoading}>📥 Exportar CSV</button>
+        <h2>2️⃣ Reativação - Compraram 2x</h2>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <select className="cc-select cc-select-small" value={exportFormat} onChange={(e)=>setExportFormat(e.target.value)}>
+            <option value="csv">CSV</option>
+            <option value="excel">Excel (.xls)</option>
+            <option value="xlsx">XLSX</option>
+            <option value="json">JSON</option>
+            <option value="pdf">PDF</option>
+          </select>
+          <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('reativacao_2x')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
+          <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('reativacao_2x', 'vw_reativacao_2x')} disabled={isLoading}>Exportar Tudo (CSV)</button>
       </div>
-      {renderClientesTable(reativacao2xData, [
-        { header: 'Nome', field: 'nome_completo' },
+      </div>
+      {renderFiltersBar()}
+      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(reativacao2xData)), [
+        { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
+        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {renderNomePorOrigem(row)}
+            {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
+              <button
+                className="cc-btn-corrigir"
+                onClick={() => corrigirTelefoneNoNome(row.id || row.id_cliente_mestre, row.nome_completo)}
+                title="Corrigir telefone no nome"
+              >
+                🔧
+              </button>
+            )}
+          </div>
+        ) },
         { header: 'Email', field: 'email' },
         { header: 'WhatsApp', field: 'whatsapp' },
-        { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' }
-      ])}
+        { header: 'CPF', field: 'cpf' },
+        { 
+          header: 'Total Compras', 
+          field: 'total_compras',
+          render: (row) => {
+            const totalCompras = row.total_compras || 0;
+            const idPrime = row.id_prime || row.id_cliente || row.id_cliente_mestre;
+            const nomeCliente = row.nome_completo || 'Cliente';
+            
+            if (!idPrime || totalCompras === 0) {
+              return <span>{totalCompras}</span>;
+            }
+            
+            return (
+              <span 
+                className="cc-total-compras-clickable"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}`;
+                  window.open(url, '_blank');
+                }}
+                title="Clique para ver histórico completo de compras"
+              >
+                {totalCompras}
+              </span>
+            );
+          }
+        },
+        { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' },
+        { header: 'Origens', render: (row) => renderOriginsBadges(row) },
+        { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
+        { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
+        { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
+        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
+            ])}
       {renderPagination()}
     </div>
   );
@@ -3519,15 +4557,74 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const renderReativacao3x = () => (
     <div className="cc-list-container">
       <div className="cc-list-header">
-        <h2>3️⃣ Reativação - 3x</h2>
-        <button className="cc-btn cc-btn-export" onClick={() => exportToCSV('reativacao_3x', 'vw_reativacao_3x')} disabled={isLoading}>📥 Exportar CSV</button>
+        <h2>3️⃣ Reativação - Compraram 3x</h2>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <select className="cc-select cc-select-small" value={exportFormat} onChange={(e)=>setExportFormat(e.target.value)}>
+            <option value="csv">CSV</option>
+            <option value="excel">Excel (.xls)</option>
+            <option value="xlsx">XLSX</option>
+            <option value="json">JSON</option>
+            <option value="pdf">PDF</option>
+          </select>
+          <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('reativacao_3x')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
+          <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('reativacao_3x', 'vw_reativacao_3x')} disabled={isLoading}>Exportar Tudo (CSV)</button>
       </div>
-      {renderClientesTable(reativacao3xData, [
-        { header: 'Nome', field: 'nome_completo' },
+      </div>
+      {renderFiltersBar()}
+      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(reativacao3xData)), [
+        { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
+        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {renderNomePorOrigem(row)}
+            {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
+              <button
+                className="cc-btn-corrigir"
+                onClick={() => corrigirTelefoneNoNome(row.id || row.id_cliente_mestre, row.nome_completo)}
+                title="Corrigir telefone no nome"
+              >
+                🔧
+              </button>
+            )}
+          </div>
+        ) },
         { header: 'Email', field: 'email' },
         { header: 'WhatsApp', field: 'whatsapp' },
-        { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' }
-      ])}
+        { header: 'CPF', field: 'cpf' },
+        { 
+          header: 'Total Compras', 
+          field: 'total_compras',
+          render: (row) => {
+            const totalCompras = row.total_compras || 0;
+            const idPrime = row.id_prime || row.id_cliente || row.id_cliente_mestre;
+            const nomeCliente = row.nome_completo || 'Cliente';
+            
+            if (!idPrime || totalCompras === 0) {
+              return <span>{totalCompras}</span>;
+            }
+            
+            return (
+              <span 
+                className="cc-total-compras-clickable"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}`;
+                  window.open(url, '_blank');
+                }}
+                title="Clique para ver histórico completo de compras"
+              >
+                {totalCompras}
+              </span>
+            );
+          }
+        },
+        { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' },
+        { header: 'Origens', render: (row) => renderOriginsBadges(row) },
+        { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
+        { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
+        { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
+        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
+            ])}
       {renderPagination()}
     </div>
   );
@@ -3535,16 +4632,74 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const renderReativacao3xPlus = () => (
     <div className="cc-list-container">
       <div className="cc-list-header">
-        <h2>🔥 Reativação - 3+ vezes</h2>
-        <button className="cc-btn cc-btn-export" onClick={() => exportToCSV('reativacao_3x_plus', 'vw_reativacao_3x_plus')} disabled={isLoading}>📥 Exportar CSV</button>
+        <h2>🔥 Reativação - Compraram 3+ vezes</h2>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <select className="cc-select cc-select-small" value={exportFormat} onChange={(e)=>setExportFormat(e.target.value)}>
+            <option value="csv">CSV</option>
+            <option value="excel">Excel (.xls)</option>
+            <option value="xlsx">XLSX</option>
+            <option value="json">JSON</option>
+            <option value="pdf">PDF</option>
+          </select>
+          <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('reativacao_3x_plus')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
+          <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('reativacao_3x_plus', 'vw_reativacao_3x_plus')} disabled={isLoading}>Exportar Tudo (CSV)</button>
       </div>
-      {renderClientesTable(reativacao3xPlusData, [
-        { header: 'Nome', field: 'nome_completo' },
+      </div>
+      {renderFiltersBar()}
+      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(reativacao3xPlusData)), [
+        { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
+        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {renderNomePorOrigem(row)}
+            {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
+              <button
+                className="cc-btn-corrigir"
+                onClick={() => corrigirTelefoneNoNome(row.id || row.id_cliente_mestre, row.nome_completo)}
+                title="Corrigir telefone no nome"
+              >
+                🔧
+              </button>
+            )}
+          </div>
+        ) },
         { header: 'Email', field: 'email' },
         { header: 'WhatsApp', field: 'whatsapp' },
-        { header: 'Total Compras', field: 'total_compras' },
-        { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' }
-      ])}
+        { header: 'CPF', field: 'cpf' },
+        { 
+          header: 'Total Compras', 
+          field: 'total_compras',
+          render: (row) => {
+            const totalCompras = row.total_compras || 0;
+            const idPrime = row.id_prime || row.id_cliente || row.id_cliente_mestre;
+            const nomeCliente = row.nome_completo || 'Cliente';
+            
+            if (!idPrime || totalCompras === 0) {
+              return <span>{totalCompras}</span>;
+            }
+            
+            return (
+              <span 
+                className="cc-total-compras-clickable"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}`;
+                  window.open(url, '_blank');
+                }}
+                title="Clique para ver histórico completo de compras"
+              >
+                {totalCompras}
+              </span>
+            );
+          }
+        },
+        { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' },
+        { header: 'Origens', render: (row) => renderOriginsBadges(row) },
+        { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
+        { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
+        { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
+        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
+            ])}
       {renderPagination()}
     </div>
   );
@@ -3559,7 +4714,33 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         { header: 'Nome', field: 'nome_completo' },
         { header: 'Email', field: 'email' },
         { header: 'WhatsApp', field: 'whatsapp' },
-        { header: 'Total Compras', field: 'total_compras' },
+        { 
+          header: 'Total Compras', 
+          field: 'total_compras',
+          render: (row) => {
+            const totalCompras = row.total_compras || 0;
+            const idPrime = row.id_prime || row.id_cliente || row.id_cliente_mestre;
+            const nomeCliente = row.nome_completo || 'Cliente';
+            
+            if (!idPrime || totalCompras === 0) {
+              return <span>{totalCompras}</span>;
+            }
+            
+            return (
+              <span 
+                className="cc-total-compras-clickable"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}`;
+                  window.open(url, '_blank');
+                }}
+                title="Clique para ver histórico completo de compras"
+              >
+                {totalCompras}
+              </span>
+            );
+          }
+        },
         { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' }
       ])}
       {renderPagination()}
@@ -3576,7 +4757,33 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         { header: 'Nome', field: 'nome_completo' },
         { header: 'Email', field: 'email' },
         { header: 'WhatsApp', field: 'whatsapp' },
-        { header: 'Total Compras', field: 'total_compras' },
+        { 
+          header: 'Total Compras', 
+          field: 'total_compras',
+          render: (row) => {
+            const totalCompras = row.total_compras || 0;
+            const idPrime = row.id_prime || row.id_cliente || row.id_cliente_mestre;
+            const nomeCliente = row.nome_completo || 'Cliente';
+            
+            if (!idPrime || totalCompras === 0) {
+              return <span>{totalCompras}</span>;
+            }
+            
+            return (
+              <span 
+                className="cc-total-compras-clickable"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}`;
+                  window.open(url, '_blank');
+                }}
+                title="Clique para ver histórico completo de compras"
+              >
+                {totalCompras}
+              </span>
+            );
+          }
+        },
         { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' }
       ])}
       {renderPagination()}
@@ -3593,7 +4800,33 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         { header: 'Nome', field: 'nome_completo' },
         { header: 'Email', field: 'email' },
         { header: 'WhatsApp', field: 'whatsapp' },
-        { header: 'Total Compras', field: 'total_compras' },
+        { 
+          header: 'Total Compras', 
+          field: 'total_compras',
+          render: (row) => {
+            const totalCompras = row.total_compras || 0;
+            const idPrime = row.id_prime || row.id_cliente || row.id_cliente_mestre;
+            const nomeCliente = row.nome_completo || 'Cliente';
+            
+            if (!idPrime || totalCompras === 0) {
+              return <span>{totalCompras}</span>;
+            }
+            
+            return (
+              <span 
+                className="cc-total-compras-clickable"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}`;
+                  window.open(url, '_blank');
+                }}
+                title="Clique para ver histórico completo de compras"
+              >
+                {totalCompras}
+              </span>
+            );
+          }
+        },
         { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' }
       ])}
       {renderPagination()}
@@ -3610,7 +4843,33 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         { header: 'Nome', field: 'nome_completo' },
         { header: 'Email', field: 'email' },
         { header: 'WhatsApp', field: 'whatsapp' },
-        { header: 'Total Compras', field: 'total_compras' },
+        { 
+          header: 'Total Compras', 
+          field: 'total_compras',
+          render: (row) => {
+            const totalCompras = row.total_compras || 0;
+            const idPrime = row.id_prime || row.id_cliente || row.id_cliente_mestre;
+            const nomeCliente = row.nome_completo || 'Cliente';
+            
+            if (!idPrime || totalCompras === 0) {
+              return <span>{totalCompras}</span>;
+            }
+            
+            return (
+              <span 
+                className="cc-total-compras-clickable"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}`;
+                  window.open(url, '_blank');
+                }}
+                title="Clique para ver histórico completo de compras"
+              >
+                {totalCompras}
+              </span>
+            );
+          }
+        },
         { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' }
       ])}
       {renderPagination()}
@@ -4069,10 +5328,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
                       {exp.usuario_id && (
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', opacity: 0.7 }}>
                           Por: Usuário {exp.usuario_id}
-                        </div>
-                      )}
-                    </div>
-                  );
+        </div>
+      )}
+    </div>
+  );
                 })}
               </div>
 
@@ -4182,105 +5441,316 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
 
       {/* Modal de Duplicatas e Mesclagem */}
       {showDuplicatesModal && selectedDuplicatesClient && (
-        <div className="cc-modal-overlay" onClick={() => { setShowDuplicatesModal(false); setSelectedDuplicatesClient(null); setSelectedMasterLead(null); }}>
-          <div className="cc-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto' }}>
-            <h3>🔗 Duplicatas Detectadas</h3>
-            <div className="cc-modal-content">
-              <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '8px' }}>
-                <div style={{ fontSize: '14px', color: '#92400e', fontWeight: 'bold', marginBottom: '4px' }}>
+        <div className="cc-modal-overlay" onClick={() => { 
+          setShowDuplicatesModal(false); 
+          setSelectedDuplicatesClient(null); 
+          setSelectedMasterLead(null); 
+          setFieldSelection({});
+          setPrimePedidosData({});
+        }}>
+          <div 
+            className="cc-modal" 
+            onClick={(e) => e.stopPropagation()} 
+            style={{ 
+              maxWidth: '1200px', 
+              maxHeight: '90vh', 
+              overflowY: 'auto',
+              backgroundColor: '#1f2937',
+              color: '#f3f4f6',
+              border: '1px solid #374151'
+            }}
+          >
+            <h3 style={{ color: '#f3f4f6', marginBottom: '20px' }}>🔗 Mesclar Duplicatas</h3>
+            <div className="cc-modal-content" style={{ color: '#f3f4f6' }}>
+              <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#451a03', border: '1px solid #f59e0b', borderRadius: '8px' }}>
+                <div style={{ fontSize: '14px', color: '#fbbf24', fontWeight: 'bold', marginBottom: '4px' }}>
                   ⚠️ {selectedDuplicatesClient.duplicates?.length} duplicata(s) encontrada(s) para:
                 </div>
-                <div style={{ fontSize: '13px', color: '#78350f' }}>
+                <div style={{ fontSize: '13px', color: '#fcd34d' }}>
                   <strong>{selectedDuplicatesClient.nome_completo || 'Sem nome'}</strong>
                 </div>
               </div>
 
-              <div style={{ marginBottom: '16px' }}>
-                <h4 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 'bold' }}>
-                  Selecione qual cliente deve ser mantido como Principal:
+              {/* Seção 1: Seleção do Cliente Principal */}
+              <div style={{ marginBottom: '24px' }}>
+                <h4 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 'bold', color: '#f3f4f6' }}>
+                  1️⃣ Selecione qual cliente será mantido como Principal:
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {/* Cliente Original */}
-                  <div
-                    onClick={() => setSelectedMasterLead(selectedDuplicatesClient)}
-                    style={{
-                      padding: '12px',
-                      border: `2px solid ${selectedMasterLead?.id === selectedDuplicatesClient.id ? '#3b82f6' : 'var(--border-color)'}`,
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      backgroundColor: selectedMasterLead?.id === selectedDuplicatesClient.id ? '#eff6ff' : 'transparent'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                      <input
-                        type="radio"
-                        name="masterLead"
-                        checked={selectedMasterLead?.id === selectedDuplicatesClient.id}
-                        onChange={() => setSelectedMasterLead(selectedDuplicatesClient)}
-                        style={{ cursor: 'pointer' }}
-                      />
-                      <span style={{ padding: '2px 8px', backgroundColor: '#3b82f6', color: 'white', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
-                        ORIGINAL
-                      </span>
-                      <strong>{selectedDuplicatesClient.nome_completo || 'Sem nome'}</strong>
-                    </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', fontSize: '12px', marginLeft: '28px' }}>
-                      <div><strong>ID:</strong> {selectedDuplicatesClient.id || '—'}</div>
-                      <div><strong>Email:</strong> {selectedDuplicatesClient.email || '—'}</div>
-                      <div><strong>WhatsApp:</strong> {selectedDuplicatesClient.whatsapp || '—'}</div>
-                      <div><strong>CPF:</strong> {selectedDuplicatesClient.cpf || '—'}</div>
-                      <div><strong>ID Prime:</strong> {selectedDuplicatesClient.id_prime || '—'}</div>
-                      <div><strong>ID Sprinthub:</strong> {selectedDuplicatesClient.id_sprinthub || '—'}</div>
-                      <div><strong>Origem:</strong> {selectedDuplicatesClient.origem_marcas?.join(', ') || '—'}</div>
-                      <div><strong>Criado em:</strong> {selectedDuplicatesClient.created_at ? new Date(selectedDuplicatesClient.created_at).toLocaleDateString('pt-BR') : '—'}</div>
-                    </div>
-                  </div>
+                  {/* Helper: Renderizar card de lead */}
+                  {([selectedDuplicatesClient, ...(selectedDuplicatesClient.duplicates || [])]).map((lead, idx) => {
+                    const isOriginal = idx === 0;
+                    const isMaster = selectedMasterLead?.id === lead.id;
+                    const pedidos = primePedidosData[lead.id] || [];
+                    const hasPrimePedidos = pedidos.length > 0;
+                    
+                    // Determinar origem/tabela
+                    const origens = lead.origem_marcas || [];
+                    const origemBadge = origens.map(o => {
+                      const colors = {
+                        'prime': '#2563eb',
+                        'sprinthub': '#9333ea',
+                        'greatpage': '#059669',
+                        'blacklabs': '#dc2626'
+                      };
+                      return { name: o.toUpperCase(), color: colors[o] || '#6b7280' };
+                    });
 
-                  {/* Duplicatas Encontradas */}
-                  {selectedDuplicatesClient.duplicates?.map((dup, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => setSelectedMasterLead(dup)}
-                      style={{
-                        padding: '12px',
-                        border: `2px solid ${selectedMasterLead?.id === dup.id ? '#3b82f6' : 'var(--border-color)'}`,
-                        borderRadius: '8px',
-                        cursor: 'pointer',
-                        backgroundColor: selectedMasterLead?.id === dup.id ? '#eff6ff' : 'transparent'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                        <input
-                          type="radio"
-                          name="masterLead"
-                          checked={selectedMasterLead?.id === dup.id}
-                          onChange={() => setSelectedMasterLead(dup)}
-                          style={{ cursor: 'pointer' }}
-                        />
-                        <span style={{ padding: '2px 8px', backgroundColor: '#f59e0b', color: 'white', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold' }}>
-                          DUPLICATA - {dup.matchField}
-                        </span>
-                        <strong>{dup.nome_completo || 'Sem nome'}</strong>
+                    return (
+                      <div
+                        key={lead.id || idx}
+                        onClick={() => {
+                          setSelectedMasterLead(lead);
+                          // Inicializar seleção de campos com o master como padrão
+                          const initialFields = {
+                            nome_completo: lead.id,
+                            email: lead.id,
+                            whatsapp: lead.id,
+                            telefone: lead.id,
+                            cpf: lead.id,
+                            data_nascimento: lead.id,
+                            sexo: lead.id,
+                            endereco_rua: lead.id,
+                            cidade: lead.id,
+                            estado: lead.id,
+                            cep: lead.id
+                          };
+                          setFieldSelection(prev => ({ ...initialFields, ...prev }));
+                        }}
+                        style={{
+                          padding: '16px',
+                          border: `2px solid ${isMaster ? '#3b82f6' : '#4b5563'}`,
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          backgroundColor: isMaster ? '#1e3a8a' : '#374151',
+                          color: '#f3f4f6',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                          <input
+                            type="radio"
+                            name="masterLead"
+                            checked={isMaster}
+                            onChange={() => {
+                              setSelectedMasterLead(lead);
+                              const initialFields = {
+                                nome_completo: lead.id,
+                                email: lead.id,
+                                whatsapp: lead.id,
+                                telefone: lead.id,
+                                cpf: lead.id,
+                                data_nascimento: lead.id,
+                                sexo: lead.id,
+                                endereco_rua: lead.id,
+                                cidade: lead.id,
+                                estado: lead.id,
+                                cep: lead.id
+                              };
+                              setFieldSelection(prev => ({ ...initialFields, ...prev }));
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{ cursor: 'pointer' }}
+                          />
+                          <span style={{ 
+                            padding: '4px 10px', 
+                            backgroundColor: isOriginal ? '#3b82f6' : '#f59e0b', 
+                            color: 'white', 
+                            borderRadius: '4px', 
+                            fontSize: '11px', 
+                            fontWeight: 'bold' 
+                          }}>
+                            {isOriginal ? 'ORIGINAL' : `DUPLICATA #${idx} - ${lead.matchField || 'CPF/Email/Telefone'}`}
+                          </span>
+                          
+                          {/* Badges de Origem */}
+                          {origemBadge.map((badge, bIdx) => (
+                            <span key={bIdx} style={{
+                              padding: '3px 8px',
+                              backgroundColor: badge.color,
+                              color: 'white',
+                              borderRadius: '3px',
+                              fontSize: '10px',
+                              fontWeight: 'bold'
+                            }}>
+                              📍 {badge.name}
+                            </span>
+                          ))}
+                          
+                          <strong style={{ fontSize: '15px', color: '#f3f4f6' }}>{lead.nome_completo || 'Sem nome'}</strong>
+                          
+                          {/* Badge de Pedidos Prime */}
+                          {hasPrimePedidos && (
+                            <span style={{
+                              padding: '3px 8px',
+                              backgroundColor: '#10b981',
+                              color: 'white',
+                              borderRadius: '3px',
+                              fontSize: '10px',
+                              fontWeight: 'bold'
+                            }}>
+                              📦 {pedidos.length} Pedido(s) Prime
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Informações Básicas */}
+                        <div style={{ 
+                          display: 'grid', 
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', 
+                          gap: '8px', 
+                          fontSize: '12px', 
+                          marginLeft: '28px',
+                          marginBottom: '12px',
+                          color: '#e5e7eb'
+                        }}>
+                          <div><strong style={{ color: '#9ca3af' }}>ID Mestre:</strong> <span style={{ color: '#f3f4f6' }}>{lead.id || '—'}</span></div>
+                          <div><strong style={{ color: '#9ca3af' }}>Email:</strong> <span style={{ color: '#f3f4f6' }}>{lead.email || '—'}</span></div>
+                          <div><strong style={{ color: '#9ca3af' }}>WhatsApp:</strong> <span style={{ color: '#f3f4f6' }}>{lead.whatsapp || '—'}</span></div>
+                          <div><strong style={{ color: '#9ca3af' }}>Telefone:</strong> <span style={{ color: '#f3f4f6' }}>{lead.telefone || '—'}</span></div>
+                          <div><strong style={{ color: '#9ca3af' }}>CPF:</strong> <span style={{ color: '#f3f4f6' }}>{lead.cpf || '—'}</span></div>
+                          <div><strong style={{ color: '#9ca3af' }}>Data Nasc:</strong> <span style={{ color: '#f3f4f6' }}>{lead.data_nascimento ? new Date(lead.data_nascimento).toLocaleDateString('pt-BR') : '—'}</span></div>
+                          <div><strong style={{ color: '#9ca3af' }}>Sexo:</strong> <span style={{ color: '#f3f4f6' }}>{lead.sexo || '—'}</span></div>
+                          <div><strong style={{ color: '#9ca3af' }}>ID Prime:</strong> <span style={{ color: '#f3f4f6' }}>{lead.id_prime || '—'}</span></div>
+                          <div><strong style={{ color: '#9ca3af' }}>ID Sprinthub:</strong> <span style={{ color: '#f3f4f6' }}>{lead.id_sprinthub || '—'}</span></div>
+                          <div><strong style={{ color: '#9ca3af' }}>Criado em:</strong> <span style={{ color: '#f3f4f6' }}>{lead.created_at ? new Date(lead.created_at).toLocaleDateString('pt-BR') : '—'}</span></div>
+                        </div>
+
+                        {/* Pedidos Prime */}
+                        {hasPrimePedidos && (
+                          <div style={{ 
+                            marginLeft: '28px', 
+                            marginTop: '12px',
+                            padding: '10px',
+                            backgroundColor: '#064e3b',
+                            borderRadius: '6px',
+                            border: '1px solid #10b981'
+                          }}>
+                            <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px', color: '#34d399' }}>
+                              📦 Pedidos no Prime ({pedidos.length}):
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11px' }}>
+                              {pedidos.slice(0, 3).map((pedido, pIdx) => {
+                                const isAprovado = pedido.status_aprovacao === 'APROVADO' || pedido.status_geral === 'APROVADO';
+                                const isEntregue = pedido.status_entrega === 'ENTREGUE' || pedido.status_geral === 'ENTREGUE';
+                                return (
+                                  <div key={pIdx} style={{ 
+                                    padding: '6px',
+                                    backgroundColor: isAprovado || isEntregue ? '#065f46' : '#451a03',
+                                    borderRadius: '4px',
+                                    color: '#f3f4f6'
+                                  }}>
+                                    <strong>Pedido #{pedido.id}</strong> - {pedido.status_aprovacao} / {pedido.status_geral} / {pedido.status_entrega}
+                                    {pedido.valor_total && <span> - R$ {pedido.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>}
+                                    {pedido.data_criacao && <span style={{ color: '#9ca3af', marginLeft: '8px' }}>
+                                      ({new Date(pedido.data_criacao).toLocaleDateString('pt-BR')})
+                                    </span>}
+                                  </div>
+                                );
+                              })}
+                              {pedidos.length > 3 && (
+                                <div style={{ fontSize: '10px', color: '#9ca3af', fontStyle: 'italic' }}>
+                                  ... e mais {pedidos.length - 3} pedido(s)
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {loadingPrimeData && idx === 0 && (
+                          <div style={{ marginLeft: '28px', fontSize: '11px', color: '#9ca3af', fontStyle: 'italic' }}>
+                            Carregando pedidos Prime...
+                          </div>
+                        )}
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', fontSize: '12px', marginLeft: '28px' }}>
-                        <div><strong>ID:</strong> {dup.id || '—'}</div>
-                        <div><strong>Email:</strong> {dup.email || '—'}</div>
-                        <div><strong>WhatsApp:</strong> {dup.whatsapp || '—'}</div>
-                        <div><strong>CPF:</strong> {dup.cpf || '—'}</div>
-                        <div><strong>ID Prime:</strong> {dup.id_prime || '—'}</div>
-                        <div><strong>ID Sprinthub:</strong> {dup.id_sprinthub || '—'}</div>
-                        <div><strong>Origem:</strong> {dup.origem_marcas?.join(', ') || '—'}</div>
-                        <div><strong>Criado em:</strong> {dup.created_at ? new Date(dup.created_at).toLocaleDateString('pt-BR') : '—'}</div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
+
+              {/* Seção 2: Seleção de Campos (só aparece se master foi selecionado) */}
+              {selectedMasterLead && (
+                <div style={{ marginBottom: '24px', padding: '16px', backgroundColor: '#374151', borderRadius: '8px', border: '1px solid #4b5563' }}>
+                  <h4 style={{ marginBottom: '12px', fontSize: '14px', fontWeight: 'bold', color: '#f3f4f6' }}>
+                    2️⃣ Escolha de qual lead usar cada campo (opcional):
+                  </h4>
+                  <div style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '12px' }}>
+                    Por padrão, todos os campos serão do cliente principal. Selecione outros leads para campos específicos.
+                  </div>
+                  
+                  {['nome_completo', 'email', 'whatsapp', 'telefone', 'cpf', 'data_nascimento', 'sexo', 'endereco_rua', 'cidade', 'estado', 'cep'].map((fieldName) => {
+                    const fieldLabel = {
+                      'nome_completo': 'Nome Completo',
+                      'email': 'Email',
+                      'whatsapp': 'WhatsApp',
+                      'telefone': 'Telefone',
+                      'cpf': 'CPF',
+                      'data_nascimento': 'Data de Nascimento',
+                      'sexo': 'Sexo',
+                      'endereco_rua': 'Endereço (Rua)',
+                      'cidade': 'Cidade',
+                      'estado': 'Estado',
+                      'cep': 'CEP'
+                    }[fieldName] || fieldName;
+
+                    const allLeads = [selectedDuplicatesClient, ...(selectedDuplicatesClient.duplicates || [])];
+                    const currentSelection = fieldSelection[fieldName] || selectedMasterLead.id;
+                    
+                    return (
+                      <div key={fieldName} style={{ 
+                        marginBottom: '10px', 
+                        padding: '8px',
+                        backgroundColor: '#4b5563',
+                        borderRadius: '6px',
+                        border: '1px solid #6b7280'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                          <strong style={{ fontSize: '12px', minWidth: '140px', color: '#f3f4f6' }}>{fieldLabel}:</strong>
+                          <select
+                            value={currentSelection}
+                            onChange={(e) => {
+                              setFieldSelection(prev => ({ ...prev, [fieldName]: parseInt(e.target.value) }));
+                            }}
+                            style={{
+                              padding: '4px 8px',
+                              borderRadius: '4px',
+                              border: '1px solid #6b7280',
+                              fontSize: '11px',
+                              minWidth: '200px',
+                              backgroundColor: '#1f2937',
+                              color: '#f3f4f6'
+                            }}
+                          >
+                            {allLeads.map((lead) => {
+                              const hasValue = lead[fieldName] && lead[fieldName] !== '';
+                              return (
+                                <option key={lead.id} value={lead.id} disabled={!hasValue}>
+                                  {lead === selectedDuplicatesClient ? '[ORIGINAL]' : `[DUP #${allLeads.indexOf(lead)}]`} {lead.nome_completo || lead.id} {hasValue ? `✓ (${lead[fieldName]})` : '✗ (vazio)'}
+                                </option>
+                              );
+                            })}
+                          </select>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
                 <button
                   className="cc-btn"
-                  onClick={() => { setShowDuplicatesModal(false); setSelectedDuplicatesClient(null); setSelectedMasterLead(null); }}
+                  onClick={() => { 
+                    setShowDuplicatesModal(false); 
+                    setSelectedDuplicatesClient(null); 
+                    setSelectedMasterLead(null); 
+                    setFieldSelection({});
+                    setPrimePedidosData({});
+                  }}
+                  style={{
+                    backgroundColor: '#6b7280',
+                    color: '#f3f4f6'
+                  }}
                 >
                   Cancelar
                 </button>
@@ -4302,8 +5772,27 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
                       const duplicateIds = [selectedDuplicatesClient.id, ...selectedDuplicatesClient.duplicates.map(d => d.id)]
                         .filter(id => id !== masterId);
 
+                      // Preparar campos JSON baseado na seleção do usuário
+                      const allLeads = [selectedDuplicatesClient, ...(selectedDuplicatesClient.duplicates || [])];
+                      const fieldsToMerge = {};
+                      
+                      // Mapear cada campo selecionado
+                      Object.entries(fieldSelection).forEach(([fieldName, leadId]) => {
+                        const selectedLead = allLeads.find(l => l.id === leadId);
+                        if (selectedLead && selectedLead[fieldName] && selectedLead[fieldName] !== '') {
+                          // Se o campo vem de outro lead (não do master), incluir no merge
+                          if (leadId !== masterId) {
+                            if (!fieldsToMerge[leadId]) {
+                              fieldsToMerge[leadId] = {};
+                            }
+                            fieldsToMerge[leadId][fieldName] = selectedLead[fieldName];
+                          }
+                        }
+                      });
+
                       console.log('Master ID:', masterId);
                       console.log('IDs a mesclar:', duplicateIds);
+                      console.log('Campos selecionados para merge:', fieldsToMerge);
 
                       // Chamar RPC do Supabase para mesclagem
                       const { data, error } = await supabase
@@ -4311,8 +5800,8 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
                         .rpc('merge_cliente', {
                           master_id: masterId,
                           loser_ids: duplicateIds,
-                          fields_json: {},
-                          executed_by: user?.id || 'sistema'
+                          fields_json: fieldsToMerge,
+                          executed_by: user?.id ? String(user.id) : 'sistema'
                         });
 
                       if (error) {
@@ -4327,6 +5816,8 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
                       setShowDuplicatesModal(false);
                       setSelectedDuplicatesClient(null);
                       setSelectedMasterLead(null);
+                      setFieldSelection({});
+                      setPrimePedidosData({});
                       setDuplicatesData(prev => {
                         const newData = { ...prev };
                         delete newData[selectedDuplicatesClient.id];
@@ -4342,8 +5833,9 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
                   }}
                   disabled={!selectedMasterLead}
                   style={{
-                    backgroundColor: selectedMasterLead ? '#3b82f6' : '#9ca3af',
-                    color: 'white'
+                    backgroundColor: selectedMasterLead ? '#3b82f6' : '#6b7280',
+                    color: '#f3f4f6',
+                    cursor: selectedMasterLead ? 'pointer' : 'not-allowed'
                   }}
                 >
                   ✅ Mesclar Clientes

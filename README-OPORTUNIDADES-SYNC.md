@@ -217,3 +217,5 @@ Para instruções detalhadas, consultar: **[DEPLOY_OPORTUNIDADES_SYNC.md](./DEPL
 **Stack Base:** Segue padrão da `prime-sync-api` ✅
 
 
+
+
