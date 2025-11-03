@@ -24,9 +24,22 @@ const getSupabaseConfig = () => {
                        'api';
 
   // Validação adicional para garantir que a URL seja válida
-  if (!supabaseUrl || supabaseUrl === 'undefined' || supabaseUrl === 'null' || !supabaseUrl.startsWith('http')) {
+  // Remover espaços em branco e caracteres inválidos
+  if (supabaseUrl && typeof supabaseUrl === 'string') {
+    supabaseUrl = supabaseUrl.trim();
+  }
+  
+  if (!supabaseUrl || supabaseUrl === 'undefined' || supabaseUrl === 'null' || supabaseUrl === '' || !supabaseUrl.startsWith('http')) {
     console.warn('⚠️ VITE_SUPABASE_URL não encontrada ou inválida, usando fallback');
     console.warn('⚠️ URL recebida:', supabaseUrl);
+    supabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
+  }
+  
+  // Validar URL antes de usar
+  try {
+    new URL(supabaseUrl);
+  } catch (e) {
+    console.error('❌ VITE_SUPABASE_URL inválida, usando fallback:', e.message);
     supabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
   }
 
