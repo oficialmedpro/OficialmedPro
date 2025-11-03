@@ -1,6 +1,14 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { getKpisAcolhimento, getMotivosPerda } from '../../service/vendasService';
 import './VendasPage.css';
+
+// Lazy import do vendasService para evitar inicialização automática
+let vendasServicePromise = null;
+const getVendasService = async () => {
+  if (!vendasServicePromise) {
+    vendasServicePromise = import('../../service/vendasService');
+  }
+  return await vendasServicePromise;
+};
 
 const Acolhimento = ({ contexto, role }) => {
   const [kpis, setKpis] = useState(null);

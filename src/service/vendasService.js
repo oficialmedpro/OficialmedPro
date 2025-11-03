@@ -207,6 +207,16 @@ export const getMetas = async (filtros = {}) => {
   }
 };
 
+// Exportar funções individuais (para uso direto)
+export {
+  getKpisAcolhimento,
+  getKpisOrcamento,
+  getKpisVendas,
+  getMotivosPerda,
+  getMetas
+};
+
+// Exportar objeto padrão (para uso como objeto)
 export default {
   getKpisAcolhimento,
   getKpisOrcamento,
