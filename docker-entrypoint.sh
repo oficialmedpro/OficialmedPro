@@ -70,13 +70,34 @@ if [ -z "$VITE_SUPABASE_URL" ] || [ "$VITE_SUPABASE_URL" = "..." ] || [ "$VITE_S
 else
     echo "✅ VITE_SUPABASE_URL válida: ${VITE_SUPABASE_URL:0:30}..."
     
-    # Escapar caracteres especiais para o sed
-    ESCAPED_URL=$(echo "$VITE_SUPABASE_URL" | sed 's/[[\.*^$()+?{|]/\\&/g')
-    ESCAPED_KEY=$(echo "$VITE_SUPABASE_SERVICE_ROLE_KEY" | sed 's/[[\.*^$()+?{|]/\\&/g')
-    ESCAPED_SCHEMA=$(echo "$VITE_SUPABASE_SCHEMA" | sed 's/[[\.*^$()+?{|]/\\&/g')
+    # Criar arquivo temporário com o script de injeção
+    ENV_SCRIPT_FILE="/tmp/env_script.js"
+    cat > "$ENV_SCRIPT_FILE" <<'ENVEOF'
+<script>
+(function() {
+  try {
+    window.ENV = {
+      VITE_SUPABASE_URL: 'ENV_URL_PLACEHOLDER',
+      VITE_SUPABASE_SERVICE_ROLE_KEY: 'ENV_KEY_PLACEHOLDER',
+      VITE_SUPABASE_SCHEMA: 'ENV_SCHEMA_PLACEHOLDER'
+    };
+  } catch (e) {
+    console.error('Erro ao definir window.ENV:', e);
+  }
+})();
+</script>
+ENVEOF
     
-    # Injetar as variáveis
-    sed -i "s|</head>|<script>window.ENV = { VITE_SUPABASE_URL: '${ESCAPED_URL}', VITE_SUPABASE_SERVICE_ROLE_KEY: '${ESCAPED_KEY}', VITE_SUPABASE_SCHEMA: '${ESCAPED_SCHEMA}' };</script></head>|" /usr/share/nginx/html/index.html
+    # Substituir placeholders com valores reais (escapando barras)
+    sed -i "s|ENV_URL_PLACEHOLDER|${VITE_SUPABASE_URL//\//\\/}|g" "$ENV_SCRIPT_FILE"
+    sed -i "s|ENV_KEY_PLACEHOLDER|${VITE_SUPABASE_SERVICE_ROLE_KEY//\//\\/}|g" "$ENV_SCRIPT_FILE"
+    sed -i "s|ENV_SCHEMA_PLACEHOLDER|${VITE_SUPABASE_SCHEMA//\//\\/}|g" "$ENV_SCRIPT_FILE"
+    
+    # Injetar o script antes de </head>
+    sed -i "/<\/head>/r $ENV_SCRIPT_FILE" /usr/share/nginx/html/index.html
+    
+    # Limpar arquivo temporário
+    rm -f "$ENV_SCRIPT_FILE"
     
     echo "📄 Verificando se a modificação foi aplicada..."
     grep -o "window.ENV" /usr/share/nginx/html/index.html && echo "✅ window.ENV encontrado no HTML" || echo "❌ window.ENV NÃO encontrado no HTML"

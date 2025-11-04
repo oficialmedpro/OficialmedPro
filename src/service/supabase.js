@@ -9,17 +9,47 @@ import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supab
 let validSupabaseUrl = supabaseUrl;
 let validSupabaseServiceKey = supabaseServiceKey;
 
+// Validar e limpar URL
+if (validSupabaseUrl && typeof validSupabaseUrl === 'string') {
+  validSupabaseUrl = validSupabaseUrl.trim();
+}
+
 // Validar URL antes de usar
-if (!validSupabaseUrl || typeof validSupabaseUrl !== 'string' || !validSupabaseUrl.startsWith('http')) {
+if (!validSupabaseUrl || 
+    typeof validSupabaseUrl !== 'string' || 
+    validSupabaseUrl === 'undefined' || 
+    validSupabaseUrl === 'null' || 
+    validSupabaseUrl === '' || 
+    !validSupabaseUrl.startsWith('http')) {
   console.error('❌ [supabase.js] URL inválida:', validSupabaseUrl);
   validSupabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
 }
 
+// Validar URL com new URL() para garantir que é válida
 try {
-  new URL(validSupabaseUrl);
+  const testUrl = new URL(validSupabaseUrl);
+  if (!testUrl.hostname || !testUrl.protocol) {
+    throw new Error('URL sem hostname ou protocolo');
+  }
 } catch (e) {
   console.error('❌ [supabase.js] Erro ao validar URL:', e.message);
+  console.error('❌ [supabase.js] URL recebida:', validSupabaseUrl);
   validSupabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
+}
+
+// Garantir que a URL final é válida
+if (!validSupabaseUrl || !validSupabaseUrl.startsWith('https://')) {
+  validSupabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
+}
+
+// Validar service key
+if (!validSupabaseServiceKey || 
+    typeof validSupabaseServiceKey !== 'string' || 
+    validSupabaseServiceKey === 'undefined' || 
+    validSupabaseServiceKey === 'null' || 
+    validSupabaseServiceKey === '') {
+  console.error('❌ [supabase.js] Service key inválida');
+  validSupabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDQ1MzY2NiwiZXhwIjoyMDY2MDI5NjY2fQ.grInwGHFAH2WYvYerwfHkUsM08wXCJASg4CPMD2cTaA';
 }
 
 // Cliente Supabase com service role key (permite acesso a todos os schemas)
@@ -53,15 +83,36 @@ export const getSupabaseWithSchema = (schema) => {
     return supabaseClients.get(schemaKey);
   }
   
+  // Validar URL e service key antes de criar cliente
+  let urlToUse = validSupabaseUrl;
+  let keyToUse = validSupabaseServiceKey;
+  
+  if (!urlToUse || typeof urlToUse !== 'string' || !urlToUse.startsWith('https://')) {
+    console.error('❌ [getSupabaseWithSchema] URL inválida, usando fallback');
+    urlToUse = 'https://agdffspstbxeqhqtltvb.supabase.co';
+  }
+  
+  try {
+    new URL(urlToUse);
+  } catch (e) {
+    console.error('❌ [getSupabaseWithSchema] Erro ao validar URL:', e.message);
+    urlToUse = 'https://agdffspstbxeqhqtltvb.supabase.co';
+  }
+  
+  if (!keyToUse || typeof keyToUse !== 'string') {
+    console.error('❌ [getSupabaseWithSchema] Service key inválida, usando fallback');
+    keyToUse = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDQ1MzY2NiwiZXhwIjoyMDY2MDI5NjY2fQ.grInwGHFAH2WYvYerwfHkUsM08wXCJASg4CPMD2cTaA';
+  }
+  
   console.log('🔧 [getSupabaseWithSchema] Criando novo cliente Supabase...');
   console.log('🔍 [getSupabaseWithSchema] Configuração:', {
     schema: schemaKey,
-    url: validSupabaseUrl ? `${validSupabaseUrl.substring(0, 30)}...` : 'NÃO DEFINIDA',
-    hasServiceKey: !!validSupabaseServiceKey,
-    serviceKeyLength: validSupabaseServiceKey?.length || 0
+    url: urlToUse ? `${urlToUse.substring(0, 30)}...` : 'NÃO DEFINIDA',
+    hasServiceKey: !!keyToUse,
+    serviceKeyLength: keyToUse?.length || 0
   });
   
-  const client = createClient(validSupabaseUrl, validSupabaseServiceKey, {
+  const client = createClient(urlToUse, keyToUse, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
