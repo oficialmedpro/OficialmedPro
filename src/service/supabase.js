@@ -3,72 +3,96 @@ import { getTodayDateSP, getStartOfDaySP, getEndOfDaySP } from '../utils/utils.j
 // ❌ REMOVIDO: import { getGoogleAdsOriginFilter } from './googleOriginFilter';
 // O googleOriginFilter não é usado neste arquivo, então não precisa ser importado
 // Isso evita carregar dependências desnecessárias na página de vendas
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
+import { getSupabaseConfig } from '../config/supabase.js'
 
-// Validar URLs antes de criar cliente
-let validSupabaseUrl = supabaseUrl;
-let validSupabaseServiceKey = supabaseServiceKey;
+// Cache do cliente Supabase (lazy initialization)
+let supabaseClient = null;
 
-// Validar e limpar URL
-if (validSupabaseUrl && typeof validSupabaseUrl === 'string') {
-  validSupabaseUrl = validSupabaseUrl.trim();
-}
-
-// Validar URL antes de usar
-if (!validSupabaseUrl || 
-    typeof validSupabaseUrl !== 'string' || 
-    validSupabaseUrl === 'undefined' || 
-    validSupabaseUrl === 'null' || 
-    validSupabaseUrl === '' || 
-    !validSupabaseUrl.startsWith('http')) {
-  console.error('❌ [supabase.js] URL inválida:', validSupabaseUrl);
-  validSupabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
-}
-
-// Validar URL com new URL() para garantir que é válida
-try {
-  const testUrl = new URL(validSupabaseUrl);
-  if (!testUrl.hostname || !testUrl.protocol) {
-    throw new Error('URL sem hostname ou protocolo');
+// Função para obter ou criar o cliente Supabase (lazy initialization)
+const getSupabaseClient = () => {
+  // Se já existe, retornar
+  if (supabaseClient) {
+    return supabaseClient;
   }
-} catch (e) {
-  console.error('❌ [supabase.js] Erro ao validar URL:', e.message);
-  console.error('❌ [supabase.js] URL recebida:', validSupabaseUrl);
-  validSupabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
-}
+  
+  // Obter configuração atualizada (pode ter mudado se window.ENV foi injetado)
+  const { supabaseUrl, supabaseServiceKey, supabaseSchema } = getSupabaseConfig();
+  
+  // Validar URLs antes de criar cliente
+  let validSupabaseUrl = supabaseUrl;
+  let validSupabaseServiceKey = supabaseServiceKey;
 
-// Garantir que a URL final é válida
-if (!validSupabaseUrl || !validSupabaseUrl.startsWith('https://')) {
-  validSupabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
-}
+  // Validar e limpar URL
+  if (validSupabaseUrl && typeof validSupabaseUrl === 'string') {
+    validSupabaseUrl = validSupabaseUrl.trim();
+  }
 
-// Validar service key
-if (!validSupabaseServiceKey || 
-    typeof validSupabaseServiceKey !== 'string' || 
-    validSupabaseServiceKey === 'undefined' || 
-    validSupabaseServiceKey === 'null' || 
-    validSupabaseServiceKey === '') {
-  console.error('❌ [supabase.js] Service key inválida');
-  validSupabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDQ1MzY2NiwiZXhwIjoyMDY2MDI5NjY2fQ.grInwGHFAH2WYvYerwfHkUsM08wXCJASg4CPMD2cTaA';
-}
+  // Validar URL antes de usar
+  if (!validSupabaseUrl || 
+      typeof validSupabaseUrl !== 'string' || 
+      validSupabaseUrl === 'undefined' || 
+      validSupabaseUrl === 'null' || 
+      validSupabaseUrl === '' || 
+      !validSupabaseUrl.startsWith('http')) {
+    console.error('❌ [supabase.js] URL inválida:', validSupabaseUrl);
+    validSupabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
+  }
 
-// Cliente Supabase com service role key (permite acesso a todos os schemas)
-// Já configura o schema e os headers necessários para evitar erro 406 no PostgREST
-export const supabase = createClient(validSupabaseUrl, validSupabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  },
-  db: {
-    schema: supabaseSchema || 'api'
-  },
-  global: {
-    headers: {
-      'Accept-Profile': supabaseSchema || 'api',
-      'Content-Profile': supabaseSchema || 'api'
+  // Validar URL com new URL() para garantir que é válida
+  try {
+    const testUrl = new URL(validSupabaseUrl);
+    if (!testUrl.hostname || !testUrl.protocol) {
+      throw new Error('URL sem hostname ou protocolo');
     }
+  } catch (e) {
+    console.error('❌ [supabase.js] Erro ao validar URL:', e.message);
+    console.error('❌ [supabase.js] URL recebida:', validSupabaseUrl);
+    validSupabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
   }
-})
+
+  // Garantir que a URL final é válida
+  if (!validSupabaseUrl || !validSupabaseUrl.startsWith('https://')) {
+    validSupabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
+  }
+
+  // Validar service key
+  if (!validSupabaseServiceKey || 
+      typeof validSupabaseServiceKey !== 'string' || 
+      validSupabaseServiceKey === 'undefined' || 
+      validSupabaseServiceKey === 'null' || 
+      validSupabaseServiceKey === '') {
+    console.error('❌ [supabase.js] Service key inválida');
+    validSupabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDQ1MzY2NiwiZXhwIjoyMDY2MDI5NjY2fQ.grInwGHFAH2WYvYerwfHkUsM08wXCJASg4CPMD2cTaA';
+  }
+
+  // Criar cliente Supabase com service role key (permite acesso a todos os schemas)
+  // Já configura o schema e os headers necessários para evitar erro 406 no PostgREST
+  supabaseClient = createClient(validSupabaseUrl, validSupabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    },
+    db: {
+      schema: supabaseSchema || 'api'
+    },
+    global: {
+      headers: {
+        'Accept-Profile': supabaseSchema || 'api',
+        'Content-Profile': supabaseSchema || 'api'
+      }
+    }
+  });
+  
+  return supabaseClient;
+};
+
+// Exportar getter que faz lazy initialization
+export const supabase = new Proxy({}, {
+  get(target, prop) {
+    const client = getSupabaseClient();
+    return client[prop];
+  }
+});
 
 // Função para obter o cliente com schema específico
 // Cache de clientes Supabase para evitar múltiplas instâncias

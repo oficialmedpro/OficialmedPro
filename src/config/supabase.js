@@ -171,6 +171,10 @@ const getSupabaseConfig = () => {
   };
 };
 
+// Exportar a função para permitir revalidação quando window.ENV estiver disponível
+export { getSupabaseConfig };
+
+// Exportar valores iniciais (para compatibilidade)
 export const { supabaseUrl, supabaseServiceKey, supabaseSchema } = getSupabaseConfig();
 
 export default {
