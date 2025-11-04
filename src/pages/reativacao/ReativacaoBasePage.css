@@ -1,0 +1,95 @@
+/* Layout Base para Páginas de Reativação */
+.reativacao-dashboard-fullscreen {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  background: #0f172a;
+  color: #e0e7ff;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.reativacao-dashboard-content {
+  flex: 1;
+  width: calc(100% - 280px);
+  max-width: 100%; /* Permite que o conteúdo use toda a largura disponível */
+  margin: 0 auto;
+  padding: 40px 20px;
+  padding-bottom: 100px; /* Espaço extra no final para não cortar */
+  box-sizing: border-box;
+  margin-left: 280px;
+  overflow-x: auto;
+  overflow-y: visible; /* Permite que o conteúdo expanda naturalmente */
+  min-height: calc(100vh - 80px); /* Altura mínima menos padding */
+}
+
+/* Garantir que o container da lista não corte o conteúdo */
+.reativacao-dashboard-content .cc-list-container {
+  min-height: auto;
+  height: auto;
+  max-height: none;
+  overflow: visible;
+}
+
+/* Garantir que a tabela não corte o conteúdo */
+.reativacao-dashboard-content .cc-table-wrapper {
+  overflow-x: auto;
+  overflow-y: visible;
+  max-height: none;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+/* Garantir que a tabela tenha largura mínima para não cortar colunas */
+.reativacao-dashboard-content .cc-table-list {
+  min-width: 1400px; /* Largura mínima para todas as colunas */
+  width: 100%;
+}
+
+/* Garantir que o container da tabela não limite a largura */
+.reativacao-dashboard-content .cc-list-container {
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
+}
+
+/* Garantir que o wrapper da tabela permita scroll horizontal */
+.reativacao-dashboard-content .cc-table-wrapper {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Garantir que a paginação seja visível */
+.reativacao-dashboard-content .cc-pagination {
+  margin-top: 20px;
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .reativacao-dashboard-content {
+    width: 100%;
+    margin-left: 0;
+    padding: 20px 16px;
+    padding-bottom: 100px;
+  }
+}
+
+/* Garantir que a página não corte o conteúdo - aplicado apenas quando está na rota de reativação */
+body.reativacao-page-active {
+  overflow-y: auto !important;
+  overflow-x: hidden;
+  height: auto !important;
+  min-height: 100vh;
+}
+
+html.reativacao-page-active {
+  height: auto !important;
+  min-height: 100vh;
+  overflow-y: auto;
+}
+

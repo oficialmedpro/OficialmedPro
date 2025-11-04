@@ -27,6 +27,13 @@ import Callix from './pages/callix'
 import ClientesConsolidados from './pages/clientes-consolidados'
 import HistoricoCompras from './pages/HistoricoCompras'
 import VendasPage from './pages/vendas/VendasPage'
+import ReativacaoDashboard from './pages/reativacao/ReativacaoDashboard'
+import Reativacao1x from './pages/reativacao/Reativacao1x'
+import Reativacao2x from './pages/reativacao/Reativacao2x'
+import Reativacao3x from './pages/reativacao/Reativacao3x'
+import Reativacao3xPlus from './pages/reativacao/Reativacao3xPlus'
+import ReativacaoProtectedRoute from './pages/reativacao/ReativacaoProtectedRoute'
+import ReativacaoLogin from './pages/reativacao/ReativacaoLogin'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -101,16 +108,45 @@ function App() {
     );
   }
 
-  // Se não autenticado, mostrar login
-  if (!isAuthenticated) {
-    return <Login onLogin={handleLogin} />;
-  }
-
-  // Se autenticado, mostrar dashboard
+  // Se não autenticado, mostrar login (exceto para rotas de reativação)
+  // Rotas de reativação têm seu próprio sistema de autenticação
   return (
     <Router>
       <Suspense fallback={<div style={{ textAlign: 'center', padding: 40 }}>Carregando...</div>}>
       <Routes>
+        {/* Rotas de reativação - sistema de autenticação independente */}
+        <Route path="/reativacao/login" element={<ReativacaoLogin />} />
+        <Route path="/reativacao" element={
+          <ReativacaoProtectedRoute>
+            <ReativacaoDashboard />
+          </ReativacaoProtectedRoute>
+        } />
+        <Route path="/reativacao/1x" element={
+          <ReativacaoProtectedRoute>
+            <Reativacao1x />
+          </ReativacaoProtectedRoute>
+        } />
+        <Route path="/reativacao/2x" element={
+          <ReativacaoProtectedRoute>
+            <Reativacao2x />
+          </ReativacaoProtectedRoute>
+        } />
+        <Route path="/reativacao/3x" element={
+          <ReativacaoProtectedRoute>
+            <Reativacao3x />
+          </ReativacaoProtectedRoute>
+        } />
+        <Route path="/reativacao/3x-plus" element={
+          <ReativacaoProtectedRoute>
+            <Reativacao3xPlus />
+          </ReativacaoProtectedRoute>
+        } />
+        
+        {/* Rotas principais - requerem autenticação do sistema principal */}
+        {!isAuthenticated ? (
+          <Route path="*" element={<Login onLogin={handleLogin} />} />
+        ) : (
+          <>
         <Route path="/" element={<DashboardPage onLogout={handleLogout} />} />
         <Route path="/dashboard" element={<DashboardPage onLogout={handleLogout} />} />
         <Route path="/analise-funil" element={<DashboardPage onLogout={handleLogout} />} />
@@ -133,6 +169,8 @@ function App() {
         <Route path="/clientes-consolidados" element={<ClientesConsolidados onLogout={handleLogout} />} />
         <Route path="/historico-compras" element={<HistoricoCompras onLogout={handleLogout} />} />
         <Route path="/vendas" element={<VendasPage onLogout={handleLogout} />} />
+          </>
+        )}
       </Routes>
       </Suspense>
     </Router>
