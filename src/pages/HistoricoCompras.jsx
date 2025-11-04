@@ -9,6 +9,8 @@ const HistoricoCompras = ({ onLogout }) => {
   
   const clienteIdPrime = searchParams.get('cliente_id');
   const clienteNome = searchParams.get('nome') || 'Cliente';
+  const isAtivacao = searchParams.get('ativacao') === 'true'; // Modo ativação: não mostrar aprovados/entregues
+  const isHistorico = searchParams.get('historico') === 'true'; // Se é histórico completo ou só orçamentos
   
   const [pedidos, setPedidos] = useState([]);
   const [pedidosDetalhados, setPedidosDetalhados] = useState({});
@@ -25,7 +27,7 @@ const HistoricoCompras = ({ onLogout }) => {
     }
 
     loadHistoricoCompras();
-  }, [clienteIdPrime]);
+  }, [clienteIdPrime, isAtivacao]);
 
   const loadHistoricoCompras = async () => {
     try {
@@ -63,8 +65,8 @@ const HistoricoCompras = ({ onLogout }) => {
       }
 
       // Buscar TODOS os pedidos do cliente com dados do cliente usando JOIN
-      // Usar select com relacionamentos para buscar dados do cliente também
-      const { data: pedidosData, error } = await supabase
+      // Se for modo ativação, filtrar apenas orçamentos não aprovados/entregues
+      let query = supabase
         .schema('api')
         .from('prime_pedidos')
         .select(`
@@ -77,8 +79,16 @@ const HistoricoCompras = ({ onLogout }) => {
             codigo_cliente_original
           )
         `)
-        .eq('cliente_id', clientePrimeId)
-        .order('data_criacao', { ascending: false });
+        .eq('cliente_id', clientePrimeId);
+      
+      // Se for modo ativação, filtrar apenas pedidos não aprovados/entregues
+      // Filtrar pedidos onde nenhum dos status é APROVADO ou ENTREGUE
+      if (isAtivacao) {
+        // Buscar todos os pedidos e filtrar no cliente (mais confiável)
+        // A filtragem será feita na função organizarPedidos
+      }
+      
+      const { data: pedidosData, error } = await query.order('data_criacao', { ascending: false });
 
       if (error) {
         console.error('❌ Erro ao buscar pedidos:', error);
@@ -115,7 +125,26 @@ const HistoricoCompras = ({ onLogout }) => {
 
   // Organizar pedidos: última compra primeiro, depois outras compras, depois orçamentos
   const organizarPedidos = (pedidosLista) => {
-    // Separar por status
+    // Se for modo ativação, filtrar apenas orçamentos não aprovados/entregues
+    if (isAtivacao) {
+      const orcamentos = pedidosLista.filter(p => 
+        p.status_aprovacao !== 'APROVADO' && 
+        p.status_geral !== 'APROVADO' && 
+        p.status_entrega !== 'ENTREGUE'
+      ).sort((a, b) => {
+        const dataA = new Date(a.data_criacao || 0);
+        const dataB = new Date(b.data_criacao || 0);
+        return dataB - dataA;
+      });
+
+      return {
+        ultimaCompra: [],
+        outrasCompras: [],
+        orcamentos
+      };
+    }
+
+    // Modo normal: separar por status
     const aprovados = pedidosLista.filter(p => 
       p.status_aprovacao === 'APROVADO' || 
       p.status_geral === 'APROVADO' || 
@@ -459,49 +488,66 @@ const HistoricoCompras = ({ onLogout }) => {
               {formulaItens.length > 0 ? (
                 <div className="hc-itens-table">
                   <h5>Produtos da Fórmula ({formulaItens.length})</h5>
-                  <table className="hc-table">
-                    <thead>
-                      <tr>
-                        <th>Linha</th>
-                        <th>Produto</th>
-                        <th>Quantidade</th>
-                        <th>Unidade</th>
-                        <th>Quant. Cálculo</th>
-                        <th>Valor Custo</th>
-                        <th>Valor Venda</th>
-                        <th>Valor com Desc.</th>
-                        <th>Observação</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {formulaItens.map((item, itemIdx) => {
-                        const valorTotal = item.valor_venda && item.quantidade 
-                          ? parseFloat(item.valor_venda) * parseFloat(item.quantidade)
-                          : 0;
-                        
-                        return (
-                          <tr key={item.id || itemIdx}>
-                            <td>{item.numero_linha || itemIdx + 1}</td>
-                            <td>
-                              <strong>{item.nome_produto || '—'}</strong>
-                              {item.codigo_produto && (
-                                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                  Cód: {item.codigo_produto}
-                                </div>
-                              )}
-                            </td>
-                            <td>{item.quantidade ? parseFloat(item.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}</td>
-                            <td>{item.unidade || '—'}</td>
-                            <td>{item.quantidade_calculo ? parseFloat(item.quantidade_calculo).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}</td>
-                            <td>{item.valor_custo ? `R$ ${parseFloat(item.valor_custo).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—'}</td>
-                            <td>{item.valor_venda ? `R$ ${parseFloat(item.valor_venda).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—'}</td>
-                            <td>{item.valor_venda_desconto ? `R$ ${parseFloat(item.valor_venda_desconto).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—'}</td>
-                            <td style={{ maxWidth: '200px' }}>{item.observacao || '—'}</td>
+                  {(() => {
+                    // Verificar se há valores de desconto ou observações
+                    const temValorDesconto = formulaItens.some(item => 
+                      item.valor_venda_desconto && 
+                      parseFloat(item.valor_venda_desconto) > 0
+                    );
+                    const temObservacao = formulaItens.some(item => 
+                      item.observacao && 
+                      item.observacao.trim() !== ''
+                    );
+                    
+                    return (
+                      <table className="hc-table">
+                        <thead>
+                          <tr>
+                            <th>Linha</th>
+                            <th>Produto</th>
+                            <th>Quantidade</th>
+                            <th>Unidade</th>
+                            <th>Valor Venda</th>
+                            {temValorDesconto && <th>Valor com Desc.</th>}
+                            {temObservacao && <th>Observação</th>}
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody>
+                          {formulaItens.map((item, itemIdx) => {
+                            return (
+                              <tr key={item.id || itemIdx}>
+                                <td>{item.numero_linha || itemIdx + 1}</td>
+                                <td>
+                                  <strong>{item.nome_produto || '—'}</strong>
+                                  {item.codigo_produto && (
+                                    <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                      Cód: {item.codigo_produto}
+                                    </div>
+                                  )}
+                                </td>
+                                <td>{item.quantidade ? parseFloat(item.quantidade).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}</td>
+                                <td>{item.unidade || '—'}</td>
+                                <td>{item.valor_venda ? `R$ ${parseFloat(item.valor_venda).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '—'}</td>
+                                {temValorDesconto && (
+                                  <td>
+                                    {item.valor_venda_desconto && parseFloat(item.valor_venda_desconto) > 0
+                                      ? `R$ ${parseFloat(item.valor_venda_desconto).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                                      : '—'
+                                    }
+                                  </td>
+                                )}
+                                {temObservacao && (
+                                  <td style={{ maxWidth: '200px' }}>
+                                    {item.observacao && item.observacao.trim() !== '' ? item.observacao : '—'}
+                                  </td>
+                                )}
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    );
+                  })()}
                 </div>
               ) : (
                 <div className="hc-no-items">Nenhum item encontrado para esta fórmula</div>
@@ -608,9 +654,16 @@ const HistoricoCompras = ({ onLogout }) => {
   const orcamentosFiltrados = filtrarPedidos(pedidos.orcamentos || []);
 
   return (
-    <div className="hc-container">
+    <div className="hc-container" style={{ 
+      width: '100%', 
+      minHeight: '100vh', 
+      backgroundColor: 'var(--bg-primary)',
+      margin: 0,
+      padding: '30px',
+      boxSizing: 'border-box'
+    }}>
       <div className="hc-header">
-        <button className="hc-btn-back" onClick={() => navigate(-1)}>← Voltar</button>
+        <button className="hc-btn-back" onClick={() => window.close()}>✕ Fechar</button>
         <h1>Histórico de Compras - {clienteNome}</h1>
       </div>
 
@@ -631,16 +684,16 @@ const HistoricoCompras = ({ onLogout }) => {
         </label>
       </div>
 
-      {/* Última Compra */}
-      {ultimaCompraFiltrada.length > 0 && (
+      {/* Última Compra - só mostra se não for modo ativação */}
+      {!isAtivacao && ultimaCompraFiltrada.length > 0 && (
         <section className="hc-section">
           <h2>📦 Última Compra</h2>
           {ultimaCompraFiltrada.map(pedido => renderPedidoCard(pedido, 'ultima'))}
         </section>
       )}
 
-      {/* Outras Compras */}
-      {outrasComprasFiltradas.length > 0 && (
+      {/* Outras Compras - só mostra se não for modo ativação */}
+      {!isAtivacao && outrasComprasFiltradas.length > 0 && (
         <section className="hc-section">
           <h2>🛒 Outras Compras ({outrasComprasFiltradas.length})</h2>
           {outrasComprasFiltradas.map(pedido => renderPedidoCard(pedido, 'outras'))}
@@ -650,7 +703,12 @@ const HistoricoCompras = ({ onLogout }) => {
       {/* Orçamentos Não Aprovados */}
       {orcamentosFiltrados.length > 0 && (
         <section className="hc-section">
-          <h2>📋 Orçamentos Não Aprovados ({orcamentosFiltrados.length})</h2>
+          <h2>
+            {isAtivacao 
+              ? (isHistorico ? `📋 Histórico de Orçamentos (${orcamentosFiltrados.length})` : `📋 Orçamentos (${orcamentosFiltrados.length})`)
+              : `📋 Orçamentos Não Aprovados (${orcamentosFiltrados.length})`
+            }
+          </h2>
           {orcamentosFiltrados.map(pedido => renderPedidoCard(pedido, 'orcamentos'))}
         </section>
       )}

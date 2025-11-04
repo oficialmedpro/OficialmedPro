@@ -865,10 +865,18 @@
 /* ===== HISTÓRICO DE COMPRAS ===== */
 .hc-container {
   padding: 30px;
-  max-width: 1400px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   background: var(--bg-primary);
   min-height: 100vh;
+  box-sizing: border-box;
+}
+
+/* Garantir que o body da página de histórico tenha fundo escuro */
+body:has(.hc-container) {
+  background: var(--bg-primary) !important;
+  margin: 0;
+  padding: 0;
 }
 
 .hc-header {
@@ -1046,11 +1054,16 @@
   display: flex;
   gap: 12px;
   font-size: 14px;
+  color: var(--text-primary);
 }
 
 .hc-info-row strong {
   min-width: 140px;
   color: var(--text-secondary);
+}
+
+.hc-info-row:not(:has(strong)) {
+  color: var(--text-primary);
 }
 
 .hc-pedido-detalhes {
@@ -1147,6 +1160,7 @@
   display: flex;
   gap: 12px;
   font-size: 14px;
+  color: var(--text-primary);
 }
 
 .hc-info-row-formula strong {

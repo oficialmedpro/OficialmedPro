@@ -92,10 +92,11 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const [reativacaoStats, setReativacaoStats] = useState([]);
   
   // Estados de Monitoramento (0-90 dias)
-  const [monitoramentoGeralData, setMonitoramentoGeralData] = useState([]);
+  const [monitoramentoGeralData, setMonitoramentoGeralData] = useState(null);
   const [monitoramento129Data, setMonitoramento129Data] = useState([]);
   const [monitoramento3059Data, setMonitoramento3059Data] = useState([]);
   const [monitoramento6090Data, setMonitoramento6090Data] = useState([]);
+  const [monitoramentoStats, setMonitoramentoStats] = useState([]);
   const [ativacaoStats, setAtivacaoStats] = useState([]);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -257,6 +258,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       
       // Primeiro, buscar IDs de duplicatas usando a view vw_ids_duplicados
       const { data: duplicateIdsData, error: idsError } = await supabase
+        .schema('api')
         .schema('api')
         .from('vw_ids_duplicados')
         .select('id_cliente');
@@ -425,6 +427,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       
       // Usar a view vw_ids_duplicados para carregar todos os IDs de uma vez
       const { data: duplicateIds, error } = await supabase
+        .schema('api')
         .schema('api')
         .from('vw_ids_duplicados')
         .select('id_cliente');
@@ -616,7 +619,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         'vw_inativos_prime', 'vw_inativos_fora_prime', 'vw_inativos_com_orcamento', 'vw_inativos_sem_orcamento',
         'vw_reativacao_1x', 'vw_reativacao_2x', 'vw_reativacao_3x', 'vw_reativacao_3x_plus'
       ];
-      const requests = views.map(v => supabase.from(v).select('whatsapp,telefone').limit(limit));
+      const requests = views.map(v => supabase.schema('api').from(v).select('whatsapp,telefone').limit(limit));
       const responses = await Promise.all(requests);
       const set = new Set();
       responses.forEach(({ data }) => { if (Array.isArray(data)) collectDDDsFromRows(data, set); });
@@ -684,28 +687,53 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   // ===== FUNÇÕES DE CARREGAMENTO =====
 
   const loadDashboard = async () => {
-    const { data } = await supabase.from('dashboard_principal').select('*');
-    setDashboardData(data || []);
+    try {
+      const { data } = await supabase.schema('api').from('dashboard_principal').select('*');
+      setDashboardData(data || []);
+    } catch (error) {
+      console.error('Erro ao carregar dashboard:', error);
+      setDashboardData([]);
+    }
   };
 
   const loadDashboardSprint = async () => {
-    const { data } = await supabase.from('dashboard_sprint').select('*').single();
-    setDashboardSprintData(data);
+    try {
+      const { data } = await supabase.schema('api').from('dashboard_sprint').select('*').single();
+      setDashboardSprintData(data);
+    } catch (error) {
+      console.error('Erro ao carregar dashboard sprint:', error);
+      setDashboardSprintData(null);
+    }
   };
 
   const loadDashboardPrime = async () => {
-    const { data } = await supabase.from('dashboard_prime').select('*').single();
-    setDashboardPrimeData(data);
+    try {
+      const { data } = await supabase.schema('api').from('dashboard_prime').select('*').single();
+      setDashboardPrimeData(data);
+    } catch (error) {
+      console.error('Erro ao carregar dashboard prime:', error);
+      setDashboardPrimeData(null);
+    }
   };
 
   const loadCompletude = async () => {
-    const { data } = await supabase.from('stats_completude_dados').select('*').single();
-    setCompletudeData(data);
+    try {
+      const { data } = await supabase.schema('api').from('stats_completude_dados').select('*').single();
+      setCompletudeData(data);
+    } catch (error) {
+      console.error('Erro ao carregar completude:', error);
+      setCompletudeData(null);
+    }
   };
 
   const loadOrigens = async () => {
-    const { data } = await supabase.from('stats_por_origem').select('*').single();
-    setOrigensData(data);
+    try {
+      const { data } = await supabase.schema('api').from('stats_por_origem').select('*').single();
+      setOrigensData(data);
+    } catch (error) {
+      console.error('Erro ao carregar origens:', error);
+      setOrigensData(null);
+    }
   };
 
   const loadFaltaNoPrime = async () => {
@@ -780,7 +808,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   };
 
   const loadQualidade = async () => {
-    const { data } = await supabase.from('relatorio_qualidade').select('*');
+    const { data } = await supabase.schema('api').from('relatorio_qualidade').select('*');
     setQualidadeData(data || []);
   };
 
@@ -788,6 +816,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
     const { data, count } = await supabase
+      .schema('api')
       .from('clientes_baixa_qualidade')
       .select('*', { count: 'exact' })
       .range(start, end);
@@ -799,6 +828,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
     const { data, count } = await supabase
+      .schema('api')
       .from('aniversariantes_mes')
       .select('*', { count: 'exact' })
       .range(start, end);
@@ -810,6 +840,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
     const { data, count } = await supabase
+      .schema('api')
       .from('aniversariantes_proximos_30_dias')
       .select('*', { count: 'exact' })
       .range(start, end);
@@ -911,26 +942,26 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   };
 
   const loadExecutivo = async () => {
-    const { data } = await supabase.from('relatorio_executivo').select('*');
+    const { data } = await supabase.schema('api').from('relatorio_executivo').select('*');
     setExecutivoData(data || []);
   };
 
   // ===== FUNÇÕES DE CARREGAMENTO - GESTÃO DE CLIENTES =====
 
   const loadDashboardGestao = async () => {
-    const { data } = await supabase.from('vw_dashboard_reativacao').select('*').single();
+    const { data } = await supabase.schema('api').from('vw_dashboard_reativacao').select('*').single();
     setDashboardGestaoData(data);
   };
 
   const loadValidacaoIntegridade = async () => {
-    const { data } = await supabase.from('vw_validacao_integridade').select('*');
+    const { data } = await supabase.schema('api').from('vw_validacao_integridade').select('*');
     setValidacaoIntegridadeData(data || []);
   };
 
   // ===== FUNÇÕES DE CARREGAMENTO - ATIVAÇÃO (NUNCA COMPRARAM) =====
 
   const loadAtivacaoGeral = async () => {
-    const { data } = await supabase.from('vw_dashboard_reativacao').select('*').single();
+    const { data } = await supabase.schema('api').from('vw_dashboard_reativacao').select('*').single();
     setAtivacaoGeralData(data);
   };
 
@@ -1626,6 +1657,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
     let query = supabase
+      .schema('api')
       .from('vw_inativos_prime')
       .select('*', { count: 'exact' });
     query = applyFiltersToQuery(query);
@@ -1643,6 +1675,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
     let query = supabase
+      .schema('api')
       .from('vw_inativos_fora_prime')
       .select('*', { count: 'exact' });
     query = applyFiltersToQuery(query);
@@ -1660,6 +1693,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
     let query = supabase
+      .schema('api')
       .from('vw_inativos_com_orcamento')
       .select('*', { count: 'exact' });
     query = applyFiltersToQuery(query);
@@ -1677,6 +1711,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
     let query = supabase
+      .schema('api')
       .from('vw_inativos_sem_orcamento')
       .select('*', { count: 'exact' });
     query = applyFiltersToQuery(query);
@@ -2093,7 +2128,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   // ===== FUNÇÕES DE CARREGAMENTO - REATIVAÇÃO (90+ DIAS) =====
 
   const loadReativacaoGeral = async () => {
-    const { data } = await supabase.from('vw_dashboard_reativacao').select('*').single();
+    const { data } = await supabase.schema('api').from('vw_dashboard_reativacao').select('*').single();
     setReativacaoGeralData(data);
   };
 
@@ -2101,6 +2136,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
     let query = supabase
+      .schema('api')
       .from('vw_reativacao_1x')
       .select('*', { count: 'exact' });
     query = applyFiltersToQuery(query);
@@ -2118,6 +2154,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
     let query = supabase
+      .schema('api')
       .from('vw_reativacao_2x')
       .select('*', { count: 'exact' });
     query = applyFiltersToQuery(query);
@@ -2135,6 +2172,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
     let query = supabase
+      .schema('api')
       .from('vw_reativacao_3x')
       .select('*', { count: 'exact' });
     query = applyFiltersToQuery(query);
@@ -2152,6 +2190,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
     let query = supabase
+      .schema('api')
       .from('vw_reativacao_3x_plus')
       .select('*', { count: 'exact' });
     query = applyFiltersToQuery(query);
@@ -2166,46 +2205,100 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   };
 
   const loadMonitoramentoGeral = async () => {
-    const start = (currentPage - 1) * itemsPerPage;
-    const end = start + itemsPerPage - 1;
-    const { data, count } = await supabase
-      .from('vw_para_monitoramento')
-      .select('*', { count: 'exact' })
-      .range(start, end);
-    setMonitoramentoGeralData(data || []);
-    setTotalCount(count || 0);
+    // Buscar dados do dashboard (similar ao reativação)
+    try {
+      // Buscar total geral de cada período usando count
+      const [result1_29, result30_59, result60_90] = await Promise.all([
+        supabase
+          .schema('api')
+          .from('vw_monitoramento_1_29_dias')
+          .select('*', { count: 'exact', head: true }),
+        supabase
+          .schema('api')
+          .from('vw_monitoramento_30_59_dias')
+          .select('*', { count: 'exact', head: true }),
+        supabase
+          .schema('api')
+          .from('vw_monitoramento_60_90_dias')
+          .select('*', { count: 'exact', head: true })
+      ]);
+      
+      const count1_29 = result1_29.count || 0;
+      const count30_59 = result30_59.count || 0;
+      const count60_90 = result60_90.count || 0;
+      
+      const totalParaMonitoramento = count1_29 + count30_59 + count60_90;
+      
+      console.log('📊 Monitoramento Dashboard:', {
+        total_para_monitoramento: totalParaMonitoramento,
+        total_monitoramento_1_29: count1_29,
+        total_monitoramento_30_59: count30_59,
+        total_monitoramento_60_90: count60_90
+      });
+      
+      setMonitoramentoGeralData({
+        total_para_monitoramento: totalParaMonitoramento,
+        total_monitoramento_1_29: count1_29,
+        total_monitoramento_30_59: count30_59,
+        total_monitoramento_60_90: count60_90
+      });
+    } catch (error) {
+      console.error('Erro ao carregar dashboard de monitoramento:', error);
+      setMonitoramentoGeralData(null);
+    }
   };
 
   const loadMonitoramento129 = async () => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
-    const { data, count } = await supabase
+    let query = supabase
+      .schema('api')
       .from('vw_monitoramento_1_29_dias')
-      .select('*', { count: 'exact' })
-      .range(start, end);
-    setMonitoramento129Data(data || []);
+      .select('*', { count: 'exact' });
+    query = applyFiltersToQuery(query);
+    if (sortField) {
+      query = query.order(sortField, { ascending: sortDirection === 'asc' });
+    }
+    const { data, count } = await query.range(start, end);
+    const filtered = filterClientSideIfNeeded(data || []);
+    const sorted = sortByExportedThenName(filtered);
+    setMonitoramento129Data(sorted);
     setTotalCount(count || 0);
   };
 
   const loadMonitoramento3059 = async () => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
-    const { data, count } = await supabase
+    let query = supabase
+      .schema('api')
       .from('vw_monitoramento_30_59_dias')
-      .select('*', { count: 'exact' })
-      .range(start, end);
-    setMonitoramento3059Data(data || []);
+      .select('*', { count: 'exact' });
+    query = applyFiltersToQuery(query);
+    if (sortField) {
+      query = query.order(sortField, { ascending: sortDirection === 'asc' });
+    }
+    const { data, count } = await query.range(start, end);
+    const filtered = filterClientSideIfNeeded(data || []);
+    const sorted = sortByExportedThenName(filtered);
+    setMonitoramento3059Data(sorted);
     setTotalCount(count || 0);
   };
 
   const loadMonitoramento6090 = async () => {
     const start = (currentPage - 1) * itemsPerPage;
     const end = start + itemsPerPage - 1;
-    const { data, count } = await supabase
+    let query = supabase
+      .schema('api')
       .from('vw_monitoramento_60_90_dias')
-      .select('*', { count: 'exact' })
-      .range(start, end);
-    setMonitoramento6090Data(data || []);
+      .select('*', { count: 'exact' });
+    query = applyFiltersToQuery(query);
+    if (sortField) {
+      query = query.order(sortField, { ascending: sortDirection === 'asc' });
+    }
+    const { data, count } = await query.range(start, end);
+    const filtered = filterClientSideIfNeeded(data || []);
+    const sorted = sortByExportedThenName(filtered);
+    setMonitoramento6090Data(sorted);
     setTotalCount(count || 0);
   };
 
@@ -2502,6 +2595,13 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       case 'ativacao-fora-prime': data = ativacaoForaPrimeData; break;
       case 'ativacao-com-orcamento': data = ativacaoComOrcamentoData; break;
       case 'ativacao-sem-orcamento': data = ativacaoSemOrcamentoData; break;
+      case 'reativacao-1x': data = reativacao1xData; break;
+      case 'reativacao-2x': data = reativacao2xData; break;
+      case 'reativacao-3x': data = reativacao3xData; break;
+      case 'reativacao-3x-plus': data = reativacao3xPlusData; break;
+      case 'monitoramento-1-29': data = monitoramento129Data; break;
+      case 'monitoramento-30-59': data = monitoramento3059Data; break;
+      case 'monitoramento-60-90': data = monitoramento6090Data; break;
       default: data = []; break;
     }
     const selected = getSelectedRowsFrom(data);
@@ -2520,10 +2620,17 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       case 'ativacao-fora-prime': data = ativacaoForaPrimeData; break;
       case 'ativacao-com-orcamento': data = ativacaoComOrcamentoData; break;
       case 'ativacao-sem-orcamento': data = ativacaoSemOrcamentoData; break;
+      case 'reativacao-1x': data = reativacao1xData; break;
+      case 'reativacao-2x': data = reativacao2xData; break;
+      case 'reativacao-3x': data = reativacao3xData; break;
+      case 'reativacao-3x-plus': data = reativacao3xPlusData; break;
+      case 'monitoramento-1-29': data = monitoramento129Data; break;
+      case 'monitoramento-30-59': data = monitoramento3059Data; break;
+      case 'monitoramento-60-90': data = monitoramento6090Data; break;
       default: data = []; break;
     }
     const selected = getSelectedRowsFrom(data);
-    const leadIds = selected.map(row => row.id || row.id_lead || row.id_cliente).filter(Boolean);
+    const leadIds = selected.map(row => row.id || row.id_lead || row.id_cliente || row.id_cliente_mestre).filter(Boolean);
     
     // Registrar exportação
     if (leadIds.length > 0) {
@@ -2531,7 +2638,8 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     }
     
     // Fazer exportação real
-    exportSelected(selected, `ativacao_export_${new Date().toISOString().split('T')[0]}`);
+    const exportPrefix = activeTab.includes('ativacao') ? 'ativacao' : activeTab.includes('reativacao') ? 'reativacao' : 'monitoramento';
+    exportSelected(selected, `${exportPrefix}_export_${new Date().toISOString().split('T')[0]}`);
     
     // Fechar modal e limpar
     setShowExportModal(false);
@@ -2542,7 +2650,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const exportAllFromTable = async (baseName, tableName) => {
     try {
       setIsLoading(true);
-      const { data } = await supabase.from(tableName).select('*');
+      const { data } = await supabase.schema('api').from(tableName).select('*');
       exportSelected(data || [], baseName);
     } catch (e) {
       console.error('Erro ao exportar tudo:', e);
@@ -4071,17 +4179,38 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   useEffect(() => {
     // carregar estatísticas de qualidade por grupo (dashboard de ativação)
     const loadAtivacaoStats = async () => {
-      const { data } = await supabase.from('vw_ativacao_stats').select('*');
-      setAtivacaoStats(data || []);
+      try {
+        const { data } = await supabase.schema('api').from('vw_ativacao_stats').select('*');
+        setAtivacaoStats(data || []);
+      } catch (error) {
+        console.error('Erro ao carregar stats de ativação:', error);
+        setAtivacaoStats([]);
+      }
     };
     loadAtivacaoStats();
 
     // carregar estatísticas de qualidade por grupo (dashboard de reativação)
     const loadReativacaoStats = async () => {
-      const { data } = await supabase.from('vw_reativacao_stats').select('*');
-      setReativacaoStats(data || []);
+      try {
+        const { data } = await supabase.schema('api').from('vw_reativacao_stats').select('*');
+        setReativacaoStats(data || []);
+      } catch (error) {
+        console.error('Erro ao carregar stats de reativação:', error);
+      }
     };
     loadReativacaoStats();
+
+    // carregar estatísticas de qualidade por grupo (dashboard de monitoramento)
+    const loadMonitoramentoStats = async () => {
+      try {
+        const { data } = await supabase.schema('api').from('vw_monitoramento_stats').select('*');
+        setMonitoramentoStats(data || []);
+      } catch (error) {
+        console.error('Erro ao carregar stats de monitoramento:', error);
+        setMonitoramentoStats([]);
+      }
+    };
+    loadMonitoramentoStats();
   }, []);
 
   const renderAtivacaoStats = () => {
@@ -4175,6 +4304,49 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
               { header: 'Email', field: 'email' },
               { header: 'WhatsApp', field: 'whatsapp' },
               { header: 'CPF', field: 'cpf' },
+              { 
+                header: 'Total Orçamento', 
+                field: 'total_orcamentos',
+                render: (row) => {
+                  const totalOrcamentos = row.total_orcamentos || 0;
+                  const idPrime = row.id_prime || row.prime_id || row.idprime;
+                  const nomeCliente = row.nome_completo || row.nome_cliente_prime || 'Cliente';
+                  
+                  // Ativação: mostrar total de orçamentos
+                  if (!idPrime || totalOrcamentos === 0) {
+                    return <span>-</span>;
+                  }
+                  
+                  return (
+                    <span 
+                      className="cc-total-compras-clickable"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}&ativacao=true`;
+                        window.open(url, '_blank');
+                      }}
+                      title="Clique para ver histórico de orçamentos"
+                    >
+                      {totalOrcamentos}
+                    </span>
+                  );
+                }
+              },
+              { 
+                header: 'Dias Último Orçamento', 
+                field: 'dias_desde_ultimo_orcamento',
+                render: (row) => {
+                  const totalOrcamentos = row.total_orcamentos || 0;
+                  const diasUltimoOrcamento = row.dias_desde_ultimo_orcamento || row.dias_desde_ultima_compra;
+                  
+                  // Ativação: mostrar dias desde último orçamento
+                  if (totalOrcamentos === 0 || !diasUltimoOrcamento) {
+                    return <span>-</span>;
+                  }
+                  
+                  return <span>{diasUltimoOrcamento}</span>;
+                }
+              },
               { header: 'Origens', render: (row) => renderOriginsBadges(row) },
               { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
               { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
@@ -4272,6 +4444,49 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         { header: 'Email', field: 'email' },
         { header: 'WhatsApp', field: 'whatsapp' },
         { header: 'CPF', field: 'cpf' },
+        { 
+          header: 'Total Orçamento', 
+          field: 'total_orcamentos',
+          render: (row) => {
+            const totalOrcamentos = row.total_orcamentos || 0;
+            const idPrime = row.id_prime || row.prime_id || row.idprime;
+            const nomeCliente = row.nome_completo || row.nome_cliente_prime || 'Cliente';
+            
+            // Ativação: mostrar total de orçamentos
+            if (!idPrime || totalOrcamentos === 0) {
+              return <span>-</span>;
+            }
+            
+            return (
+              <span 
+                className="cc-total-compras-clickable"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}&ativacao=true`;
+                  window.open(url, '_blank');
+                }}
+                title="Clique para ver histórico de orçamentos"
+              >
+                {totalOrcamentos}
+              </span>
+            );
+          }
+        },
+        { 
+          header: 'Dias Último Orçamento', 
+          field: 'dias_desde_ultimo_orcamento',
+          render: (row) => {
+            const totalOrcamentos = row.total_orcamentos || 0;
+            const diasUltimoOrcamento = row.dias_desde_ultimo_orcamento || row.dias_desde_ultima_compra;
+            
+            // Ativação: mostrar dias desde último orçamento
+            if (totalOrcamentos === 0 || !diasUltimoOrcamento) {
+              return <span>-</span>;
+            }
+            
+            return <span>{diasUltimoOrcamento}</span>;
+          }
+        },
         { header: 'Origens', render: (row) => renderOriginsBadges(row) },
         { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
         { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
@@ -4704,71 +4919,128 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     </div>
   );
 
-  const renderMonitoramentoGeral = () => (
-    <div className="cc-list-container">
-      <div className="cc-list-header">
-        <h2>👀 Dashboard Monitoramento</h2>
-        <button className="cc-btn cc-btn-export" onClick={() => exportToCSV('monitoramento_geral', 'vw_para_monitoramento')} disabled={isLoading}>📥 Exportar CSV</button>
+  const renderMonitoramentoGeral = () => {
+    if (!monitoramentoGeralData) return null;
+    return (
+      <>
+      <div className="cc-dashboard-grid" style={{gridTemplateColumns:'repeat(4, minmax(0,1fr))'}}>
+          <div className="cc-card" style={{background:'#10b981', color:'#fff'}}>
+            <h3 style={{color:'#111'}}>📊 Dashboard Monitoramento</h3>
+            <div className="cc-stat-value-large">{monitoramentoGeralData.total_para_monitoramento?.toLocaleString()}</div>
       </div>
-      {renderClientesTable(monitoramentoGeralData, [
-        { header: 'Nome', field: 'nome_completo' },
-        { header: 'Email', field: 'email' },
-        { header: 'WhatsApp', field: 'whatsapp' },
-        { 
-          header: 'Total Compras', 
-          field: 'total_compras',
-          render: (row) => {
-            const totalCompras = row.total_compras || 0;
-            const idPrime = row.id_prime || row.id_cliente || row.id_cliente_mestre;
-            const nomeCliente = row.nome_completo || 'Cliente';
-            
-            if (!idPrime || totalCompras === 0) {
-              return <span>{totalCompras}</span>;
-            }
-            
-            return (
-              <span 
-                className="cc-total-compras-clickable"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}`;
-                  window.open(url, '_blank');
-                }}
-                title="Clique para ver histórico completo de compras"
-              >
-                {totalCompras}
-              </span>
-            );
-          }
-        },
-        { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' }
-      ])}
-      {renderPagination()}
+          <div className="cc-card">
+            <h3>🟢 1-29 dias</h3>
+            <div className="cc-stat-value-large">{monitoramentoGeralData.total_monitoramento_1_29?.toLocaleString()}</div>
+            <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('monitoramento-1-29')}>Ver Lista</button>
     </div>
-  );
+          <div className="cc-card">
+            <h3>🟡 30-59 dias</h3>
+            <div className="cc-stat-value-large">{monitoramentoGeralData.total_monitoramento_30_59?.toLocaleString()}</div>
+            <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('monitoramento-30-59')}>Ver Lista</button>
+          </div>
+          <div className="cc-card">
+            <h3>🟠 60-90 dias</h3>
+            <div className="cc-stat-value-large">{monitoramentoGeralData.total_monitoramento_60_90?.toLocaleString()}</div>
+            <button className="cc-btn cc-btn-primary" onClick={() => setActiveTab('monitoramento-60-90')}>Ver Lista</button>
+          </div>
+      </div>
+      <div style={{marginTop: '16px'}}>
+        <h3>📊 Qualidade por Grupo</h3>
+        {renderMonitoramentoStats()}
+      </div>
+      </>
+    );
+  };
+
+  const renderMonitoramentoStats = () => {
+    if (!monitoramentoStats?.length) return null;
+    const label = {
+      monitoramento_1_29: '1-29 dias',
+      monitoramento_30_59: '30-59 dias',
+      monitoramento_60_90: '60-90 dias'
+    };
+    const desiredOrder = ['monitoramento_1_29','monitoramento_30_59','monitoramento_60_90'];
+    const ordered = [...monitoramentoStats].sort((a,b)=> desiredOrder.indexOf(a.grupo) - desiredOrder.indexOf(b.grupo));
+    return (
+      <div className="cc-dashboard-grid">
+        {ordered.map((g)=> (
+          <div key={g.grupo} className="cc-card">
+            <h3>📌 {label[g.grupo] || g.grupo}</h3>
+            <div className="cc-stat-row"><span>Total</span><span className="cc-stat-value">{g.total?.toLocaleString?.()||g.total}</span></div>
+            <div className="cc-stat-row"><span>Com E-mail</span><span>{g.com_email} ({Math.round(g.com_email*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span>Com WhatsApp</span><span>{g.com_whatsapp} ({Math.round(g.com_whatsapp*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span>Com CPF</span><span>{g.com_cpf} ({Math.round(g.com_cpf*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span>Com Data Nasc.</span><span>{g.com_dn} ({Math.round(g.com_dn*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span>Com Endereço</span><span>{g.com_endereco} ({Math.round(g.com_endereco*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span>Dados 100%</span><span>{g.dados_100} ({Math.round(g.dados_100*100/Math.max(g.total,1))}%)</span></div>
+            <div className="cc-stat-row"><span style={{color:'#dc2626'}}>Duplicados</span><span style={{color:'#dc2626'}}>{g.duplicados || 0} ({(((g.duplicados||0)*100)/Math.max(g.total,1)).toFixed(1)}%)</span></div>
+            <div className="cc-tags" style={{marginTop: 8, display:'flex', gap:8, flexWrap:'wrap'}}>
+              <span className="cc-tag cc-tag-sprint">Sprint: {g.em_sprint || 0} ({Math.round((g.em_sprint||0)*100/Math.max(g.total,1))}%)</span>
+              <span className="cc-tag cc-tag-greatpage">GreatPage: {g.em_greatpage || 0} ({Math.round((g.em_greatpage||0)*100/Math.max(g.total,1))}%)</span>
+              <span className="cc-tag cc-tag-blacklabs">BlackLabs: {g.em_blacklabs || 0} ({Math.round((g.em_blacklabs||0)*100/Math.max(g.total,1))}%)</span>
+            </div>
+            <div style={{marginTop:8}}>
+              <button className="cc-btn cc-btn-small" onClick={()=> setActiveTab('duplicados')}>Ver Duplicados</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const renderMonitoramento129 = () => (
     <div className="cc-list-container">
       <div className="cc-list-header">
         <h2>🟢 Monitoramento - 1-29 dias</h2>
-        <button className="cc-btn cc-btn-export" onClick={() => exportToCSV('monitoramento_1_29', 'vw_monitoramento_1_29_dias')} disabled={isLoading}>📥 Exportar CSV</button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <select className="cc-select cc-select-small" value={exportFormat} onChange={(e)=>setExportFormat(e.target.value)}>
+            <option value="csv">CSV</option>
+            <option value="excel">Excel (.xls)</option>
+            <option value="xlsx">XLSX</option>
+            <option value="json">JSON</option>
+            <option value="pdf">PDF</option>
+          </select>
+          <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('monitoramento_1_29')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
+          <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('monitoramento_1_29', 'vw_monitoramento_1_29_dias')} disabled={isLoading}>Exportar Tudo (CSV)</button>
       </div>
-      {renderClientesTable(monitoramento129Data, [
-        { header: 'Nome', field: 'nome_completo' },
+      </div>
+      {renderFiltersBar()}
+      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(monitoramento129Data)), [
+        { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
+        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {renderNomePorOrigem(row)}
+            {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
+              <button
+                className="cc-btn-corrigir"
+                onClick={() => corrigirTelefoneNoNome(row.id || row.id_cliente_mestre, row.nome_completo)}
+                title="Corrigir telefone no nome"
+              >
+                🔧
+              </button>
+            )}
+          </div>
+        ) },
         { header: 'Email', field: 'email' },
         { header: 'WhatsApp', field: 'whatsapp' },
+        { header: 'CPF', field: 'cpf' },
         { 
           header: 'Total Compras', 
           field: 'total_compras',
           render: (row) => {
-            const totalCompras = row.total_compras || 0;
-            const idPrime = row.id_prime || row.id_cliente || row.id_cliente_mestre;
+            // Monitoramento: usar total_pedidos (pedidos aprovados) ou total_compras
+            const totalCompras = row.total_pedidos || row.total_compras || 0;
+            const idPrime = row.id_prime || row.prime_id || row.idprime;
             const nomeCliente = row.nome_completo || 'Cliente';
             
-            if (!idPrime || totalCompras === 0) {
+            // Monitoramento: sempre mostrar (se está no monitoramento, é porque comprou)
+            // Se não tem ID Prime, mostra apenas o número sem link
+            if (!idPrime) {
               return <span>{totalCompras}</span>;
             }
             
+            // Se tem ID Prime, mostra com link clicável
             return (
               <span 
                 className="cc-total-compras-clickable"
@@ -4784,8 +5056,21 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
             );
           }
         },
-        { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' }
-      ])}
+        { 
+          header: 'Dias Última Compra', 
+          field: 'dias_desde_ultima_compra',
+          render: (row) => {
+            // Monitoramento: sempre mostrar (se está no monitoramento, é porque comprou)
+            const diasUltimaCompra = row.dias_desde_ultima_compra;
+            return <span>{diasUltimaCompra !== null && diasUltimaCompra !== undefined ? diasUltimaCompra : '-'}</span>;
+          }
+        },
+        { header: 'Origens', render: (row) => renderOriginsBadges(row) },
+        { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
+        { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
+        { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
+        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
+            ])}
       {renderPagination()}
     </div>
   );
@@ -4794,24 +5079,55 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     <div className="cc-list-container">
       <div className="cc-list-header">
         <h2>🟡 Monitoramento - 30-59 dias</h2>
-        <button className="cc-btn cc-btn-export" onClick={() => exportToCSV('monitoramento_30_59', 'vw_monitoramento_30_59_dias')} disabled={isLoading}>📥 Exportar CSV</button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <select className="cc-select cc-select-small" value={exportFormat} onChange={(e)=>setExportFormat(e.target.value)}>
+            <option value="csv">CSV</option>
+            <option value="excel">Excel (.xls)</option>
+            <option value="xlsx">XLSX</option>
+            <option value="json">JSON</option>
+            <option value="pdf">PDF</option>
+          </select>
+          <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('monitoramento_30_59')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
+          <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('monitoramento_30_59', 'vw_monitoramento_30_59_dias')} disabled={isLoading}>Exportar Tudo (CSV)</button>
       </div>
-      {renderClientesTable(monitoramento3059Data, [
-        { header: 'Nome', field: 'nome_completo' },
+      </div>
+      {renderFiltersBar()}
+      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(monitoramento3059Data)), [
+        { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
+        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {renderNomePorOrigem(row)}
+            {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
+              <button
+                className="cc-btn-corrigir"
+                onClick={() => corrigirTelefoneNoNome(row.id || row.id_cliente_mestre, row.nome_completo)}
+                title="Corrigir telefone no nome"
+              >
+                🔧
+              </button>
+            )}
+          </div>
+        ) },
         { header: 'Email', field: 'email' },
         { header: 'WhatsApp', field: 'whatsapp' },
+        { header: 'CPF', field: 'cpf' },
         { 
           header: 'Total Compras', 
           field: 'total_compras',
           render: (row) => {
-            const totalCompras = row.total_compras || 0;
-            const idPrime = row.id_prime || row.id_cliente || row.id_cliente_mestre;
+            // Monitoramento: usar total_pedidos (pedidos aprovados) ou total_compras
+            const totalCompras = row.total_pedidos || row.total_compras || 0;
+            const idPrime = row.id_prime || row.prime_id || row.idprime;
             const nomeCliente = row.nome_completo || 'Cliente';
             
-            if (!idPrime || totalCompras === 0) {
+            // Monitoramento: sempre mostrar (se está no monitoramento, é porque comprou)
+            // Se não tem ID Prime, mostra apenas o número sem link
+            if (!idPrime) {
               return <span>{totalCompras}</span>;
             }
             
+            // Se tem ID Prime, mostra com link clicável
             return (
               <span 
                 className="cc-total-compras-clickable"
@@ -4827,8 +5143,21 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
             );
           }
         },
-        { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' }
-      ])}
+        { 
+          header: 'Dias Última Compra', 
+          field: 'dias_desde_ultima_compra',
+          render: (row) => {
+            // Monitoramento: sempre mostrar (se está no monitoramento, é porque comprou)
+            const diasUltimaCompra = row.dias_desde_ultima_compra;
+            return <span>{diasUltimaCompra !== null && diasUltimaCompra !== undefined ? diasUltimaCompra : '-'}</span>;
+          }
+        },
+        { header: 'Origens', render: (row) => renderOriginsBadges(row) },
+        { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
+        { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
+        { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
+        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
+            ])}
       {renderPagination()}
     </div>
   );
@@ -4837,24 +5166,55 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     <div className="cc-list-container">
       <div className="cc-list-header">
         <h2>🟠 Monitoramento - 60-90 dias</h2>
-        <button className="cc-btn cc-btn-export" onClick={() => exportToCSV('monitoramento_60_90', 'vw_monitoramento_60_90_dias')} disabled={isLoading}>📥 Exportar CSV</button>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <select className="cc-select cc-select-small" value={exportFormat} onChange={(e)=>setExportFormat(e.target.value)}>
+            <option value="csv">CSV</option>
+            <option value="excel">Excel (.xls)</option>
+            <option value="xlsx">XLSX</option>
+            <option value="json">JSON</option>
+            <option value="pdf">PDF</option>
+          </select>
+          <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('monitoramento_60_90')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
+          <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('monitoramento_60_90', 'vw_monitoramento_60_90_dias')} disabled={isLoading}>Exportar Tudo (CSV)</button>
       </div>
-      {renderClientesTable(monitoramento6090Data, [
-        { header: 'Nome', field: 'nome_completo' },
+      </div>
+      {renderFiltersBar()}
+      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(monitoramento6090Data)), [
+        { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
+        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {renderNomePorOrigem(row)}
+            {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
+              <button
+                className="cc-btn-corrigir"
+                onClick={() => corrigirTelefoneNoNome(row.id || row.id_cliente_mestre, row.nome_completo)}
+                title="Corrigir telefone no nome"
+              >
+                🔧
+              </button>
+            )}
+          </div>
+        ) },
         { header: 'Email', field: 'email' },
         { header: 'WhatsApp', field: 'whatsapp' },
+        { header: 'CPF', field: 'cpf' },
         { 
           header: 'Total Compras', 
           field: 'total_compras',
           render: (row) => {
-            const totalCompras = row.total_compras || 0;
-            const idPrime = row.id_prime || row.id_cliente || row.id_cliente_mestre;
+            // Monitoramento: usar total_pedidos (pedidos aprovados) ou total_compras
+            const totalCompras = row.total_pedidos || row.total_compras || 0;
+            const idPrime = row.id_prime || row.prime_id || row.idprime;
             const nomeCliente = row.nome_completo || 'Cliente';
             
-            if (!idPrime || totalCompras === 0) {
+            // Monitoramento: sempre mostrar (se está no monitoramento, é porque comprou)
+            // Se não tem ID Prime, mostra apenas o número sem link
+            if (!idPrime) {
               return <span>{totalCompras}</span>;
             }
             
+            // Se tem ID Prime, mostra com link clicável
             return (
               <span 
                 className="cc-total-compras-clickable"
@@ -4870,8 +5230,21 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
             );
           }
         },
-        { header: 'Dias Última Compra', field: 'dias_desde_ultima_compra' }
-      ])}
+        { 
+          header: 'Dias Última Compra', 
+          field: 'dias_desde_ultima_compra',
+          render: (row) => {
+            // Monitoramento: sempre mostrar (se está no monitoramento, é porque comprou)
+            const diasUltimaCompra = row.dias_desde_ultima_compra;
+            return <span>{diasUltimaCompra !== null && diasUltimaCompra !== undefined ? diasUltimaCompra : '-'}</span>;
+          }
+        },
+        { header: 'Origens', render: (row) => renderOriginsBadges(row) },
+        { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
+        { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
+        { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
+        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
+            ])}
       {renderPagination()}
     </div>
   );
