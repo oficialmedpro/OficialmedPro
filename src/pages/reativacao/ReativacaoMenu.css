@@ -208,16 +208,69 @@
   background: #475569;
 }
 
+/* Botão hamburger para mobile */
+.reativacao-menu-toggle {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1001;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: #1e293b;
+  border: 2px solid #334155;
+  border-radius: 8px;
+  color: #e0e7ff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.reativacao-menu-toggle:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+/* Overlay para fechar menu ao clicar fora */
+.reativacao-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 999;
+  display: none;
+  backdrop-filter: blur(2px);
+}
+
 /* Responsividade */
 @media (max-width: 768px) {
+  .reativacao-menu-toggle {
+    display: flex;
+  }
+
+  .reativacao-menu-overlay {
+    display: block;
+  }
+
   .reativacao-menu {
-    width: 240px;
+    width: 280px;
+    max-width: 85vw;
     transform: translateX(-100%);
     transition: transform 0.3s ease;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
   }
 
   .reativacao-menu.mobile-open {
     transform: translateX(0);
+  }
+
+  /* Garantir que o conteúdo não seja empurrado pelo menu */
+  .reativacao-dashboard-content {
+    transition: none !important;
   }
 }
 

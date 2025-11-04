@@ -26,6 +26,7 @@ import autoSyncService from './service/autoSyncService'
 import Callix from './pages/callix'
 import ClientesConsolidados from './pages/clientes-consolidados'
 import HistoricoCompras from './pages/HistoricoCompras'
+import HistoricoComprasReativacao from './pages/reativacao/HistoricoComprasReativacao'
 import VendasPage from './pages/vendas/VendasPage'
 import ReativacaoDashboard from './pages/reativacao/ReativacaoDashboard'
 import Reativacao1x from './pages/reativacao/Reativacao1x'
@@ -141,6 +142,12 @@ function App() {
             <Reativacao3xPlus />
           </ReativacaoProtectedRoute>
         } />
+        {/* Rota de histórico de compras - acessível com login de reativação */}
+        <Route path="/historico-compras" element={
+          <ReativacaoProtectedRoute>
+            <HistoricoComprasReativacao />
+          </ReativacaoProtectedRoute>
+        } />
         
         {/* Rotas principais - requerem autenticação do sistema principal */}
         {!isAuthenticated ? (
@@ -167,7 +174,7 @@ function App() {
         <Route path="/usuarios" element={<UserManagementPage onLogout={handleLogout} />} />
         <Route path="/callix" element={<Callix onLogout={handleLogout} />} />
         <Route path="/clientes-consolidados" element={<ClientesConsolidados onLogout={handleLogout} />} />
-        <Route path="/historico-compras" element={<HistoricoCompras onLogout={handleLogout} />} />
+        {/* /historico-compras agora está protegida pelo sistema de reativação acima */}
         <Route path="/vendas" element={<VendasPage onLogout={handleLogout} />} />
           </>
         )}

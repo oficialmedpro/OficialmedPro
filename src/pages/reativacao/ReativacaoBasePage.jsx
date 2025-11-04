@@ -6,6 +6,7 @@ import { translations } from '../../data/translations';
 import ReativacaoMenu from './ReativacaoMenu';
 import './ReativacaoBasePage.css';
 import * as XLSX from 'xlsx';
+import { Mail, Copy, FileText, MessageCircle, Phone } from 'lucide-react';
 
 // Mapeamento de rotas para views do banco
 const VIEW_MAP = {
@@ -70,8 +71,38 @@ const ReativacaoBasePage = ({ tipo }) => {
     origins: []
   });
   
+  // Estado para barra de pesquisa (busca global em todos os campos)
+  const [searchTerm, setSearchTerm] = useState(''); // Termo de pesquisa
+  const [exportWithCountryCode, setExportWithCountryCode] = useState(false); // Opção de exportar com código do país (55)
+  
+  // Estado para ocultar/mostrar colunas (inicializado baseado no tipo de usuário)
+  const [visibleColumns, setVisibleColumns] = useState(() => {
+    const userTypeName = localStorage.getItem('reativacao_userData') 
+      ? JSON.parse(localStorage.getItem('reativacao_userData'))?.userTypeName?.toLowerCase() || ''
+      : '';
+    const isSupervisor = ['supervisor', 'adminfranquiadora', 'adminfranquia', 'adminunidade'].includes(userTypeName);
+    
+    return {
+      exportado: isSupervisor, // Apenas supervisor
+      duplicatas: isSupervisor, // Apenas supervisor
+      nome: true,
+      email: true,
+      whatsapp: true,
+      cpf: true,
+      total_compras: true,
+      dias_ultima_compra: true,
+      origens: true,
+      cidade: true,
+      estado: true,
+      sexo: true,
+      data_nascimento: true,
+      qualidade: true
+    };
+  });
+  
   // Estados adicionais necessários
   const [showFilters, setShowFilters] = useState(true);
+  const [showColumnSelector, setShowColumnSelector] = useState(false); // Painel de seleção de colunas
   const [nameFilter, setNameFilter] = useState('all'); // 'all' | 'incomplete' | 'validated'
   const [duplicatesFilter, setDuplicatesFilter] = useState('all'); // 'all' | 'with-duplicates' | 'no-duplicates'
   const [isLoadingDuplicates, setIsLoadingDuplicates] = useState(false);
@@ -105,7 +136,7 @@ const ReativacaoBasePage = ({ tipo }) => {
       loadAvailableExportTags();
       loadAvailableDDDs();
     }
-  }, [tipo, currentPage, itemsPerPage, sortField, sortDirection, filters, exportFilter, exportTagFilter, userData, isVendedor, isSupervisor]);
+  }, [tipo, currentPage, itemsPerPage, sortField, sortDirection, filters, exportFilter, exportTagFilter, userData, isVendedor, isSupervisor, searchTerm]);
 
   // Carregar tags de exportação disponíveis
   const loadAvailableExportTags = async () => {
@@ -139,9 +170,14 @@ const ReativacaoBasePage = ({ tipo }) => {
       
       const history = {};
       leadIds.forEach(id => {
-        const exports = data.filter(e => e.id_lead === id);
+        const idStr = String(id);
+        // Buscar por id_lead ou id_cliente (caso o campo seja diferente)
+        const exports = data.filter(e => {
+          const eId = e.id_lead || e.id_cliente || e.id_cliente_mestre;
+          return String(eId) === idStr;
+        });
         if (exports.length > 0) {
-          history[id] = exports;
+          history[idStr] = exports;
         }
       });
       
@@ -273,7 +309,12 @@ const ReativacaoBasePage = ({ tipo }) => {
       
       // Ordenação
       if (sortField) {
-        query = query.order(sortField, { ascending: sortDirection === 'asc' });
+        // Para dias_sem_compra (nome usado nas views de reativação), garantir ordenação numérica
+        if (sortField === 'dias_sem_compra' || sortField === 'dias_desde_ultima_compra') {
+          query = query.order(sortField, { ascending: sortDirection === 'asc', nullsFirst: false });
+        } else {
+          query = query.order(sortField, { ascending: sortDirection === 'asc' });
+        }
       }
       
       const { data, count, error } = await query.range(start, end);
@@ -284,7 +325,10 @@ const ReativacaoBasePage = ({ tipo }) => {
       let filteredData = filterClientSideIfNeeded(data || []);
       
       // Carregar histórico de exportações
-      const leadIds = filteredData.map(row => row.id || row.id_lead || row.id_cliente_mestre).filter(Boolean);
+      const leadIds = filteredData.map(row => {
+        // Tentar vários campos possíveis para o ID
+        return row.id || row.id_lead || row.id_cliente_mestre || row.id_prime || row.prime_id;
+      }).filter(Boolean);
       if (leadIds.length > 0) {
         const history = await loadExportHistory(leadIds);
         setExportHistory(prev => ({ ...prev, ...history }));
@@ -311,15 +355,40 @@ const ReativacaoBasePage = ({ tipo }) => {
       filteredData = filterRowsByNameStatus(filteredData);
       filteredData = filterRowsByDuplicates(filteredData);
       
+      // Filtrar por origem exclusiva (apenas quem está APENAS na origem selecionada)
+      if (filters.origins && filters.origins.length > 0) {
+        filteredData = filterRowsByExclusiveOrigins(filteredData);
+      }
+      
+      // Aplicar pesquisa (busca textual)
+      if (searchTerm && searchTerm.trim() !== '') {
+        filteredData = filterRowsBySearch(filteredData);
+      }
+      
       // Aplicar ordenação adicional se necessário
       let sorted = filteredData;
       
       // Se a ordenação do backend não for suficiente, aplicar ordenação adicional no cliente
-      if (sortField === 'dias_desde_ultima_compra') {
+      if (sortField === 'dias_sem_compra' || sortField === 'dias_desde_ultima_compra') {
         // Ordenação numérica para dias desde última compra
         sorted = [...filteredData].sort((a, b) => {
-          const valA = parseInt(a.dias_desde_ultima_compra) || 0;
-          const valB = parseInt(b.dias_desde_ultima_compra) || 0;
+          // Tentar vários nomes de campo possíveis (dias_sem_compra é o nome usado nas views de reativação)
+          const valA = parseInt(
+            a.dias_sem_compra ||
+            a.dias_desde_ultima_compra || 
+            a.dias_desde_ultima || 
+            a.dias_ultima_compra || 
+            a.dias_ultima ||
+            0
+          ) || 0;
+          const valB = parseInt(
+            b.dias_sem_compra ||
+            b.dias_desde_ultima_compra || 
+            b.dias_desde_ultima || 
+            b.dias_ultima_compra || 
+            b.dias_ultima ||
+            0
+          ) || 0;
           return sortDirection === 'asc' ? valA - valB : valB - valA;
         });
       } else if (sortField === 'qualidade_dados') {
@@ -358,7 +427,8 @@ const ReativacaoBasePage = ({ tipo }) => {
       query = query.not('email', 'is', null).neq('email', '');
     }
     if (filters.hasSexo) {
-      query = query.not('sexo', 'is', null).neq('sexo', '');
+      // Filtrar apenas quem tem sexo válido (1 ou 2, ou 'MASC' ou 'FEM', ou 'M' ou 'F')
+      query = query.or('sexo.eq.1,sexo.eq.2,sexo.ilike.MASC%,sexo.ilike.FEM%,sexo.ilike.M%,sexo.ilike.F%');
     }
     if (filters.hasDataNascimento) {
       query = query.not('data_nascimento', 'is', null);
@@ -374,18 +444,9 @@ const ReativacaoBasePage = ({ tipo }) => {
       const d = filters.ddd;
       query = query.or(`whatsapp.ilike.${d}%,telefone.ilike.${d}%`);
     }
-    // Origens: quando existir coluna array origem_marcas
-    if (filters.origins && filters.origins.length > 0) {
-      if (query.overlaps) {
-        const expanded = new Set();
-        filters.origins.forEach(o => {
-          if (o === 'greatpage') { expanded.add('greatpage'); expanded.add('google'); }
-          else if (o === 'sprint') { expanded.add('sprint'); expanded.add('sprinthub'); }
-          else { expanded.add(o); }
-        });
-        query = query.overlaps('origem_marcas', Array.from(expanded));
-      }
-    }
+    // Origens: NÃO filtrar aqui - será filtrado no cliente para garantir exclusividade
+    // Isso permite filtrar apenas quem está EXCLUSIVAMENTE na origem selecionada
+    // Removido o filtro de origens da query para fazer no cliente
     return query;
   };
 
@@ -393,10 +454,92 @@ const ReativacaoBasePage = ({ tipo }) => {
   const filterClientSideIfNeeded = (rows) => {
     if (!filters.hasEndereco) return rows;
     return rows.filter(r => {
-      const rua = r.endereco || r.endereco_completo || r.endereco_rua || r.logradouro;
-      const cidadeEstado = (r.cidade && String(r.cidade).trim() !== '') && (r.estado && String(r.estado).trim() !== '');
-      const temRua = rua && String(rua).trim() !== '';
-      return temRua || cidadeEstado;
+      const rua = r.endereco || r.endereco_completo || r.endereco_rua || r.logradouro || r.endereco_rua;
+      const cidadeEstado = (r.cidade && String(r.cidade).trim() !== '' && r.cidade !== '-') && 
+                          (r.estado && String(r.estado).trim() !== '' && r.estado !== '-');
+      const temRua = rua && String(rua).trim() !== '' && String(rua).trim() !== '-';
+      // Deve ter RUA E (CIDADE OU ESTADO)
+      return temRua && cidadeEstado;
+    });
+  };
+  
+  // Filtrar por origem exclusiva (apenas quem está APENAS na origem selecionada)
+  const filterRowsByExclusiveOrigins = (rows) => {
+    if (!filters.origins || filters.origins.length === 0) return rows;
+    
+    const normalizeOrigem = (o) => {
+      if (!o) return null;
+      const t = String(o).toLowerCase();
+      if (t.includes('sprint')) return 'sprint';
+      if (t.includes('prime')) return 'prime';
+      if (t.includes('great') || t.includes('google')) return 'greatpage';
+      if (t.includes('black')) return 'blacklabs';
+      return t;
+    };
+    
+    const getOriginsFromRow = (row) => {
+      const origins = new Set();
+      const origRaw = Array.isArray(row.origem_marcas) ? row.origem_marcas : [];
+      
+      // Adicionar origens do array
+      origRaw.forEach(o => {
+        const normalized = normalizeOrigem(o);
+        if (normalized) origins.add(normalized);
+      });
+      
+      // Adicionar origens dos campos booleanos/fallbacks
+      if (row.no_prime || row.prime || row.id_prime) origins.add('prime');
+      if (row.no_sprint || row.sprint || row.sprinthub || row.id_sprinthub) origins.add('sprint');
+      if (row.no_greatpage || row.greatpage || row.google || row.id_greatpage) origins.add('greatpage');
+      if (row.no_blacklabs || row.blacklabs || row.id_blacklabs) origins.add('blacklabs');
+      
+      return Array.from(origins);
+    };
+    
+    return rows.filter(row => {
+      const rowOrigins = getOriginsFromRow(row);
+      
+      // Se selecionou múltiplas origens, mostrar quem tem EXATAMENTE essas origens
+      if (filters.origins.length > 1) {
+        // Deve ter todas as origens selecionadas E não ter outras
+        const hasAllSelected = filters.origins.every(orig => rowOrigins.includes(orig));
+        const hasOnlySelected = rowOrigins.length === filters.origins.length;
+        return hasAllSelected && hasOnlySelected;
+      } else {
+        // Se selecionou apenas uma origem, mostrar quem está APENAS nessa origem
+        const selectedOrigin = filters.origins[0];
+        return rowOrigins.length === 1 && rowOrigins.includes(selectedOrigin);
+      }
+    });
+  };
+  
+  // Filtrar por pesquisa textual (busca global em todos os campos relevantes)
+  const filterRowsBySearch = (rows) => {
+    if (!searchTerm || searchTerm.trim() === '') return rows;
+    
+    const term = searchTerm.toLowerCase().trim();
+    
+    return rows.filter(row => {
+      // Buscar em todos os campos relevantes simultaneamente
+      const searchFields = [
+        row.nome_completo || '',
+        row.email || '',
+        row.whatsapp || '',
+        row.telefone || '',
+        row.cpf || '',
+        row.cidade || '',
+        row.estado || '',
+        // Também buscar no CPF sem formatação
+        (row.cpf || '').replace(/\D/g, ''),
+        // Buscar no telefone/WhatsApp sem formatação
+        (row.whatsapp || '').replace(/\D/g, ''),
+        (row.telefone || '').replace(/\D/g, '')
+      ];
+      
+      // Verificar se o termo está em algum dos campos
+      return searchFields.some(field => 
+        String(field).toLowerCase().includes(term)
+      );
     });
   };
 
@@ -496,7 +639,7 @@ const ReativacaoBasePage = ({ tipo }) => {
     
     // Fazer exportação real
     const exportPrefix = `reativacao_${tipo}`;
-    exportSelected(selected, `${exportPrefix}_export_${new Date().toISOString().split('T')[0]}`);
+    await exportSelected(selected, `${exportPrefix}_export_${new Date().toISOString().split('T')[0]}`);
     
     setShowExportModal(false);
     setExportObservacao('');
@@ -505,9 +648,342 @@ const ReativacaoBasePage = ({ tipo }) => {
     loadData();
   };
 
-  const exportSelected = (rows, baseName) => {
+  const exportSelected = async (rows, baseName) => {
     if (!rows || rows.length === 0) return;
     
+    setIsLoading(true);
+    
+    try {
+      // Buscar dados de pedidos e orçamentos para cada cliente
+      const clientIds = rows.map(r => {
+        // Tentar obter id_prime de diferentes campos
+        return r.id_prime || r.prime_id || r.id_cliente || r.id_cliente_mestre || null;
+      }).filter(Boolean);
+      
+      const pedidosData = {};
+      
+      // Buscar pedidos e orçamentos em lote
+      if (clientIds.length > 0) {
+        const { data: allPedidos, error: pedidosError } = await supabase
+          .schema('api')
+          .from('prime_pedidos')
+          .select('id, cliente_id, valor_total, data_criacao, data_aprovacao, data_entrega, status_aprovacao, status_geral, status_entrega, codigo_orcamento_original')
+          .in('cliente_id', clientIds)
+          .order('data_criacao', { ascending: false });
+        
+        if (!pedidosError && allPedidos) {
+          // Organizar por cliente
+          clientIds.forEach(clienteId => {
+            const pedidosCliente = allPedidos.filter(p => p.cliente_id === clienteId);
+            
+            // Último pedido aprovado/entregue
+            const ultimoPedido = pedidosCliente.find(p => 
+              p.status_aprovacao === 'APROVADO' || 
+              p.status_geral === 'APROVADO' || 
+              p.status_entrega === 'ENTREGUE'
+            );
+            
+            // Último orçamento (não aprovado)
+            const ultimoOrcamento = pedidosCliente.find(p => 
+              p.status_aprovacao !== 'APROVADO' && 
+              p.status_geral !== 'APROVADO' && 
+              p.status_entrega !== 'ENTREGUE'
+            );
+            
+            // Se não tem pedido, usar o último orçamento como referência
+            const referencia = ultimoPedido || ultimoOrcamento;
+            
+            pedidosData[clienteId] = {
+              ultimoPedido,
+              ultimoOrcamento,
+              referencia // Último pedido ou orçamento (o que existir)
+            };
+          });
+        }
+      }
+      
+      const normalizeValue = (v) => {
+        if (v == null) return '';
+        if (Array.isArray(v)) return v.join(', ');
+        if (v instanceof Date) return v.toISOString();
+        if (typeof v === 'object') return JSON.stringify(v);
+        return v;
+      };
+      
+      // Função para adicionar código do país (55) nos telefones se solicitado
+      const addCountryCode = (phone) => {
+        if (!phone || phone === '') return '';
+        const phoneStr = String(phone).replace(/\D/g, ''); // Remove caracteres não numéricos
+        if (phoneStr.length === 0) return phone;
+        
+        // Se já começa com 55, não adicionar novamente
+        if (phoneStr.startsWith('55') && phoneStr.length > 2) {
+          return phoneStr;
+        }
+        
+        // Se exportWithCountryCode está ativo, adicionar 55
+        if (exportWithCountryCode) {
+          return '55' + phoneStr;
+        }
+        
+        return phoneStr;
+      };
+      
+      // Função para formatar dados do pedido/orçamento de forma resumida
+      const formatarDadosPedido = (pedido, tipo) => {
+        if (!pedido) return '';
+        
+        const data = pedido.data_criacao ? new Date(pedido.data_criacao).toLocaleDateString('pt-BR') : '';
+        const valor = pedido.valor_total ? `R$ ${parseFloat(pedido.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+        const status = pedido.status_aprovacao || pedido.status_geral || pedido.status_entrega || '';
+        const codigo = pedido.codigo_orcamento_original || '';
+        
+        // Formato resumido para o vendedor
+        if (tipo === 'pedido') {
+          return `Pedido ${codigo ? `#${codigo}` : ''} - ${data} - ${valor} - ${status}`.trim();
+        } else {
+          return `Orçamento ${codigo ? `#${codigo}` : ''} - ${data} - ${valor}`.trim();
+        }
+      };
+      
+      const normalizedRows = rows.map(r => {
+        const out = {};
+        const clienteId = r.id_prime || r.prime_id || r.id_cliente || r.id_cliente_mestre || null;
+        const dadosPedidos = clienteId ? pedidosData[clienteId] : null;
+        
+        Object.keys(r || {}).forEach(k => {
+          let value = normalizeValue(r[k]);
+          
+          // Se for whatsapp ou telefone e exportWithCountryCode estiver ativo, adicionar código do país
+          if (exportWithCountryCode && (k === 'whatsapp' || k === 'telefone')) {
+            value = addCountryCode(value);
+          }
+          
+          out[k] = value;
+        });
+        
+        // Adicionar campos de pedido/orçamento
+        if (dadosPedidos) {
+          // Último pedido (se existir)
+          if (dadosPedidos.ultimoPedido) {
+            const pedido = dadosPedidos.ultimoPedido;
+            out['Ultimo_Pedido_Data'] = pedido.data_criacao ? new Date(pedido.data_criacao).toLocaleDateString('pt-BR') : '';
+            out['Ultimo_Pedido_Valor'] = pedido.valor_total ? `R$ ${parseFloat(pedido.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+            out['Ultimo_Pedido_Status'] = pedido.status_aprovacao || pedido.status_geral || pedido.status_entrega || '';
+            out['Ultimo_Pedido_Codigo'] = pedido.codigo_orcamento_original || '';
+            out['Ultimo_Pedido_Resumo'] = formatarDadosPedido(pedido, 'pedido');
+          } else {
+            out['Ultimo_Pedido_Data'] = '';
+            out['Ultimo_Pedido_Valor'] = '';
+            out['Ultimo_Pedido_Status'] = '';
+            out['Ultimo_Pedido_Codigo'] = '';
+            out['Ultimo_Pedido_Resumo'] = '';
+          }
+          
+          // Último orçamento (se existir)
+          if (dadosPedidos.ultimoOrcamento) {
+            const orcamento = dadosPedidos.ultimoOrcamento;
+            out['Ultimo_Orcamento_Data'] = orcamento.data_criacao ? new Date(orcamento.data_criacao).toLocaleDateString('pt-BR') : '';
+            out['Ultimo_Orcamento_Valor'] = orcamento.valor_total ? `R$ ${parseFloat(orcamento.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+            out['Ultimo_Orcamento_Codigo'] = orcamento.codigo_orcamento_original || '';
+            out['Ultimo_Orcamento_Resumo'] = formatarDadosPedido(orcamento, 'orcamento');
+          } else {
+            out['Ultimo_Orcamento_Data'] = '';
+            out['Ultimo_Orcamento_Valor'] = '';
+            out['Ultimo_Orcamento_Codigo'] = '';
+            out['Ultimo_Orcamento_Resumo'] = '';
+          }
+          
+          // Referência (último pedido ou orçamento - o que existir)
+          if (dadosPedidos.referencia) {
+            const ref = dadosPedidos.referencia;
+            const isPedido = ref.status_aprovacao === 'APROVADO' || ref.status_geral === 'APROVADO' || ref.status_entrega === 'ENTREGUE';
+            out['Ultima_Referencia_Data'] = ref.data_criacao ? new Date(ref.data_criacao).toLocaleDateString('pt-BR') : '';
+            out['Ultima_Referencia_Valor'] = ref.valor_total ? `R$ ${parseFloat(ref.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+            out['Ultima_Referencia_Tipo'] = isPedido ? 'Pedido' : 'Orçamento';
+            out['Ultima_Referencia_Resumo'] = isPedido ? formatarDadosPedido(ref, 'pedido') : formatarDadosPedido(ref, 'orcamento');
+          } else {
+            out['Ultima_Referencia_Data'] = '';
+            out['Ultima_Referencia_Valor'] = '';
+            out['Ultima_Referencia_Tipo'] = '';
+            out['Ultima_Referencia_Resumo'] = '';
+          }
+        } else {
+          // Se não encontrou dados, preencher com vazio
+          out['Ultimo_Pedido_Data'] = '';
+          out['Ultimo_Pedido_Valor'] = '';
+          out['Ultimo_Pedido_Status'] = '';
+          out['Ultimo_Pedido_Codigo'] = '';
+          out['Ultimo_Pedido_Resumo'] = '';
+          out['Ultimo_Orcamento_Data'] = '';
+          out['Ultimo_Orcamento_Valor'] = '';
+          out['Ultimo_Orcamento_Codigo'] = '';
+          out['Ultimo_Orcamento_Resumo'] = '';
+          out['Ultima_Referencia_Data'] = '';
+          out['Ultima_Referencia_Valor'] = '';
+          out['Ultima_Referencia_Tipo'] = '';
+          out['Ultima_Referencia_Resumo'] = '';
+        }
+        
+        return out;
+      });
+      
+      // Se for formato Callix, transformar os dados para o formato específico
+      if (exportFormat === 'callix') {
+        const callixRows = rows.map(r => {
+          const clienteId = r.id_prime || r.prime_id || r.id_cliente || r.id_cliente_mestre || null;
+          const dadosPedidos = clienteId ? pedidosData[clienteId] : null;
+          
+          // Separar nome e sobrenome
+          const nomeCompleto = r.nome_completo || '';
+          const partesNome = nomeCompleto.trim().split(/\s+/);
+          const nome = partesNome[0] || '';
+          const sobrenome = partesNome.slice(1).join(' ') || '';
+          
+          // Determinar link
+          const idSprint = r.id_sprinthub || r.sprinthub_id || r.id_sprint || r.idsprint || r.id_lead || r.lead_id;
+          const origRaw = Array.isArray(r.origem_marcas) ? r.origem_marcas : [];
+          const hasSprintOrigin = origRaw.some(o => {
+            const t = String(o).toLowerCase();
+            return t.includes('sprint');
+          }) || r.no_sprint || r.sprinthub;
+          
+          let link = '';
+          if (hasSprintOrigin && idSprint) {
+            link = `https://oficialmed.sprinthub.app/sh/leads/profile/${idSprint}`;
+          } else if (clienteId) {
+            // Capturar domínio dinâmico
+            const baseUrl = window.location.origin;
+            const nomeEncoded = encodeURIComponent(nomeCompleto);
+            // Salvar o caminho atual antes de criar o link
+            sessionStorage.setItem('reativacao_previous_path', window.location.pathname + window.location.search);
+            link = `${baseUrl}/historico-compras?cliente_id=${clienteId}&nome=${nomeEncoded}`;
+          }
+          
+          // Telefone SEM código 55 para Callix (remover 55 se existir)
+          const telefoneRaw = r.whatsapp || r.telefone || '';
+          const telefone = telefoneRaw ? (() => {
+            let phoneStr = String(telefoneRaw).replace(/\D/g, '');
+            // Remover código 55 se existir no início
+            if (phoneStr.startsWith('55') && phoneStr.length > 2) {
+              phoneStr = phoneStr.substring(2);
+            }
+            return phoneStr;
+          })() : '';
+          
+          // Data-compra (formato dd-mm-yyyy)
+          let dataCompra = '';
+          if (dadosPedidos?.ultimoPedido?.data_criacao) {
+            const data = new Date(dadosPedidos.ultimoPedido.data_criacao);
+            const dd = String(data.getDate()).padStart(2, '0');
+            const mm = String(data.getMonth() + 1).padStart(2, '0');
+            const yyyy = data.getFullYear();
+            dataCompra = `${dd}-${mm}-${yyyy}`;
+          }
+          
+          // Formula: Pedido e orçamento resumidos juntos
+          let formula = '';
+          if (dadosPedidos) {
+            const partes = [];
+            
+            if (dadosPedidos.ultimoPedido) {
+              const pedido = dadosPedidos.ultimoPedido;
+              const dataPedido = pedido.data_criacao ? new Date(pedido.data_criacao).toLocaleDateString('pt-BR') : '';
+              const valorPedido = pedido.valor_total ? `R$ ${parseFloat(pedido.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+              const statusPedido = pedido.status_aprovacao || pedido.status_geral || pedido.status_entrega || '';
+              const codigoPedido = pedido.codigo_orcamento_original || '';
+              partes.push(`Pedido ${codigoPedido ? `#${codigoPedido}` : ''} - ${dataPedido} - ${valorPedido} - ${statusPedido}`.trim());
+            }
+            
+            if (dadosPedidos.ultimoOrcamento) {
+              const orcamento = dadosPedidos.ultimoOrcamento;
+              const dataOrcamento = orcamento.data_criacao ? new Date(orcamento.data_criacao).toLocaleDateString('pt-BR') : '';
+              const valorOrcamento = orcamento.valor_total ? `R$ ${parseFloat(orcamento.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+              const codigoOrcamento = orcamento.codigo_orcamento_original || '';
+              partes.push(`Orçamento ${codigoOrcamento ? `#${codigoOrcamento}` : ''} - ${dataOrcamento} - ${valorOrcamento}`.trim());
+            }
+            
+            formula = partes.join(' | ');
+          }
+          
+          // tipo-compra: "compra" se nunca comprou, "recompra" se comprou
+          const totalCompras = r.total_pedidos || r.total_compras || 0;
+          const tipoCompra = totalCompras > 0 ? 'recompra' : 'compra';
+          
+          // objetivo-cliente (se existir no banco)
+          const objetivoCliente = r.objetivo_cliente || r.objetivo || '';
+          
+          return {
+            Nome: nome,
+            Sobrenome: sobrenome,
+            link: link,
+            email: r.email || '',
+            telefone: telefone,
+            cidade: r.cidade || '',
+            estado: r.estado || '',
+            'Data-compra': dataCompra,
+            Observacao: exportObservacao || '',
+            Formula: formula,
+            'tipo-compra': tipoCompra,
+            'objetivo-cliente': objetivoCliente
+          };
+        });
+        
+        // Criar arquivo CSV no formato Callix
+        const callixHeaders = ['Nome', 'Sobrenome', 'link', 'email', 'telefone', 'cidade', 'estado', 'Data-compra', 'Observacao', 'Formula', 'tipo-compra', 'objetivo-cliente'];
+        const csvRows = [
+          callixHeaders.join(','),
+          ...callixRows.map(row => callixHeaders.map(h => {
+            const val = row[h] || '';
+            const s = String(val).replace(/"/g, '""');
+            return /[",\n]/.test(s) ? `"${s}"` : s;
+          }).join(','))
+        ];
+        
+        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `${baseName}_callix.csv`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        
+        setIsLoading(false);
+        return;
+      }
+      
+      const headers = Object.keys(normalizedRows[0] || {});
+      
+      if (exportFormat === 'csv') {
+        const csvRows = [headers.join(','), ...normalizedRows.map(r => headers.map(h => {
+          const val = r[h];
+          if (val == null) return '';
+          const s = String(val).replace(/"/g, '""');
+          return /[",\n]/.test(s) ? `"${s}"` : s;
+        }).join(','))];
+        const blob = new Blob([csvRows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `${baseName}.csv`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      } else if (exportFormat === 'xlsx' || exportFormat === 'excel') {
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(normalizedRows);
+        XLSX.utils.book_append_sheet(wb, ws, 'Dados');
+        XLSX.writeFile(wb, `${baseName}.${exportFormat === 'xlsx' ? 'xlsx' : 'xls'}`);
+      }
+    } catch (error) {
+      console.error('Erro ao exportar com dados de pedidos:', error);
+      alert('Erro ao buscar dados de pedidos para exportação. Exportando sem essas informações.');
+      // Fallback: exportar sem dados de pedidos
+      exportSelectedFallback(rows, baseName);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Função fallback caso haja erro ao buscar pedidos
+  const exportSelectedFallback = (rows, baseName) => {
     const normalizeValue = (v) => {
       if (v == null) return '';
       if (Array.isArray(v)) return v.join(', ');
@@ -516,10 +992,23 @@ const ReativacaoBasePage = ({ tipo }) => {
       return v;
     };
     
+    const addCountryCode = (phone) => {
+      if (!phone || phone === '') return '';
+      const phoneStr = String(phone).replace(/\D/g, '');
+      if (phoneStr.length === 0) return phone;
+      if (phoneStr.startsWith('55') && phoneStr.length > 2) return phoneStr;
+      if (exportWithCountryCode) return '55' + phoneStr;
+      return phoneStr;
+    };
+    
     const normalizedRows = rows.map(r => {
       const out = {};
       Object.keys(r || {}).forEach(k => {
-        out[k] = normalizeValue(r[k]);
+        let value = normalizeValue(r[k]);
+        if (exportWithCountryCode && (k === 'whatsapp' || k === 'telefone')) {
+          value = addCountryCode(value);
+        }
+        out[k] = value;
       });
       return out;
     });
@@ -551,10 +1040,51 @@ const ReativacaoBasePage = ({ tipo }) => {
   const formatSexo = (sexo) => {
     if (!sexo && sexo !== 0 && sexo !== '0') return '—';
     const sexoNum = parseInt(sexo);
-    if (sexoNum === 1) return 'MASC';
-    if (sexoNum === 2) return 'FEM';
+    if (sexoNum === 1) return 'M';
+    if (sexoNum === 2) return 'F';
     if (sexoNum === 0 || sexo === '0') return '';
+    // Se for string, tentar normalizar
+    const sexoStr = String(sexo).toUpperCase();
+    if (sexoStr.includes('MASC') || sexoStr.includes('M')) return 'M';
+    if (sexoStr.includes('FEM') || sexoStr.includes('F')) return 'F';
     return sexo;
+  };
+
+  // Formatar nome: apenas primeira letra maiúscula, limitar a 14 caracteres
+  const formatNome = (nome) => {
+    if (!nome || nome === 'SEM NOME') return '—';
+    // Remover caixas altas e capitalizar apenas primeira letra de cada palavra
+    const palavras = String(nome).toLowerCase().split(/\s+/);
+    const nomeFormatado = palavras.map(p => {
+      if (!p) return '';
+      return p.charAt(0).toUpperCase() + p.slice(1);
+    }).join(' ');
+    return nomeFormatado;
+  };
+
+  // Truncar nome para 14 caracteres
+  const truncateNome = (nome) => {
+    const formatado = formatNome(nome);
+    if (formatado.length <= 14) return formatado;
+    return formatado.substring(0, 14) + '...';
+  };
+
+  // Copiar para clipboard
+  const copyToClipboard = (text, label = 'Texto') => {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      // Feedback visual (pode melhorar depois)
+      const button = document.activeElement;
+      if (button) {
+        const originalTitle = button.title;
+        button.title = '✓ Copiado!';
+        setTimeout(() => {
+          button.title = originalTitle;
+        }, 2000);
+      }
+    }).catch(err => {
+      console.error('Erro ao copiar:', err);
+    });
   };
 
   const renderQualityBadge = (row) => {
@@ -563,7 +1093,13 @@ const ReativacaoBasePage = ({ tipo }) => {
     return (
       <span
         className={`cc-quality-badge cc-quality-${qualityClass}`}
-        style={{ cursor: 'pointer' }}
+        style={{ 
+          cursor: 'pointer',
+          padding: '2px 6px',
+          fontSize: '11px',
+          borderRadius: '4px',
+          display: 'inline-block'
+        }}
       >
         {score}/100
       </span>
@@ -578,19 +1114,23 @@ const ReativacaoBasePage = ({ tipo }) => {
     const hasDuplicates = duplicatesData[clientId] !== undefined && 
       Array.isArray(duplicatesData[clientId]) && 
       duplicatesData[clientId].length > 0;
+    if (!hasDuplicates) return null;
     return (
       <span
         style={{
-          cursor: 'pointer',
-          fontSize: '16px',
-          color: hasDuplicates ? '#f59e0b' : '#9ca3af',
-          transition: 'transform 0.2s'
+          fontSize: '10px',
+          fontWeight: 'bold',
+          color: '#dc2626',
+          padding: '1px 4px',
+          borderRadius: '3px',
+          backgroundColor: '#fee2e2',
+          display: 'inline-block',
+          whiteSpace: 'nowrap',
+          lineHeight: '1.2'
         }}
-        onMouseEnter={(e) => e.target.style.transform = 'scale(1.2)'}
-        onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-        title={hasDuplicates ? `${duplicatesData[clientId].length} duplicata(s) encontrada(s)` : 'Clique para detectar duplicatas'}
+        title={`${duplicatesData[clientId].length} duplicata(s) encontrada(s)`}
       >
-        🔗
+        Dup.
       </span>
     );
   };
@@ -613,13 +1153,45 @@ const ReativacaoBasePage = ({ tipo }) => {
     };
     const origins = [...new Set([...fromArray, ...fallbacks])];
     if (origins.length === 0) return '-';
+    const labelMap = { 
+      prime: 'P', 
+      sprint: 'S', 
+      greatpage: 'G', 
+      blacklabs: 'B', 
+      default: '?' 
+    };
+    const colorMap = {
+      prime: '#2563eb',
+      sprint: '#9333ea',
+      greatpage: '#059669',
+      blacklabs: '#dc2626',
+      default: '#6b7280'
+    };
     return (
-      <div className="cc-tags">
+      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
         {origins.map((tag, i) => {
           const norm = normalize(tag);
-          const labelMap = { prime: 'Prime', sprint: 'Sprinthub', greatpage: 'GreatPage', blacklabs: 'BlackLabs', default: (typeof tag === 'string' ? tag : 'Outro') };
           const label = labelMap[norm] || labelMap.default;
-          return <span key={i} className={`cc-tag cc-tag-${norm}`}>{label}</span>;
+          const color = colorMap[norm] || colorMap.default;
+          return (
+            <span 
+              key={i} 
+              style={{
+                backgroundColor: color,
+                color: 'white',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: 'bold',
+                minWidth: '18px',
+                textAlign: 'center',
+                display: 'inline-block'
+              }}
+              title={norm === 'prime' ? 'Prime' : norm === 'sprint' ? 'Sprinthub' : norm === 'greatpage' ? 'GreatPage' : norm === 'blacklabs' ? 'BlackLabs' : tag}
+            >
+              {label}
+            </span>
+          );
         })}
       </div>
     );
@@ -704,12 +1276,6 @@ const ReativacaoBasePage = ({ tipo }) => {
             ⚙️
           </button>
         )}
-        <span className={nomeValidado ? 'cc-nome-validado' : 'cc-nome-cell'}>
-          {nomePrincipal}
-          {nomeValidado && (
-            <span className="cc-badge-validado" title="Nome Validado">✓</span>
-          )}
-        </span>
         {/* Ícone "P" azul para copiar ID do Prime - apenas se tiver origem Prime e ID do Prime */}
         {idPrime && hasPrimeOrigin ? (
           <button
@@ -733,17 +1299,17 @@ const ReativacaoBasePage = ({ tipo }) => {
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '20px',
-              height: '20px',
+              width: '12px',
+              height: '12px',
               borderRadius: '50%',
-              backgroundColor: '#2563eb',
+              backgroundColor: 'rgb(37, 99, 235)',
               color: 'white',
-              fontSize: '12px',
+              fontSize: '10px',
               fontWeight: 'bold',
               border: 'none',
               cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              padding: 0
+              transition: '0.2s',
+              padding: '0px'
             }}
             title={`Copiar ID do Prime: ${idPrime}`}
             onMouseEnter={(e) => {
@@ -780,28 +1346,20 @@ const ReativacaoBasePage = ({ tipo }) => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: '20px',
-                height: '20px',
+                width: '12px',
+                height: '12px',
                 borderRadius: '50%',
-                backgroundColor: '#9333ea',
+                backgroundColor: 'rgb(147, 51, 234)',
                 color: 'white',
-                fontSize: '12px',
+                fontSize: '10px',
                 fontWeight: 'bold',
                 textDecoration: 'none',
                 cursor: 'pointer',
-                transition: 'all 0.2s ease'
+                transition: '0.2s'
               }}
               title={`Abrir perfil no Sprinthub (ID: ${idSprint})`}
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = '#7c3aed';
-                e.target.style.transform = 'scale(1.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = '#9333ea';
-                e.target.style.transform = 'scale(1)';
-              }}
             >
-              s
+              S
             </a>
           ) : null;
         })()}
@@ -1112,23 +1670,34 @@ const ReativacaoBasePage = ({ tipo }) => {
   };
 
   const renderExportStatusIcon = (row) => {
-    const leadId = row.id || row.id_lead || row.id_cliente_mestre;
-    const hasExport = exportHistory[leadId]?.length > 0;
+    // Tentar vários campos possíveis para o ID
+    const leadId = row.id || row.id_lead || row.id_cliente_mestre || row.id_prime || row.prime_id;
+    if (!leadId) return null;
+    
+    // Converter para string para garantir match
+    const leadIdStr = String(leadId);
+    const hasExport = exportHistory[leadIdStr]?.length > 0;
+    
+    if (!hasExport) return null;
     
     return (
       <span
         style={{
+          fontSize: '10px',
+          fontWeight: 'bold',
+          color: '#22c55e',
+          padding: '1px 4px',
+          borderRadius: '3px',
+          backgroundColor: '#dcfce7',
           display: 'inline-block',
-          width: '20px',
-          height: '20px',
-          borderRadius: '50%',
-          backgroundColor: hasExport ? '#22c55e' : '#e5e7eb',
-          cursor: hasExport ? 'pointer' : 'default',
-          border: '2px solid',
-          borderColor: hasExport ? '#16a34a' : '#d1d5db'
+          whiteSpace: 'nowrap',
+          lineHeight: '1.2',
+          textAlign: 'center'
         }}
-        title={hasExport ? `${exportHistory[leadId].length} exportação(ões)` : 'Não exportado'}
-      />
+        title={`${exportHistory[leadIdStr].length} exportação(ões)`}
+      >
+        EX
+      </span>
     );
   };
 
@@ -1136,13 +1705,227 @@ const ReativacaoBasePage = ({ tipo }) => {
     try {
       setIsLoading(true);
       const { data } = await supabase.schema('api').from(tableName).select('*');
-      exportSelected(data || [], baseName);
+      await exportSelected(data || [], baseName);
     } catch (e) {
       console.error('Erro ao exportar tudo:', e);
       alert('Erro ao exportar.');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const renderColumnSelector = () => {
+    // Mostrar seletor para supervisor e vendedor
+    if (!isSupervisor && !isVendedor) return null;
+    
+    return (
+      <div className="cc-column-selector-bar" style={{ 
+        marginBottom: '16px', 
+        padding: '16px', 
+        backgroundColor: '#1e293b', 
+        borderRadius: '8px', 
+        border: '2px solid #3b82f6',
+        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.2)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', flexWrap: 'wrap', gap: '12px' }}>
+          <button 
+            className="cc-btn cc-btn-small" 
+            onClick={() => setShowColumnSelector(v => !v)}
+            style={{ 
+              backgroundColor: '#3b82f6', 
+              color: 'white',
+              border: 'none',
+              padding: '10px 20px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '15px',
+              fontWeight: '600',
+              boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = '#2563eb';
+              e.target.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = '#3b82f6';
+              e.target.style.transform = 'scale(1)';
+            }}
+          >
+            {showColumnSelector ? '▼ Ocultar Seleção de Colunas' : '▶ Mostrar/Ocultar Colunas'}
+          </button>
+          <button
+            className="cc-btn cc-btn-small"
+            onClick={() => {
+              // Mostrar todas as colunas
+              setVisibleColumns({
+                exportado: isSupervisor,
+                duplicatas: isSupervisor,
+                nome: true,
+                email: true,
+                whatsapp: true,
+                cpf: true,
+                total_compras: true,
+                dias_ultima_compra: true,
+                origens: true,
+                cidade: true,
+      estado: true,
+                sexo: true,
+                data_nascimento: true,
+                qualidade: true
+              });
+            }}
+            style={{ 
+              backgroundColor: '#059669', 
+              color: 'white',
+              border: 'none',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              marginLeft: '8px'
+            }}
+          >
+            Mostrar Todas
+          </button>
+        </div>
+        
+        {showColumnSelector && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px', paddingTop: '8px', borderTop: '1px solid #334155' }}>
+            {isSupervisor && (
+              <>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#e0e7ff', fontSize: '14px' }}>
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns.exportado}
+                    onChange={(e) => setVisibleColumns(v => ({ ...v, exportado: e.target.checked }))}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span>EX</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#e0e7ff', fontSize: '14px' }}>
+                  <input
+                    type="checkbox"
+                    checked={visibleColumns.duplicatas}
+                    onChange={(e) => setVisibleColumns(v => ({ ...v, duplicatas: e.target.checked }))}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span>Dup.</span>
+                </label>
+              </>
+            )}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#e0e7ff', fontSize: '14px' }}>
+              <input
+                type="checkbox"
+                checked={visibleColumns.nome}
+                onChange={(e) => setVisibleColumns(v => ({ ...v, nome: e.target.checked }))}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Nome</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#e0e7ff', fontSize: '14px' }}>
+              <input
+                type="checkbox"
+                checked={visibleColumns.email}
+                onChange={(e) => setVisibleColumns(v => ({ ...v, email: e.target.checked }))}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Email</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#e0e7ff', fontSize: '14px' }}>
+              <input
+                type="checkbox"
+                checked={visibleColumns.whatsapp}
+                onChange={(e) => setVisibleColumns(v => ({ ...v, whatsapp: e.target.checked }))}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Whats</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#e0e7ff', fontSize: '14px' }}>
+              <input
+                type="checkbox"
+                checked={visibleColumns.cpf}
+                onChange={(e) => setVisibleColumns(v => ({ ...v, cpf: e.target.checked }))}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>CPF</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#e0e7ff', fontSize: '14px' }}>
+              <input
+                type="checkbox"
+                checked={visibleColumns.total_compras}
+                onChange={(e) => setVisibleColumns(v => ({ ...v, total_compras: e.target.checked }))}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Pedidos</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#e0e7ff', fontSize: '14px' }}>
+              <input
+                type="checkbox"
+                checked={visibleColumns.dias_ultima_compra}
+                onChange={(e) => setVisibleColumns(v => ({ ...v, dias_ultima_compra: e.target.checked }))}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Período</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#e0e7ff', fontSize: '14px' }}>
+              <input
+                type="checkbox"
+                checked={visibleColumns.origens}
+                onChange={(e) => setVisibleColumns(v => ({ ...v, origens: e.target.checked }))}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Origens</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#e0e7ff', fontSize: '14px' }}>
+              <input
+                type="checkbox"
+                checked={visibleColumns.cidade}
+                onChange={(e) => setVisibleColumns(v => ({ ...v, cidade: e.target.checked }))}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Cidade</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#e0e7ff', fontSize: '14px' }}>
+              <input
+                type="checkbox"
+                checked={visibleColumns.estado}
+                onChange={(e) => setVisibleColumns(v => ({ ...v, estado: e.target.checked }))}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Estado</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#e0e7ff', fontSize: '14px' }}>
+              <input
+                type="checkbox"
+                checked={visibleColumns.sexo}
+                onChange={(e) => setVisibleColumns(v => ({ ...v, sexo: e.target.checked }))}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Sexo</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#e0e7ff', fontSize: '14px' }}>
+              <input
+                type="checkbox"
+                checked={visibleColumns.data_nascimento}
+                onChange={(e) => setVisibleColumns(v => ({ ...v, data_nascimento: e.target.checked }))}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Nasc.</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#e0e7ff', fontSize: '14px' }}>
+              <input
+                type="checkbox"
+                checked={visibleColumns.qualidade}
+                onChange={(e) => setVisibleColumns(v => ({ ...v, qualidade: e.target.checked }))}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Nota</span>
+            </label>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const renderFiltersBar = () => {
@@ -1325,6 +2108,7 @@ const ReativacaoBasePage = ({ tipo }) => {
                 <button className="cc-btn cc-btn-small" onClick={() => {
                   setFilters({ hasCpf: false, hasEmail: false, hasEndereco: false, hasSexo: false, hasDataNascimento: false, phoneStatus: 'any', ddd: '', origins: [] });
                   setExportTagFilter('all');
+                  setSearchTerm('');
                   setCurrentPage(1);
                   loadData();
                 }}>Limpar</button>
@@ -1349,6 +2133,52 @@ const ReativacaoBasePage = ({ tipo }) => {
                 )}
               </div>
             </div>
+            {/* Barra de Pesquisa */}
+            <div className="cc-filters-row" style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #334155' }}>
+              <div className="cc-filter-item" style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span style={{ whiteSpace: 'nowrap' }}>🔍 Buscar em todos os campos:</span>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder="Digite para buscar em Nome, Email, WhatsApp, Telefone, CPF, Cidade, Estado..."
+                  className="cc-input"
+                  style={{ 
+                    flex: 1, 
+                    minWidth: '300px',
+                    padding: '8px 12px',
+                    backgroundColor: '#1e293b',
+                    color: '#e0e7ff',
+                    border: '1px solid #475569',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      loadData();
+                    }
+                  }}
+                />
+                {searchTerm && (
+                  <button
+                    className="cc-btn cc-btn-small"
+                    onClick={() => {
+                      setSearchTerm('');
+                      setCurrentPage(1);
+                      loadData();
+                    }}
+                    style={{ backgroundColor: '#dc2626', color: 'white', padding: '8px 12px' }}
+                    title="Limpar busca"
+                  >
+                    ✕ Limpar
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -1356,31 +2186,182 @@ const ReativacaoBasePage = ({ tipo }) => {
   };
 
   const renderClientesTable = (data) => {
-    const columns = [
+    const tableWrapperRef = React.useRef(null);
+    const [needsHorizontalScroll, setNeedsHorizontalScroll] = React.useState(true);
+    const topScrollRef = React.useRef(null);
+    
+    // Sincronizar scroll horizontal entre topo e tabela (apenas quando necessário)
+    React.useEffect(() => {
+      const tableWrapper = tableWrapperRef.current;
+      const topScroll = topScrollRef.current;
+      
+      if (!tableWrapper || !topScroll || !needsHorizontalScroll) return;
+      
+      const handleScroll = () => {
+        if (topScroll) {
+          topScroll.scrollLeft = tableWrapper.scrollLeft;
+        }
+      };
+      
+      const handleTopScroll = () => {
+        if (tableWrapper) {
+          tableWrapper.scrollLeft = topScroll.scrollLeft;
+        }
+      };
+      
+      tableWrapper.addEventListener('scroll', handleScroll);
+      if (topScroll) {
+        topScroll.addEventListener('scroll', handleTopScroll);
+      }
+      
+      return () => {
+        tableWrapper.removeEventListener('scroll', handleScroll);
+        if (topScroll) {
+          topScroll.removeEventListener('scroll', handleTopScroll);
+        }
+      };
+    }, [data, needsHorizontalScroll]);
+    
+    const allColumns = [
+      // Checkbox de seleção (sempre visível para supervisor)
+      ...(isSupervisor ? [{ header: '', key: 'checkbox', render: () => null, isCheckbox: true }] : []),
       // Apenas supervisor vê colunas de exportado e duplicatas
       ...(isSupervisor ? [
-        { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
-        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) }
+        { 
+          header: 'EX', 
+          key: 'exportado', 
+          render: (row) => {
+            const icon = renderExportStatusIcon(row);
+            return icon || <span style={{ display: 'inline-block', width: '100%', textAlign: 'center' }}>-</span>;
+          }
+        },
+        { 
+          header: 'Dup.', 
+          key: 'duplicatas', 
+          render: (row) => {
+            const icon = renderDuplicatesIcon(row);
+            return icon || <span style={{ display: 'inline-block', width: '100%', textAlign: 'center' }}>-</span>;
+          }
+        }
       ] : []),
-      { header: 'Nome', sortField: 'nome_completo', render: (row) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {renderNomePorOrigem(row)}
-          {isSupervisor && row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
-            <button
-              className="cc-btn-corrigir"
-              onClick={() => corrigirTelefoneNoNome(row.id || row.id_cliente_mestre, row.nome_completo)}
-              title="Corrigir telefone no nome"
+      { header: 'Nome', key: 'nome', sortField: 'nome_completo', render: (row) => {
+        const nomeCompleto = formatNome(row.nome_completo || 'SEM NOME');
+        const nomeTruncado = truncateNome(row.nome_completo || 'SEM NOME');
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span
+              title={nomeCompleto}
+              style={{ cursor: 'help' }}
             >
-              🔧
-            </button>
-          )}
-        </div>
-      ) },
-      { header: 'Email', field: 'email' },
-      { header: 'WhatsApp', field: 'whatsapp' },
-      { header: 'CPF', field: 'cpf' },
+              {nomeTruncado}
+            </span>
+            {isSupervisor && (
+              <>
+                {renderNomePorOrigem(row)}
+                {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
+                  <button
+                    className="cc-btn-corrigir"
+                    onClick={() => corrigirTelefoneNoNome(row.id || row.id_cliente_mestre, row.nome_completo)}
+                    title="Corrigir telefone no nome"
+                  >
+                    🔧
+                  </button>
+                )}
+              </>
+            )}
+          </div>
+        );
+      } },
       { 
-        header: 'Total Compras', 
+        header: 'Email', 
+        key: 'email', 
+        field: 'email',
+        render: (row) => {
+          const email = row.email || '';
+          if (!email) return '-';
+          return (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                copyToClipboard(email, 'Email');
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                color: '#e0e7ff'
+              }}
+              title={email}
+            >
+              <Mail size={16} />
+            </button>
+          );
+        }
+      },
+      { 
+        header: 'Whats', 
+        key: 'whatsapp', 
+        field: 'whatsapp',
+        render: (row) => {
+          const whatsapp = row.whatsapp || row.telefone || '';
+          if (!whatsapp) return '-';
+          return (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                copyToClipboard(whatsapp, 'WhatsApp');
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                color: '#25d366'
+              }}
+              title={whatsapp}
+            >
+              <MessageCircle size={16} />
+            </button>
+          );
+        }
+      },
+      { 
+        header: 'CPF', 
+        key: 'cpf', 
+        field: 'cpf',
+        render: (row) => {
+          const cpf = row.cpf || '';
+          if (!cpf) return '-';
+          return (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                copyToClipboard(cpf, 'CPF');
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                color: '#e0e7ff'
+              }}
+              title={cpf}
+            >
+              <FileText size={16} />
+            </button>
+          );
+        }
+      },
+      { 
+        header: 'Pedidos', 
+        key: 'total_compras',
         field: 'total_compras',
         render: (row) => {
           const totalCompras = row.total_compras || 0;
@@ -1397,6 +2378,8 @@ const ReativacaoBasePage = ({ tipo }) => {
               onClick={(e) => {
                 e.stopPropagation();
                 const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}`;
+                // Salvar o caminho atual antes de navegar
+                sessionStorage.setItem('reativacao_previous_path', window.location.pathname + window.location.search);
                 window.open(url, '_blank');
               }}
               title="Clique para ver histórico completo de compras"
@@ -1407,73 +2390,192 @@ const ReativacaoBasePage = ({ tipo }) => {
           );
         }
       },
-      { header: 'Dias Última Compra', sortField: 'dias_desde_ultima_compra', field: 'dias_desde_ultima_compra' },
-      { header: 'Origens', render: (row) => renderOriginsBadges(row) },
-      { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
-      { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
-      { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
-      { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
+      { 
+        header: 'Período', 
+        key: 'dias_ultima_compra', 
+        sortField: 'dias_sem_compra', 
+        field: 'dias_sem_compra',
+        render: (row) => {
+          // As views de reativação retornam 'dias_sem_compra', não 'dias_desde_ultima_compra'
+          const dias = row.dias_sem_compra || row.dias_desde_ultima_compra || row.dias_desde_ultima || row.dias_ultima_compra || null;
+          if (dias === null || dias === undefined || dias === '') return '-';
+          const diasNum = parseInt(dias) || 0;
+          return `${diasNum} dias`;
+        }
+      },
+      { header: 'Origens', key: 'origens', render: (row) => renderOriginsBadges(row) },
+      { header: 'Cidade', key: 'cidade', sortField: 'cidade', field: 'cidade', render: (row) => row.cidade || '-' },
+      { header: 'Estado', key: 'estado', sortField: 'estado', field: 'estado', render: (row) => row.estado || '-' },
+      { header: 'Sexo', key: 'sexo', render: (row) => formatSexo(row.sexo) },
+      { header: 'Nasc.', key: 'data_nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
+      { header: 'Nota', key: 'qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
     ];
+    
+    // Filtrar colunas baseado em visibleColumns
+    const columns = allColumns.filter(col => {
+      if (col.isCheckbox) return true; // Checkbox sempre mostra
+      if (!col.key) return true; // Colunas sem key sempre mostram
+      return visibleColumns[col.key] !== false;
+    });
+
+    // Calcular largura mínima baseada nas colunas visíveis
+    const calculateMinWidth = () => {
+      const columnWidths = {
+        checkbox: 24,
+        exportado: 20,
+        duplicatas: 25,
+        nome: 120,
+        email: 40,
+        whatsapp: 50,
+        cpf: 30,
+        total_compras: 50,
+        dias_ultima_compra: 50,
+        origens: 40,
+        cidade: 50,
+        estado: 50,
+        sexo: 50,
+        data_nascimento: 50,
+        qualidade: 50
+      };
+
+      let totalWidth = 0;
+      
+      // Adicionar checkbox se for supervisor
+      if (isSupervisor) {
+        totalWidth += columnWidths.checkbox;
+      }
+      
+      // Adicionar larguras das colunas visíveis
+      columns.forEach(col => {
+        if (col.isCheckbox) return;
+        if (col.key && columnWidths[col.key]) {
+          totalWidth += columnWidths[col.key];
+        }
+      });
+      
+      return totalWidth || 1600; // Mínimo de 1600px se não houver colunas
+    };
+
+    const minTableWidth = calculateMinWidth();
+
+    // Verificar se precisa de scroll horizontal
+    React.useEffect(() => {
+      const checkScroll = () => {
+        if (tableWrapperRef.current) {
+          const wrapper = tableWrapperRef.current;
+          // Usar setTimeout para garantir que o DOM foi atualizado
+          setTimeout(() => {
+            const needsScroll = wrapper.scrollWidth > wrapper.clientWidth + 10; // +10 para margem de erro
+            setNeedsHorizontalScroll(needsScroll);
+          }, 100);
+        }
+      };
+
+      checkScroll();
+      const resizeObserver = new ResizeObserver(checkScroll);
+      if (tableWrapperRef.current) {
+        resizeObserver.observe(tableWrapperRef.current);
+      }
+
+      // Também verificar quando a tabela for renderizada
+      const checkInterval = setInterval(checkScroll, 200);
+      setTimeout(() => clearInterval(checkInterval), 2000); // Limpar após 2 segundos
+
+      return () => {
+        resizeObserver.disconnect();
+        clearInterval(checkInterval);
+      };
+    }, [columns, visibleColumns, minTableWidth, data]);
 
     return (
-      <div className="cc-table-wrapper">
-        <table className="cc-table cc-table-list">
+      <div style={{ position: 'relative', width: '100%' }}>
+        {/* Barra de rolagem horizontal no topo - mesma cor da de baixo */}
+        {needsHorizontalScroll && (
+          <div
+            ref={topScrollRef}
+            className="cc-top-scrollbar"
+            style={{
+              position: 'sticky',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '17px',
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              backgroundColor: 'transparent',
+              zIndex: 100,
+              marginBottom: '4px',
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#cbd5e1 #0f172a'
+            }}
+          >
+            <div style={{ height: '1px', minWidth: `${minTableWidth}px` }}></div>
+          </div>
+        )}
+        <div className="cc-table-wrapper" ref={tableWrapperRef} style={{ width: '100%', overflowX: 'auto' }}>
+          <table className="cc-table cc-table-list" style={{ minWidth: `${minTableWidth}px` }}>
           <thead>
             <tr>
-              {isSupervisor && (
-                <th>
-                  <input
-                    type="checkbox"
-                    checked={data.length > 0 && selectedRows.length === data.length}
-                    onChange={(e) => {
-                      if (e.target.checked) setSelectedRows(data.map((_, i) => i));
-                      else setSelectedRows([]);
-                      setLastClickedIndex(null);
-                    }}
-                    title="Selecionar página"
-                  />
-                </th>
-              )}
-              {columns.map((col, idx) => (
-                <th key={idx}>
-                  {col.sortField || col.field ? (
-                    <button
-                      className="cc-table-sortable"
-                      onClick={() => {
-                        const field = col.sortField || col.field;
-                        if (!field) return;
-                        setCurrentPage(1);
-                        if (sortField === field) {
-                          setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
-                        } else {
-                          setSortField(field);
-                          setSortDirection('asc');
-                        }
-                      }}
-                      title="Ordenar"
-                    >
-                      {col.header}
-                      { (col.sortField || col.field) && sortField === (col.sortField || col.field) && (
-                        <span style={{ marginLeft: 6 }}>{sortDirection === 'asc' ? '▲' : '▼'}</span>
-                      )}
-                    </button>
-                  ) : (
-                    col.header
-                  )}
-                </th>
-              ))}
+              {columns.map((col, idx) => {
+                // Se for checkbox, renderizar checkbox de seleção no header
+                if (col.isCheckbox && isSupervisor) {
+                  return (
+                    <th key={idx}>
+                      <input
+                        type="checkbox"
+                        checked={data.length > 0 && selectedRows.length === data.length}
+                        onChange={(e) => {
+                          if (e.target.checked) setSelectedRows(data.map((_, i) => i));
+                          else setSelectedRows([]);
+                          setLastClickedIndex(null);
+                        }}
+                        title="Selecionar página"
+                      />
+                    </th>
+                  );
+                }
+                // Se não for checkbox, renderizar header normal
+                return (
+                  <th key={idx}>
+                    {col.sortField || col.field ? (
+                      <button
+                        className="cc-table-sortable"
+                        onClick={() => {
+                          const field = col.sortField || col.field;
+                          if (!field) return;
+                          setCurrentPage(1);
+                          if (sortField === field) {
+                            setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+                          } else {
+                            setSortField(field);
+                            setSortDirection('asc');
+                          }
+                        }}
+                        title="Ordenar"
+                      >
+                        {col.header}
+                        { (col.sortField || col.field) && sortField === (col.sortField || col.field) && (
+                          <span style={{ marginLeft: 6 }}>{sortDirection === 'asc' ? '▲' : '▼'}</span>
+                        )}
+                      </button>
+                    ) : (
+                      col.header
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={isSupervisor ? columns.length + 1 : columns.length} style={{ textAlign: 'center', padding: '20px' }}>
+                <td colSpan={columns.length} style={{ textAlign: 'center', padding: '20px' }}>
                   Carregando...
                 </td>
               </tr>
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={isSupervisor ? columns.length + 1 : columns.length} style={{ textAlign: 'center', padding: '20px' }}>
+                <td colSpan={columns.length} style={{ textAlign: 'center', padding: '20px' }}>
                   Nenhum registro encontrado
                 </td>
               </tr>
@@ -1497,69 +2599,76 @@ const ReativacaoBasePage = ({ tipo }) => {
                       borderLeft: '4px solid #af6b6b'
                     } : {}}
                   >
-                    {isSupervisor && (
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={selectedRows.includes(idx)}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            const willSelect = e.target.checked;
-                            
-                            if (!e.shiftKey || lastClickedIndex === null || lastClickedIndex === idx) {
-                              setSelectedRows(prev => {
-                                const set = new Set(prev);
-                                if (willSelect) {
-                                  set.add(idx);
-                                } else {
-                                  set.delete(idx);
+                    {columns.map((col, colIdx) => {
+                      // Se for checkbox, renderizar checkbox de seleção
+                      if (col.isCheckbox && isSupervisor) {
+                        return (
+                          <td key={colIdx}>
+                            <input
+                              type="checkbox"
+                              checked={selectedRows.includes(idx)}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                const willSelect = e.target.checked;
+                                
+                                if (!e.shiftKey || lastClickedIndex === null || lastClickedIndex === idx) {
+                                  setSelectedRows(prev => {
+                                    const set = new Set(prev);
+                                    if (willSelect) {
+                                      set.add(idx);
+                                    } else {
+                                      set.delete(idx);
+                                    }
+                                    return Array.from(set).sort((a,b)=>a-b);
+                                  });
+                                  setLastClickedIndex(idx);
+                                  return;
                                 }
-                                return Array.from(set).sort((a,b)=>a-b);
-                              });
-                              setLastClickedIndex(idx);
-                              return;
-                            }
 
-                            const [start, end] = lastClickedIndex < idx 
-                              ? [lastClickedIndex, idx] 
-                              : [idx, lastClickedIndex];
-                            
-                            const range = [];
-                            for (let i = start; i <= end; i++) {
-                              range.push(i);
-                            }
-                            
-                            setSelectedRows(prev => {
-                              const set = new Set(prev);
-                              range.forEach(i => {
-                                if (willSelect) {
-                                  set.add(i);
-                                } else {
-                                  set.delete(i);
+                                const [start, end] = lastClickedIndex < idx 
+                                  ? [lastClickedIndex, idx] 
+                                  : [idx, lastClickedIndex];
+                                
+                                const range = [];
+                                for (let i = start; i <= end; i++) {
+                                  range.push(i);
                                 }
-                              });
-                              return Array.from(set).sort((a,b)=>a-b);
-                            });
-                            setLastClickedIndex(idx);
-                          }}
-                        />
-                      </td>
-                    )}
-                    {columns.map((col, colIdx) => (
-                      <td key={colIdx} onClick={(e) => {
-                        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('button') || e.target.closest('a')) {
-                          e.stopPropagation();
-                        }
-                      }}>
-                        {col.render ? col.render(row) : (row[col.field] ?? '-')}
-                      </td>
-                    ))}
+                                
+                                setSelectedRows(prev => {
+                                  const set = new Set(prev);
+                                  range.forEach(i => {
+                                    if (willSelect) {
+                                      set.add(i);
+                                    } else {
+                                      set.delete(i);
+                                    }
+                                  });
+                                  return Array.from(set).sort((a,b)=>a-b);
+                                });
+                                setLastClickedIndex(idx);
+                              }}
+                            />
+                          </td>
+                        );
+                      }
+                      // Se não for checkbox, renderizar célula normal
+                      return (
+                        <td key={colIdx} onClick={(e) => {
+                          if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('button') || e.target.closest('a')) {
+                            e.stopPropagation();
+                          }
+                        }}>
+                          {col.render ? col.render(row) : (row[col.field] ?? '-')}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })
             )}
           </tbody>
         </table>
+        </div>
       </div>
     );
   };
@@ -1636,6 +2745,7 @@ const ReativacaoBasePage = ({ tipo }) => {
                   <option value="csv">CSV</option>
                   <option value="excel">Excel (.xls)</option>
                   <option value="xlsx">XLSX</option>
+                  <option value="callix">Callix</option>
                   <option value="json">JSON</option>
                 </select>
                 <button 
@@ -1669,6 +2779,9 @@ const ReativacaoBasePage = ({ tipo }) => {
           
           {/* Filtros */}
           {renderFiltersBar()}
+          
+          {/* Seletor de Colunas */}
+          {renderColumnSelector()}
           
           {/* Tabela */}
           {renderClientesTable(data)}
@@ -1711,6 +2824,20 @@ const ReativacaoBasePage = ({ tipo }) => {
                   className="cc-textarea"
                   rows={3}
                 />
+              </div>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={exportWithCountryCode}
+                    onChange={(e) => setExportWithCountryCode(e.target.checked)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <span>Adicionar código do país (55) nos telefones</span>
+                </label>
+                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px', marginLeft: '24px' }}>
+                  Exemplo: 6984383079 → 556984383079
+                </div>
               </div>
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <button className="cc-btn" onClick={() => setShowExportModal(false)}>Cancelar</button>

@@ -26,6 +26,16 @@
   min-height: calc(100vh - 80px); /* Altura mínima menos padding */
 }
 
+/* Em mobile, remover margem esquerda e ocupar 100% da largura */
+@media (max-width: 768px) {
+  .reativacao-dashboard-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+
 /* Garantir que o container da lista não corte o conteúdo */
 .reativacao-dashboard-content .cc-list-container {
   min-height: auto;
@@ -34,19 +44,188 @@
   overflow: visible;
 }
 
-/* Garantir que a tabela não corte o conteúdo */
+/* Barra de rolagem horizontal fixa no topo - mesma cor da de baixo */
+.cc-top-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #0f172a;
+}
+
+.cc-top-scrollbar::-webkit-scrollbar {
+  height: 17px;
+}
+
+.cc-top-scrollbar::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.cc-top-scrollbar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 0;
+}
+
+.cc-top-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #e2e8f0;
+}
+
+/* Barra de rolagem horizontal fixa no topo */
 .reativacao-dashboard-content .cc-table-wrapper {
+  position: relative;
   overflow-x: auto;
   overflow-y: visible;
   max-height: none;
   width: 100%;
   margin-bottom: 20px;
+  /* Mesma cor da barra de baixo */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #0f172a;
+}
+
+/* Estilizar barra de rolagem horizontal - mesma cor da de baixo */
+.reativacao-dashboard-content .cc-table-wrapper::-webkit-scrollbar {
+  height: 17px;
+}
+
+.reativacao-dashboard-content .cc-table-wrapper::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.reativacao-dashboard-content .cc-table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 0;
+}
+
+.reativacao-dashboard-content .cc-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #e2e8f0;
 }
 
 /* Garantir que a tabela tenha largura mínima para não cortar colunas */
 .reativacao-dashboard-content .cc-table-list {
-  min-width: 1400px; /* Largura mínima para todas as colunas */
   width: 100%;
+  font-size: 12px; /* Fonte menor */
+  table-layout: auto; /* Permite que as colunas se ajustem */
+  /* min-width será aplicado dinamicamente via inline style */
+}
+
+/* Compactar colunas da tabela */
+.reativacao-dashboard-content .cc-table-list th,
+.reativacao-dashboard-content .cc-table-list td {
+  padding: 6px 8px; /* Padding reduzido */
+  font-size: 12px; /* Fonte menor */
+  white-space: nowrap; /* Não quebrar linhas */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 80px; /* Largura mínima para colunas */
+  max-width: none; /* Remover max-width para não cortar */
+}
+
+/* Colunas específicas com larguras adequadas para não cortar */
+.reativacao-dashboard-content .cc-table-list th:nth-child(1),
+.reativacao-dashboard-content .cc-table-list td:nth-child(1) {
+  width: 24px; /* Checkbox */
+  min-width: 24px;
+  max-width: 24px;
+}
+
+.reativacao-dashboard-content .cc-table-list th:nth-child(2),
+.reativacao-dashboard-content .cc-table-list td:nth-child(2) {
+  width: 20px; /* Exportado */
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+  padding: 4px 2px !important;
+}
+
+.reativacao-dashboard-content .cc-table-list th:nth-child(3),
+.reativacao-dashboard-content .cc-table-list td:nth-child(3) {
+  width: 25px; /* Duplicatas */
+  min-width: 25px;
+  max-width: 25px;
+  text-align: center;
+  padding: 4px 2px !important;
+}
+
+.reativacao-dashboard-content .cc-table-list th:nth-child(4),
+.reativacao-dashboard-content .cc-table-list td:nth-child(4) {
+  width: 120px; /* Nome */
+  min-width: 120px;
+  max-width: 120px;
+}
+
+.reativacao-dashboard-content .cc-table-list th:nth-child(5),
+.reativacao-dashboard-content .cc-table-list td:nth-child(5) {
+  width: 40px; /* Email */
+  min-width: 40px;
+  max-width: 40px;
+}
+
+.reativacao-dashboard-content .cc-table-list th:nth-child(6),
+.reativacao-dashboard-content .cc-table-list td:nth-child(6) {
+  width: 50px; /* WhatsApp */
+  min-width: 50px;
+  max-width: 50px;
+}
+
+.reativacao-dashboard-content .cc-table-list th:nth-child(7),
+.reativacao-dashboard-content .cc-table-list td:nth-child(7) {
+  width: 30px; /* CPF */
+  min-width: 30px;
+  max-width: 30px;
+}
+
+.reativacao-dashboard-content .cc-table-list th:nth-child(8),
+.reativacao-dashboard-content .cc-table-list td:nth-child(8) {
+  width: 50px; /* Total Compras */
+  min-width: 50px;
+  max-width: 50px;
+}
+
+.reativacao-dashboard-content .cc-table-list th:nth-child(9),
+.reativacao-dashboard-content .cc-table-list td:nth-child(9) {
+  width: 50px; /* Dias Última Compra */
+  min-width: 50px;
+  max-width: 50px;
+}
+
+.reativacao-dashboard-content .cc-table-list th:nth-child(10),
+.reativacao-dashboard-content .cc-table-list td:nth-child(10) {
+  width: 40px; /* Origens */
+  min-width: 40px;
+  max-width: 40px;
+}
+
+.reativacao-dashboard-content .cc-table-list th:nth-child(11),
+.reativacao-dashboard-content .cc-table-list td:nth-child(11) {
+  width: 50px; /* Cidade */
+  min-width: 50px;
+  max-width: 50px;
+}
+
+.reativacao-dashboard-content .cc-table-list th:nth-child(12),
+.reativacao-dashboard-content .cc-table-list td:nth-child(12) {
+  width: 50px; /* Estado */
+  min-width: 50px;
+  max-width: 50px;
+}
+
+.reativacao-dashboard-content .cc-table-list th:nth-child(13),
+.reativacao-dashboard-content .cc-table-list td:nth-child(13) {
+  width: 50px; /* Sexo */
+  min-width: 50px;
+  max-width: 50px;
+}
+
+.reativacao-dashboard-content .cc-table-list th:nth-child(14),
+.reativacao-dashboard-content .cc-table-list td:nth-child(14) {
+  width: 50px; /* Data Nascimento */
+  min-width: 50px;
+  max-width: 50px;
+}
+
+.reativacao-dashboard-content .cc-table-list th:nth-child(15),
+.reativacao-dashboard-content .cc-table-list td:nth-child(15) {
+  width: 50px; /* Qualidade */
+  min-width: 50px;
+  max-width: 50px;
 }
 
 /* Garantir que o container da tabela não limite a largura */
@@ -69,13 +248,182 @@
   padding-bottom: 20px;
 }
 
-/* Responsividade */
+/* Responsividade - Consolidação de regras mobile */
 @media (max-width: 768px) {
+  /* Container principal */
+  .reativacao-dashboard-fullscreen {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Conteúdo principal - garantir visibilidade */
   .reativacao-dashboard-content {
-    width: 100%;
-    margin-left: 0;
-    padding: 20px 16px;
-    padding-bottom: 100px;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 80px 12px 100px 12px !important;
+    position: relative !important;
+    z-index: 1 !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+    overflow-y: visible !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background: #0f172a !important;
+    min-height: calc(100vh - 80px) !important;
+  }
+
+  /* Garantir que elementos filhos sejam visíveis */
+  .reativacao-dashboard-content > * {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .reativacao-dashboard-content .cc-list-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* Ajustar tabela para mobile */
+  .reativacao-dashboard-content .cc-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Colunas mais compactas em mobile */
+  .reativacao-dashboard-content .cc-table-list th,
+  .reativacao-dashboard-content .cc-table-list td {
+    padding: 4px 6px;
+    font-size: 11px;
+    min-width: 60px;
+  }
+
+  /* Coluna Nome maior em mobile para mostrar email */
+  .reativacao-dashboard-content .cc-table-list th:nth-child(4),
+  .reativacao-dashboard-content .cc-table-list td:nth-child(4) {
+    width: 200px !important;
+    min-width: 200px !important;
+    max-width: 200px !important;
+  }
+
+  /* Coluna Email compacta em mobile */
+  .reativacao-dashboard-content .cc-table-list th:nth-child(5),
+  .reativacao-dashboard-content .cc-table-list td:nth-child(5) {
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+  }
+
+  /* Coluna WhatsApp compacta em mobile */
+  .reativacao-dashboard-content .cc-table-list th:nth-child(6),
+  .reativacao-dashboard-content .cc-table-list td:nth-child(6) {
+    width: 40px !important;
+    min-width: 40px !important;
+    max-width: 40px !important;
+  }
+
+  /* Filtros em coluna única em mobile */
+  .reativacao-dashboard-content .cc-filters-row {
+    grid-template-columns: 1fr !important;
+    gap: 8px;
+  }
+
+  /* Header mais compacto */
+  .reativacao-dashboard-content .cc-list-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100% !important;
+    max-width: 100% !important;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* Paginação mais compacta */
+  .reativacao-dashboard-content .cc-pagination {
+    flex-wrap: wrap;
+    gap: 8px;
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* Seletor de colunas mais compacto */
+  .reativacao-dashboard-content .cc-column-selector-bar {
+    padding: 12px;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .reativacao-dashboard-content .cc-column-selector-bar > div {
+    grid-template-columns: 1fr !important;
+    gap: 8px;
+    display: grid !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
+
+/* Ajustes para telas muito pequenas */
+@media (max-width: 480px) {
+  .reativacao-dashboard-content {
+    padding: 70px 8px 100px 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .reativacao-dashboard-content .cc-table-list th,
+  .reativacao-dashboard-content .cc-table-list td {
+    padding: 3px 4px;
+    font-size: 10px;
+    min-width: 50px;
+  }
+
+  /* Coluna Nome maior em telas muito pequenas */
+  .reativacao-dashboard-content .cc-table-list th:nth-child(4),
+  .reativacao-dashboard-content .cc-table-list td:nth-child(4) {
+    width: 180px !important;
+    min-width: 180px !important;
+    max-width: 180px !important;
+  }
+
+  /* Coluna Email compacta em telas muito pequenas */
+  .reativacao-dashboard-content .cc-table-list th:nth-child(5),
+  .reativacao-dashboard-content .cc-table-list td:nth-child(5) {
+    width: 35px !important;
+    min-width: 35px !important;
+    max-width: 35px !important;
+  }
+
+  /* Coluna WhatsApp compacta em telas muito pequenas */
+  .reativacao-dashboard-content .cc-table-list th:nth-child(6),
+  .reativacao-dashboard-content .cc-table-list td:nth-child(6) {
+    width: 35px !important;
+    min-width: 35px !important;
+    max-width: 35px !important;
   }
 }
 
@@ -91,5 +439,209 @@ html.reativacao-page-active {
   height: auto !important;
   min-height: 100vh;
   overflow-y: auto;
+}
+
+
+/* Estilos para filtros responsivos */
+.reativacao-dashboard-content .cc-filters-bar {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.reativacao-dashboard-content .cc-filters-grid {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.reativacao-dashboard-content .cc-filters-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.reativacao-dashboard-content .cc-filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0; /* Permite que os elementos encolham */
+  flex: 1;
+  box-sizing: border-box;
+}
+
+.reativacao-dashboard-content .cc-filter-item > span {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.reativacao-dashboard-content .cc-filter-item select,
+.reativacao-dashboard-content .cc-filter-item input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.reativacao-dashboard-content .cc-filter-item input[type="checkbox"] {
+  flex-shrink: 0;
+}
+
+/* Em telas maiores, usar mais colunas */
+@media (min-width: 1200px) {
+  .reativacao-dashboard-content .cc-filters-row {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px 20px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .reativacao-dashboard-content .cc-filters-row {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px 24px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .reativacao-dashboard-content .cc-filters-row {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px 28px;
+  }
+}
+
+/* Garantir que os selects e inputs usem o espaço disponível */
+.reativacao-dashboard-content .cc-select,
+.reativacao-dashboard-content .cc-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Barra de busca responsiva */
+.reativacao-dashboard-content .cc-filters-row:has(input[type="text"][placeholder*="buscar"]) {
+  grid-template-columns: auto 1fr auto;
+}
+
+.reativacao-dashboard-content .cc-filters-row:has(input[type="text"][placeholder*="buscar"]) .cc-filter-item {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Container principal deve ocupar toda a largura disponível - apenas desktop */
+@media (min-width: 769px) {
+  .reativacao-dashboard-content {
+    width: calc(100% - 280px) !important;
+    max-width: none !important;
+  }
+}
+
+/* Em mobile, garantir 100% da largura */
+@media (max-width: 768px) {
+  .reativacao-dashboard-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+}
+
+/* Garantir que o header também use todo o espaço */
+.reativacao-dashboard-content .cc-list-header {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Garantir que os botões não escapem */
+.reativacao-dashboard-content .cc-list-header > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.reativacao-dashboard-content .cc-list-header .cc-btn,
+.reativacao-dashboard-content .cc-list-header .cc-select {
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Em mobile, garantir que os botões quebrem linha */
+@media (max-width: 768px) {
+  .reativacao-dashboard-content .cc-list-header > div {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .reativacao-dashboard-content .cc-list-header .cc-btn {
+    font-size: 12px;
+    padding: 8px 12px;
+    white-space: normal;
+    word-wrap: break-word;
+    max-width: 100%;
+  }
+
+  .reativacao-dashboard-content .cc-list-header .cc-select {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+/* Estilos para select, button, input - EXCETO headers da tabela */
+.reativacao-dashboard-content select,
+.reativacao-dashboard-content button:not(.cc-table-sortable),
+.reativacao-dashboard-content input:not([type="checkbox"]) {
+  background: var(--chip, #1e293b);
+  border: 1px solid var(--ring, #334155);
+  color: var(--text, #e0e7ff);
+  padding: 5px 0px;
+  border-radius: 12px;
+  outline: none;
+}
+
+/* Headers da tabela - sem background */
+.reativacao-dashboard-content .cc-table-list th,
+.reativacao-dashboard-content .cc-table-list th button,
+.reativacao-dashboard-content .cc-table-list th .cc-table-sortable {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-secondary, #94a3b8) !important;
+  padding: 6px 8px !important;
+  border-radius: 0 !important;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.reativacao-dashboard-content .cc-table-list th button:hover,
+.reativacao-dashboard-content .cc-table-list th .cc-table-sortable:hover {
+  color: var(--text-primary, #e0e7ff) !important;
+  background: transparent !important;
+}
+
+/* Estilo para botão de nome padrão */
+.cc-btn-nome-padrao {
+  background: transparent;
+  border: 0px solid var(--border-color, #334155);
+  color: var(--text-secondary, #94a3b8);
+  padding: 0px 0px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-top: 4px;
 }
 

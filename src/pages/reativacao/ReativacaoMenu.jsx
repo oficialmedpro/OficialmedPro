@@ -4,7 +4,9 @@ import {
   LayoutDashboard, 
   Hash, 
   LogOut,
-  User
+  User,
+  Menu,
+  X
 } from 'lucide-react';
 import LogoOficialmedLight from '../../../icones/icone_oficialmed_modo_light.svg';
 import './ReativacaoMenu.css';
@@ -13,6 +15,7 @@ const ReativacaoMenu = ({ onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [userData, setUserData] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     // Carregar dados do usuário do localStorage
@@ -52,9 +55,33 @@ const ReativacaoMenu = ({ onLogout }) => {
     navigate('/reativacao/login');
   };
 
+  // Fechar menu ao clicar em um item em mobile
+  const handleMenuItemClick = (path) => {
+    navigate(path);
+    setMobileMenuOpen(false);
+  };
+
   return (
-    <nav className="reativacao-menu">
-      <div className="reativacao-menu-container">
+    <>
+      {/* Botão hamburger para mobile */}
+      <button
+        className="reativacao-menu-toggle"
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        aria-label="Toggle menu"
+      >
+        {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Overlay para fechar menu ao clicar fora */}
+      {mobileMenuOpen && (
+        <div
+          className="reativacao-menu-overlay"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      <nav className={`reativacao-menu ${mobileMenuOpen ? 'mobile-open' : ''}`}>
+        <div className="reativacao-menu-container">
         <div className="reativacao-menu-logo">
           <img src={LogoOficialmedLight} alt="OficialMed" className="reativacao-menu-logo-img" />
           <span className="reativacao-menu-title">Reativação</span>
@@ -67,7 +94,7 @@ const ReativacaoMenu = ({ onLogout }) => {
               <button
                 key={item.path}
                 className={`reativacao-menu-item ${isActive(item.path) ? 'active' : ''}`}
-                onClick={() => navigate(item.path)}
+                onClick={() => handleMenuItemClick(item.path)}
               >
                 <span className="reativacao-menu-item-icon">
                   {item.number ? (
@@ -108,6 +135,7 @@ const ReativacaoMenu = ({ onLogout }) => {
         </div>
       </div>
     </nav>
+    </>
   );
 };
 
