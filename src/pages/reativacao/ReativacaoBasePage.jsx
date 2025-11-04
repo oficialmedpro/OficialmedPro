@@ -2380,7 +2380,8 @@ const ReativacaoBasePage = ({ tipo }) => {
                 const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}`;
                 // Salvar o caminho atual antes de navegar
                 sessionStorage.setItem('reativacao_previous_path', window.location.pathname + window.location.search);
-                window.open(url, '_blank');
+                // Navegar na mesma janela ao invés de abrir nova
+                navigate(url);
               }}
               title="Clique para ver histórico completo de compras"
               style={{ cursor: 'pointer', color: '#3b82f6', textDecoration: 'underline' }}
