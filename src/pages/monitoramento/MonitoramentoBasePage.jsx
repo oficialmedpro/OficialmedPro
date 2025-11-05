@@ -2180,32 +2180,6 @@ const MonitoramentoBasePage = ({ tipo }) => {
           >
             {showColumnSelector ? '▼ Ocultar Seleção de Colunas' : '▶ Mostrar/Ocultar Colunas'}
           </button>
-          <button
-            className="cc-btn cc-btn-small"
-            onClick={() => setShowAllColumns(!showAllColumns)}
-            style={{ 
-              backgroundColor: showAllColumns ? '#dc2626' : '#059669', 
-              color: 'white',
-              border: 'none',
-              padding: '10px 20px',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '15px',
-              fontWeight: '600',
-              boxShadow: showAllColumns ? '0 2px 8px rgba(220, 38, 38, 0.3)' : '0 2px 8px rgba(5, 150, 105, 0.3)',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = showAllColumns ? '#b91c1c' : '#047857';
-              e.target.style.transform = 'scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = showAllColumns ? '#dc2626' : '#059669';
-              e.target.style.transform = 'scale(1)';
-            }}
-          >
-            {showAllColumns ? '🔼 Ocultar Colunas' : '🔽 Mostrar Todas'}
-          </button>
         </div>
         
         {showColumnSelector && (
