@@ -57,6 +57,16 @@ const ReativacaoBasePage = ({ tipo }) => {
   const [availableExportTags, setAvailableExportTags] = useState([]); // Tags disponíveis para filtro
   const [currentLanguage, setCurrentLanguage] = useState('pt-BR');
   
+  // Estados específicos para exportação Sprinthub
+  const [sprinthubEtapa, setSprinthubEtapa] = useState('167'); // Etapa padrão
+  const [sprinthubVendedor, setSprinthubVendedor] = useState('229'); // ID do vendedor padrão
+  const [sprinthubTituloPrefix, setSprinthubTituloPrefix] = useState('MONITORAMENTO 28-7 05-8'); // Prefixo do título
+  
+  // Estado para modal de histórico de exportação
+  const [showExportHistoryModal, setShowExportHistoryModal] = useState(false);
+  const [selectedClientForHistory, setSelectedClientForHistory] = useState(null);
+  const [clientExportHistory, setClientExportHistory] = useState([]);
+  
   const t = translations[currentLanguage] || {};
   
   // Estados de filtros
@@ -75,30 +85,105 @@ const ReativacaoBasePage = ({ tipo }) => {
   const [searchTerm, setSearchTerm] = useState(''); // Termo de pesquisa
   const [exportWithCountryCode, setExportWithCountryCode] = useState(false); // Opção de exportar com código do país (55)
   
-  // Estado para ocultar/mostrar colunas (inicializado baseado no tipo de usuário)
+  // Estado para controlar se mostra todas as colunas ou apenas as padrão
+  const [showAllColumns, setShowAllColumns] = useState(false);
+  
+  // Função para detectar se é mobile
+  const isMobileDevice = () => {
+    return window.innerWidth <= 768;
+  };
+  
+  // Estado para ocultar/mostrar colunas (inicializado baseado no tipo de usuário e dispositivo)
   const [visibleColumns, setVisibleColumns] = useState(() => {
     const userTypeName = localStorage.getItem('reativacao_userData') 
       ? JSON.parse(localStorage.getItem('reativacao_userData'))?.userTypeName?.toLowerCase() || ''
       : '';
     const isSupervisor = ['supervisor', 'adminfranquiadora', 'adminfranquia', 'adminunidade'].includes(userTypeName);
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
     
+    // Se for mobile: nome, whatsapp, pedidos, periodo, cidade_estado
+    // Se for desktop: nome, whatsapp, pedidos, periodo, email, cpf, cidade_estado, nota
     return {
-      exportado: isSupervisor, // Apenas supervisor
-      duplicatas: isSupervisor, // Apenas supervisor
+      exportado: isSupervisor && showAllColumns, // Apenas supervisor e quando mostra todas
+      duplicatas: isSupervisor && showAllColumns, // Apenas supervisor e quando mostra todas
       nome: true,
-      email: true,
+      email: isMobile ? false : true, // Desktop mostra, mobile não (padrão)
       whatsapp: true,
-      cpf: true,
+      cpf: isMobile ? false : true, // Desktop mostra, mobile não (padrão)
       total_compras: true,
       dias_ultima_compra: true,
-      origens: true,
-      cidade: true,
-      estado: true,
-      sexo: true,
-      data_nascimento: true,
-      qualidade: true
+      origens: showAllColumns, // Só mostra quando clicar em "Mostrar Todas"
+      cidade_estado: true, // Coluna combinada (sempre visível)
+      cidade: false, // Coluna separada (só quando mostra todas)
+      estado: false, // Coluna separada (só quando mostra todas)
+      sexo: showAllColumns, // Só mostra quando clicar em "Mostrar Todas"
+      data_nascimento: showAllColumns, // Só mostra quando clicar em "Mostrar Todas"
+      qualidade: isMobile ? false : true // Desktop mostra, mobile não (padrão)
     };
   });
+  
+  // Atualizar colunas quando showAllColumns mudar ou quando redimensionar a tela
+  useEffect(() => {
+    const updateColumns = () => {
+      const userTypeName = localStorage.getItem('reativacao_userData') 
+        ? JSON.parse(localStorage.getItem('reativacao_userData'))?.userTypeName?.toLowerCase() || ''
+        : '';
+      const isSupervisor = ['supervisor', 'adminfranquiadora', 'adminfranquia', 'adminunidade'].includes(userTypeName);
+      const isMobile = window.innerWidth <= 768;
+      
+      if (showAllColumns) {
+        // Mostrar todas as colunas
+        setVisibleColumns({
+          exportado: isSupervisor,
+          duplicatas: isSupervisor,
+          nome: true,
+          email: true,
+          whatsapp: true,
+          cpf: true,
+          total_compras: true,
+          dias_ultima_compra: true,
+          origens: true,
+          cidade_estado: false, // Esconder coluna combinada quando mostra todas
+          cidade: true, // Mostrar coluna separada
+          estado: true, // Mostrar coluna separada
+          sexo: true,
+          data_nascimento: true,
+          qualidade: true
+        });
+      } else {
+        // Mostrar apenas colunas padrão
+        setVisibleColumns({
+          exportado: false,
+          duplicatas: false,
+          nome: true,
+          email: isMobile ? false : true,
+          whatsapp: true,
+          cpf: isMobile ? false : true,
+          total_compras: true,
+          dias_ultima_compra: true,
+          origens: false,
+          cidade_estado: true, // Mostrar coluna combinada
+          cidade: false,
+          estado: false,
+          sexo: false,
+          data_nascimento: false,
+          qualidade: isMobile ? false : true
+        });
+      }
+    };
+    
+    updateColumns();
+    
+    // Adicionar listener para redimensionamento da janela
+    const handleResize = () => {
+      if (!showAllColumns) {
+        updateColumns();
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [showAllColumns]);
   
   // Estados adicionais necessários
   const [showFilters, setShowFilters] = useState(true);
@@ -196,7 +281,33 @@ const ReativacaoBasePage = ({ tipo }) => {
         userId = String(userData.id);
       }
       
-      const records = leadIds.map(id_lead => {
+      // Remover duplicatas do array de leadIds
+      const uniqueLeadIds = [...new Set(leadIds)];
+      
+      // Verificar se já existem registros recentes (últimos 5 segundos) para evitar duplicatas
+      const now = new Date();
+      const fiveSecondsAgo = new Date(now.getTime() - 5000);
+      
+      const { data: existingRecords } = await supabase
+        .schema('api')
+        .from('historico_exportacoes')
+        .select('id_lead')
+        .in('id_lead', uniqueLeadIds)
+        .eq('tag_exportacao', tag?.trim() || null)
+        .eq('motivo', motivo)
+        .gte('data_exportacao', fiveSecondsAgo.toISOString());
+      
+      const existingLeadIds = new Set(existingRecords?.map(r => r.id_lead) || []);
+      
+      // Filtrar apenas os IDs que ainda não foram registrados recentemente
+      const newLeadIds = uniqueLeadIds.filter(id => !existingLeadIds.has(id));
+      
+      if (newLeadIds.length === 0) {
+        console.log('Todos os registros já foram exportados recentemente');
+        return { success: true };
+      }
+      
+      const records = newLeadIds.map(id_lead => {
         const record = {
           id_lead,
           motivo,
@@ -216,7 +327,7 @@ const ReativacaoBasePage = ({ tipo }) => {
       
       if (error) throw error;
       
-      const newHistory = await loadExportHistory(leadIds);
+      const newHistory = await loadExportHistory(uniqueLeadIds);
       setExportHistory(prev => ({ ...prev, ...newHistory }));
       
       return { success: true };
@@ -251,24 +362,188 @@ const ReativacaoBasePage = ({ tipo }) => {
       // Aplicar filtros
       query = applyFiltersToQuery(query);
       
-      // Modo supervisor: aplicar filtro por tag ANTES da paginação
-      if (currentIsSupervisor && exportTagFilter && exportTagFilter !== 'all') {
-        // Buscar TODOS os IDs exportados com aquela tag
-        const { data: exportedIds } = await supabase
-          .schema('api')
-          .from('historico_exportacoes')
-          .select('id_lead')
-          .eq('tag_exportacao', exportTagFilter);
+      // Modo supervisor: aplicar filtro por exportação ANTES da paginação
+      if (currentIsSupervisor) {
+        // Se filtro por tag, aplicar filtro de tag
+        if (exportTagFilter && exportTagFilter !== 'all') {
+          // Buscar TODOS os IDs exportados com aquela tag
+          const { data: exportedIds } = await supabase
+            .schema('api')
+            .from('historico_exportacoes')
+            .select('id_lead')
+            .eq('tag_exportacao', exportTagFilter);
+          
+          const exportedLeadIds = exportedIds?.map(e => e.id_lead).filter(Boolean) || [];
+          if (exportedLeadIds.length > 0) {
+            query = query.in('id', exportedLeadIds);
+          } else {
+            // Se não há exportados com essa tag, retornar vazio
+            setData([]);
+            setTotalCount(0);
+            setIsLoading(false);
+            return;
+          }
+        }
         
-        const exportedLeadIds = exportedIds?.map(e => e.id_lead).filter(Boolean) || [];
-        if (exportedLeadIds.length > 0) {
-          query = query.in('id', exportedLeadIds);
-        } else {
-          // Se não há exportados com essa tag, retornar vazio
-          setData([]);
-          setTotalCount(0);
-          setIsLoading(false);
-          return;
+        // Se filtro por status de exportação, aplicar filtro ANTES da paginação
+        if (exportFilter === 'exported') {
+          // Buscar TODOS os IDs exportados (sem limite)
+          const { data: exportedIds } = await supabase
+            .schema('api')
+            .from('historico_exportacoes')
+            .select('id_lead');
+          
+          const exportedLeadIds = exportedIds?.map(e => e.id_lead).filter(Boolean) || [];
+          if (exportedLeadIds.length > 0) {
+            query = query.in('id', exportedLeadIds);
+          } else {
+            // Se não há exportados, retornar vazio
+            setData([]);
+            setTotalCount(0);
+            setIsLoading(false);
+            return;
+          }
+        } else if (exportFilter === 'never-exported') {
+          // Buscar TODOS os IDs exportados para excluir
+          const { data: exportedIds } = await supabase
+            .schema('api')
+            .from('historico_exportacoes')
+            .select('id_lead');
+          
+          const exportedLeadIds = exportedIds?.map(e => e.id_lead).filter(Boolean) || [];
+          if (exportedLeadIds.length > 0) {
+            // Excluir os IDs exportados da busca
+            // Para fazer NOT IN com array grande, vamos buscar todos os dados sem paginação
+            // filtrar no cliente, e depois aplicar paginação no cliente
+            // Isso permite aplicar o filtro corretamente em TODOS os dados, não apenas na página atual
+            
+            // Buscar TODOS os dados sem paginação temporariamente
+            // IMPORTANTE: Não usar range() para buscar todos, usar uma query sem limite
+            // Mas o Supabase tem limite de 1000 por padrão, então vamos buscar em lotes
+            // Por enquanto, vamos buscar todos usando uma query grande
+            
+            // Fazer a query sem paginação
+            let tempQuery = supabase
+              .schema('api')
+              .from(viewName)
+              .select('*', { count: 'exact' });
+            
+            // Aplicar outros filtros (mas NÃO aplicar filtros de nome/duplicatas aqui, só os filtros básicos)
+            tempQuery = applyFiltersToQuery(tempQuery);
+            
+            // Buscar todos os dados em lotes (limite do Supabase é 1000 por vez)
+            let allData = [];
+            let offset = 0;
+            const limit = 1000;
+            let totalCountAll = 0;
+            
+            // Aplicar ordenação uma vez na query base
+            if (sortField) {
+              if (sortField === 'dias_desde_ultima_compra' || sortField === 'dias_sem_compra') {
+                tempQuery = tempQuery.order('dias_desde_ultima_compra', { ascending: sortDirection === 'asc', nullsFirst: false });
+              } else {
+                tempQuery = tempQuery.order(sortField, { ascending: sortDirection === 'asc' });
+              }
+            }
+            
+            // Buscar o count total primeiro
+            const { count: totalCountQuery, error: countError } = await tempQuery.select('*', { count: 'exact', head: true });
+            if (!countError && totalCountQuery !== null) {
+              totalCountAll = totalCountQuery;
+            }
+            
+            // Buscar todos os dados em lotes
+            while (true) {
+              const { data: batchData, error: batchError } = await tempQuery.range(offset, offset + limit - 1);
+              
+              if (batchError) {
+                console.error('Erro ao buscar lote de dados:', batchError);
+                throw batchError;
+              }
+              
+              if (!batchData || batchData.length === 0) break;
+              
+              allData = [...allData, ...batchData];
+              
+              if (batchData.length < limit) break; // Última página
+              offset += limit;
+            }
+            
+            console.log(`📊 Buscados ${allData.length} registros de ${totalCountAll} totais`);
+            
+            // Filtrar no cliente: excluir os IDs exportados
+            // IMPORTANTE: Usar apenas o campo 'id' que é o campo correto da view
+            const exportedSet = new Set(exportedLeadIds);
+            let filteredAllData = (allData || []).filter(row => {
+              // Usar apenas 'id' que é o campo correto das views de reativação
+              const leadId = row.id;
+              return leadId && !exportedSet.has(leadId);
+            });
+            
+            console.log(`🔍 Filtro "Nunca Exportados": ${allData?.length || 0} total, ${exportedLeadIds.length} exportados, ${filteredAllData.length} não exportados`);
+            
+            // Aplicar filtros no cliente na ordem correta:
+            // 1. Primeiro filtrar por endereço (se aplicável)
+            filteredAllData = filterClientSideIfNeeded(filteredAllData);
+            console.log(`📍 Após filtro de endereço: ${filteredAllData.length} registros`);
+            
+            // 2. Filtrar por origem exclusiva (se filtro de origem estiver ativo)
+            if (filters.origins && filters.origins.length > 0) {
+              const beforeOrigins = filteredAllData.length;
+              filteredAllData = filterRowsByExclusiveOrigins(filteredAllData);
+              console.log(`🏷️ Após filtro de origem: ${beforeOrigins} → ${filteredAllData.length} registros`);
+            }
+            
+            // 3. Filtrar por nome (apenas se o filtro estiver ativo)
+            if (nameFilter && nameFilter !== 'all') {
+              const beforeName = filteredAllData.length;
+              filteredAllData = filterRowsByNameStatus(filteredAllData);
+              console.log(`👤 Após filtro de nome: ${beforeName} → ${filteredAllData.length} registros`);
+            }
+            
+            // 4. Filtrar por duplicatas (apenas se o filtro estiver ativo)
+            if (duplicatesFilter && duplicatesFilter !== 'all') {
+              const beforeDup = filteredAllData.length;
+              filteredAllData = filterRowsByDuplicates(filteredAllData);
+              console.log(`🔁 Após filtro de duplicatas: ${beforeDup} → ${filteredAllData.length} registros`);
+            }
+            
+            // 5. Aplicar pesquisa (apenas se houver termo de pesquisa)
+            if (searchTerm && searchTerm.trim() !== '') {
+              const beforeSearch = filteredAllData.length;
+              filteredAllData = filterRowsBySearch(filteredAllData);
+              console.log(`🔎 Após pesquisa: ${beforeSearch} → ${filteredAllData.length} registros`);
+            }
+            
+            // Carregar histórico de exportações para os dados filtrados (após todos os filtros)
+            const leadIds = filteredAllData.map(row => row.id).filter(Boolean);
+            if (leadIds.length > 0) {
+              const history = await loadExportHistory(leadIds);
+              setExportHistory(prev => ({ ...prev, ...history }));
+            }
+            
+            console.log(`✅ Total final após todos os filtros: ${filteredAllData.length} registros`);
+            
+            // Aplicar ordenação adicional se necessário
+            let sorted = filteredAllData;
+            if (sortField === 'dias_desde_ultima_compra' || sortField === 'dias_sem_compra') {
+              sorted = [...filteredAllData].sort((a, b) => {
+                const valA = parseInt(a.dias_desde_ultima_compra || a.dias_sem_compra || 0) || 0;
+                const valB = parseInt(b.dias_desde_ultima_compra || b.dias_sem_compra || 0) || 0;
+                return sortDirection === 'asc' ? valA - valB : valB - valA;
+              });
+            }
+            
+            // Aplicar paginação no cliente
+            const totalFiltered = sorted.length;
+            const paginatedData = sorted.slice(start, end + 1);
+            
+            setData(paginatedData);
+            setTotalCount(totalFiltered);
+            setIsLoading(false);
+            return; // Retornar aqui, não precisa continuar com a query normal
+          }
+          // Se não há exportados, não precisa filtrar (todos são não exportados)
         }
       }
       
@@ -309,17 +584,25 @@ const ReativacaoBasePage = ({ tipo }) => {
       
       // Ordenação
       if (sortField) {
-        // Para dias_sem_compra (nome usado nas views de reativação), garantir ordenação numérica
-        if (sortField === 'dias_sem_compra' || sortField === 'dias_desde_ultima_compra') {
-          query = query.order(sortField, { ascending: sortDirection === 'asc', nullsFirst: false });
-        } else {
-          query = query.order(sortField, { ascending: sortDirection === 'asc' });
+        try {
+          // Para dias_desde_ultima_compra (nome usado nas views de reativação), garantir ordenação numérica
+          if (sortField === 'dias_desde_ultima_compra' || sortField === 'dias_sem_compra') {
+            query = query.order('dias_desde_ultima_compra', { ascending: sortDirection === 'asc', nullsFirst: false });
+          } else {
+            query = query.order(sortField, { ascending: sortDirection === 'asc' });
+          }
+        } catch (sortError) {
+          console.warn('Erro ao ordenar por', sortField, ':', sortError);
+          // Continuar sem ordenação se houver erro
         }
       }
       
       const { data, count, error } = await query.range(start, end);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar dados:', error);
+        throw error;
+      }
       
       // Filtrar no cliente (endereço)
       let filteredData = filterClientSideIfNeeded(data || []);
@@ -335,18 +618,9 @@ const ReativacaoBasePage = ({ tipo }) => {
       }
       
       // Filtrar por status de exportação (modo supervisor)
-      // NOTA: No modo vendedor, o filtro já foi aplicado na query acima
-      if (currentIsSupervisor && exportFilter === 'exported') {
-        filteredData = filteredData.filter(row => {
-          const leadId = row.id || row.id_lead || row.id_cliente_mestre;
-          return exportHistory[leadId]?.length > 0;
-        });
-      } else if (currentIsSupervisor && exportFilter === 'never-exported') {
-        filteredData = filteredData.filter(row => {
-          const leadId = row.id || row.id_lead || row.id_cliente_mestre;
-          return !exportHistory[leadId] || exportHistory[leadId].length === 0;
-        });
-      }
+      // NOTA: No modo supervisor, o filtro já foi aplicado na query acima (ANTES da paginação)
+      // No modo vendedor, o filtro também já foi aplicado na query acima
+      // Não precisa filtrar novamente aqui, pois já foi aplicado no banco de dados
       
       // Filtro por tag já foi aplicado na query (modo supervisor)
       // Não precisa filtrar novamente aqui
@@ -369,21 +643,21 @@ const ReativacaoBasePage = ({ tipo }) => {
       let sorted = filteredData;
       
       // Se a ordenação do backend não for suficiente, aplicar ordenação adicional no cliente
-      if (sortField === 'dias_sem_compra' || sortField === 'dias_desde_ultima_compra') {
+      if (sortField === 'dias_desde_ultima_compra' || sortField === 'dias_sem_compra') {
         // Ordenação numérica para dias desde última compra
         sorted = [...filteredData].sort((a, b) => {
-          // Tentar vários nomes de campo possíveis (dias_sem_compra é o nome usado nas views de reativação)
+          // Tentar vários nomes de campo possíveis (dias_desde_ultima_compra é o nome usado nas views de reativação)
           const valA = parseInt(
-            a.dias_sem_compra ||
-            a.dias_desde_ultima_compra || 
+            a.dias_desde_ultima_compra ||
+            a.dias_sem_compra || 
             a.dias_desde_ultima || 
             a.dias_ultima_compra || 
             a.dias_ultima ||
             0
           ) || 0;
           const valB = parseInt(
-            b.dias_sem_compra ||
-            b.dias_desde_ultima_compra || 
+            b.dias_desde_ultima_compra ||
+            b.dias_sem_compra || 
             b.dias_desde_ultima || 
             b.dias_ultima_compra || 
             b.dias_ultima ||
@@ -672,6 +946,26 @@ const ReativacaoBasePage = ({ tipo }) => {
           .order('data_criacao', { ascending: false });
         
         if (!pedidosError && allPedidos) {
+          // Buscar fórmulas para todos os pedidos encontrados
+          const pedidosIds = allPedidos.map(p => p.id).filter(Boolean);
+          const { data: allFormulas, error: formulasError } = await supabase
+            .schema('api')
+            .from('prime_formulas')
+            .select('id, pedido_id, numero_formula, descricao, posologia, valor_formula')
+            .in('pedido_id', pedidosIds)
+            .order('numero_formula', { ascending: true });
+          
+          // Organizar fórmulas por pedido_id
+          const formulasPorPedido = {};
+          if (!formulasError && allFormulas) {
+            allFormulas.forEach(formula => {
+              if (!formulasPorPedido[formula.pedido_id]) {
+                formulasPorPedido[formula.pedido_id] = [];
+              }
+              formulasPorPedido[formula.pedido_id].push(formula);
+            });
+          }
+          
           // Organizar por cliente
           clientIds.forEach(clienteId => {
             const pedidosCliente = allPedidos.filter(p => p.cliente_id === clienteId);
@@ -689,6 +983,14 @@ const ReativacaoBasePage = ({ tipo }) => {
               p.status_geral !== 'APROVADO' && 
               p.status_entrega !== 'ENTREGUE'
             );
+            
+            // Adicionar fórmulas aos pedidos
+            if (ultimoPedido && formulasPorPedido[ultimoPedido.id]) {
+              ultimoPedido.formulas = formulasPorPedido[ultimoPedido.id];
+            }
+            if (ultimoOrcamento && formulasPorPedido[ultimoOrcamento.id]) {
+              ultimoOrcamento.formulas = formulasPorPedido[ultimoOrcamento.id];
+            }
             
             // Se não tem pedido, usar o último orçamento como referência
             const referencia = ultimoPedido || ultimoOrcamento;
@@ -729,7 +1031,7 @@ const ReativacaoBasePage = ({ tipo }) => {
         return phoneStr;
       };
       
-      // Função para formatar dados do pedido/orçamento de forma resumida
+      // Função para formatar dados do pedido/orçamento de forma resumida (com fórmulas)
       const formatarDadosPedido = (pedido, tipo) => {
         if (!pedido) return '';
         
@@ -739,11 +1041,36 @@ const ReativacaoBasePage = ({ tipo }) => {
         const codigo = pedido.codigo_orcamento_original || '';
         
         // Formato resumido para o vendedor
+        let resumo = '';
         if (tipo === 'pedido') {
-          return `Pedido ${codigo ? `#${codigo}` : ''} - ${data} - ${valor} - ${status}`.trim();
+          resumo = `Pedido ${codigo ? `#${codigo}` : ''} - ${data} - ${valor} - ${status}`.trim();
         } else {
-          return `Orçamento ${codigo ? `#${codigo}` : ''} - ${data} - ${valor}`.trim();
+          resumo = `Orçamento ${codigo ? `#${codigo}` : ''} - ${data} - ${valor}`.trim();
         }
+        
+        // Adicionar fórmulas se existirem
+        if (pedido.formulas && pedido.formulas.length > 0) {
+          const formulasFormatadas = pedido.formulas.map(f => {
+            const numFormula = f.numero_formula || '';
+            const descricao = f.descricao || 'Sem descrição';
+            const posologia = f.posologia || '';
+            const valorFormula = f.valor_formula ? `R$ ${parseFloat(f.valor_formula).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+            
+            // Formato: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR
+            let formulaStr = `F#${numFormula}: ${descricao}`;
+            if (posologia) {
+              formulaStr += ` - ${posologia}`;
+            }
+            if (valorFormula) {
+              formulaStr += ` - ${valorFormula}`;
+            }
+            return formulaStr;
+          });
+          
+          resumo += `\nFórmulas: ${formulasFormatadas.join(' | ')}`;
+        }
+        
+        return resumo;
       };
       
       const normalizedRows = rows.map(r => {
@@ -861,6 +1188,8 @@ const ReativacaoBasePage = ({ tipo }) => {
           }
           
           // Telefone SEM código 55 para Callix (remover 55 se existir)
+          // Formato esperado: DDD + 9 dígitos (total 11 dígitos)
+          // Se tiver apenas 8 dígitos após o DDD, adicionar "9" antes dos 8 dígitos
           const telefoneRaw = r.whatsapp || r.telefone || '';
           const telefone = telefoneRaw ? (() => {
             let phoneStr = String(telefoneRaw).replace(/\D/g, '');
@@ -868,6 +1197,19 @@ const ReativacaoBasePage = ({ tipo }) => {
             if (phoneStr.startsWith('55') && phoneStr.length > 2) {
               phoneStr = phoneStr.substring(2);
             }
+            
+            // Se tiver pelo menos 2 dígitos (DDD), verificar se precisa adicionar o 9
+            if (phoneStr.length >= 2) {
+              const ddd = phoneStr.substring(0, 2); // Primeiros 2 dígitos são o DDD
+              const numero = phoneStr.substring(2); // Resto do número
+              
+              // Se o número tiver exatamente 8 dígitos, adicionar "9" antes deles
+              if (numero.length === 8) {
+                phoneStr = ddd + '9' + numero; // DDD + 9 + 8 dígitos = 11 dígitos total
+              }
+              // Se já tiver 9 dígitos, manter como está (DDD + 9 dígitos = 11 dígitos total)
+            }
+            
             return phoneStr;
           })() : '';
           
@@ -881,26 +1223,81 @@ const ReativacaoBasePage = ({ tipo }) => {
             dataCompra = `${dd}-${mm}-${yyyy}`;
           }
           
-          // Formula: Pedido e orçamento resumidos juntos
+          // Formula: Pedido e orçamento resumidos juntos (com fórmulas - formato Opção 4)
+          // IMPORTANTE: Sempre mostrar pedido aprovado primeiro, depois orçamento
+          // O valor sempre vem do pedido aprovado (não do orçamento)
           let formula = '';
           if (dadosPedidos) {
             const partes = [];
             
+            // Sempre mostrar pedido aprovado primeiro (se existir)
             if (dadosPedidos.ultimoPedido) {
-              const pedido = dadosPedidos.ultimoPedido;
-              const dataPedido = pedido.data_criacao ? new Date(pedido.data_criacao).toLocaleDateString('pt-BR') : '';
-              const valorPedido = pedido.valor_total ? `R$ ${parseFloat(pedido.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
-              const statusPedido = pedido.status_aprovacao || pedido.status_geral || pedido.status_entrega || '';
-              const codigoPedido = pedido.codigo_orcamento_original || '';
-              partes.push(`Pedido ${codigoPedido ? `#${codigoPedido}` : ''} - ${dataPedido} - ${valorPedido} - ${statusPedido}`.trim());
+              const pedidoObj = dadosPedidos.ultimoPedido;
+              const dataPedido = pedidoObj.data_criacao ? new Date(pedidoObj.data_criacao).toLocaleDateString('pt-BR') : '';
+              const valorPedido = pedidoObj.valor_total ? `R$ ${parseFloat(pedidoObj.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+              const statusPedido = pedidoObj.status_aprovacao || pedidoObj.status_geral || pedidoObj.status_entrega || '';
+              const codigoPedido = pedidoObj.codigo_orcamento_original || '';
+              
+              let pedidoStr = `Pedido ${codigoPedido ? `#${codigoPedido}` : ''} - ${dataPedido} - ${valorPedido} - ${statusPedido}`.trim();
+              
+              // Adicionar fórmulas se existirem (formato Opção 4: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR)
+              if (pedidoObj.formulas && pedidoObj.formulas.length > 0) {
+                const formulasFormatadas = pedidoObj.formulas.map(f => {
+                  const numFormula = f.numero_formula || '';
+                  const descricao = f.descricao || 'Sem descrição';
+                  const posologia = f.posologia || '';
+                  const valorFormula = f.valor_formula ? `R$ ${parseFloat(f.valor_formula).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+                  
+                  // Formato: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR
+                  let formulaStr = `F#${numFormula}: ${descricao}`;
+                  if (posologia) {
+                    formulaStr += ` - ${posologia}`;
+                  }
+                  if (valorFormula) {
+                    formulaStr += ` - ${valorFormula}`;
+                  }
+                  return formulaStr;
+                });
+                
+                pedidoStr += `\nFórmulas: ${formulasFormatadas.join(' | ')}`;
+              }
+              
+              partes.push(pedidoStr);
             }
             
+            // Depois mostrar orçamento (se existir e não for o mesmo que o pedido)
+            // Orçamento pode aparecer depois do pedido, mas o valor sempre vem do pedido aprovado
             if (dadosPedidos.ultimoOrcamento) {
               const orcamento = dadosPedidos.ultimoOrcamento;
               const dataOrcamento = orcamento.data_criacao ? new Date(orcamento.data_criacao).toLocaleDateString('pt-BR') : '';
               const valorOrcamento = orcamento.valor_total ? `R$ ${parseFloat(orcamento.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
               const codigoOrcamento = orcamento.codigo_orcamento_original || '';
-              partes.push(`Orçamento ${codigoOrcamento ? `#${codigoOrcamento}` : ''} - ${dataOrcamento} - ${valorOrcamento}`.trim());
+              
+              let orcamentoStr = `Orçamento ${codigoOrcamento ? `#${codigoOrcamento}` : ''} - ${dataOrcamento} - ${valorOrcamento}`.trim();
+              
+              // Adicionar fórmulas se existirem (formato Opção 4: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR)
+              if (orcamento.formulas && orcamento.formulas.length > 0) {
+                const formulasFormatadas = orcamento.formulas.map(f => {
+                  const numFormula = f.numero_formula || '';
+                  const descricao = f.descricao || 'Sem descrição';
+                  const posologia = f.posologia || '';
+                  const valorFormula = f.valor_formula ? `R$ ${parseFloat(f.valor_formula).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+                  
+                  // Formato: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR
+                  let formulaStr = `F#${numFormula}: ${descricao}`;
+                  if (posologia) {
+                    formulaStr += ` - ${posologia}`;
+                  }
+                  if (valorFormula) {
+                    formulaStr += ` - ${valorFormula}`;
+                  }
+                  return formulaStr;
+                });
+                
+                orcamentoStr += `\nFórmulas: ${formulasFormatadas.join(' | ')}`;
+              }
+              
+              partes.push(orcamentoStr);
             }
             
             formula = partes.join(' | ');
@@ -946,6 +1343,172 @@ const ReativacaoBasePage = ({ tipo }) => {
         link.download = `${baseName}_callix.csv`;
         link.click();
         URL.revokeObjectURL(link.href);
+        
+        setIsLoading(false);
+        return;
+      }
+      
+      // Se for formato Sprinthub, transformar os dados para o formato específico
+      if (exportFormat === 'sprinthub') {
+        const sprinthubRows = rows.map(r => {
+          const clienteId = r.id_prime || r.prime_id || r.id_cliente || r.id_cliente_mestre || null;
+          const dadosPedidos = clienteId ? pedidosData[clienteId] : null;
+          
+          // Separar nome e sobrenome
+          const nomeCompleto = r.nome_completo || '';
+          const partesNome = nomeCompleto.trim().split(/\s+/);
+          const nome = partesNome[0] || '';
+          const sobrenome = partesNome.slice(1).join(' ') || '';
+          
+          // Título: prefixo + " | " + nome
+          const titulo = `${sprinthubTituloPrefix || ''} | ${nome}`.trim();
+          
+          // Valor: sempre do último pedido aprovado (não do orçamento)
+          // Se não tiver pedido aprovado, usar o orçamento como fallback
+          let valor = '';
+          if (dadosPedidos?.ultimoPedido?.valor_total) {
+            // Sempre usar valor do pedido aprovado
+            valor = parseFloat(dadosPedidos.ultimoPedido.valor_total).toFixed(2);
+          } else if (dadosPedidos?.ultimoOrcamento?.valor_total) {
+            // Fallback: usar orçamento apenas se não houver pedido aprovado
+            valor = parseFloat(dadosPedidos.ultimoOrcamento.valor_total).toFixed(2);
+          }
+          
+          // WhatsApp com DDI 55 (55 + DDD + número)
+          const telefoneRaw = r.whatsapp || r.telefone || '';
+          const telefone = telefoneRaw ? (() => {
+            let phoneStr = String(telefoneRaw).replace(/\D/g, ''); // Remove caracteres não numéricos
+            
+            // Se já começa com 55, manter
+            if (phoneStr.startsWith('55') && phoneStr.length > 2) {
+              return phoneStr;
+            }
+            
+            // Se não começa com 55, adicionar
+            // Formato: 55 + DDD (2 dígitos) + número (9 dígitos)
+            // Se o número já tem DDD, apenas adicionar 55
+            if (phoneStr.length >= 10) {
+              return '55' + phoneStr;
+            }
+            
+            // Se o número não tem DDD completo, tentar adicionar
+            // Assumindo que os primeiros 2 dígitos são o DDD
+            if (phoneStr.length >= 9) {
+              return '55' + phoneStr;
+            }
+            
+            // Se não conseguir determinar, retornar com 55
+            return '55' + phoneStr;
+          })() : '';
+          
+          // Email
+          const email = r.email || '';
+          
+          // Pedido: último pedido de forma resumida (igual ao Callix)
+          let pedido = '';
+          if (dadosPedidos) {
+            const partes = [];
+            
+            if (dadosPedidos.ultimoPedido) {
+              const pedidoObj = dadosPedidos.ultimoPedido;
+              const dataPedido = pedidoObj.data_criacao ? new Date(pedidoObj.data_criacao).toLocaleDateString('pt-BR') : '';
+              const valorPedido = pedidoObj.valor_total ? `R$ ${parseFloat(pedidoObj.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+              const statusPedido = pedidoObj.status_aprovacao || pedidoObj.status_geral || pedidoObj.status_entrega || '';
+              const codigoPedido = pedidoObj.codigo_orcamento_original || '';
+              
+              let pedidoStr = `Pedido ${codigoPedido ? `#${codigoPedido}` : ''} - ${dataPedido} - ${valorPedido} - ${statusPedido}`.trim();
+              
+              // Adicionar fórmulas se existirem (formato Opção 4: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR)
+              if (pedidoObj.formulas && pedidoObj.formulas.length > 0) {
+                const formulasFormatadas = pedidoObj.formulas.map(f => {
+                  const numFormula = f.numero_formula || '';
+                  const descricao = f.descricao || 'Sem descrição';
+                  const posologia = f.posologia || '';
+                  const valorFormula = f.valor_formula ? `R$ ${parseFloat(f.valor_formula).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+                  
+                  // Formato: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR
+                  let formulaStr = `F#${numFormula}: ${descricao}`;
+                  if (posologia) {
+                    formulaStr += ` - ${posologia}`;
+                  }
+                  if (valorFormula) {
+                    formulaStr += ` - ${valorFormula}`;
+                  }
+                  return formulaStr;
+                });
+                
+                pedidoStr += `\nFórmulas: ${formulasFormatadas.join(' | ')}`;
+              }
+              
+              partes.push(pedidoStr);
+            }
+            
+            if (dadosPedidos.ultimoOrcamento) {
+              const orcamento = dadosPedidos.ultimoOrcamento;
+              const dataOrcamento = orcamento.data_criacao ? new Date(orcamento.data_criacao).toLocaleDateString('pt-BR') : '';
+              const valorOrcamento = orcamento.valor_total ? `R$ ${parseFloat(orcamento.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+              const codigoOrcamento = orcamento.codigo_orcamento_original || '';
+              
+              let orcamentoStr = `Orçamento ${codigoOrcamento ? `#${codigoOrcamento}` : ''} - ${dataOrcamento} - ${valorOrcamento}`.trim();
+              
+              // Adicionar fórmulas se existirem (formato Opção 4: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR)
+              if (orcamento.formulas && orcamento.formulas.length > 0) {
+                const formulasFormatadas = orcamento.formulas.map(f => {
+                  const numFormula = f.numero_formula || '';
+                  const descricao = f.descricao || 'Sem descrição';
+                  const posologia = f.posologia || '';
+                  const valorFormula = f.valor_formula ? `R$ ${parseFloat(f.valor_formula).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+                  
+                  // Formato: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR
+                  let formulaStr = `F#${numFormula}: ${descricao}`;
+                  if (posologia) {
+                    formulaStr += ` - ${posologia}`;
+                  }
+                  if (valorFormula) {
+                    formulaStr += ` - ${valorFormula}`;
+                  }
+                  return formulaStr;
+                });
+                
+                orcamentoStr += `\nFórmulas: ${formulasFormatadas.join(' | ')}`;
+              }
+              
+              partes.push(orcamentoStr);
+            }
+            
+            pedido = partes.join(' | ');
+          }
+          
+          return {
+            etapa: sprinthubEtapa || '',
+            vendedor: sprinthubVendedor || '',
+            Valor: valor,
+            Titulo: titulo,
+            'Nome (Lead)': nome,
+            'Sobrenome (Lead)': sobrenome,
+            'WhatsApp (Lead)': telefone,
+            'Email (Lead)': email,
+            pedido: pedido
+          };
+        });
+        
+        // Criar arquivo Excel (.xlsx) no formato Sprinthub
+        const sprinthubHeaders = ['etapa', 'vendedor', 'Valor', 'Titulo', 'Nome (Lead)', 'Sobrenome (Lead)', 'WhatsApp (Lead)', 'Email (Lead)', 'pedido'];
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(sprinthubRows);
+        
+        // Ajustar largura das colunas
+        const colWidths = sprinthubHeaders.map((header, idx) => {
+          if (header === 'pedido') return { wch: 100 }; // Coluna pedido muito larga
+          if (header === 'Titulo' || header === 'Nome (Lead)' || header === 'Sobrenome (Lead)') return { wch: 25 };
+          if (header === 'Email (Lead)') return { wch: 30 };
+          if (header === 'WhatsApp (Lead)') return { wch: 15 };
+          return { wch: 12 };
+        });
+        ws['!cols'] = colWidths;
+        
+        XLSX.utils.book_append_sheet(wb, ws, 'Sprinthub');
+        XLSX.writeFile(wb, `${baseName}_sprinthub.xlsx`);
         
         setIsLoading(false);
         return;
@@ -1669,6 +2232,57 @@ const ReativacaoBasePage = ({ tipo }) => {
     }
   };
 
+  const loadClientExportHistory = async (leadId) => {
+    if (!leadId) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .schema('api')
+        .from('historico_exportacoes')
+        .select('*')
+        .eq('id_lead', leadId)
+        .order('data_exportacao', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Remover duplicatas exatas (mesmo id_lead, tag, motivo, observação e data similar)
+      // Agrupar por tag, motivo, observação e data (dentro de 1 segundo)
+      const uniqueExports = [];
+      const seen = new Set();
+      
+      (data || []).forEach(exp => {
+        // Criar chave única baseada em tag, motivo, observação e data (arredondada para segundo)
+        const dataExp = exp.data_exportacao ? new Date(exp.data_exportacao) : null;
+        const dataKey = dataExp ? Math.floor(dataExp.getTime() / 1000) : null;
+        const key = `${exp.tag_exportacao || ''}_${exp.motivo || ''}_${exp.observacao || ''}_${dataKey}`;
+        
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueExports.push(exp);
+        }
+      });
+      
+      return uniqueExports;
+    } catch (error) {
+      console.error('Erro ao carregar histórico de exportação:', error);
+      return [];
+    }
+  };
+
+  const handleExportIconClick = async (row) => {
+    const leadId = row.id || row.id_lead || row.id_cliente_mestre || row.id_prime || row.prime_id;
+    if (!leadId) return;
+    
+    setSelectedClientForHistory({
+      id: leadId,
+      nome: row.nome_completo || 'Sem nome'
+    });
+    
+    const history = await loadClientExportHistory(leadId);
+    setClientExportHistory(history);
+    setShowExportHistoryModal(true);
+  };
+
   const renderExportStatusIcon = (row) => {
     // Tentar vários campos possíveis para o ID
     const leadId = row.id || row.id_lead || row.id_cliente_mestre || row.id_prime || row.prime_id;
@@ -1682,6 +2296,10 @@ const ReativacaoBasePage = ({ tipo }) => {
     
     return (
       <span
+        onClick={(e) => {
+          e.stopPropagation();
+          handleExportIconClick(row);
+        }}
         style={{
           fontSize: '10px',
           fontWeight: 'bold',
@@ -1692,9 +2310,19 @@ const ReativacaoBasePage = ({ tipo }) => {
           display: 'inline-block',
           whiteSpace: 'nowrap',
           lineHeight: '1.2',
-          textAlign: 'center'
+          textAlign: 'center',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease'
         }}
-        title={`${exportHistory[leadIdStr].length} exportação(ões)`}
+        onMouseEnter={(e) => {
+          e.target.style.backgroundColor = '#86efac';
+          e.target.style.transform = 'scale(1.1)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.backgroundColor = '#dcfce7';
+          e.target.style.transform = 'scale(1)';
+        }}
+        title={`Clique para ver histórico de ${exportHistory[leadIdStr].length} exportação(ões)`}
       >
         EX
       </span>
@@ -1756,37 +2384,29 @@ const ReativacaoBasePage = ({ tipo }) => {
           </button>
           <button
             className="cc-btn cc-btn-small"
-            onClick={() => {
-              // Mostrar todas as colunas
-              setVisibleColumns({
-                exportado: isSupervisor,
-                duplicatas: isSupervisor,
-                nome: true,
-                email: true,
-                whatsapp: true,
-                cpf: true,
-                total_compras: true,
-                dias_ultima_compra: true,
-                origens: true,
-                cidade: true,
-      estado: true,
-                sexo: true,
-                data_nascimento: true,
-                qualidade: true
-              });
-            }}
+            onClick={() => setShowAllColumns(!showAllColumns)}
             style={{ 
-              backgroundColor: '#059669', 
+              backgroundColor: showAllColumns ? '#dc2626' : '#059669', 
               color: 'white',
               border: 'none',
-              padding: '6px 12px',
+              padding: '10px 20px',
               borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: '12px',
-              marginLeft: '8px'
+              fontSize: '15px',
+              fontWeight: '600',
+              boxShadow: showAllColumns ? '0 2px 8px rgba(220, 38, 38, 0.3)' : '0 2px 8px rgba(5, 150, 105, 0.3)',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = showAllColumns ? '#b91c1c' : '#047857';
+              e.target.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = showAllColumns ? '#dc2626' : '#059669';
+              e.target.style.transform = 'scale(1)';
             }}
           >
-            Mostrar Todas
+            {showAllColumns ? '🔼 Ocultar Colunas' : '🔽 Mostrar Todas'}
           </button>
         </div>
         
@@ -1932,7 +2552,7 @@ const ReativacaoBasePage = ({ tipo }) => {
     // Mostrar filtros para supervisor e vendedor
     if (!isSupervisor && !isVendedor) return null;
     
-    // Modo vendedor: mostrar apenas o filtro de tag de exportação
+    // Modo vendedor: mostrar o filtro de tag de exportação e campo de busca
     if (isVendedor && !isSupervisor) {
       return (
         <div className="cc-filters-bar">
@@ -1960,9 +2580,42 @@ const ReativacaoBasePage = ({ tipo }) => {
                 </button>
                 <button className="cc-btn cc-btn-small" onClick={() => {
                   setExportTagFilter('all');
+                  setSearchTerm('');
                   setCurrentPage(1);
                   loadData();
                 }}>Limpar</button>
+              </div>
+            </div>
+            {/* Barra de Pesquisa para vendedor */}
+            <div className="cc-filters-row" style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #334155' }}>
+              <div className="cc-filter-item" style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span style={{ whiteSpace: 'nowrap' }}>🔍 Buscar em todos os campos:</span>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder="Digite para buscar em Nome, Email, WhatsApp, Telefone, CPF, Cidade, Estado..."
+                  className="cc-input"
+                  style={{ 
+                    flex: 1, 
+                    minWidth: '300px',
+                    padding: '8px 12px',
+                    backgroundColor: '#1e293b',
+                    color: '#e0e7ff',
+                    border: '1px solid #475569',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      loadData();
+                    }
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -2394,17 +3047,28 @@ const ReativacaoBasePage = ({ tipo }) => {
       { 
         header: 'Período', 
         key: 'dias_ultima_compra', 
-        sortField: 'dias_sem_compra', 
-        field: 'dias_sem_compra',
+        sortField: 'dias_desde_ultima_compra', 
+        field: 'dias_desde_ultima_compra',
         render: (row) => {
-          // As views de reativação retornam 'dias_sem_compra', não 'dias_desde_ultima_compra'
-          const dias = row.dias_sem_compra || row.dias_desde_ultima_compra || row.dias_desde_ultima || row.dias_ultima_compra || null;
+          // As views de reativação retornam 'dias_desde_ultima_compra'
+          const dias = row.dias_desde_ultima_compra || row.dias_sem_compra || row.dias_desde_ultima || row.dias_ultima_compra || null;
           if (dias === null || dias === undefined || dias === '') return '-';
           const diasNum = parseInt(dias) || 0;
           return `${diasNum} dias`;
         }
       },
       { header: 'Origens', key: 'origens', render: (row) => renderOriginsBadges(row) },
+      { 
+        header: 'Cidade/Estado', 
+        key: 'cidade_estado', 
+        render: (row) => {
+          const cidade = row.cidade || '';
+          const estado = row.estado || '';
+          if (!cidade && !estado) return '-';
+          if (cidade && estado) return `${cidade}/${estado}`;
+          return cidade || estado;
+        }
+      },
       { header: 'Cidade', key: 'cidade', sortField: 'cidade', field: 'cidade', render: (row) => row.cidade || '-' },
       { header: 'Estado', key: 'estado', sortField: 'estado', field: 'estado', render: (row) => row.estado || '-' },
       { header: 'Sexo', key: 'sexo', render: (row) => formatSexo(row.sexo) },
@@ -2432,6 +3096,7 @@ const ReativacaoBasePage = ({ tipo }) => {
         total_compras: 50,
         dias_ultima_compra: 50,
         origens: 40,
+        cidade_estado: 80, // Coluna combinada
         cidade: 50,
         estado: 50,
         sexo: 50,
@@ -2747,6 +3412,7 @@ const ReativacaoBasePage = ({ tipo }) => {
                   <option value="excel">Excel (.xls)</option>
                   <option value="xlsx">XLSX</option>
                   <option value="callix">Callix</option>
+                  <option value="sprinthub">Sprinthub</option>
                   <option value="json">JSON</option>
                 </select>
                 <button 
@@ -2780,6 +3446,35 @@ const ReativacaoBasePage = ({ tipo }) => {
           
           {/* Filtros */}
           {renderFiltersBar()}
+          
+          {/* Botão Mostrar Todas (sempre visível) */}
+          <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              onClick={() => setShowAllColumns(!showAllColumns)}
+              style={{ 
+                backgroundColor: showAllColumns ? '#dc2626' : '#059669', 
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                boxShadow: showAllColumns ? '0 2px 8px rgba(220, 38, 38, 0.3)' : '0 2px 8px rgba(5, 150, 105, 0.3)',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = showAllColumns ? '#b91c1c' : '#047857';
+                e.target.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = showAllColumns ? '#dc2626' : '#059669';
+                e.target.style.transform = 'scale(1)';
+              }}
+            >
+              {showAllColumns ? '🔼 Ocultar Colunas' : '🔽 Mostrar Todas'}
+            </button>
+          </div>
           
           {/* Seletor de Colunas */}
           {renderColumnSelector()}
@@ -2826,20 +3521,67 @@ const ReativacaoBasePage = ({ tipo }) => {
                   rows={3}
                 />
               </div>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={exportWithCountryCode}
-                    onChange={(e) => setExportWithCountryCode(e.target.checked)}
-                    style={{ cursor: 'pointer' }}
-                  />
-                  <span>Adicionar código do país (55) nos telefones</span>
-                </label>
-                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px', marginLeft: '24px' }}>
-                  Exemplo: 6984383079 → 556984383079
+              {exportFormat !== 'sprinthub' && (
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={exportWithCountryCode}
+                      onChange={(e) => setExportWithCountryCode(e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>Adicionar código do país (55) nos telefones</span>
+                  </label>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px', marginLeft: '24px' }}>
+                    Exemplo: 6984383079 → 556984383079
+                  </div>
                 </div>
-              </div>
+              )}
+              
+              {/* Campos específicos para Sprinthub */}
+              {exportFormat === 'sprinthub' && (
+                <>
+                  <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155' }}>
+                    <h4 style={{ marginTop: 0, marginBottom: '12px', color: '#e0e7ff' }}>Configurações Sprinthub</h4>
+                    <div style={{ marginBottom: '12px' }}>
+                      <label style={{ display: 'block', marginBottom: '4px', color: '#cbd5e1' }}>Etapa:</label>
+                      <input 
+                        type="number" 
+                        value={sprinthubEtapa} 
+                        onChange={(e) => setSprinthubEtapa(e.target.value)}
+                        placeholder="167"
+                        className="cc-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div style={{ marginBottom: '12px' }}>
+                      <label style={{ display: 'block', marginBottom: '4px', color: '#cbd5e1' }}>ID do Vendedor:</label>
+                      <input 
+                        type="number" 
+                        value={sprinthubVendedor} 
+                        onChange={(e) => setSprinthubVendedor(e.target.value)}
+                        placeholder="229"
+                        className="cc-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div style={{ marginBottom: '12px' }}>
+                      <label style={{ display: 'block', marginBottom: '4px', color: '#cbd5e1' }}>Prefixo do Título:</label>
+                      <input 
+                        type="text" 
+                        value={sprinthubTituloPrefix} 
+                        onChange={(e) => setSprinthubTituloPrefix(e.target.value)}
+                        placeholder="MONITORAMENTO 28-7 05-8"
+                        className="cc-input"
+                        style={{ width: '100%' }}
+                      />
+                      <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+                        O título será: "{sprinthubTituloPrefix || 'PREFIXO'} | {'{nome do lead}'}"
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <button className="cc-btn" onClick={() => setShowExportModal(false)}>Cancelar</button>
                 <button className="cc-btn cc-btn-primary" onClick={handleExportConfirm}>Exportar</button>
@@ -3005,6 +3747,98 @@ const ReativacaoBasePage = ({ tipo }) => {
                   onClick={() => { setShowNameModal(false); setSelectedClientForName(null); setEditFields(null); }}
                 >
                   Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Histórico de Exportação */}
+        {showExportHistoryModal && selectedClientForHistory && (
+          <div className="cc-modal-overlay" onClick={() => setShowExportHistoryModal(false)}>
+            <div className="cc-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px', width: '90%' }}>
+              <div className="cc-modal-header">
+                <h3>Histórico de Exportação</h3>
+                <button
+                  className="cc-btn-close"
+                  onClick={() => setShowExportHistoryModal(false)}
+                  style={{ background: 'transparent', border: 'none', color: '#e0e7ff', cursor: 'pointer', fontSize: '24px', padding: '0', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="cc-modal-content" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+                <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155' }}>
+                  <strong style={{ color: '#e0e7ff' }}>Cliente:</strong>
+                  <span style={{ color: '#cbd5e1', marginLeft: '8px' }}>{selectedClientForHistory.nome || 'Sem nome'}</span>
+                  <br />
+                  <strong style={{ color: '#e0e7ff' }}>ID:</strong>
+                  <span style={{ color: '#cbd5e1', marginLeft: '8px' }}>{selectedClientForHistory.id}</span>
+                </div>
+                
+                {clientExportHistory.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                    Nenhuma exportação encontrada para este cliente.
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#1e293b', borderBottom: '2px solid #334155' }}>
+                          <th style={{ padding: '10px', textAlign: 'left', color: '#e0e7ff', fontWeight: 'bold' }}>Data</th>
+                          <th style={{ padding: '10px', textAlign: 'left', color: '#e0e7ff', fontWeight: 'bold' }}>Motivo</th>
+                          <th style={{ padding: '10px', textAlign: 'left', color: '#e0e7ff', fontWeight: 'bold' }}>Tag</th>
+                          <th style={{ padding: '10px', textAlign: 'left', color: '#e0e7ff', fontWeight: 'bold' }}>Observação</th>
+                          <th style={{ padding: '10px', textAlign: 'left', color: '#e0e7ff', fontWeight: 'bold' }}>Usuário</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {clientExportHistory.map((exp, idx) => (
+                          <tr key={exp.id || idx} style={{ borderBottom: '1px solid #334155', backgroundColor: idx % 2 === 0 ? '#0f172a' : '#1e293b' }}>
+                            <td style={{ padding: '10px', color: '#cbd5e1' }}>
+                              {exp.data_exportacao 
+                                ? new Date(exp.data_exportacao).toLocaleString('pt-BR', {
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })
+                                : '-'}
+                            </td>
+                            <td style={{ padding: '10px', color: '#cbd5e1' }}>{exp.motivo || '-'}</td>
+                            <td style={{ padding: '10px', color: '#cbd5e1' }}>
+                              {exp.tag_exportacao ? (
+                                <span style={{ 
+                                  backgroundColor: '#22c55e', 
+                                  color: '#fff', 
+                                  padding: '2px 8px', 
+                                  borderRadius: '4px',
+                                  fontSize: '11px',
+                                  fontWeight: 'bold'
+                                }}>
+                                  {exp.tag_exportacao}
+                                </span>
+                              ) : '-'}
+                            </td>
+                            <td style={{ padding: '10px', color: '#cbd5e1', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} 
+                                title={exp.observacao || ''}>
+                              {exp.observacao || '-'}
+                            </td>
+                            <td style={{ padding: '10px', color: '#cbd5e1' }}>{exp.usuario_id || '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+              <div className="cc-modal-actions">
+                <button
+                  className="cc-btn"
+                  onClick={() => setShowExportHistoryModal(false)}
+                >
+                  Fechar
                 </button>
               </div>
             </div>

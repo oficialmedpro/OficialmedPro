@@ -55,6 +55,16 @@ const MonitoramentoBasePage = ({ tipo }) => {
   const [availableExportTags, setAvailableExportTags] = useState([]); // Tags disponíveis para filtro
   const [currentLanguage, setCurrentLanguage] = useState('pt-BR');
   
+  // Estados específicos para exportação Sprinthub
+  const [sprinthubEtapa, setSprinthubEtapa] = useState('167'); // Etapa padrão
+  const [sprinthubVendedor, setSprinthubVendedor] = useState('229'); // ID do vendedor padrão
+  const [sprinthubTituloPrefix, setSprinthubTituloPrefix] = useState('MONITORAMENTO 28-7 05-8'); // Prefixo do título
+  
+  // Estado para modal de histórico de exportação
+  const [showExportHistoryModal, setShowExportHistoryModal] = useState(false);
+  const [selectedClientForHistory, setSelectedClientForHistory] = useState(null);
+  const [clientExportHistory, setClientExportHistory] = useState([]);
+  
   const t = translations[currentLanguage] || {};
   
   // Estados de filtros
@@ -77,30 +87,105 @@ const MonitoramentoBasePage = ({ tipo }) => {
   const [dataInicio, setDataInicio] = useState(''); // Data início para filtro
   const [dataFim, setDataFim] = useState(''); // Data fim para filtro
   
-  // Estado para ocultar/mostrar colunas (inicializado baseado no tipo de usuário)
+  // Estado para controlar se mostra todas as colunas ou apenas as padrão
+  const [showAllColumns, setShowAllColumns] = useState(false);
+  
+  // Função para detectar se é mobile
+  const isMobileDevice = () => {
+    return window.innerWidth <= 768;
+  };
+  
+  // Estado para ocultar/mostrar colunas (inicializado baseado no tipo de usuário e dispositivo)
   const [visibleColumns, setVisibleColumns] = useState(() => {
     const userTypeName = localStorage.getItem('monitoramento_userData') 
       ? JSON.parse(localStorage.getItem('monitoramento_userData'))?.userTypeName?.toLowerCase() || ''
       : '';
     const isSupervisor = ['supervisor', 'adminfranquiadora', 'adminfranquia', 'adminunidade'].includes(userTypeName);
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
     
+    // Se for mobile: nome, whatsapp, pedidos, periodo, cidade_estado
+    // Se for desktop: nome, whatsapp, pedidos, periodo, email, cpf, cidade_estado, nota
     return {
-      exportado: isSupervisor, // Apenas supervisor
-      duplicatas: isSupervisor, // Apenas supervisor
+      exportado: isSupervisor && showAllColumns, // Apenas supervisor e quando mostra todas
+      duplicatas: isSupervisor && showAllColumns, // Apenas supervisor e quando mostra todas
       nome: true,
-      email: true,
+      email: isMobile ? false : true, // Desktop mostra, mobile não (padrão)
       whatsapp: true,
-      cpf: true,
+      cpf: isMobile ? false : true, // Desktop mostra, mobile não (padrão)
       total_compras: true,
       dias_ultima_compra: true,
-      origens: true,
-      cidade: true,
-      estado: true,
-      sexo: true,
-      data_nascimento: true,
-      qualidade: true
+      origens: showAllColumns, // Só mostra quando clicar em "Mostrar Todas"
+      cidade_estado: true, // Coluna combinada (sempre visível)
+      cidade: false, // Coluna separada (só quando mostra todas)
+      estado: false, // Coluna separada (só quando mostra todas)
+      sexo: showAllColumns, // Só mostra quando clicar em "Mostrar Todas"
+      data_nascimento: showAllColumns, // Só mostra quando clicar em "Mostrar Todas"
+      qualidade: isMobile ? false : true // Desktop mostra, mobile não (padrão)
     };
   });
+  
+  // Atualizar colunas quando showAllColumns mudar ou quando redimensionar a tela
+  useEffect(() => {
+    const updateColumns = () => {
+      const userTypeName = localStorage.getItem('monitoramento_userData') 
+        ? JSON.parse(localStorage.getItem('monitoramento_userData'))?.userTypeName?.toLowerCase() || ''
+        : '';
+      const isSupervisor = ['supervisor', 'adminfranquiadora', 'adminfranquia', 'adminunidade'].includes(userTypeName);
+      const isMobile = window.innerWidth <= 768;
+      
+      if (showAllColumns) {
+        // Mostrar todas as colunas
+        setVisibleColumns({
+          exportado: isSupervisor,
+          duplicatas: isSupervisor,
+          nome: true,
+          email: true,
+          whatsapp: true,
+          cpf: true,
+          total_compras: true,
+          dias_ultima_compra: true,
+          origens: true,
+          cidade_estado: false, // Esconder coluna combinada quando mostra todas
+          cidade: true, // Mostrar coluna separada
+          estado: true, // Mostrar coluna separada
+          sexo: true,
+          data_nascimento: true,
+          qualidade: true
+        });
+      } else {
+        // Mostrar apenas colunas padrão
+        setVisibleColumns({
+          exportado: false,
+          duplicatas: false,
+          nome: true,
+          email: isMobile ? false : true,
+          whatsapp: true,
+          cpf: isMobile ? false : true,
+          total_compras: true,
+          dias_ultima_compra: true,
+          origens: false,
+          cidade_estado: true, // Mostrar coluna combinada
+          cidade: false,
+          estado: false,
+          sexo: false,
+          data_nascimento: false,
+          qualidade: isMobile ? false : true
+        });
+      }
+    };
+    
+    updateColumns();
+    
+    // Adicionar listener para redimensionamento da janela
+    const handleResize = () => {
+      if (!showAllColumns) {
+        updateColumns();
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [showAllColumns]);
   
   // Estados adicionais necessários
   const [showFilters, setShowFilters] = useState(true);
@@ -680,9 +765,28 @@ const MonitoramentoBasePage = ({ tipo }) => {
         const { data: allPedidos, error: pedidosError } = await supabase
           .schema('api')
           .from('prime_pedidos')
-          .select('id, cliente_id, valor_total, data_criacao, data_aprovacao, data_entrega, status_aprovacao, status_geral, status_entrega, codigo_orcamento_original')
+          .select('id, cliente_id, valor_total, data_criacao, data_aprovacao, data_entrega, status_aprovacao, status_geral, status_entrega, codigo_orcamento_original, id_orcamento')
           .in('cliente_id', clientIds)
           .order('data_criacao', { ascending: false });
+        
+        // Buscar fórmulas para todos os pedidos/orçamentos
+        const pedidoIds = allPedidos?.map(p => p.id).filter(Boolean) || [];
+        const orcamentoIds = allPedidos?.map(p => p.id_orcamento).filter(Boolean) || [];
+        const allIds = [...new Set([...pedidoIds, ...orcamentoIds])];
+        
+        let allFormulas = [];
+        if (allIds.length > 0) {
+          const { data: formulasData, error: formulasError } = await supabase
+            .schema('api')
+            .from('prime_formulas')
+            .select('id_pedido, id_orcamento, numero_formula, descricao, posologia, valor_formula')
+            .in('id_pedido', allIds)
+            .or(`id_orcamento.in.(${allIds.join(',')})`);
+          
+          if (!formulasError && formulasData) {
+            allFormulas = formulasData;
+          }
+        }
         
         if (!pedidosError && allPedidos) {
           // Organizar por cliente
@@ -706,9 +810,17 @@ const MonitoramentoBasePage = ({ tipo }) => {
             // Se não tem pedido, usar o último orçamento como referência
             const referencia = ultimoPedido || ultimoOrcamento;
             
+            // Buscar fórmulas para o último pedido e orçamento
+            const formulasPedido = ultimoPedido ? allFormulas.filter(f => 
+              f.id_pedido === ultimoPedido.id || f.id_orcamento === ultimoPedido.id_orcamento
+            ) : [];
+            const formulasOrcamento = ultimoOrcamento ? allFormulas.filter(f => 
+              f.id_pedido === ultimoOrcamento.id || f.id_orcamento === ultimoOrcamento.id_orcamento
+            ) : [];
+            
             pedidosData[clienteId] = {
-              ultimoPedido,
-              ultimoOrcamento,
+              ultimoPedido: ultimoPedido ? { ...ultimoPedido, formulas: formulasPedido } : null,
+              ultimoOrcamento: ultimoOrcamento ? { ...ultimoOrcamento, formulas: formulasOrcamento } : null,
               referencia // Último pedido ou orçamento (o que existir)
             };
           });
@@ -874,6 +986,8 @@ const MonitoramentoBasePage = ({ tipo }) => {
           }
           
           // Telefone SEM código 55 para Callix (remover 55 se existir)
+          // Formato esperado: DDD + 9 dígitos (total 11 dígitos)
+          // Se tiver apenas 8 dígitos após o DDD, adicionar "9" antes dos 8 dígitos
           const telefoneRaw = r.whatsapp || r.telefone || '';
           const telefone = telefoneRaw ? (() => {
             let phoneStr = String(telefoneRaw).replace(/\D/g, '');
@@ -881,6 +995,19 @@ const MonitoramentoBasePage = ({ tipo }) => {
             if (phoneStr.startsWith('55') && phoneStr.length > 2) {
               phoneStr = phoneStr.substring(2);
             }
+            
+            // Se tiver pelo menos 2 dígitos (DDD), verificar se precisa adicionar o 9
+            if (phoneStr.length >= 2) {
+              const ddd = phoneStr.substring(0, 2); // Primeiros 2 dígitos são o DDD
+              const numero = phoneStr.substring(2); // Resto do número
+              
+              // Se o número tiver exatamente 8 dígitos, adicionar "9" antes deles
+              if (numero.length === 8) {
+                phoneStr = ddd + '9' + numero; // DDD + 9 + 8 dígitos = 11 dígitos total
+              }
+              // Se já tiver 9 dígitos, manter como está (DDD + 9 dígitos = 11 dígitos total)
+            }
+            
             return phoneStr;
           })() : '';
           
@@ -894,26 +1021,81 @@ const MonitoramentoBasePage = ({ tipo }) => {
             dataCompra = `${dd}-${mm}-${yyyy}`;
           }
           
-          // Formula: Pedido e orçamento resumidos juntos
+          // Formula: Pedido e orçamento resumidos juntos (com fórmulas - formato Opção 4)
+          // IMPORTANTE: Sempre mostrar pedido aprovado primeiro, depois orçamento
+          // O valor sempre vem do pedido aprovado (não do orçamento)
           let formula = '';
           if (dadosPedidos) {
             const partes = [];
             
+            // Sempre mostrar pedido aprovado primeiro (se existir)
             if (dadosPedidos.ultimoPedido) {
-              const pedido = dadosPedidos.ultimoPedido;
-              const dataPedido = pedido.data_criacao ? new Date(pedido.data_criacao).toLocaleDateString('pt-BR') : '';
-              const valorPedido = pedido.valor_total ? `R$ ${parseFloat(pedido.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
-              const statusPedido = pedido.status_aprovacao || pedido.status_geral || pedido.status_entrega || '';
-              const codigoPedido = pedido.codigo_orcamento_original || '';
-              partes.push(`Pedido ${codigoPedido ? `#${codigoPedido}` : ''} - ${dataPedido} - ${valorPedido} - ${statusPedido}`.trim());
+              const pedidoObj = dadosPedidos.ultimoPedido;
+              const dataPedido = pedidoObj.data_criacao ? new Date(pedidoObj.data_criacao).toLocaleDateString('pt-BR') : '';
+              const valorPedido = pedidoObj.valor_total ? `R$ ${parseFloat(pedidoObj.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+              const statusPedido = pedidoObj.status_aprovacao || pedidoObj.status_geral || pedidoObj.status_entrega || '';
+              const codigoPedido = pedidoObj.codigo_orcamento_original || '';
+              
+              let pedidoStr = `Pedido ${codigoPedido ? `#${codigoPedido}` : ''} - ${dataPedido} - ${valorPedido} - ${statusPedido}`.trim();
+              
+              // Adicionar fórmulas se existirem (formato Opção 4: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR)
+              if (pedidoObj.formulas && pedidoObj.formulas.length > 0) {
+                const formulasFormatadas = pedidoObj.formulas.map(f => {
+                  const numFormula = f.numero_formula || '';
+                  const descricao = f.descricao || 'Sem descrição';
+                  const posologia = f.posologia || '';
+                  const valorFormula = f.valor_formula ? `R$ ${parseFloat(f.valor_formula).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+                  
+                  // Formato: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR
+                  let formulaStr = `F#${numFormula}: ${descricao}`;
+                  if (posologia) {
+                    formulaStr += ` - ${posologia}`;
+                  }
+                  if (valorFormula) {
+                    formulaStr += ` - ${valorFormula}`;
+                  }
+                  return formulaStr;
+                });
+                
+                pedidoStr += `\nFórmulas: ${formulasFormatadas.join(' | ')}`;
+              }
+              
+              partes.push(pedidoStr);
             }
             
+            // Depois mostrar orçamento (se existir e não for o mesmo que o pedido)
+            // Orçamento pode aparecer depois do pedido, mas o valor sempre vem do pedido aprovado
             if (dadosPedidos.ultimoOrcamento) {
               const orcamento = dadosPedidos.ultimoOrcamento;
               const dataOrcamento = orcamento.data_criacao ? new Date(orcamento.data_criacao).toLocaleDateString('pt-BR') : '';
               const valorOrcamento = orcamento.valor_total ? `R$ ${parseFloat(orcamento.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
               const codigoOrcamento = orcamento.codigo_orcamento_original || '';
-              partes.push(`Orçamento ${codigoOrcamento ? `#${codigoOrcamento}` : ''} - ${dataOrcamento} - ${valorOrcamento}`.trim());
+              
+              let orcamentoStr = `Orçamento ${codigoOrcamento ? `#${codigoOrcamento}` : ''} - ${dataOrcamento} - ${valorOrcamento}`.trim();
+              
+              // Adicionar fórmulas se existirem (formato Opção 4: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR)
+              if (orcamento.formulas && orcamento.formulas.length > 0) {
+                const formulasFormatadas = orcamento.formulas.map(f => {
+                  const numFormula = f.numero_formula || '';
+                  const descricao = f.descricao || 'Sem descrição';
+                  const posologia = f.posologia || '';
+                  const valorFormula = f.valor_formula ? `R$ ${parseFloat(f.valor_formula).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+                  
+                  // Formato: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR
+                  let formulaStr = `F#${numFormula}: ${descricao}`;
+                  if (posologia) {
+                    formulaStr += ` - ${posologia}`;
+                  }
+                  if (valorFormula) {
+                    formulaStr += ` - ${valorFormula}`;
+                  }
+                  return formulaStr;
+                });
+                
+                orcamentoStr += `\nFórmulas: ${formulasFormatadas.join(' | ')}`;
+              }
+              
+              partes.push(orcamentoStr);
             }
             
             formula = partes.join(' | ');
@@ -959,6 +1141,172 @@ const MonitoramentoBasePage = ({ tipo }) => {
         link.download = `${baseName}_callix.csv`;
         link.click();
         URL.revokeObjectURL(link.href);
+        
+        setIsLoading(false);
+        return;
+      }
+      
+      // Se for formato Sprinthub, transformar os dados para o formato específico
+      if (exportFormat === 'sprinthub') {
+        const sprinthubRows = rows.map(r => {
+          const clienteId = r.id_prime || r.prime_id || r.id_cliente || r.id_cliente_mestre || null;
+          const dadosPedidos = clienteId ? pedidosData[clienteId] : null;
+          
+          // Separar nome e sobrenome
+          const nomeCompleto = r.nome_completo || '';
+          const partesNome = nomeCompleto.trim().split(/\s+/);
+          const nome = partesNome[0] || '';
+          const sobrenome = partesNome.slice(1).join(' ') || '';
+          
+          // Título: prefixo + " | " + nome
+          const titulo = `${sprinthubTituloPrefix || ''} | ${nome}`.trim();
+          
+          // Valor: sempre do último pedido aprovado (não do orçamento)
+          // Se não tiver pedido aprovado, usar o orçamento como fallback
+          let valor = '';
+          if (dadosPedidos?.ultimoPedido?.valor_total) {
+            // Sempre usar valor do pedido aprovado
+            valor = parseFloat(dadosPedidos.ultimoPedido.valor_total).toFixed(2);
+          } else if (dadosPedidos?.ultimoOrcamento?.valor_total) {
+            // Fallback: usar orçamento apenas se não houver pedido aprovado
+            valor = parseFloat(dadosPedidos.ultimoOrcamento.valor_total).toFixed(2);
+          }
+          
+          // WhatsApp com DDI 55 (55 + DDD + número)
+          const telefoneRaw = r.whatsapp || r.telefone || '';
+          const telefone = telefoneRaw ? (() => {
+            let phoneStr = String(telefoneRaw).replace(/\D/g, ''); // Remove caracteres não numéricos
+            
+            // Se já começa com 55, manter
+            if (phoneStr.startsWith('55') && phoneStr.length > 2) {
+              return phoneStr;
+            }
+            
+            // Se não começa com 55, adicionar
+            // Formato: 55 + DDD (2 dígitos) + número (9 dígitos)
+            // Se o número já tem DDD, apenas adicionar 55
+            if (phoneStr.length >= 10) {
+              return '55' + phoneStr;
+            }
+            
+            // Se o número não tem DDD completo, tentar adicionar
+            // Assumindo que os primeiros 2 dígitos são o DDD
+            if (phoneStr.length >= 9) {
+              return '55' + phoneStr;
+            }
+            
+            // Se não conseguir determinar, retornar com 55
+            return '55' + phoneStr;
+          })() : '';
+          
+          // Email
+          const email = r.email || '';
+          
+          // Pedido: último pedido de forma resumida (igual ao Callix)
+          let pedido = '';
+          if (dadosPedidos) {
+            const partes = [];
+            
+            if (dadosPedidos.ultimoPedido) {
+              const pedidoObj = dadosPedidos.ultimoPedido;
+              const dataPedido = pedidoObj.data_criacao ? new Date(pedidoObj.data_criacao).toLocaleDateString('pt-BR') : '';
+              const valorPedido = pedidoObj.valor_total ? `R$ ${parseFloat(pedidoObj.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+              const statusPedido = pedidoObj.status_aprovacao || pedidoObj.status_geral || pedidoObj.status_entrega || '';
+              const codigoPedido = pedidoObj.codigo_orcamento_original || '';
+              
+              let pedidoStr = `Pedido ${codigoPedido ? `#${codigoPedido}` : ''} - ${dataPedido} - ${valorPedido} - ${statusPedido}`.trim();
+              
+              // Adicionar fórmulas se existirem (formato Opção 4: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR)
+              if (pedidoObj.formulas && pedidoObj.formulas.length > 0) {
+                const formulasFormatadas = pedidoObj.formulas.map(f => {
+                  const numFormula = f.numero_formula || '';
+                  const descricao = f.descricao || 'Sem descrição';
+                  const posologia = f.posologia || '';
+                  const valorFormula = f.valor_formula ? `R$ ${parseFloat(f.valor_formula).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+                  
+                  // Formato: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR
+                  let formulaStr = `F#${numFormula}: ${descricao}`;
+                  if (posologia) {
+                    formulaStr += ` - ${posologia}`;
+                  }
+                  if (valorFormula) {
+                    formulaStr += ` - ${valorFormula}`;
+                  }
+                  return formulaStr;
+                });
+                
+                pedidoStr += `\nFórmulas: ${formulasFormatadas.join(' | ')}`;
+              }
+              
+              partes.push(pedidoStr);
+            }
+            
+            if (dadosPedidos.ultimoOrcamento) {
+              const orcamento = dadosPedidos.ultimoOrcamento;
+              const dataOrcamento = orcamento.data_criacao ? new Date(orcamento.data_criacao).toLocaleDateString('pt-BR') : '';
+              const valorOrcamento = orcamento.valor_total ? `R$ ${parseFloat(orcamento.valor_total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+              const codigoOrcamento = orcamento.codigo_orcamento_original || '';
+              
+              let orcamentoStr = `Orçamento ${codigoOrcamento ? `#${codigoOrcamento}` : ''} - ${dataOrcamento} - ${valorOrcamento}`.trim();
+              
+              // Adicionar fórmulas se existirem (formato Opção 4: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR)
+              if (orcamento.formulas && orcamento.formulas.length > 0) {
+                const formulasFormatadas = orcamento.formulas.map(f => {
+                  const numFormula = f.numero_formula || '';
+                  const descricao = f.descricao || 'Sem descrição';
+                  const posologia = f.posologia || '';
+                  const valorFormula = f.valor_formula ? `R$ ${parseFloat(f.valor_formula).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}` : '';
+                  
+                  // Formato: F#1: DESCRIÇÃO - POSOLOGIA - R$ VALOR
+                  let formulaStr = `F#${numFormula}: ${descricao}`;
+                  if (posologia) {
+                    formulaStr += ` - ${posologia}`;
+                  }
+                  if (valorFormula) {
+                    formulaStr += ` - ${valorFormula}`;
+                  }
+                  return formulaStr;
+                });
+                
+                orcamentoStr += `\nFórmulas: ${formulasFormatadas.join(' | ')}`;
+              }
+              
+              partes.push(orcamentoStr);
+            }
+            
+            pedido = partes.join(' | ');
+          }
+          
+          return {
+            etapa: sprinthubEtapa || '',
+            vendedor: sprinthubVendedor || '',
+            Valor: valor,
+            Titulo: titulo,
+            'Nome (Lead)': nome,
+            'Sobrenome (Lead)': sobrenome,
+            'WhatsApp (Lead)': telefone,
+            'Email (Lead)': email,
+            pedido: pedido
+          };
+        });
+        
+        // Criar arquivo Excel (.xlsx) no formato Sprinthub
+        const sprinthubHeaders = ['etapa', 'vendedor', 'Valor', 'Titulo', 'Nome (Lead)', 'Sobrenome (Lead)', 'WhatsApp (Lead)', 'Email (Lead)', 'pedido'];
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(sprinthubRows);
+        
+        // Ajustar largura das colunas
+        const colWidths = sprinthubHeaders.map((header, idx) => {
+          if (header === 'pedido') return { wch: 100 }; // Coluna pedido muito larga
+          if (header === 'Titulo' || header === 'Nome (Lead)' || header === 'Sobrenome (Lead)') return { wch: 25 };
+          if (header === 'Email (Lead)') return { wch: 30 };
+          if (header === 'WhatsApp (Lead)') return { wch: 15 };
+          return { wch: 12 };
+        });
+        ws['!cols'] = colWidths;
+        
+        XLSX.utils.book_append_sheet(wb, ws, 'Sprinthub');
+        XLSX.writeFile(wb, `${baseName}_sprinthub.xlsx`);
         
         setIsLoading(false);
         return;
@@ -1682,6 +2030,57 @@ const MonitoramentoBasePage = ({ tipo }) => {
     }
   };
 
+  const loadClientExportHistory = async (leadId) => {
+    if (!leadId) return [];
+    
+    try {
+      const { data, error } = await supabase
+        .schema('api')
+        .from('historico_exportacoes')
+        .select('*')
+        .eq('id_lead', leadId)
+        .order('data_exportacao', { ascending: false });
+      
+      if (error) throw error;
+      
+      // Remover duplicatas exatas (mesmo id_lead, tag, motivo, observação e data similar)
+      // Agrupar por tag, motivo, observação e data (dentro de 1 segundo)
+      const uniqueExports = [];
+      const seen = new Set();
+      
+      (data || []).forEach(exp => {
+        // Criar chave única baseada em tag, motivo, observação e data (arredondada para segundo)
+        const dataExp = exp.data_exportacao ? new Date(exp.data_exportacao) : null;
+        const dataKey = dataExp ? Math.floor(dataExp.getTime() / 1000) : null;
+        const key = `${exp.tag_exportacao || ''}_${exp.motivo || ''}_${exp.observacao || ''}_${dataKey}`;
+        
+        if (!seen.has(key)) {
+          seen.add(key);
+          uniqueExports.push(exp);
+        }
+      });
+      
+      return uniqueExports;
+    } catch (error) {
+      console.error('Erro ao carregar histórico de exportação:', error);
+      return [];
+    }
+  };
+
+  const handleExportIconClick = async (row) => {
+    const leadId = row.id || row.id_lead || row.id_cliente_mestre || row.id_prime || row.prime_id;
+    if (!leadId) return;
+    
+    setSelectedClientForHistory({
+      id: leadId,
+      nome: row.nome_completo || 'Sem nome'
+    });
+    
+    const history = await loadClientExportHistory(leadId);
+    setClientExportHistory(history);
+    setShowExportHistoryModal(true);
+  };
+
   const renderExportStatusIcon = (row) => {
     // Tentar vários campos possíveis para o ID
     const leadId = row.id || row.id_lead || row.id_cliente_mestre || row.id_prime || row.prime_id;
@@ -1695,6 +2094,10 @@ const MonitoramentoBasePage = ({ tipo }) => {
     
     return (
       <span
+        onClick={(e) => {
+          e.stopPropagation();
+          handleExportIconClick(row);
+        }}
         style={{
           fontSize: '10px',
           fontWeight: 'bold',
@@ -1705,9 +2108,19 @@ const MonitoramentoBasePage = ({ tipo }) => {
           display: 'inline-block',
           whiteSpace: 'nowrap',
           lineHeight: '1.2',
-          textAlign: 'center'
+          textAlign: 'center',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease'
         }}
-        title={`${exportHistory[leadIdStr].length} exportação(ões)`}
+        onMouseEnter={(e) => {
+          e.target.style.backgroundColor = '#86efac';
+          e.target.style.transform = 'scale(1.1)';
+        }}
+        onMouseLeave={(e) => {
+          e.target.style.backgroundColor = '#dcfce7';
+          e.target.style.transform = 'scale(1)';
+        }}
+        title={`Clique para ver histórico de ${exportHistory[leadIdStr].length} exportação(ões)`}
       >
         EX
       </span>
@@ -1769,37 +2182,29 @@ const MonitoramentoBasePage = ({ tipo }) => {
           </button>
           <button
             className="cc-btn cc-btn-small"
-            onClick={() => {
-              // Mostrar todas as colunas
-              setVisibleColumns({
-                exportado: isSupervisor,
-                duplicatas: isSupervisor,
-                nome: true,
-                email: true,
-                whatsapp: true,
-                cpf: true,
-                total_compras: true,
-                dias_ultima_compra: true,
-                origens: true,
-                cidade: true,
-      estado: true,
-                sexo: true,
-                data_nascimento: true,
-                qualidade: true
-              });
-            }}
+            onClick={() => setShowAllColumns(!showAllColumns)}
             style={{ 
-              backgroundColor: '#059669', 
+              backgroundColor: showAllColumns ? '#dc2626' : '#059669', 
               color: 'white',
               border: 'none',
-              padding: '6px 12px',
+              padding: '10px 20px',
               borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: '12px',
-              marginLeft: '8px'
+              fontSize: '15px',
+              fontWeight: '600',
+              boxShadow: showAllColumns ? '0 2px 8px rgba(220, 38, 38, 0.3)' : '0 2px 8px rgba(5, 150, 105, 0.3)',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = showAllColumns ? '#b91c1c' : '#047857';
+              e.target.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = showAllColumns ? '#dc2626' : '#059669';
+              e.target.style.transform = 'scale(1)';
             }}
           >
-            Mostrar Todas
+            {showAllColumns ? '🔼 Ocultar Colunas' : '🔽 Mostrar Todas'}
           </button>
         </div>
         
@@ -1945,7 +2350,7 @@ const MonitoramentoBasePage = ({ tipo }) => {
     // Mostrar filtros para supervisor e vendedor
     if (!isSupervisor && !isVendedor) return null;
     
-    // Modo vendedor: mostrar apenas o filtro de tag de exportação
+    // Modo vendedor: mostrar o filtro de tag de exportação e campo de busca
     if (isVendedor && !isSupervisor) {
       return (
         <div className="cc-filters-bar">
@@ -1973,9 +2378,42 @@ const MonitoramentoBasePage = ({ tipo }) => {
                 </button>
                 <button className="cc-btn cc-btn-small" onClick={() => {
                   setExportTagFilter('all');
+                  setSearchTerm('');
                   setCurrentPage(1);
                   loadData();
                 }}>Limpar</button>
+              </div>
+            </div>
+            {/* Barra de Pesquisa para vendedor */}
+            <div className="cc-filters-row" style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #334155' }}>
+              <div className="cc-filter-item" style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span style={{ whiteSpace: 'nowrap' }}>🔍 Buscar em todos os campos:</span>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  placeholder="Digite para buscar em Nome, Email, WhatsApp, Telefone, CPF, Cidade, Estado..."
+                  className="cc-input"
+                  style={{ 
+                    flex: 1, 
+                    minWidth: '300px',
+                    padding: '8px 12px',
+                    backgroundColor: '#1e293b',
+                    color: '#e0e7ff',
+                    border: '1px solid #475569',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      loadData();
+                    }
+                  }}
+                />
               </div>
             </div>
           </div>
@@ -2399,9 +2837,9 @@ const MonitoramentoBasePage = ({ tipo }) => {
       { 
         header: 'Pedidos', 
         key: 'total_compras',
-        field: 'total_compras',
+        field: 'total_pedidos', // A view retorna total_pedidos
         render: (row) => {
-          const totalCompras = row.total_compras || 0;
+          const totalCompras = row.total_pedidos || row.total_compras || 0;
           const idPrime = row.id_prime || row.id_cliente || row.id_cliente_mestre;
           const nomeCliente = row.nome_completo || 'Cliente';
           
@@ -2442,6 +2880,17 @@ const MonitoramentoBasePage = ({ tipo }) => {
         }
       },
       { header: 'Origens', key: 'origens', render: (row) => renderOriginsBadges(row) },
+      { 
+        header: 'Cidade/Estado', 
+        key: 'cidade_estado', 
+        render: (row) => {
+          const cidade = row.cidade || '';
+          const estado = row.estado || '';
+          if (!cidade && !estado) return '-';
+          if (cidade && estado) return `${cidade}/${estado}`;
+          return cidade || estado;
+        }
+      },
       { header: 'Cidade', key: 'cidade', sortField: 'cidade', field: 'cidade', render: (row) => row.cidade || '-' },
       { header: 'Estado', key: 'estado', sortField: 'estado', field: 'estado', render: (row) => row.estado || '-' },
       { header: 'Sexo', key: 'sexo', render: (row) => formatSexo(row.sexo) },
@@ -2469,6 +2918,7 @@ const MonitoramentoBasePage = ({ tipo }) => {
         total_compras: 50,
         dias_ultima_compra: 50,
         origens: 40,
+        cidade_estado: 80, // Coluna combinada
         cidade: 50,
         estado: 50,
         sexo: 50,
@@ -2784,6 +3234,7 @@ const MonitoramentoBasePage = ({ tipo }) => {
                   <option value="excel">Excel (.xls)</option>
                   <option value="xlsx">XLSX</option>
                   <option value="callix">Callix</option>
+                  <option value="sprinthub">Sprinthub</option>
                   <option value="json">JSON</option>
                 </select>
                 <button 
@@ -2817,6 +3268,35 @@ const MonitoramentoBasePage = ({ tipo }) => {
           
           {/* Filtros */}
           {renderFiltersBar()}
+          
+          {/* Botão Mostrar Todas (sempre visível) */}
+          <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              onClick={() => setShowAllColumns(!showAllColumns)}
+              style={{ 
+                backgroundColor: showAllColumns ? '#dc2626' : '#059669', 
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                boxShadow: showAllColumns ? '0 2px 8px rgba(220, 38, 38, 0.3)' : '0 2px 8px rgba(5, 150, 105, 0.3)',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = showAllColumns ? '#b91c1c' : '#047857';
+                e.target.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = showAllColumns ? '#dc2626' : '#059669';
+                e.target.style.transform = 'scale(1)';
+              }}
+            >
+              {showAllColumns ? '🔼 Ocultar Colunas' : '🔽 Mostrar Todas'}
+            </button>
+          </div>
           
           {/* Seletor de Colunas */}
           {renderColumnSelector()}
@@ -2863,20 +3343,68 @@ const MonitoramentoBasePage = ({ tipo }) => {
                   rows={3}
                 />
               </div>
-              <div style={{ marginBottom: '16px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={exportWithCountryCode}
-                    onChange={(e) => setExportWithCountryCode(e.target.checked)}
-                    style={{ cursor: 'pointer' }}
-                  />
-                  <span>Adicionar código do país (55) nos telefones</span>
-                </label>
-                <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px', marginLeft: '24px' }}>
-                  Exemplo: 6984383079 → 556984383079
+              {exportFormat !== 'sprinthub' && (
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={exportWithCountryCode}
+                      onChange={(e) => setExportWithCountryCode(e.target.checked)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                    <span>Adicionar código do país (55) nos telefones</span>
+                  </label>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px', marginLeft: '24px' }}>
+                    Exemplo: 6984383079 → 556984383079
+                  </div>
                 </div>
-              </div>
+              )}
+              
+              {/* Campos específicos para Sprinthub */}
+              {exportFormat === 'sprinthub' && (
+                <>
+                  <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155' }}>
+                    <h4 style={{ marginTop: 0, marginBottom: '12px', color: '#e0e7ff' }}>Configurações Sprinthub</h4>
+                    <div style={{ marginBottom: '12px' }}>
+                      <label style={{ display: 'block', marginBottom: '4px', color: '#cbd5e1' }}>Etapa:</label>
+                      <input 
+                        type="number" 
+                        value={sprinthubEtapa} 
+                        onChange={(e) => setSprinthubEtapa(e.target.value)}
+                        placeholder="167"
+                        className="cc-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div style={{ marginBottom: '12px' }}>
+                      <label style={{ display: 'block', marginBottom: '4px', color: '#cbd5e1' }}>ID do Vendedor:</label>
+                      <input 
+                        type="number" 
+                        value={sprinthubVendedor} 
+                        onChange={(e) => setSprinthubVendedor(e.target.value)}
+                        placeholder="229"
+                        className="cc-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                    <div style={{ marginBottom: '12px' }}>
+                      <label style={{ display: 'block', marginBottom: '4px', color: '#cbd5e1' }}>Prefixo do Título:</label>
+                      <input 
+                        type="text" 
+                        value={sprinthubTituloPrefix} 
+                        onChange={(e) => setSprinthubTituloPrefix(e.target.value)}
+                        placeholder="MONITORAMENTO 28-7 05-8"
+                        className="cc-input"
+                        style={{ width: '100%' }}
+                      />
+                      <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '4px' }}>
+                        O título será: "{sprinthubTituloPrefix || '[PREFIXO]'} | [Nome do Cliente]"
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+              
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <button className="cc-btn" onClick={() => setShowExportModal(false)}>Cancelar</button>
                 <button className="cc-btn cc-btn-primary" onClick={handleExportConfirm}>Exportar</button>

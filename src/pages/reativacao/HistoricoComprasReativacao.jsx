@@ -20,13 +20,28 @@ const HistoricoComprasReativacao = () => {
     if (state && state.from) {
       previousPathRef.current = state.from;
     } else {
-      // Tentar recuperar do sessionStorage
-      const savedPath = sessionStorage.getItem('reativacao_previous_path');
-      if (savedPath) {
-        previousPathRef.current = savedPath;
+      // Tentar recuperar do sessionStorage - verificar tanto reativação quanto monitoramento
+      const savedPathReativacao = sessionStorage.getItem('reativacao_previous_path');
+      const savedPathMonitoramento = sessionStorage.getItem('monitoramento_previous_path');
+      
+      // Priorizar o caminho do módulo que salvou o histórico
+      if (savedPathMonitoramento) {
+        previousPathRef.current = savedPathMonitoramento;
+      } else if (savedPathReativacao) {
+        previousPathRef.current = savedPathReativacao;
       } else {
-        // Se não houver caminho salvo, usar a rota padrão de reativação
-        previousPathRef.current = '/reativacao';
+        // Se não houver caminho salvo, tentar detectar pelo localStorage qual módulo está ativo
+        const monitoramentoAuth = localStorage.getItem('monitoramento_authenticated');
+        const reativacaoAuth = localStorage.getItem('reativacao_authenticated');
+        
+        if (monitoramentoAuth === 'true') {
+          previousPathRef.current = '/monitoramento';
+        } else if (reativacaoAuth === 'true') {
+          previousPathRef.current = '/reativacao';
+        } else {
+          // Fallback padrão
+          previousPathRef.current = '/reativacao';
+        }
       }
     }
   }, [location]);
@@ -434,12 +449,32 @@ const HistoricoComprasReativacao = () => {
                 if (previousPathRef.current) {
                   navigate(previousPathRef.current);
                 } else {
-                  // Se não houver caminho salvo, tentar voltar no histórico
-                  if (window.history.length > 1) {
-                    navigate(-1);
+                  // Se não houver caminho salvo, verificar sessionStorage novamente
+                  const savedPathMonitoramento = sessionStorage.getItem('monitoramento_previous_path');
+                  const savedPathReativacao = sessionStorage.getItem('reativacao_previous_path');
+                  
+                  if (savedPathMonitoramento) {
+                    navigate(savedPathMonitoramento);
+                  } else if (savedPathReativacao) {
+                    navigate(savedPathReativacao);
                   } else {
-                    // Se não houver histórico, ir para a rota padrão
-                    navigate('/reativacao');
+                    // Tentar voltar no histórico
+                    if (window.history.length > 1) {
+                      navigate(-1);
+                    } else {
+                      // Detectar qual módulo está ativo para voltar para o correto
+                      const monitoramentoAuth = localStorage.getItem('monitoramento_authenticated');
+                      const reativacaoAuth = localStorage.getItem('reativacao_authenticated');
+                      
+                      if (monitoramentoAuth === 'true') {
+                        navigate('/monitoramento');
+                      } else if (reativacaoAuth === 'true') {
+                        navigate('/reativacao');
+                      } else {
+                        // Fallback padrão
+                        navigate('/reativacao');
+                      }
+                    }
                   }
                 }
               }}
