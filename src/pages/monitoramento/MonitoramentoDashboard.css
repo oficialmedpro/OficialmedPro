@@ -1,0 +1,195 @@
+/* Dashboard de Reativação - Layout Fullscreen */
+.monitoramento-dashboard-fullscreen {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  background: #0f172a;
+  color: #e0e7ff;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+  display: flex;
+}
+
+.monitoramento-dashboard-content {
+  flex: 1;
+  width: calc(100% - 280px);
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  box-sizing: border-box;
+  margin-left: 280px;
+}
+
+.monitoramento-header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-bottom: 30px;
+  border-bottom: 2px solid #1e293b;
+}
+
+.monitoramento-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #60a5fa;
+  margin: 0 0 20px 0;
+}
+
+.monitoramento-total {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.monitoramento-total-label {
+  font-size: 1.1rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.monitoramento-total-value {
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: #3b82f6;
+  line-height: 1;
+}
+
+.monitoramento-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 50px;
+}
+
+.monitoramento-card {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 2px solid #334155;
+  border-radius: 16px;
+  padding: 32px 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  min-height: 280px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.monitoramento-card:hover {
+  transform: translateY(-4px);
+  border-color: #3b82f6;
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+}
+
+.monitoramento-card-icon {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.monitoramento-card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #e0e7ff;
+  margin: 0;
+}
+
+.monitoramento-card-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #60a5fa;
+  line-height: 1;
+}
+
+.monitoramento-card-button {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: auto;
+}
+
+.monitoramento-card-button:hover {
+  background: #2563eb;
+  transform: scale(1.05);
+}
+
+.monitoramento-stats-section {
+  margin-top: 50px;
+  padding-top: 30px;
+  border-top: 2px solid #1e293b;
+}
+
+.monitoramento-section-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #60a5fa;
+  margin: 0 0 30px 0;
+  text-align: center;
+}
+
+.monitoramento-loading,
+.monitoramento-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-size: 1.5rem;
+  color: #94a3b8;
+}
+
+.monitoramento-error {
+  color: #ef4444;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .monitoramento-dashboard-content {
+    padding: 20px 16px;
+  }
+
+  .monitoramento-title {
+    font-size: 2rem;
+  }
+
+  .monitoramento-total-value {
+    font-size: 2.5rem;
+  }
+
+  .monitoramento-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .monitoramento-card {
+    min-height: 240px;
+    padding: 24px 20px;
+  }
+
+  .monitoramento-card-value {
+    font-size: 2rem;
+  }
+}
+
+/* Estilos para os stats (herdados do ClientesConsolidados.css) */
+.monitoramento-stats-section .cc-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.monitoramento-stats-section .cc-card {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 20px;
+}
+

@@ -1,0 +1,276 @@
+/* Menu de Navegação - Módulo de Reativação */
+.monitoramento-menu {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 280px;
+  height: 100vh;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border-right: 2px solid #334155;
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.3);
+}
+
+.monitoramento-menu-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 24px 0;
+}
+
+.monitoramento-menu-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 24px;
+  border-bottom: 2px solid #334155;
+  margin-bottom: 24px;
+}
+
+.monitoramento-menu-logo-img {
+  width: 240px;
+  height: auto;
+  max-width: calc(100% - 32px); /* Deixa uma pequena margem nas laterais */
+  filter: brightness(0) invert(1); /* Torna a logo branca */
+}
+
+.monitoramento-menu-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #60a5fa;
+  text-align: center;
+  margin: 0;
+}
+
+.monitoramento-menu-items {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 12px;
+  overflow-y: auto;
+}
+
+.monitoramento-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.monitoramento-menu-item:hover {
+  background: #334155;
+  color: #e0e7ff;
+  transform: translateX(4px);
+}
+
+.monitoramento-menu-item.active {
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.monitoramento-menu-item.active:hover {
+  background: linear-gradient(90deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateX(0);
+}
+
+.monitoramento-menu-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  color: currentColor;
+}
+
+.monitoramento-menu-number {
+  font-size: 1rem;
+  font-weight: 600;
+  color: currentColor;
+}
+
+.monitoramento-menu-item-label {
+  flex: 1;
+}
+
+.monitoramento-menu-footer {
+  padding: 16px 12px 0;
+  border-top: 2px solid #334155;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.monitoramento-menu-user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: rgba(51, 65, 85, 0.3);
+  border-radius: 8px;
+  border: 1px solid #334155;
+  margin-bottom: 8px;
+}
+
+.monitoramento-menu-user-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(59, 130, 246, 0.2);
+  border-radius: 50%;
+  color: #60a5fa;
+  flex-shrink: 0;
+}
+
+.monitoramento-menu-user-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.monitoramento-menu-user-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #e0e7ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.monitoramento-menu-user-type {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #94a3b8;
+  text-transform: capitalize;
+}
+
+.monitoramento-menu-logout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  background: transparent;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  color: #94a3b8;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.monitoramento-menu-logout:hover {
+  background: #334155;
+  color: #e0e7ff;
+  border-color: #475569;
+  transform: translateY(-2px);
+}
+
+.monitoramento-menu-logout svg {
+  color: currentColor;
+}
+
+/* Scrollbar personalizado */
+.monitoramento-menu-items::-webkit-scrollbar {
+  width: 6px;
+}
+
+.monitoramento-menu-items::-webkit-scrollbar-track {
+  background: #0f172a;
+  border-radius: 3px;
+}
+
+.monitoramento-menu-items::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+
+.monitoramento-menu-items::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Botão hamburger para mobile */
+.monitoramento-menu-toggle {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1001;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: #1e293b;
+  border: 2px solid #334155;
+  border-radius: 8px;
+  color: #e0e7ff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.monitoramento-menu-toggle:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+/* Overlay para fechar menu ao clicar fora */
+.monitoramento-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 999;
+  display: none;
+  backdrop-filter: blur(2px);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .monitoramento-menu-toggle {
+    display: flex;
+  }
+
+  .monitoramento-menu-overlay {
+    display: block;
+  }
+
+  .monitoramento-menu {
+    width: 280px;
+    max-width: 85vw;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
+  }
+
+  .monitoramento-menu.mobile-open {
+    transform: translateX(0);
+  }
+
+  /* Garantir que o conteúdo não seja empurrado pelo menu */
+  .monitoramento-dashboard-content {
+    transition: none !important;
+  }
+}
+

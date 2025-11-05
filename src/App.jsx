@@ -35,6 +35,12 @@ import Reativacao3x from './pages/reativacao/Reativacao3x'
 import Reativacao3xPlus from './pages/reativacao/Reativacao3xPlus'
 import ReativacaoProtectedRoute from './pages/reativacao/ReativacaoProtectedRoute'
 import ReativacaoLogin from './pages/reativacao/ReativacaoLogin'
+import MonitoramentoDashboard from './pages/monitoramento/MonitoramentoDashboard'
+import Monitoramento1_29 from './pages/monitoramento/Monitoramento1_29'
+import Monitoramento30_59 from './pages/monitoramento/Monitoramento30_59'
+import Monitoramento60_90 from './pages/monitoramento/Monitoramento60_90'
+import MonitoramentoProtectedRoute from './pages/monitoramento/MonitoramentoProtectedRoute'
+import MonitoramentoLogin from './pages/monitoramento/MonitoramentoLogin'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -147,6 +153,29 @@ function App() {
           <ReativacaoProtectedRoute>
             <HistoricoComprasReativacao />
           </ReativacaoProtectedRoute>
+        } />
+        
+        {/* Rotas do módulo de monitoramento */}
+        <Route path="/monitoramento/login" element={<MonitoramentoLogin />} />
+        <Route path="/monitoramento" element={
+          <MonitoramentoProtectedRoute>
+            <MonitoramentoDashboard />
+          </MonitoramentoProtectedRoute>
+        } />
+        <Route path="/monitoramento/1-29" element={
+          <MonitoramentoProtectedRoute>
+            <Monitoramento1_29 />
+          </MonitoramentoProtectedRoute>
+        } />
+        <Route path="/monitoramento/30-59" element={
+          <MonitoramentoProtectedRoute>
+            <Monitoramento30_59 />
+          </MonitoramentoProtectedRoute>
+        } />
+        <Route path="/monitoramento/60-90" element={
+          <MonitoramentoProtectedRoute>
+            <Monitoramento60_90 />
+          </MonitoramentoProtectedRoute>
         } />
         
         {/* Rotas principais - requerem autenticação do sistema principal */}
