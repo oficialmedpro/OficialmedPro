@@ -869,7 +869,7 @@ const MonitoramentoBasePage = ({ tipo }) => {
             const baseUrl = window.location.origin;
             const nomeEncoded = encodeURIComponent(nomeCompleto);
             // Salvar o caminho atual antes de criar o link
-            sessionStorage.setItem('reativacao_previous_path', window.location.pathname + window.location.search);
+            sessionStorage.setItem('monitoramento_previous_path', window.location.pathname + window.location.search);
             link = `${baseUrl}/historico-compras?cliente_id=${clienteId}&nome=${nomeEncoded}`;
           }
           
@@ -2760,20 +2760,20 @@ const MonitoramentoBasePage = ({ tipo }) => {
 
   useEffect(() => {
     // Adicionar classe ao body e html para garantir scroll
-    document.body.classList.add('reativacao-page-active');
-    document.documentElement.classList.add('reativacao-page-active');
+    document.body.classList.add('monitoramento-page-active');
+    document.documentElement.classList.add('monitoramento-page-active');
     
     return () => {
       // Remover classe ao desmontar
-      document.body.classList.remove('reativacao-page-active');
-      document.documentElement.classList.remove('reativacao-page-active');
+      document.body.classList.remove('monitoramento-page-active');
+      document.documentElement.classList.remove('monitoramento-page-active');
     };
   }, []);
 
   return (
-    <div className="reativacao-dashboard-fullscreen">
-      <ReativacaoMenu />
-      <div className="reativacao-dashboard-content">
+    <div className="monitoramento-dashboard-fullscreen">
+      <MonitoramentoMenu />
+      <div className="monitoramento-dashboard-content">
         <div className="cc-list-container">
           <div className="cc-list-header">
             <h2>{pageTitle}</h2>
