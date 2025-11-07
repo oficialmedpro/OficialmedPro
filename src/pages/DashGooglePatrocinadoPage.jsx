@@ -16,6 +16,7 @@ import {
   fetchUsdRate,
   handleDatePreset
 } from '../utils/utils';
+import { supabaseServiceKey } from '../config/supabase.js';
 
 // Importar bandeiras
 import BandeiraEUA from '../../icones/eua.svg';
@@ -87,7 +88,7 @@ const DashGooglePatrocinadoPage = ({ onLogout }) => {
 
         console.log('🚀 INICIANDO TESTE AUTOMÁTICO DA CONTA GOOGLE ADS...');
         console.log('🔗 URL da Edge Function:', 'https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api');
-        console.log('🔑 Service Key disponível:', import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY ? '✅ Sim' : '❌ Não');
+        console.log('🔑 Service Key disponível:', supabaseServiceKey ? '✅ Sim' : '❌ Não');
 
         // PASSO 1: Testar conexão
         console.log('🔍 PASSO 1: Testando conexão...');
@@ -120,7 +121,7 @@ const DashGooglePatrocinadoPage = ({ onLogout }) => {
       const connectionResponse = await fetch('https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api/test-connection', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
+          'Authorization': `Bearer ${supabaseServiceKey}`,
           'Content-Type': 'application/json',
         }
       });
@@ -171,7 +172,7 @@ const DashGooglePatrocinadoPage = ({ onLogout }) => {
         {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
             'Content-Type': 'application/json',
           }
         }
@@ -289,7 +290,7 @@ const DashGooglePatrocinadoPage = ({ onLogout }) => {
         {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
             'Content-Type': 'application/json',
           }
         }
@@ -332,7 +333,7 @@ const DashGooglePatrocinadoPage = ({ onLogout }) => {
         {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY}`,
+            'Authorization': `Bearer ${supabaseServiceKey}`,
             'Content-Type': 'application/json',
           }
         }

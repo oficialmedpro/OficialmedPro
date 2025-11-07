@@ -1,3 +1,5 @@
+import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+
 /**
  * 🔧 DEBUG - Informações do Build
  *
@@ -9,18 +11,18 @@ export const buildInfo = {
   buildTime: new Date().toISOString(),
   mode: import.meta.env.MODE,
 
-  // Status das variáveis do Supabase
-  hasSupabaseUrl: !!(import.meta.env.VITE_SUPABASE_URL),
-  hasSupabaseKey: !!(import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY),
-  hasSupabaseSchema: !!(import.meta.env.VITE_SUPABASE_SCHEMA),
+  // Status das variáveis do Supabase (runtime)
+  hasSupabaseUrl: !!supabaseUrl,
+  hasSupabaseKey: !!supabaseServiceKey,
+  hasSupabaseSchema: !!supabaseSchema,
 
   // URLs parciais (para debug sem expor dados completos)
-  supabaseUrlStart: import.meta.env.VITE_SUPABASE_URL?.substring(0, 20) || 'NOT_FOUND',
-  supabaseKeyStart: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY?.substring(0, 10) || 'NOT_FOUND',
-  supabaseSchema: import.meta.env.VITE_SUPABASE_SCHEMA || 'NOT_FOUND',
+  supabaseUrlStart: supabaseUrl?.substring(0, 20) || 'NOT_FOUND',
+  supabaseKeyStart: supabaseServiceKey?.substring(0, 10) || 'NOT_FOUND',
+  supabaseSchemaValue: supabaseSchema || 'NOT_FOUND',
 
-  // Todas as variáveis ENV disponíveis (chaves apenas, sem valores)
-  allEnvKeys: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_'))
+  // Todas as variáveis ENV disponíveis em tempo de build (referência)
+  buildEnvKeys: Object.keys(import.meta.env).filter(key => key.startsWith('VITE_'))
 };
 
 // Log automático para facilitar debug

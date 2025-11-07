@@ -177,6 +177,15 @@ export { getSupabaseConfig };
 // Exportar valores iniciais (para compatibilidade)
 export const { supabaseUrl, supabaseServiceKey, supabaseSchema } = getSupabaseConfig();
 
+// ✅ Garantir que as variáveis fiquem disponíveis globalmente (browser e SSR)
+if (typeof globalThis !== 'undefined') {
+  globalThis.supabaseUrl = supabaseUrl;
+  globalThis.supabaseServiceKey = supabaseServiceKey;
+  globalThis.supabaseSchema = supabaseSchema;
+  globalThis.SUPABASE_URL = supabaseUrl;
+  globalThis.SUPABASE_SERVICE_ROLE_KEY = supabaseServiceKey;
+}
+
 export default {
   supabaseUrl,
   supabaseServiceKey,

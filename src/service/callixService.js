@@ -4,6 +4,7 @@
  */
 
 import { supabase, getSupabaseWithSchema } from './supabase.js';
+import { supabaseUrl, supabaseServiceKey } from '../config/supabase.js';
 
 const CONFIG = {
   SPRINTHUB: {
@@ -12,8 +13,8 @@ const CONFIG = {
     instance: import.meta.env.VITE_SPRINTHUB_INSTANCE || 'oficialmed',
   },
   SUPABASE: {
-    url: window.ENV?.VITE_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL,
-    serviceRoleKey: window.ENV?.VITE_SUPABASE_SERVICE_ROLE_KEY || import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY,
+    url: window.ENV?.VITE_SUPABASE_URL || supabaseUrl,
+    serviceRoleKey: window.ENV?.VITE_SUPABASE_SERVICE_ROLE_KEY || supabaseServiceKey,
   },
   PAGINATION: {
     limit: 100,

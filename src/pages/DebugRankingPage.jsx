@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getTicketRankingData, getTicketRankingFilterNames } from '../service/ticketRankingService';
 import './DebugRankingPage.css';
+import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * 🎯 DEBUG RANKING PAGE
@@ -107,10 +108,6 @@ const DebugRankingPage = () => {
       // TESTE 4: Verificar se há oportunidades na tabela (sem filtros de status)
       addLog('\n🔍 TESTE 4: Verificar dados básicos na tabela', 'info');
       try {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-        const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
-
         // Buscar qualquer oportunidade (sem filtro de status)
         const basicUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,status,gain_date,value&archived=eq.0&limit=10`;
 

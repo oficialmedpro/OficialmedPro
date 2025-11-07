@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getSellerRankingData, getSellerRankingFilterNames } from '../service/sellerRankingService';
+import { supabaseUrl, supabaseServiceKey } from '../config/supabase.js';
 
 const DebugSellerRankingPage = ({ onLogout }) => {
   const [loading, setLoading] = useState(false);
@@ -26,9 +27,6 @@ const DebugSellerRankingPage = ({ onLogout }) => {
   // Função para testar campos da tabela
   const testTableFields = async () => {
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-      
       // Testar se lost_date existe
       const testUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,status,lost_date&status=eq.lost&limit=1`;
       
@@ -62,9 +60,6 @@ const DebugSellerRankingPage = ({ onLogout }) => {
   // Função para testar oportunidades abertas
   const testOpenFields = async () => {
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-      
       // Testar se status=open funciona
       const testUrl = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,status,user_id&status=eq.open&limit=1`;
       

@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { supabaseServiceKey } from '../config/supabase.js';
 
 class GooglePatrocinadoService {
   // SEMPRE usar Supabase Edge Functions (backend local removido)
@@ -7,7 +8,7 @@ class GooglePatrocinadoService {
     console.log('📋 Focando apenas na conta configurada nos Secrets do Supabase');
     
     // Obter service key de forma segura (runtime ou build-time)
-    this.getServiceKey = () => window.ENV?.VITE_SUPABASE_SERVICE_ROLE_KEY || import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
+    this.getServiceKey = () => window.ENV?.VITE_SUPABASE_SERVICE_ROLE_KEY || supabaseServiceKey;
     
     // ❌ REMOVIDO: Teste automático desabilitado - só executar quando necessário (página de Google Ads)
     // this.testConnectionAndCampaigns();

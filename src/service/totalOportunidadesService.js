@@ -524,9 +524,7 @@ export const testFunilSpecificWithUnit = async (funilId, unidadeId) => {
   try {
     console.log(`🔍 Testando funil ${funilId} com unidade ${unidadeId}...`);
     
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-    const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+    const schema = supabaseSchema || 'api';
     
     // Testar sem filtros
     const urlSemFiltros = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,funil_id,unidade_id,status&archived=eq.0&status=eq.open`;
@@ -536,8 +534,8 @@ export const testFunilSpecificWithUnit = async (funilId, unidadeId) => {
       'Accept': 'application/json',
       'Authorization': `Bearer ${supabaseServiceKey}`,
       'apikey': supabaseServiceKey,
-      'Accept-Profile': supabaseSchema,
-      'Content-Profile': supabaseSchema,
+      'Accept-Profile': schema,
+      'Content-Profile': schema,
       'Prefer': 'count=exact'
     };
 
@@ -608,9 +606,7 @@ export const testFunilSpecific = async (funilId) => {
   try {
     console.log(`🔍 Testando funil específico: ${funilId}`);
     
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
-    const supabaseSchema = import.meta.env.VITE_SUPABASE_SCHEMA || 'api';
+    const schema = supabaseSchema || 'api';
     
     // Testar sem filtros
     const urlSemFiltros = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,funil_id,status&archived=eq.0&status=eq.open`;
@@ -620,8 +616,8 @@ export const testFunilSpecific = async (funilId) => {
       'Accept': 'application/json',
       'Authorization': `Bearer ${supabaseServiceKey}`,
       'apikey': supabaseServiceKey,
-      'Accept-Profile': supabaseSchema,
-      'Content-Profile': supabaseSchema,
+      'Accept-Profile': schema,
+      'Content-Profile': schema,
       'Prefer': 'count=exact'
     };
 
