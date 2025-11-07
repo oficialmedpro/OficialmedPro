@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { syncFollowUpStage, checkFollowUpSync } from '../service/sprintHubSyncService';
 import { testFunilSpecific, testFunilSpecificWithUnit } from '../service/totalOportunidadesService';
@@ -71,6 +71,10 @@ const TopMenuBar = ({
   const [isHourlySyncRunning, setIsHourlySyncRunning] = useState(false);
   const [hourlySyncInterval, setHourlySyncInterval] = useState(null);
   const [syncProgress, setSyncProgress] = useState(null);
+  const [missingFields, setMissingFields] = useState([]);
+  const [alertsLoading, setAlertsLoading] = useState(false);
+  const [alertsError, setAlertsError] = useState(null);
+  const [showAlertsModal, setShowAlertsModal] = useState(false);
   
   // Estados para sincronização agendada
   const [isScheduledSyncRunning, setIsScheduledSyncRunning] = useState(false);
@@ -80,6 +84,63 @@ const TopMenuBar = ({
   
   // Verificar se é admin (temporário - baseado nas credenciais fixas)
   const isAdmin = true; // Por enquanto sempre admin, depois implementar lógica real
+
+  const fetchMissingFields = useCallback(async () => {
+    if (!supabaseUrl || !supabaseServiceKey) {
+      setMissingFields([]);
+      setAlertsError('Credenciais Supabase ausentes');
+      setAlertsLoading(false);
+      return;
+    }
+
+    try {
+      setAlertsLoading(true);
+      setAlertsError(null);
+
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/sync_missing_fields?select=resource,field_name,occurrences,last_seen,sample&order=last_seen.desc`,
+        {
+          headers: {
+            'Authorization': `Bearer ${supabaseServiceKey}`,
+            'apikey': supabaseServiceKey,
+            'Accept-Profile': 'api'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        setAlertsError(`HTTP ${response.status}: ${response.statusText}${body ? ` - ${body}` : ''}`);
+        setMissingFields([]);
+        return;
+      }
+
+      const data = await response.json();
+      setMissingFields(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setAlertsError(error.message);
+      setMissingFields([]);
+    } finally {
+      setAlertsLoading(false);
+    }
+  }, [supabaseUrl, supabaseServiceKey]);
+
+  useEffect(() => {
+    fetchMissingFields();
+    const interval = setInterval(fetchMissingFields, 60000);
+    return () => clearInterval(interval);
+  }, [fetchMissingFields]);
+
+  const alertsCount = missingFields.length;
+
+  const handleOpenAlertsModal = async () => {
+    await fetchMissingFields();
+    setShowAlertsModal(true);
+  };
+
+  const handleCloseAlertsModal = () => setShowAlertsModal(false);
+
+  const handleRefreshAlerts = () => fetchMissingFields();
 
   // Progress callback para UI em vez de logs excessivos
   const updateSyncProgress = (stage, progress, total, details = '') => {
@@ -2601,6 +2662,29 @@ const TopMenuBar = ({
 
   // Não é mais necessário - o autoSyncService já gerencia isso
 
+  const formatAlertTime = (isoDate) => {
+    if (!isoDate) return '—';
+    const parsed = new Date(isoDate);
+    if (Number.isNaN(parsed.getTime())) return '—';
+    return parsed.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const formatSampleValue = (sample) => {
+    if (sample === null || sample === undefined) return 'Sem amostra';
+    if (typeof sample === 'string') return sample;
+    try {
+      return JSON.stringify(sample, null, 2);
+    } catch (error) {
+      return String(sample);
+    }
+  };
+
   // Formatar data/hora da última sincronização
   const formatSyncTime = (date) => {
     if (!date) return 'Nunca';
@@ -2627,7 +2711,8 @@ const TopMenuBar = ({
   }, []);
 
   return (
-    <header className="tmb-top-menu-bar">
+    <>
+      <header className="tmb-top-menu-bar">
       {/* Indicador de Progresso de Sincronização */}
       {syncProgress && (
         <div className="tmb-sync-progress-container" style={{
@@ -2727,6 +2812,19 @@ const TopMenuBar = ({
                   ⚡ SYNC AGORA
                 </>
               )}
+            </button>
+
+            <button
+              className={`tmb-sync-alert-btn ${alertsCount > 0 ? 'has-alerts' : 'no-alerts'}`}
+              onClick={handleOpenAlertsModal}
+              disabled={alertsLoading && alertsCount === 0}
+              title={alertsCount > 0 ? 'Campos aguardando mapeamento' : 'Nenhum alerta pendente'}
+              style={{ marginLeft: '8px' }}
+            >
+              🚨 Alertas
+              <span className="tmb-alert-count">
+                {alertsLoading && alertsCount === 0 ? '...' : alertsCount}
+              </span>
             </button>
 
             {/* Botão de Sincronização Agendada - Apenas informativo, cronjob roda no Supabase */}
@@ -2832,7 +2930,65 @@ const TopMenuBar = ({
           </button>
         )}
       </div>
-    </header>
+      </header>
+
+      {showAlertsModal && (
+        <div className="tmb-alert-modal-backdrop" onClick={handleCloseAlertsModal}>
+          <div className="tmb-alert-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="tmb-alert-modal-header">
+              <h3>Alertas de Campos Pendentes</h3>
+              <div className="tmb-alert-modal-actions">
+                <button
+                  className="tmb-alert-action-btn"
+                  onClick={handleRefreshAlerts}
+                  disabled={alertsLoading}
+                >
+                  🔄 Atualizar
+                </button>
+                <button className="tmb-alert-action-btn" onClick={handleCloseAlertsModal}>
+                  ✖ Fechar
+                </button>
+              </div>
+            </div>
+
+            {alertsError && (
+              <div className="tmb-alert-error">
+                ⚠️ Erro ao carregar alertas: {alertsError}
+              </div>
+            )}
+
+            {alertsLoading && !alertsError ? (
+              <div className="tmb-alert-empty">Carregando alertas...</div>
+            ) : alertsCount === 0 ? (
+              <div className="tmb-alert-empty">Nenhum campo pendente no momento.</div>
+            ) : (
+              <div className="tmb-alert-list">
+                {missingFields.map((alert) => (
+                  <div
+                    key={`${alert.resource}-${alert.field_name}`}
+                    className="tmb-alert-item"
+                  >
+                    <div className="tmb-alert-item-header">
+                      <div className="tmb-alert-field">{alert.field_name}</div>
+                      <div className="tmb-alert-meta">
+                        <span className="tmb-alert-resource">Recurso: {alert.resource}</span>
+                        <span>Ocorrências: {alert.occurrences}</span>
+                        <span>Último registro: {formatAlertTime(alert.last_seen)}</span>
+                      </div>
+                    </div>
+                    {alert.sample && (
+                      <pre className="tmb-alert-sample">
+                        {formatSampleValue(alert.sample)}
+                      </pre>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
