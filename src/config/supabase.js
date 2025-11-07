@@ -28,6 +28,9 @@ const getSupabaseConfig = () => {
     return trimmed;
   };
   
+  // Disponibilizar import.meta.env de forma segura (em Node pode ser undefined)
+  const importMetaEnv = typeof import.meta !== 'undefined' && import.meta?.env ? import.meta.env : {};
+
   // Priorizar window.ENV (injetado pelo docker-entrypoint.sh) sobre import.meta.env
   // Validar valores antes de usar
   let supabaseUrl = null;
@@ -48,8 +51,8 @@ const getSupabaseConfig = () => {
   }
   
   // Se não conseguiu de window.ENV, tentar import.meta.env
-  if (!supabaseUrl && import.meta.env.VITE_SUPABASE_URL) {
-    const urlValue = getValidValue(import.meta.env.VITE_SUPABASE_URL);
+  if (!supabaseUrl && importMetaEnv.VITE_SUPABASE_URL) {
+    const urlValue = getValidValue(importMetaEnv.VITE_SUPABASE_URL);
     if (urlValue && urlValue.startsWith('http')) {
       supabaseUrl = urlValue;
     }
@@ -77,8 +80,8 @@ const getSupabaseConfig = () => {
   }
   
   // Se não conseguiu de window.ENV, tentar import.meta.env
-  if (!supabaseServiceKey && import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY) {
-    const keyValue = getValidValue(import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY);
+  if (!supabaseServiceKey && importMetaEnv.VITE_SUPABASE_SERVICE_ROLE_KEY) {
+    const keyValue = getValidValue(importMetaEnv.VITE_SUPABASE_SERVICE_ROLE_KEY);
     if (keyValue && keyValue.length > 50) {
       supabaseServiceKey = keyValue;
     }
@@ -106,8 +109,8 @@ const getSupabaseConfig = () => {
   }
   
   // Se não conseguiu de window.ENV, tentar import.meta.env
-  if (!supabaseSchema && import.meta.env.VITE_SUPABASE_SCHEMA) {
-    const schemaValue = getValidValue(import.meta.env.VITE_SUPABASE_SCHEMA);
+  if (!supabaseSchema && importMetaEnv.VITE_SUPABASE_SCHEMA) {
+    const schemaValue = getValidValue(importMetaEnv.VITE_SUPABASE_SCHEMA);
     if (schemaValue) {
       supabaseSchema = schemaValue;
     }
@@ -154,13 +157,13 @@ const getSupabaseConfig = () => {
     hasUrl: !!supabaseUrl,
     hasKey: !!supabaseServiceKey,
     schema: supabaseSchema,
-    environment: import.meta.env.MODE,
+    environment: importMetaEnv.MODE,
     urlStart: supabaseUrl?.substring(0, 30) + '...',
     keyStart: supabaseServiceKey?.substring(0, 20) + '...',
     source: {
       fromWindowEnv: !!(isBrowser && window.ENV?.VITE_SUPABASE_URL),
-      fromImportMeta: !!import.meta.env.VITE_SUPABASE_URL,
-      usingFallback: !(isBrowser && window.ENV?.VITE_SUPABASE_URL) && !import.meta.env.VITE_SUPABASE_URL
+      fromImportMeta: !!importMetaEnv.VITE_SUPABASE_URL,
+      usingFallback: !(isBrowser && window.ENV?.VITE_SUPABASE_URL) && !importMetaEnv.VITE_SUPABASE_URL
     }
   });
 

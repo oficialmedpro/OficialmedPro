@@ -37,6 +37,25 @@ const FUNIS_CONFIG = {
             { id: 232, name: "[6] CADASTRO" }
         ]
     },
+    9: {
+        name: "[1] LOGÍSTICA MANIPULAÇÃO",
+        stages: [
+            { id: 101, name: "Fila Logística" },
+            { id: 243, name: "Separação" },
+            { id: 266, name: "Preparação" },
+            { id: 244, name: "Produção" },
+            { id: 245, name: "Finalização" },
+            { id: 105, name: "Faturamento" },
+            { id: 108, name: "Entrega" },
+            { id: 267, name: "Pendências" },
+            { id: 109, name: "Conferência" },
+            { id: 261, name: "Expedição" },
+            { id: 262, name: "Em Transporte" },
+            { id: 263, name: "Saiu para Entrega" },
+            { id: 278, name: "Reentregas" },
+            { id: 110, name: "Concluído" }
+        ]
+    },
     14: {
         name: "[2] RECOMPRA",
         stages: [
@@ -69,7 +88,11 @@ const OPTIMIZATION_CONFIG = {
     DELAY_BETWEEN_PAGES: 50,   // Reduzido de 200ms para 50ms
     DELAY_BETWEEN_BATCHES: 30, // Reduzido de 100ms para 30ms
     PARALLEL_STAGES: 3,        // Processar 3 etapas em paralelo
-    CACHE_DURATION: 60000      // 1 minuto de cache
+    CACHE_DURATION: 60000,     // 1 minuto de cache
+    REQUEST_RETRIES: 3,        // Tentativas por requisição SprintHub
+    RETRY_DELAY_MS: 750,       // Delay incremental entre tentativas gerais
+    RETRY_DELAY_AUTH_MS: 2000, // Delay específico para 401/403
+    RECENT_WINDOW_HOURS: 48    // Janela de tempo para sincronização incremental
 };
 
 // Cache de verificações
@@ -137,36 +160,70 @@ function isRecent48Hours(dateString) {
  * Buscar oportunidades de uma etapa específica (com paginação otimizada)
  */
 async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0) {
-    try {
-        const postData = JSON.stringify({ 
-            page, 
-            limit: OPTIMIZATION_CONFIG.PAGE_LIMIT, 
-            columnId: stageId 
-        });
-        
-        const response = await fetch(
-            `https://${SPRINTHUB_CONFIG.baseUrl}/crm/opportunities/${funnelId}?apitoken=${SPRINTHUB_CONFIG.apiToken}&i=${SPRINTHUB_CONFIG.instance}`, 
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: postData
+    const sinceTimestamp = new Date(
+        Date.now() - OPTIMIZATION_CONFIG.RECENT_WINDOW_HOURS * 60 * 60 * 1000
+    ).toISOString();
+
+    const payload = {
+        page,
+        limit: OPTIMIZATION_CONFIG.PAGE_LIMIT,
+        columnId: stageId,
+        updatedSince: sinceTimestamp,
+        modifiedSince: sinceTimestamp,
+        lastUpdate: sinceTimestamp
+    };
+
+    const postData = JSON.stringify(payload);
+
+    for (let attempt = 1; attempt <= OPTIMIZATION_CONFIG.REQUEST_RETRIES; attempt++) {
+        try {
+            const response = await fetch(
+                `https://${SPRINTHUB_CONFIG.baseUrl}/crm/opportunities/${funnelId}?apitoken=${SPRINTHUB_CONFIG.apiToken}&i=${SPRINTHUB_CONFIG.instance}`, 
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Accept': 'application/json'
+                    },
+                    body: postData
+                }
+            );
+
+            if (response.ok) {
+                const data = await response.json();
+                return Array.isArray(data) ? data : [];
             }
-        );
 
-        if (!response.ok) {
+            if (response.status === 400) {
+                console.warn(`⚠️ SprintHub retornou 400 para funil ${funnelId}, etapa ${stageId}, página ${page}. Considerando fim da paginação.`);
+                return [];
+            }
+
+            if ((response.status === 401 || response.status === 403)) {
+                const retryRemaining = OPTIMIZATION_CONFIG.REQUEST_RETRIES - attempt;
+                if (retryRemaining > 0) {
+                    console.warn(`⚠️ SprintHub retornou ${response.status} para funil ${funnelId}, etapa ${stageId}, página ${page}. Tentativa ${attempt}/${OPTIMIZATION_CONFIG.REQUEST_RETRIES}. Aguardando ${OPTIMIZATION_CONFIG.RETRY_DELAY_AUTH_MS}ms antes de retry.`);
+                    await delay(OPTIMIZATION_CONFIG.RETRY_DELAY_AUTH_MS);
+                    continue;
+                }
+                throw new Error(`HTTP ${response.status}: ${response.statusText || 'Unauthorized'}`);
+            }
+
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
 
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-        
-    } catch (error) {
-        console.error(`❌ Erro ao buscar etapa ${stageId}:`, error);
-        return [];
+        } catch (error) {
+            if (attempt >= OPTIMIZATION_CONFIG.REQUEST_RETRIES) {
+                console.error(`❌ Erro ao buscar etapa ${stageId} (funil ${funnelId}, página ${page}) após ${attempt} tentativas:`, error);
+                return [];
+            }
+
+            const backoff = OPTIMIZATION_CONFIG.RETRY_DELAY_MS * attempt;
+            console.warn(`⚠️ Erro na tentativa ${attempt} ao buscar etapa ${stageId} (funil ${funnelId}). Aguardando ${backoff}ms para tentar novamente. Detalhes: ${error.message}`);
+            await delay(backoff);
+        }
     }
+
+    return [];
 }
 
 /**
@@ -180,14 +237,23 @@ async function fetchRecentOpportunitiesFromStage(funnelId, stageId) {
         try {
             const opportunities = await fetchOpportunitiesFromStage(funnelId, stageId, page);
             
-            if (opportunities.length === 0) break;
+            if (opportunities.length === 0) {
+                break;
+            }
             
             // Filtrar apenas últimas 48 horas
             const recentOpps = opportunities.filter(opp => isRecent48Hours(opp.updateDate));
             allOpportunities = allOpportunities.concat(recentOpps);
+
+            // Se não encontrou nenhuma oportunidade recente in loco, assumir que as próximas páginas são ainda mais antigas
+            if (recentOpps.length === 0) {
+                break;
+            }
             
-            // Se retornou menos que o limite, acabou
-            if (opportunities.length < OPTIMIZATION_CONFIG.PAGE_LIMIT) break;
+            // Se retornou menos que o limite, significa que esta é a última página fornecida pela API
+            if (opportunities.length < OPTIMIZATION_CONFIG.PAGE_LIMIT) {
+                break;
+            }
             
             page++;
             await delay(OPTIMIZATION_CONFIG.DELAY_BETWEEN_PAGES);
@@ -289,6 +355,7 @@ function mapOpportunityFields(opportunity) {
     // Identificar funil
     const getFunilId = (crmColumn) => {
         if ([130, 231, 82, 207, 83, 85, 232].includes(crmColumn)) return 6;
+        if ([101, 243, 266, 244, 245, 105, 108, 267, 109, 261, 262, 263, 278, 110].includes(crmColumn)) return 9;
         if ([227, 202, 228, 229, 206, 203, 204, 230, 205, 241, 146, 147, 167, 148, 168, 149, 169, 150].includes(crmColumn)) return 14;
         return null;
     };
