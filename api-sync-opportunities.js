@@ -22,8 +22,9 @@ app.use(express.json());
 let isSyncRunning = false;
 let lastRun = { resource: null, start: null, end: null, status: 'idle', durationMs: 0 };
 
-// 🔐 FUNÇÃO PARA LER SECRETS (seguindo padrão prime-sync-api)
-function readSecret(envVarFile, fallbackEnvVar) {
+// 🔐 FUNÇÃO PARA LER SECRETS (compatível com Portainer secrets e EasyPanel env vars)
+function readSecret(envVarFile, fallbackEnvVars) {
+    // Se envVarFile existe e é um arquivo, ler do arquivo (Portainer secrets)
     try {
         if (envVarFile && fs.existsSync(envVarFile)) {
             const content = fs.readFileSync(envVarFile, 'utf8').trim();
@@ -34,22 +35,27 @@ function readSecret(envVarFile, fallbackEnvVar) {
         console.warn(`⚠️ Erro ao ler secret ${envVarFile}:`, error.message);
     }
     
-    // Fallback para variável de ambiente direta
-    const fallbackValue = process.env[fallbackEnvVar];
-    if (fallbackValue) {
-        console.log(`✅ Usando variável de ambiente: ${fallbackEnvVar}`);
-        return fallbackValue;
+    // Fallback para variáveis de ambiente diretas (EasyPanel ou desenvolvimento)
+    // fallbackEnvVars pode ser string ou array
+    const fallbacks = Array.isArray(fallbackEnvVars) ? fallbackEnvVars : [fallbackEnvVars];
+    
+    for (const fallbackEnvVar of fallbacks) {
+        const fallbackValue = process.env[fallbackEnvVar];
+        if (fallbackValue) {
+            console.log(`✅ Usando variável de ambiente: ${fallbackEnvVar}`);
+            return fallbackValue;
+        }
     }
     
-    throw new Error(`❌ Não foi possível ler ${envVarFile} ou ${fallbackEnvVar}`);
+    throw new Error(`❌ Não foi possível ler ${envVarFile} ou variáveis: ${fallbacks.join(', ')}`);
 }
 
-// 🔐 LER CONFIGURAÇÕES DOS SECRETS
-const SUPABASE_URL = readSecret(process.env.SUPABASE_URL_FILE, 'VITE_SUPABASE_URL');
-const SUPABASE_KEY = readSecret(process.env.SUPABASE_KEY_FILE, 'VITE_SUPABASE_SERVICE_ROLE_KEY');
-const SPRINTHUB_BASE_URL = readSecret(process.env.SPRINTHUB_BASE_URL_FILE, 'VITE_SPRINTHUB_BASE_URL');
-const SPRINTHUB_INSTANCE = readSecret(process.env.SPRINTHUB_INSTANCE_FILE, 'VITE_SPRINTHUB_INSTANCE');
-const SPRINTHUB_TOKEN = readSecret(process.env.SPRINTHUB_TOKEN_FILE, 'VITE_SPRINTHUB_API_TOKEN');
+// 🔐 LER CONFIGURAÇÕES DOS SECRETS (compatível com Portainer secrets e EasyPanel env vars)
+const SUPABASE_URL = readSecret(process.env.SUPABASE_URL_FILE, ['SUPABASE_URL', 'VITE_SUPABASE_URL']);
+const SUPABASE_KEY = readSecret(process.env.SUPABASE_KEY_FILE, ['SUPABASE_KEY', 'VITE_SUPABASE_SERVICE_ROLE_KEY']);
+const SPRINTHUB_BASE_URL = readSecret(process.env.SPRINTHUB_BASE_URL_FILE, ['SPRINTHUB_BASE_URL', 'VITE_SPRINTHUB_BASE_URL']);
+const SPRINTHUB_INSTANCE = readSecret(process.env.SPRINTHUB_INSTANCE_FILE, ['SPRINTHUB_INSTANCE', 'VITE_SPRINTHUB_INSTANCE']);
+const SPRINTHUB_TOKEN = readSecret(process.env.SPRINTHUB_TOKEN_FILE, ['SPRINTHUB_TOKEN', 'VITE_SPRINTHUB_API_TOKEN']);
 
 console.log('🔧 Configurações carregadas:');
 console.log(`   Supabase URL: ${SUPABASE_URL}`);
@@ -253,15 +259,92 @@ app.get('/segmentos', async (_req, res) => {
     catch (e) { res.status(500).json({ success: false, message: e.message }); }
 });
 
+// =============== VENDEDORES/USUÁRIOS ==================
+async function fetchUsersFromSprintHub(page = 0, limit = 100) {
+    const url = `https://${SPRINTHUB_CONFIG.baseUrl}/users?i=${SPRINTHUB_CONFIG.instance}&page=${page}&limit=${limit}&apitoken=${SPRINTHUB_CONFIG.apiToken}`;
+    try {
+        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (Array.isArray(data)) return data;
+        if (data?.data?.users) return data.data.users;
+        return [];
+    } catch (e) {
+        console.error(`❌ Erro ao buscar usuários página ${page + 1}:`, e.message);
+        return [];
+    }
+}
+
+function mapUserToVendedor(user) {
+    return {
+        id_sprint: user.id,
+        nome: user.fullname || user.name || `${user.firstname || ''} ${user.lastname || ''}`.trim() || null,
+        email: user.email || null,
+        usuario: user.username || user.email?.split('@')[0] || null,
+        id_unidade: user.unit || user.unidade || '[1]',
+        tipo_de_acesso: user.role === 'admin' || user.type === 'administrador' ? 'administrador' : 'vendedor',
+        status: user.status === 'active' || user.active ? 'ativo' : 'inativo',
+        foto: user.avatar || user.photo || null,
+        telefone: user.phone || user.telefone || null,
+        created_at: user.createDate ? new Date(user.createDate).toISOString() : new Date().toISOString(),
+        updated_at: user.updateDate ? new Date(user.updateDate).toISOString() : new Date().toISOString()
+    };
+}
+
+async function upsertVendedores(rows) {
+    try {
+        // Primeiro tentar por id_sprint, se não existir constraint, usar email
+        let error = null;
+        try {
+            const { error: err } = await supabase.from('vendedores').upsert(rows, { onConflict: 'id_sprint', ignoreDuplicates: false });
+            error = err;
+        } catch (e) {
+            // Se não tiver constraint em id_sprint, usar email
+            const { error: err } = await supabase.from('vendedores').upsert(rows, { onConflict: 'email', ignoreDuplicates: false });
+            error = err;
+        }
+        if (error) return { success: false, error: error.message };
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+}
+
+async function syncVendedores() {
+    const runId = await logRunStart('vendedores');
+    let page = 0, processed = 0, errors = 0;
+    while (true) {
+        const batch = await fetchUsersFromSprintHub(page);
+        if (!batch || batch.length === 0) break;
+        const mapped = batch.map(mapUserToVendedor);
+        processed += mapped.length;
+        const r = await upsertVendedores(mapped);
+        if (!r.success) errors += mapped.length;
+        page++;
+        await sleep(500);
+    }
+    await logRunFinish(runId, { status: errors > 0 ? 'success_with_errors' : 'success', total_processed: processed, total_errors: errors });
+    return { totalProcessed: processed, totalErrors: errors };
+}
+
+app.get('/vendedores', async (_req, res) => {
+    try { const result = await syncVendedores(); res.json({ success: true, data: result }); }
+    catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 // Configuração dos funis
 const FUNIS_CONFIG = {
     6: {
         name: '[1] COMERCIAL APUCARANA',
         stages: [130, 231, 82, 207, 83, 85, 232]
     },
+    9: {
+        name: '[1] LOGÍSTICA MANIPULAÇÃO',
+        stages: [101, 243, 266, 244, 245, 105, 108, 267, 109, 261, 262, 263, 278, 110]
+    },
     14: {
         name: '[2] RECOMPRA',
-        stages: [227, 202, 228, 229, 206, 203, 204, 230, 205, 241, 146, 147, 167, 148, 168, 149, 169, 150]
+        stages: [202, 228, 229, 206, 203, 204, 230, 205, 269, 167, 148, 168, 149, 169, 150]
     }
 };
 
@@ -286,19 +369,21 @@ async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = 
             incrementalHints.modifiedSince = since;
             incrementalHints.lastUpdate = since;
         }
-        const postData = JSON.stringify({ page, limit, columnId: stageId, ...incrementalHints });
+        const payloadObject = { page, limit, columnId: stageId, ...incrementalHints };
+        const postData = JSON.stringify(payloadObject);
         
         const response = await fetch(url, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json; charset=utf-8',
                 'Accept': 'application/json'
             },
-            body: postData
+            body: Buffer.from(postData)
         });
 
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const errorBody = await response.text().catch(() => '');
+            throw new Error(`HTTP ${response.status}: ${response.statusText}${errorBody ? ` - ${errorBody}` : ''}`);
         }
 
         const data = await response.json();
@@ -349,6 +434,8 @@ function mapOpportunityFields(opportunity, funnelId) {
         utm_term: utmTags.utm_term || null,
         create_date: opportunity.createDate ? new Date(opportunity.createDate).toISOString() : null,
         update_date: opportunity.updateDate ? new Date(opportunity.updateDate).toISOString() : null,
+        gain_date: opportunity.gain_date ? new Date(opportunity.gain_date).toISOString() : null,
+        lost_date: opportunity.lost_date ? new Date(opportunity.lost_date).toISOString() : null,
         synced_at: new Date().toISOString()
     };
 }
@@ -490,9 +577,18 @@ async function syncOpportunities() {
 
 // Endpoint principal (compatível com Traefik StripPrefix e sem StripPrefix)
 const handleSync = async (req, res) => {
+    if (isSyncRunning) {
+        return res.json({
+            success: true,
+            message: 'Execução já está em andamento',
+            data: lastRun
+        });
+    }
+
     const startTime = new Date();
     console.log(`\n🕒 [${startTime.toISOString()}] Iniciando sincronização de oportunidades...`);
-    
+
+    isSyncRunning = true;
     try {
         const result = await syncOpportunities();
         const endTime = new Date();
@@ -522,6 +618,8 @@ const handleSync = async (req, res) => {
             error: error.message,
             timestamp: new Date().toISOString()
         });
+    } finally {
+        isSyncRunning = false;
     }
 };
 app.get('/oportunidades', handleSync);
@@ -581,6 +679,7 @@ app.get('/sync/all', async (_req, res) => {
         results.oportunidades = await syncOpportunities();
         results.leads = await syncLeads();
         results.segmentos = await syncSegments();
+        results.vendedores = await syncVendedores();
         res.json({ success: true, data: results });
     } catch (e) {
         res.status(500).json({ success: false, message: e.message });
