@@ -98,6 +98,324 @@ const OPTIMIZATION_CONFIG = {
 // Cache de verificações
 const verificationCache = new Map();
 
+// Colunas válidas na tabela api.oportunidade_sprint
+const SUPABASE_ALLOWED_FIELDS = new Set([
+    'id',
+    'title',
+    'value',
+    'crm_column',
+    'lead_id',
+    'sequence',
+    'status',
+    'loss_reason',
+    'gain_reason',
+    'expected_close_date',
+    'sale_channel',
+    'campaign',
+    'user_id',
+    'last_column_change',
+    'last_status_change',
+    'gain_date',
+    'lost_date',
+    'reopen_date',
+    'await_column_approved',
+    'await_column_approved_user',
+    'reject_appro',
+    'reject_appro_desc',
+    'conf_installment',
+    'create_date',
+    'update_date',
+    'origem_oportunidade',
+    'tipo_de_compra',
+    'qualificacao',
+    'primecadastro',
+    'data_recompra',
+    'codigo_prime_receita',
+    'descricao_da_formula',
+    'descricao_formula',
+    'id_api_max',
+    'id_transacao',
+    'link_pgto',
+    'numero_do_pedido',
+    'requisicao1',
+    'requisicao_2',
+    'requisicao_3',
+    'status_getnet',
+    'status_orcamento',
+    'status_log',
+    'status_melhor_envio',
+    'valorconfere',
+    'pagamento',
+    'forma_pagamento',
+    'frete',
+    'frete_cobrado',
+    'frete_pago',
+    'frete_height',
+    'frete_length',
+    'frete_weight',
+    'frete_width',
+    'frete_origem',
+    'frete_produto',
+    'valorfrete',
+    'cidade_entrega',
+    'codigo_de_rastreio',
+    'codigo_delivery',
+    'corrida',
+    'coleta',
+    'data_de_entrega',
+    'data_de_saida',
+    'data_ganho_correto',
+    'delivery',
+    'entregue_para',
+    'filial',
+    'id_correio',
+    'informacoes_preenchidas',
+    'ord_melhor_envio',
+    'observacao_logistica',
+    'rota',
+    'tentativa_de_entrega',
+    'tipo',
+    'tipo_de_frete',
+    'url_etiqueta',
+    'valor_a_receber_moto',
+    'etapa',
+    'codigo_id_lead',
+    'codigo_id_oportunidade',
+    'id_oportunidade',
+    'req',
+    'local_da_compra',
+    'utm_campaign',
+    'utm_content',
+    'utm_medium',
+    'utm_source',
+    'utm_term',
+    'utm_origin',
+    'utm_referer',
+    'utm_date_added',
+    'archived',
+    'synced_at',
+    'lead_firstname',
+    'lead_lastname',
+    'lead_cpf',
+    'lead_city',
+    'lead_bairro',
+    'lead_rua',
+    'lead_numero',
+    'lead_pais',
+    'lead_zipcode',
+    'lead_data_nascimento',
+    'lead_email',
+    'lead_recebedor',
+    'lead_whatsapp',
+    'lead_rg',
+    'lead_linkpagamento',
+    'vendedor',
+    'funil_id',
+    'funil_nome',
+    'unidade_id'
+]);
+
+const KNOWN_OPPORTUNITY_FIELD_LABELS = new Set([
+    'ORIGEM OPORTUNIDADE',
+    'Tipo de Compra',
+    'QUALIFICACAO',
+    'PRIMECADASTRO',
+    'DATA RECOMPRA',
+    'Codigo Prime Receita',
+    'Descricao da Formula',
+    'Id ApiMax',
+    'Id Transacao',
+    'LinkPgto',
+    'Numero do pedido',
+    'requisicao1',
+    'Requisicao 1',
+    'Requisicao 2',
+    'Requisicao 3',
+    'Status Getnet',
+    'Status Orcamento',
+    'Status Log',
+    'Status Melhor Envio',
+    'Valorconfere',
+    'PAGAMENTO',
+    'Forma Pagamento',
+    'Frete',
+    'FRETE COBRADO',
+    'FRETE PAGO',
+    'freteheight',
+    'fretelength',
+    'freteweight',
+    'fretewidth',
+    'freteorigem',
+    'freteproduto',
+    'Local da Compra',
+    'valorfrete',
+    'Codigo ID Lead',
+    'Codigo ID Oportunidade',
+    'idoportunidade',
+    'REQ',
+    'CIDADE ENTREGA',
+    'CODIGO DE RASTREIO',
+    'CODIGO DELIVERY',
+    'CORRIDA',
+    'Coleta',
+    'DATA DE ENTREGA',
+    'DATA DE SAIDA',
+    'DATA GANHO CORRETO',
+    'DELIVERY',
+    'ENTREGUE PARA',
+    'FILIAL',
+    'ID Correio',
+    'INFORMAES PREENCHIDAS',
+    'ORD Melhor Envio',
+    'Observao Logstica',
+    'ROTA',
+    'TENTATIVA DE ENTREGA',
+    'TIPO',
+    'Tipo de Frete',
+    'URL Etiqueta',
+    'VALOR A RECEBER MOTO',
+    'etapa',
+    'VENDEDOR'
+]);
+
+const unknownOpportunityFieldSamples = new Map();
+
+function sanitizeSupabasePayload(data) {
+    const sanitized = {};
+    for (const [key, value] of Object.entries(data)) {
+        if (SUPABASE_ALLOWED_FIELDS.has(key)) {
+            sanitized[key] = value;
+        }
+    }
+    return sanitized;
+}
+
+function parseDateValue(value) {
+    return parseBrazilianDate(value);
+}
+
+function parseNumberValue(value) {
+    if (value === null || value === undefined || value === '') return null;
+    let parsed = value;
+    if (typeof value === 'string') {
+        const normalized = value
+            .replace(/\s+/g, '')
+            .replace(/R\$/gi, '')
+            .replace(/\./g, '')
+            .replace(',', '.')
+            .replace(/[^0-9.-]/g, '');
+        parsed = normalized === '' || normalized === '.' || normalized === '-' ? null : normalized;
+    }
+    if (parsed === null) return null;
+    const num = Number(parsed);
+    return Number.isFinite(num) ? num : null;
+}
+
+function parseBooleanValue(value) {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (['true', '1', 'yes', 'sim'].includes(normalized)) return true;
+        if (['false', '0', 'no', 'nao', 'não', 'nao'].includes(normalized)) return false;
+    }
+    return null;
+}
+
+function normalizeFieldsObject(fields) {
+    if (!fields || typeof fields !== 'object') return {};
+    const normalized = {};
+    for (const [key, value] of Object.entries(fields)) {
+        if (typeof key !== 'string') continue;
+        normalized[key.trim()] = value;
+    }
+    return normalized;
+}
+
+function pickFieldValue(fieldMap, ...keys) {
+    for (const key of keys) {
+        if (!key) continue;
+        if (Object.prototype.hasOwnProperty.call(fieldMap, key)) {
+            return fieldMap[key];
+        }
+    }
+    return null;
+}
+
+function normalizeEmptyValue(value) {
+    if (value === undefined || value === null) return null;
+    if (typeof value === 'string' && value.trim() === '') return null;
+    return value;
+}
+
+function getFunilIdByColumn(crmColumn) {
+    if ([130, 231, 82, 207, 83, 85, 232].includes(crmColumn)) return 6;
+    if ([101, 243, 266, 244, 245, 105, 108, 267, 109, 261, 262, 263, 278, 110].includes(crmColumn)) return 9;
+    if ([227, 202, 228, 229, 206, 203, 204, 230, 205, 241, 146, 147, 167, 148, 168, 149, 169, 150].includes(crmColumn)) return 14;
+    return null;
+}
+
+function trackUnknownOpportunityFields(fieldsMap, opportunity) {
+    if (!fieldsMap) return;
+    for (const [key, value] of Object.entries(fieldsMap)) {
+        if (!KNOWN_OPPORTUNITY_FIELD_LABELS.has(key)) {
+            const normalizedValue = normalizeEmptyValue(value);
+            if (normalizedValue === null) continue;
+            if (!unknownOpportunityFieldSamples.has(key)) {
+                unknownOpportunityFieldSamples.set(key, {
+                    value: normalizedValue,
+                    opportunityId: opportunity?.id ?? null,
+                    crmColumn: opportunity?.crm_column ?? null,
+                    funilId: getFunilIdByColumn(opportunity?.crm_column) ?? null
+                });
+            }
+        }
+    }
+}
+
+async function reportMissingFields(resource, samplesMap) {
+    if (!samplesMap || samplesMap.size === 0) return;
+    if (!SUPABASE_CONFIG.url || !SUPABASE_CONFIG.serviceRoleKey) {
+        console.warn(`⚠️ Não foi possível registrar campos faltantes (${resource}): configuração Supabase incompleta.`);
+        return;
+    }
+
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/rpc/log_missing_field`;
+    const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_CONFIG.serviceRoleKey}`,
+        'apikey': SUPABASE_CONFIG.serviceRoleKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+    };
+
+    for (const [fieldName, sample] of samplesMap.entries()) {
+        try {
+            await fetch(url, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify({
+                    p_resource: resource,
+                    p_field_name: fieldName,
+                    p_sample: sample ?? null
+                })
+            });
+        } catch (error) {
+            console.warn(`⚠️ Falha ao registrar campo faltante (${resource} :: ${fieldName}): ${error.message}`);
+        }
+    }
+}
+
+function normalizeFields(rawFields = {}) {
+    const normalized = {};
+    for (const [key, value] of Object.entries(rawFields)) {
+        if (!key) continue;
+        normalized[key.trim()] = value;
+    }
+    return normalized;
+}
+
 /**
  * Delay otimizado
  */
@@ -160,17 +478,10 @@ function isRecent48Hours(dateString) {
  * Buscar oportunidades de uma etapa específica (com paginação otimizada)
  */
 async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0) {
-    const sinceTimestamp = new Date(
-        Date.now() - OPTIMIZATION_CONFIG.RECENT_WINDOW_HOURS * 60 * 60 * 1000
-    ).toISOString();
-
     const payload = {
         page,
         limit: OPTIMIZATION_CONFIG.PAGE_LIMIT,
-        columnId: stageId,
-        updatedSince: sinceTimestamp,
-        modifiedSince: sinceTimestamp,
-        lastUpdate: sinceTimestamp
+        columnId: stageId
     };
 
     const postData = JSON.stringify(payload);
@@ -348,58 +659,147 @@ async function checkMultipleInSupabase(opportunityIds) {
  * Mapear campos da oportunidade do SprintHub para Supabase
  */
 function mapOpportunityFields(opportunity) {
-    const fields = opportunity.fields || {};
+    const fieldsMap = normalizeFieldsObject(opportunity.fields || {});
     const lead = opportunity.dataLead || {};
-    const utmTags = (lead.utmTags && lead.utmTags[0]) || {};
+    const utmSource = Array.isArray(lead.utmTags) ? (lead.utmTags[0] || {}) : (lead.utmTags || {});
+    const utmTags = utmSource || {};
 
-    // Identificar funil
-    const getFunilId = (crmColumn) => {
-        if ([130, 231, 82, 207, 83, 85, 232].includes(crmColumn)) return 6;
-        if ([101, 243, 266, 244, 245, 105, 108, 267, 109, 261, 262, 263, 278, 110].includes(crmColumn)) return 9;
-        if ([227, 202, 228, 229, 206, 203, 204, 230, 205, 241, 146, 147, 167, 148, 168, 149, 169, 150].includes(crmColumn)) return 14;
-        return null;
-    };
+    trackUnknownOpportunityFields(fieldsMap, opportunity);
 
-    return {
+    const funilId = getFunilIdByColumn(opportunity.crm_column);
+    const funilNome = funilId ? (FUNIS_CONFIG[funilId]?.name || null) : null;
+    const parsedValue = parseNumberValue(opportunity.value);
+
+    const data = {
         id: opportunity.id,
-        title: opportunity.title,
-        value: parseFloat(opportunity.value) || 0.00,
-        crm_column: opportunity.crm_column,
-        lead_id: opportunity.lead_id,
-        status: opportunity.status,
-        loss_reason: opportunity.loss_reason || null,
-        gain_reason: opportunity.gain_reason || null,
-        user_id: opportunity.user || null,
-        
-        // Datas importantes - CORRIGIDAS
+        title: normalizeEmptyValue(opportunity.title),
+        value: parsedValue !== null ? parsedValue : 0,
+        crm_column: opportunity.crm_column ?? null,
+        lead_id: opportunity.lead_id ?? null,
+        sequence: parseNumberValue(opportunity.sequence),
+        status: normalizeEmptyValue(opportunity.status),
+        loss_reason: parseNumberValue(opportunity.loss_reason),
+        gain_reason: parseNumberValue(opportunity.gain_reason),
+        expected_close_date: parseDateValue(opportunity.expectedCloseDate),
+        sale_channel: normalizeEmptyValue(opportunity.sale_channel),
+        campaign: normalizeEmptyValue(opportunity.campaign),
+        user_id: parseNumberValue(opportunity.user),
+        last_column_change: parseDateValue(opportunity.last_column_change),
+        last_status_change: parseDateValue(opportunity.last_status_change),
+        gain_date: parseDateValue(opportunity.gain_date),
+        lost_date: parseDateValue(opportunity.lost_date),
+        reopen_date: parseDateValue(opportunity.reopen_date),
         create_date: parseBrazilianDate(opportunity.createDate),
         update_date: parseBrazilianDate(opportunity.updateDate),
-        lost_date: opportunity.lost_date ? parseBrazilianDate(opportunity.lost_date) : null,
-        gain_date: opportunity.gain_date ? parseBrazilianDate(opportunity.gain_date) : null,
-        
-        // Campos específicos
-        origem_oportunidade: fields["ORIGEM OPORTUNIDADE"] || null,
-        qualificacao: fields["QUALIFICACAO"] || null,
-        status_orcamento: fields["Status Orcamento"] || null,
-        
-        // UTM
-        utm_source: utmTags.utmSource || null,
-        utm_campaign: utmTags.utmCampaign || null,
-        utm_medium: utmTags.utmMedium || null,
-        
-        // Lead
-        lead_firstname: lead.firstname || null,
-        lead_email: lead.email || null,
-        lead_whatsapp: lead.whatsapp || null,
-        
-        // Controle
-        archived: opportunity.archived || 0,
-        synced_at: new Date().toISOString(),
-        
-        // Funil
-        funil_id: getFunilId(opportunity.crm_column),
-        unidade_id: '[1]'
+        archived: opportunity.archived ?? 0,
+        await_column_approved: parseBooleanValue(opportunity.await_column_approved),
+        await_column_approved_user: parseNumberValue(opportunity.await_column_approved_user),
+        reject_appro: parseBooleanValue(opportunity.reject_appro),
+        reject_appro_desc: normalizeEmptyValue(opportunity.reject_appro_desc),
+        conf_installment: null,
+        origem_oportunidade: normalizeEmptyValue(pickFieldValue(fieldsMap, 'ORIGEM OPORTUNIDADE')),
+        tipo_de_compra: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Tipo de Compra')),
+        qualificacao: normalizeEmptyValue(pickFieldValue(fieldsMap, 'QUALIFICACAO')),
+        primecadastro: parseNumberValue(pickFieldValue(fieldsMap, 'PRIMECADASTRO')),
+        data_recompra: normalizeEmptyValue(pickFieldValue(fieldsMap, 'DATA RECOMPRA')),
+        codigo_prime_receita: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Codigo Prime Receita')),
+        descricao_da_formula: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Descricao da Formula')),
+        descricao_formula: normalizeEmptyValue(lead.descricao_formula || pickFieldValue(fieldsMap, 'Descricao da Formula')),
+        id_api_max: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Id ApiMax')),
+        id_transacao: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Id Transacao')),
+        link_pgto: normalizeEmptyValue(pickFieldValue(fieldsMap, 'LinkPgto')),
+        numero_do_pedido: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Numero do pedido')),
+        requisicao1: normalizeEmptyValue(pickFieldValue(fieldsMap, 'requisicao1', 'Requisicao 1')),
+        requisicao_2: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Requisicao 2')),
+        requisicao_3: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Requisicao 3')),
+        status_getnet: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Status Getnet')),
+        status_orcamento: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Status Orcamento')),
+        status_log: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Status Log')),
+        status_melhor_envio: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Status Melhor Envio')),
+        valorconfere: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Valorconfere')),
+        pagamento: normalizeEmptyValue(pickFieldValue(fieldsMap, 'PAGAMENTO')),
+        forma_pagamento: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Forma Pagamento')),
+        frete: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Frete')),
+        frete_cobrado: normalizeEmptyValue(pickFieldValue(fieldsMap, 'FRETE COBRADO')),
+        frete_pago: normalizeEmptyValue(pickFieldValue(fieldsMap, 'FRETE PAGO')),
+        frete_height: parseNumberValue(pickFieldValue(fieldsMap, 'freteheight')),
+        frete_length: parseNumberValue(pickFieldValue(fieldsMap, 'fretelength')),
+        frete_weight: parseNumberValue(pickFieldValue(fieldsMap, 'freteweight')),
+        frete_width: parseNumberValue(pickFieldValue(fieldsMap, 'fretewidth')),
+        frete_origem: normalizeEmptyValue(pickFieldValue(fieldsMap, 'freteorigem')),
+        frete_produto: normalizeEmptyValue(pickFieldValue(fieldsMap, 'freteproduto')),
+        local_da_compra: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Local da Compra')),
+        valorfrete: normalizeEmptyValue(pickFieldValue(fieldsMap, 'valorfrete')),
+        codigo_id_lead: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Codigo ID Lead')),
+        codigo_id_oportunidade: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Codigo ID Oportunidade')),
+        id_oportunidade: normalizeEmptyValue(pickFieldValue(fieldsMap, 'idoportunidade')),
+        req: normalizeEmptyValue(pickFieldValue(fieldsMap, 'REQ')),
+        cidade_entrega: normalizeEmptyValue(pickFieldValue(fieldsMap, 'CIDADE ENTREGA')),
+        codigo_de_rastreio: normalizeEmptyValue(pickFieldValue(fieldsMap, 'CODIGO DE RASTREIO')),
+        codigo_delivery: normalizeEmptyValue(pickFieldValue(fieldsMap, 'CODIGO DELIVERY')),
+        corrida: normalizeEmptyValue(pickFieldValue(fieldsMap, 'CORRIDA')),
+        coleta: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Coleta')),
+        data_de_entrega: parseDateValue(pickFieldValue(fieldsMap, 'DATA DE ENTREGA')),
+        data_de_saida: parseDateValue(pickFieldValue(fieldsMap, 'DATA DE SAIDA')),
+        data_ganho_correto: normalizeEmptyValue(pickFieldValue(fieldsMap, 'DATA GANHO CORRETO')),
+        delivery: normalizeEmptyValue(pickFieldValue(fieldsMap, 'DELIVERY')),
+        entregue_para: normalizeEmptyValue(pickFieldValue(fieldsMap, 'ENTREGUE PARA')),
+        filial: normalizeEmptyValue(pickFieldValue(fieldsMap, 'FILIAL')),
+        id_correio: normalizeEmptyValue(pickFieldValue(fieldsMap, 'ID Correio')),
+        informacoes_preenchidas: normalizeEmptyValue(pickFieldValue(fieldsMap, 'INFORMAES PREENCHIDAS')),
+        ord_melhor_envio: normalizeEmptyValue(pickFieldValue(fieldsMap, 'ORD Melhor Envio')),
+        observacao_logistica: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Observao Logstica')),
+        rota: normalizeEmptyValue(pickFieldValue(fieldsMap, 'ROTA')),
+        tentativa_de_entrega: normalizeEmptyValue(pickFieldValue(fieldsMap, 'TENTATIVA DE ENTREGA')),
+        tipo: normalizeEmptyValue(pickFieldValue(fieldsMap, 'TIPO')),
+        tipo_de_frete: normalizeEmptyValue(pickFieldValue(fieldsMap, 'Tipo de Frete')),
+        url_etiqueta: normalizeEmptyValue(pickFieldValue(fieldsMap, 'URL Etiqueta')),
+        valor_a_receber_moto: normalizeEmptyValue(pickFieldValue(fieldsMap, 'VALOR A RECEBER MOTO')),
+        etapa: normalizeEmptyValue(pickFieldValue(fieldsMap, 'etapa')),
+        vendedor: normalizeEmptyValue(pickFieldValue(fieldsMap, 'VENDEDOR')),
+        funil_id: funilId,
+        funil_nome: funilNome,
+        unidade_id: '[1]',
+        utm_campaign: normalizeEmptyValue(utmTags.utmCampaign || utmTags.campaign),
+        utm_content: normalizeEmptyValue(utmTags.utmContent),
+        utm_medium: normalizeEmptyValue(utmTags.utmMedium),
+        utm_source: normalizeEmptyValue(utmTags.utmSource || utmTags.source),
+        utm_term: normalizeEmptyValue(utmTags.utmTerm),
+        utm_origin: normalizeEmptyValue(utmTags.origin || utmTags.utmOrigin),
+        utm_referer: normalizeEmptyValue(utmTags.referer || utmTags.utmReferer),
+        utm_date_added: parseDateValue(utmTags.dateAdded || utmTags.utmDateAdded),
+        lead_firstname: normalizeEmptyValue(lead.firstname),
+        lead_lastname: normalizeEmptyValue(lead.lastname),
+        lead_cpf: normalizeEmptyValue(lead.cpf),
+        lead_city: normalizeEmptyValue(lead.city),
+        lead_bairro: normalizeEmptyValue(lead.bairro),
+        lead_rua: normalizeEmptyValue(lead.rua),
+        lead_numero: normalizeEmptyValue(lead.numero),
+        lead_pais: normalizeEmptyValue(lead.pais),
+        lead_zipcode: normalizeEmptyValue(lead.zipcode),
+        lead_data_nascimento: parseDateValue(lead.data_de_nascimento),
+        lead_email: normalizeEmptyValue(lead.email),
+        lead_recebedor: normalizeEmptyValue(lead.recebedor),
+        lead_whatsapp: normalizeEmptyValue(lead.whatsapp),
+        lead_rg: normalizeEmptyValue(lead.rg),
+        lead_linkpagamento: normalizeEmptyValue(lead.linkpagamento),
+        synced_at: new Date().toISOString()
     };
+
+    const rawConfInstallment = opportunity.conf_installment ?? opportunity.confInstallment ?? pickFieldValue(fieldsMap, 'conf_installment');
+    if (rawConfInstallment !== undefined && rawConfInstallment !== null) {
+        if (typeof rawConfInstallment === 'string') {
+            try {
+                data.conf_installment = JSON.parse(rawConfInstallment);
+            } catch {
+                data.conf_installment = rawConfInstallment;
+            }
+        } else {
+            data.conf_installment = rawConfInstallment;
+        }
+    }
+
+    return data;
 }
 
 /**
@@ -473,7 +873,7 @@ async function processBatch(opportunities, existingRecords) {
     // Separar em inserções e atualizações
     for (const opp of opportunities) {
         const existing = existingRecords[opp.id];
-        const mappedData = mapOpportunityFields(opp);
+        const mappedData = sanitizeSupabasePayload(mapOpportunityFields(opp));
         
         if (!existing) {
             toInsert.push(mappedData);
@@ -715,6 +1115,13 @@ export async function syncOptimized48Hours(options = {}) {
         results.error = error.message;
         results.success = false;
         return results;
+    } finally {
+        if (unknownOpportunityFieldSamples.size > 0) {
+            const missingFields = Array.from(unknownOpportunityFieldSamples.keys());
+            console.warn(`⚠️ Campos de oportunidade não mapeados detectados nesta execução: ${missingFields.join(', ')}`);
+            await reportMissingFields('oportunidade', unknownOpportunityFieldSamples);
+            unknownOpportunityFieldSamples.clear();
+        }
     }
 }
 
