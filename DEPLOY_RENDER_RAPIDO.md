@@ -133,3 +133,5 @@ Se o deploy não funcionar:
 3. Verifique se as variáveis de ambiente estão configuradas
 4. Tente fazer um deploy manual
 
+
+

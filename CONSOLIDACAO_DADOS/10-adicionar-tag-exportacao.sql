@@ -12,3 +12,5 @@ ON api.historico_exportacoes(tag_exportacao);
 COMMENT ON COLUMN api.historico_exportacoes.tag_exportacao IS 
 'Tag ou tipo de exportação para agrupamento no modo vendedor. Ex: "campanha_jan2024", "whatsapi_batch_1", etc.';
 
+
+

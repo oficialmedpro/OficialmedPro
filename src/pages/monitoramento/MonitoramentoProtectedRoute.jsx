@@ -110,3 +110,5 @@ const MonitoramentoProtectedRoute = ({ children }) => {
 
 export default MonitoramentoProtectedRoute;
 
+
+

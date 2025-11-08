@@ -89,3 +89,5 @@ Após o deploy (5-10 minutos), acesse:
 
 Veja `DEPLOY_REATIVACAO_RENDER.md` para instruções detalhadas.
 
+
+

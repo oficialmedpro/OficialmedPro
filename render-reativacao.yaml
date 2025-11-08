@@ -29,3 +29,5 @@ services:
       - key: VITE_SUPABASE_SCHEMA
         value: api
 
+
+

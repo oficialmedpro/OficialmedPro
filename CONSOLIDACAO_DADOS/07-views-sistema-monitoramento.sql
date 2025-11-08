@@ -251,3 +251,5 @@ GRANT SELECT ON api.vw_monitoramento_60_90_dias TO anon, authenticated, service_
 -- FIM
 -- ========================================
 
+
+
