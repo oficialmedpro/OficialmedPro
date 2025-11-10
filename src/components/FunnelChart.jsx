@@ -4,7 +4,7 @@ import { getFunilEtapas } from '../service/supabase.js';
 import { getFunnelStagesData } from '../service/funnelStagesService.js';
 import { getFunnelSourcesMetrics } from '../service/funnelSourcesService.js';
 import { getTodayDateSP } from '../utils/utils.js';
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, selectedOrigin, startDate, endDate, selectedPeriod }) => {
   const [etapas, setEtapas] = useState([]);
@@ -98,8 +98,8 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       });
@@ -136,8 +136,8 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       });
@@ -172,8 +172,8 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       });
@@ -211,8 +211,8 @@ const FunnelChart = ({ t, title, selectedFunnel, selectedUnit, selectedSeller, s
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       });

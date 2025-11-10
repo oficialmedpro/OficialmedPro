@@ -10,7 +10,7 @@
  */
 
 // Configurações do Supabase - usando configuração centralizada
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * 📄 FUNÇÃO PARA BUSCAR TODOS OS REGISTROS COM PAGINAÇÃO RECURSIVA
@@ -181,8 +181,8 @@ const getOrigemRankingFaturamento = async (startDate, endDate, selectedFunnel, s
 
     const baseHeaders = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
       'Accept-Profile': supabaseSchema,
       'Prefer': 'count=exact'
     };
@@ -229,8 +229,8 @@ const getOrigemRankingQuantidade = async (startDate, endDate, selectedFunnel, se
 
     const baseHeaders = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
       'Accept-Profile': supabaseSchema,
       'Prefer': 'count=exact'
     };
@@ -277,8 +277,8 @@ const getOrigemRankingPerdas = async (startDate, endDate, selectedFunnel, select
 
     const baseHeaders = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
       'Accept-Profile': supabaseSchema,
       'Prefer': 'count=exact'
     };

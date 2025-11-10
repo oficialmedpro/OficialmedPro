@@ -1,4 +1,4 @@
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * 🔧 DEBUG - Informações do Build
@@ -13,12 +13,12 @@ export const buildInfo = {
 
   // Status das variáveis do Supabase (runtime)
   hasSupabaseUrl: !!supabaseUrl,
-  hasSupabaseKey: !!supabaseServiceKey,
+  hasSupabaseKey: !!supabaseAnonKey,
   hasSupabaseSchema: !!supabaseSchema,
 
   // URLs parciais (para debug sem expor dados completos)
   supabaseUrlStart: supabaseUrl?.substring(0, 20) || 'NOT_FOUND',
-  supabaseKeyStart: supabaseServiceKey?.substring(0, 10) || 'NOT_FOUND',
+  supabaseKeyStart: supabaseAnonKey?.substring(0, 10) || 'NOT_FOUND',
   supabaseSchemaValue: supabaseSchema || 'NOT_FOUND',
 
   // Todas as variáveis ENV disponíveis em tempo de build (referência)

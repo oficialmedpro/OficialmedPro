@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { supabase } from './supabase';
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * Serviço especializado para integração Meta Ads por Unidade
@@ -10,7 +10,7 @@ class UnitMetaService {
   constructor() {
     // URLs e configurações base - usando configuração centralizada
     this.supabaseUrl = supabaseUrl;
-    this.supabaseServiceKey = supabaseServiceKey;
+    this.supabaseAnonKey = supabaseAnonKey;
     this.supabaseSchema = supabaseSchema;
     this.metaBaseUrl = 'https://graph.facebook.com/v18.0';
     
@@ -52,8 +52,8 @@ class UnitMetaService {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${this.supabaseServiceKey}`,
-            'apikey': this.supabaseServiceKey,
+            'Authorization': `Bearer ${this.supabaseAnonKey}`,
+            'apikey': this.supabaseAnonKey,
             'Accept-Profile': this.supabaseSchema,
             'Content-Profile': this.supabaseSchema
           }
@@ -356,8 +356,8 @@ class UnitMetaService {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${this.supabaseServiceKey}`,
-            'apikey': this.supabaseServiceKey,
+            'Authorization': `Bearer ${this.supabaseAnonKey}`,
+            'apikey': this.supabaseAnonKey,
             'Accept-Profile': this.supabaseSchema,
             'Content-Profile': this.supabaseSchema
           }
@@ -366,8 +366,8 @@ class UnitMetaService {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${this.supabaseServiceKey}`,
-            'apikey': this.supabaseServiceKey,
+            'Authorization': `Bearer ${this.supabaseAnonKey}`,
+            'apikey': this.supabaseAnonKey,
             'Accept-Profile': this.supabaseSchema,
             'Content-Profile': this.supabaseSchema
           }
@@ -376,8 +376,8 @@ class UnitMetaService {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${this.supabaseServiceKey}`,
-            'apikey': this.supabaseServiceKey,
+            'Authorization': `Bearer ${this.supabaseAnonKey}`,
+            'apikey': this.supabaseAnonKey,
             'Accept-Profile': this.supabaseSchema,
             'Content-Profile': this.supabaseSchema
           }
@@ -1139,8 +1139,8 @@ class UnitMetaService {
       const basicResponse = await fetch(basicUrl, {
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${this.supabaseServiceKey}`,
-          'apikey': this.supabaseServiceKey,
+          'Authorization': `Bearer ${this.supabaseAnonKey}`,
+          'apikey': this.supabaseAnonKey,
           'Accept-Profile': this.supabaseSchema,
           'Content-Profile': this.supabaseSchema
         }
@@ -1162,8 +1162,8 @@ class UnitMetaService {
       const unitResponse = await fetch(unitUrl, {
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${this.supabaseServiceKey}`,
-          'apikey': this.supabaseServiceKey,
+          'Authorization': `Bearer ${this.supabaseAnonKey}`,
+          'apikey': this.supabaseAnonKey,
           'Accept-Profile': this.supabaseSchema,
           'Content-Profile': this.supabaseSchema
         }
@@ -1185,8 +1185,8 @@ class UnitMetaService {
       const countResponse = await fetch(countUrl, {
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${this.supabaseServiceKey}`,
-          'apikey': this.supabaseServiceKey,
+          'Authorization': `Bearer ${this.supabaseAnonKey}`,
+          'apikey': this.supabaseAnonKey,
           'Accept-Profile': this.supabaseSchema,
           'Content-Profile': this.supabaseSchema
         }

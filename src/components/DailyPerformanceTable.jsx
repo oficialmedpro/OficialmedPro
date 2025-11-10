@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './DailyPerformanceTable.css';
 import { getDailyPerformanceData } from '../service/dailyPerformanceService';
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * 🎯 DAILY PERFORMANCE TABLE
@@ -55,8 +55,8 @@ const DailyPerformanceTable = ({
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       });
@@ -102,8 +102,8 @@ const DailyPerformanceTable = ({
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       });
@@ -140,8 +140,8 @@ const DailyPerformanceTable = ({
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       });
@@ -175,8 +175,8 @@ const DailyPerformanceTable = ({
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       });

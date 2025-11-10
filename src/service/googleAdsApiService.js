@@ -1,5 +1,5 @@
 // Novo serviço que usa Edge Functions do Supabase
-import { supabaseServiceKey } from '../config/supabase.js';
+import { supabaseAnonKey } from '../config/supabase.js';
 
 const API_BASE_URL = 'https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api'; // Sempre usar produção
 
@@ -7,9 +7,9 @@ class GoogleAdsApiService {
   constructor() {
     console.log('🚀 GoogleAdsApiService inicializado');
     console.log('🔗 API URL:', API_BASE_URL);
-    // Obter service key de forma segura (runtime ou build-time)
-    this.getServiceKey = () => {
-      return window.ENV?.VITE_SUPABASE_SERVICE_ROLE_KEY || supabaseServiceKey;
+    // Obter anon key de forma segura (runtime ou build-time)
+    this.getSupabaseKey = () => {
+      return window.ENV?.VITE_SUPABASE_ANON_KEY || supabaseAnonKey;
     };
   }
 
@@ -24,7 +24,7 @@ class GoogleAdsApiService {
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.getServiceKey()}`,
+          'Authorization': `Bearer ${this.getSupabaseKey()}`,
           ...options.headers
         },
         ...options

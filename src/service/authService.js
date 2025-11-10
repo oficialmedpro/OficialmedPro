@@ -7,9 +7,9 @@
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
-import { supabaseUrl, supabaseServiceKey } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey } from '../config/supabase.js';
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 class AuthService {
   constructor() {

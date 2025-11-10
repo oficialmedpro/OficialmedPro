@@ -1,7 +1,7 @@
 import { getTodayDateSP, getStartOfDaySP, getEndOfDaySP } from '../utils/utils.js'
 
 // Configurações do Supabase - usando configuração centralizada
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js'
 
 // Validar e limpar URL antes de usar
 const cleanUrl = (url) => {
@@ -22,8 +22,8 @@ export const getUnidades = async () => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema
       }
     })
@@ -40,8 +40,8 @@ export const getUnidades = async () => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Content-Profile': supabaseSchema
       }
@@ -83,8 +83,8 @@ export const getFunisPorUnidade = async (unidadeId = null) => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Content-Profile': supabaseSchema
       }
@@ -126,8 +126,8 @@ export const getVendedores = async (unidadeId = null) => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Content-Profile': supabaseSchema
       }
@@ -162,8 +162,8 @@ export const getOrigens = async () => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Content-Profile': supabaseSchema
       }
@@ -208,8 +208,8 @@ export const getFunilCompraPorUnidade = async (unidadeId) => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Content-Profile': supabaseSchema
       }

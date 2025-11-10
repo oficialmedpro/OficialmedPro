@@ -84,13 +84,29 @@ Blindar os tokens do Google Ads e as credenciais do Supabase, eliminando a expos
 ---
 
 ### Status / Próximos Passos
-- [ ] Refatoração front/Edge Functions (remover service role do cliente)
-- [ ] Limpeza de arquivos inseguros
+- [x] Refatoração front (service role removido do bundle, variáveis globais atualizadas)
+- [x] Limpeza de arquivos inseguros
+- [ ] Implementar endpoints/Edge Functions protegidos para fluxos que antes dependiam da service role
 - [ ] Checklist de secrets/RLS entregue ao time
 - [ ] Rotação de chaves executada
 - [ ] Testes pós-implantação validados
 
 > Após concluir cada bloco, atualizar esta lista e anexar novos tokens/URLs de teste conforme necessário.
+
+
+### Inventário de Operações de Escrita Ainda no Front (10/11/2025)
+
+| Módulo / Fluxo | Arquivos principais | Ações no banco | Observações |
+| --- | --- | --- | --- |
+| Autenticação e sessões | `src/components/Login.jsx`, `src/service/authService.js` | `select`, `insert`, `update` e `delete` em `api.users`, `api.user_sessions`, `api.access_logs` | Login compara hash com `bcrypt`, gera token e grava sessão/logs direto do navegador. |
+| Reativação (exportações e proteção de campos) | `src/pages/reativacao/ReativacaoBasePage.jsx` | `insert` em `api.historico_exportacoes`, `upsert`/`update` em `api.campos_protegidos`, `update` em `api.clientes_mestre`, `select` privilegiado em `api.nome_validado_clientes` | Usa service client para registrar exportações, travar campos e normalizar nomes. Fluxo crítico para tagueamento manual. |
+| Monitoramento (exportações) | `src/pages/monitoramento/MonitoramentoBasePage.jsx` | Mesmos padrões do módulo de reativação (`historico_exportacoes`, `campos_protegidos`, `clientes_mestre`) | Telas e componentes derivados compartilham mesmos métodos utilitários. |
+| Clientes Consolidados | `src/pages/clientes-consolidados.jsx` | `insert`/`update` em `api.historico_exportacoes`, `api.nome_validado_clientes`, `api.campos_protegidos`, `api.clientes_mestre` | Regras de normalização de nomes, bloqueio de edição e exportações por tag. |
+| Segmentos Automáticos | `src/service/autoSegmentsService.js`, `src/service/segmentoService.js`, `src/pages/SegmentosAutomaticosPage.jsx` | `insert`, `update`, `delete` em `api.segmento_automatico`, `api.segmento_execucao_log`, leitura de leads para Callix | Controla cadastros/edições de segmentos e execução manual; envia dados para Edge Function `process-auto-segments`. |
+| Metas Comerciais | `src/service/metasService.js` | `insert`, `update` em `api.metas` | CRUD completo de metas ainda roda com anon key. |
+| Ferramentas utilitárias | `src/service/insertUnidades.js`, scripts de import | Operações em `api.unidades` e correlatas | Usados pontualmente para carga; precisam virar scripts server-side. |
+
+> Prioridade sugerida: começar por **Autenticação/Sessões**, criar Edge Function de login e gateway de writes; em seguida migrar exportações (Reativação/Monitoramento/Clientes) e, por fim, os módulos de configuração (Segmentos, Metas).
 
 
 

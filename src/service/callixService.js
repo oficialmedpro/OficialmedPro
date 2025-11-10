@@ -4,7 +4,7 @@
  */
 
 import { supabase, getSupabaseWithSchema } from './supabase.js';
-import { supabaseUrl, supabaseServiceKey } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey } from '../config/supabase.js';
 
 const CONFIG = {
   SPRINTHUB: {
@@ -14,7 +14,7 @@ const CONFIG = {
   },
   SUPABASE: {
     url: window.ENV?.VITE_SUPABASE_URL || supabaseUrl,
-    serviceRoleKey: window.ENV?.VITE_SUPABASE_SERVICE_ROLE_KEY || supabaseServiceKey,
+    serviceRoleKey: window.ENV?.VITE_SUPABASE_ANON_KEY || supabaseAnonKey,
   },
   PAGINATION: {
     limit: 100,

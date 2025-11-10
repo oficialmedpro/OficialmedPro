@@ -2,7 +2,7 @@ import { getSupabaseWithSchema, getFunilEtapas } from './supabase.js';
 import { getGoogleAdsOriginFilter } from './googleOriginFilter';
 
 // Configurações do Supabase - usando configuração centralizada
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * Service para buscar dados reais do Supabase para o PerformanceThermometer
@@ -90,8 +90,8 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
           }
         });
@@ -206,8 +206,8 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       }),
@@ -215,8 +215,8 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       }),
@@ -224,8 +224,8 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       }),
@@ -233,8 +233,8 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       }),
@@ -242,8 +242,8 @@ export const getThermometerMetrics = async (startDate = null, endDate = null, se
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       })
@@ -438,8 +438,8 @@ const getThermometerMetricsAnteriores = async (startDate, endDate, selectedFunne
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       }),
@@ -447,8 +447,8 @@ const getThermometerMetricsAnteriores = async (startDate, endDate, selectedFunne
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       })
@@ -521,32 +521,32 @@ export const getThermometerMetricsBySource = async (startDate = null, endDate = 
       fetch(googleUrl, {
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       }),
       fetch(metaUrl, {
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       }),
       fetch(organicoUrl, {
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       }),
       fetch(whatsappUrl, {
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       })

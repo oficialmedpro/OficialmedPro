@@ -6,7 +6,7 @@
  */
 
 // Configurações do Supabase - usando configuração centralizada
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * 🎯 BUSCAR ETAPAS DESQUALIFICADAS POR FUNIL
@@ -25,8 +25,8 @@ export const getEtapasDesqualificadas = async (funilId) => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
       }
     });
@@ -120,8 +120,8 @@ export const getOportunidadesDesqualificadas = async (startDate, endDate, funilI
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Prefer': 'count=exact'
       }

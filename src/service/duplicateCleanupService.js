@@ -5,11 +5,11 @@
  * Útil para corrigir problemas de sincronização
  */
 
-import { supabaseUrl, supabaseServiceKey } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey } from '../config/supabase.js';
 
 const SUPABASE_CONFIG = {
     url: supabaseUrl,
-    serviceRoleKey: supabaseServiceKey
+    serviceRoleKey: supabaseAnonKey
 };
 
 // 🔍 BUSCAR DUPLICATAS POR ID

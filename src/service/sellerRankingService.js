@@ -6,7 +6,7 @@
  */
 
 // Configurações do Supabase - usando configuração centralizada
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * 🏆 BUSCAR RANKING DE VENDEDORES (OPORTUNIDADES GANHAS AGRUPADAS POR USER_ID)
@@ -102,8 +102,8 @@ export const getSellerRankingData = async (
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
           }
         });
@@ -192,8 +192,8 @@ export const getSellerRankingData = async (
     // Headers para a requisição
     const baseHeaders = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
       'Accept-Profile': supabaseSchema,
       'Prefer': 'count=exact'
     };
@@ -436,8 +436,8 @@ export const getSellerRankingFilterNames = async (
   try {
     const baseHeaders = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
       'Accept-Profile': supabaseSchema,
     };
 

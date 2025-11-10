@@ -2,12 +2,12 @@
  * Serviço temporário para comparar URLs e resultados entre serviços
  */
 
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 const baseHeaders = {
   'Accept': 'application/json',
-  'Authorization': `Bearer ${supabaseServiceKey}`,
-  'apikey': supabaseServiceKey,
+  'Authorization': `Bearer ${supabaseAnonKey}`,
+  'apikey': supabaseAnonKey,
   'Accept-Profile': supabaseSchema,
 };
 

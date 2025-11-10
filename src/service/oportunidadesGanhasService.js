@@ -7,7 +7,7 @@
  */
 
 // Configurações do Supabase - usando configuração centralizada
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * 🟢 FUNÇÃO PARA BUSCAR TODOS OS REGISTROS COM PAGINAÇÃO RECURSIVA
@@ -175,8 +175,8 @@ export const getOportunidadesGanhasMetrics = async (
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
           }
         });
@@ -257,8 +257,8 @@ export const getOportunidadesGanhasMetrics = async (
     // 🟢 EXECUTAR QUERIES COM PAGINAÇÃO
     const baseHeaders = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
       'Accept-Profile': supabaseSchema,
       'Prefer': 'count=exact'
     };
@@ -429,8 +429,8 @@ const getOportunidadesGanhasAnteriores = async (startDate, endDate, selectedFunn
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
           }
         });
@@ -465,8 +465,8 @@ const getOportunidadesGanhasAnteriores = async (startDate, endDate, selectedFunn
     // 🟢 EXECUTAR QUERIES COM PAGINAÇÃO PARA DADOS ANTERIORES
     const baseHeaders = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
       'Accept-Profile': supabaseSchema,
       'Prefer': 'count=exact'
     };
@@ -658,8 +658,8 @@ const buscarMetaPorTipo = async (tipoMeta, selectedFunnel, unidadeFranquia, sele
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
       }
     });

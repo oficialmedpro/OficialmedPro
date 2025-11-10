@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getThermometerMetrics } from '../service/thermometerService';
-import { supabaseUrl, supabaseServiceKey } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey } from '../config/supabase.js';
 
 const WonOpportunitiesList = ({ selectedDate }) => {
   const [wonOpportunities, setWonOpportunities] = useState([]);
@@ -34,8 +34,8 @@ const WonOpportunitiesList = ({ selectedDate }) => {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
           'Content-Profile': supabaseSchema
         }

@@ -11,7 +11,7 @@
  * - Usar create_date para leads (não gain_date)
  */
 
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * Função auxiliar para adicionar dias a uma data
@@ -42,8 +42,8 @@ const fetchAllDataWithPagination = async (baseQuery) => {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': 'api',
           'Content-Profile': 'api'
         }
@@ -325,8 +325,8 @@ const buildFilters = async (selectedFunnel, selectedUnit, selectedSeller, select
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': 'api',
         }
       });

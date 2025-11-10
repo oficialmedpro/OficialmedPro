@@ -1,5 +1,5 @@
 import { getTodayDateSP, getStartOfDaySP, getEndOfDaySP } from '../utils/utils'
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js'
 
 // Lazy import do googleAdsApiService para evitar inicialização automática
 let googleAdsApiServicePromise = null;
@@ -57,7 +57,7 @@ export const googleInvestimentoService = {
     // Verificar credenciais do Supabase
     console.log('\n🔑 Credenciais Supabase:');
     console.log('  - URL:', supabaseUrl);
-    console.log('  - Key:', supabaseServiceKey ? `${supabaseServiceKey.substring(0, 30)}...` : '❌ NÃO DEFINIDA');
+    console.log('  - Key:', supabaseAnonKey ? `${supabaseAnonKey.substring(0, 30)}...` : '❌ NÃO DEFINIDA');
     console.log('  - Schema:', supabaseSchema);
     
     // Monta URL com filtros (PostgREST) - Agora com timezone
@@ -113,8 +113,8 @@ export const googleInvestimentoService = {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
             'Content-Profile': supabaseSchema
           }
@@ -123,7 +123,7 @@ export const googleInvestimentoService = {
         console.log(`  - Status HTTP:`, response.status, response.statusText);
         console.log(`  - Headers enviados:`, {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey.substring(0, 30)}...`,
+          'Authorization': `Bearer ${supabaseAnonKey.substring(0, 30)}...`,
           'Accept-Profile': supabaseSchema,
           'Content-Profile': supabaseSchema
         });

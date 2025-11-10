@@ -6,7 +6,7 @@
 
 // Usar supabase-vendas.js que é específico para vendas (sem dependências do Google Ads)
 import { supabase, getSupabaseWithSchema } from './supabase-vendas.js';
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * Busca KPIs de Acolhimento

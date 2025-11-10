@@ -6,7 +6,7 @@
  */
 
 // Configurações do Supabase
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * 🎯 BUSCAR TODAS AS METAS ATIVAS
@@ -21,8 +21,8 @@ export const getAllMetasNew = async () => {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       }
@@ -97,8 +97,8 @@ export const updateMetaNew = async (metaId, dadosAtualizados) => {
         method: 'PATCH',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
           'Content-Type': 'application/json',
           'Prefer': 'return=representation'
@@ -143,8 +143,8 @@ export const createMetaNew = async (novaMeta) => {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
           'Content-Type': 'application/json',
           'Prefer': 'return=representation'
@@ -182,8 +182,8 @@ export const deactivateMetaNew = async (metaId) => {
         method: 'PATCH',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
           'Content-Type': 'application/json',
           'Prefer': 'return=representation'
@@ -224,8 +224,8 @@ export const getVendedoresNew = async () => {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       }
@@ -266,8 +266,8 @@ export const getVendedoresFromMetasNew = async () => {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       }

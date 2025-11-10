@@ -5,7 +5,7 @@
  * e estruturar para o componente vertical
  */
 
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * Buscar dados das rondas da tabela api.rondas
@@ -18,8 +18,8 @@ export const getRondasData = async () => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
       }
     });

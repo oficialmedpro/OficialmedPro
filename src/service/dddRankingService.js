@@ -1,5 +1,5 @@
 // Configurações do Supabase - usando configuração centralizada
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js'
 
 /**
  * 🎯 DDD RANKING SERVICE
@@ -169,8 +169,8 @@ export async function getDDDRankingData(startDate, endDate, selectedFunnel, sele
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'apikey': supabaseServiceKey,
-        'Authorization': `Bearer ${supabaseServiceKey}`,
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
         'Content-Type': 'application/json',
         'Accept-Profile': supabaseSchema,
         'Content-Profile': supabaseSchema,
@@ -274,8 +274,8 @@ export async function getDDDRankingFilterNames(selectedFunnel, selectedUnit, sel
     if (selectedFunnel && selectedFunnel !== 'all') {
       const funnelResponse = await fetch(`${supabaseUrl}/rest/v1/funis?select=nome_funil&id_funil_sprint.eq.${selectedFunnel}`, {
         headers: {
-          'apikey': supabaseServiceKey,
-          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
           'Accept-Profile': supabaseSchema,
           'Content-Profile': supabaseSchema
         }
@@ -290,8 +290,8 @@ export async function getDDDRankingFilterNames(selectedFunnel, selectedUnit, sel
     if (selectedUnit && selectedUnit !== 'all') {
       const unitResponse = await fetch(`${supabaseUrl}/rest/v1/unidades?select=unidade&codigo_sprint.eq.${selectedUnit}`, {
         headers: {
-          'apikey': supabaseServiceKey,
-          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
           'Accept-Profile': supabaseSchema,
           'Content-Profile': supabaseSchema
         }
@@ -306,8 +306,8 @@ export async function getDDDRankingFilterNames(selectedFunnel, selectedUnit, sel
     if (selectedSeller && selectedSeller !== 'all') {
       const sellerResponse = await fetch(`${supabaseUrl}/rest/v1/vendedores?select=nome&id_sprint.eq.${selectedSeller}`, {
         headers: {
-          'apikey': supabaseServiceKey,
-          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'apikey': supabaseAnonKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
           'Accept-Profile': supabaseSchema,
           'Content-Profile': supabaseSchema
         }

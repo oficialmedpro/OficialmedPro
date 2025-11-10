@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 
 // Configurações do Supabase - usando configuração centralizada
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * 🎯 FUNÇÃO PARA BUSCAR TODOS OS REGISTROS COM PAGINAÇÃO RECURSIVA
@@ -138,8 +138,8 @@ export const rfvRealService = {
 
       const baseHeaders = {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Prefer': 'count=exact'
       };
@@ -408,8 +408,8 @@ export const rfvRealService = {
 
       const baseHeaders = {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Prefer': 'count=exact'
       };

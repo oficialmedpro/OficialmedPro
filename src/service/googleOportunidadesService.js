@@ -1,12 +1,12 @@
 // Serviço para métricas de oportunidades com origem Google (oportunidade_sprint)
 // Usa PostgREST direto, como no restante do projeto
 
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js'
 
 const headers = {
   'Accept': 'application/json',
-  'Authorization': `Bearer ${supabaseServiceKey}`,
-  'apikey': supabaseServiceKey,
+  'Authorization': `Bearer ${supabaseAnonKey}`,
+  'apikey': supabaseAnonKey,
   'Accept-Profile': supabaseSchema,
   'Content-Profile': supabaseSchema
 }

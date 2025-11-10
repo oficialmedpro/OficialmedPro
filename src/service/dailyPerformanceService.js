@@ -6,7 +6,7 @@
  */
 
 // Configurações do Supabase - usando configuração centralizada
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * 🎯 FUNÇÃO PARA BUSCAR TODOS OS REGISTROS COM PAGINAÇÃO RECURSIVA
@@ -112,8 +112,8 @@ const buildFilters = async (selectedFunnel, selectedUnit, selectedSeller, select
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
         }
       });
@@ -161,8 +161,8 @@ const fetchLeadsDataByDay = async (startDate, endDate, filters) => {
     
     const baseHeaders = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
       'Accept-Profile': supabaseSchema,
       'Prefer': 'count=exact'
     };
@@ -273,8 +273,8 @@ const fetchLeadsMeta = async (selectedUnit, selectedFunnel, selectedSeller, tota
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
       }
     });
@@ -324,8 +324,8 @@ const fetchVendasDataByDay = async (startDate, endDate, filters) => {
     
     const baseHeaders = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
       'Accept-Profile': supabaseSchema,
       'Prefer': 'count=exact'
     };
@@ -438,8 +438,8 @@ const fetchVendasMeta = async (selectedUnit, selectedFunnel, selectedSeller, tot
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
       }
     });
@@ -528,8 +528,8 @@ const fetchFaturamentoMeta = async (selectedUnit, selectedFunnel, selectedSeller
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
       }
     });
@@ -617,8 +617,8 @@ const fetchTaxaConversaoMeta = async (selectedUnit, selectedFunnel, selectedSell
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
       }
     });
@@ -710,8 +710,8 @@ const fetchTicketMedioMeta = async (selectedUnit, selectedFunnel, selectedSeller
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
       }
     });
@@ -783,8 +783,8 @@ const fetchAllMetasOptimized = async (selectedUnit, selectedFunnel, selectedSell
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
       }
     });

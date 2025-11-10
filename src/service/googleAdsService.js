@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js'
 
 // Cliente Supabase usando configuração centralizada
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
@@ -33,8 +33,8 @@ class GoogleAdsService {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
           'Content-Profile': supabaseSchema
         }
@@ -58,8 +58,8 @@ class GoogleAdsService {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
           'Content-Profile': supabaseSchema
         }

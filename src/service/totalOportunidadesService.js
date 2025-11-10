@@ -7,7 +7,7 @@
  */
 
 // Configurações do Supabase - usando configuração centralizada
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * 🎯 FUNÇÃO PARA BUSCAR TODOS OS REGISTROS COM PAGINAÇÃO RECURSIVA
@@ -158,8 +158,8 @@ export const getTotalOportunidadesMetrics = async (
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
           }
         });
@@ -211,8 +211,8 @@ export const getTotalOportunidadesMetrics = async (
         console.log('🔬 DEBUG URL abertas funil 6:', debugUrl6);
         console.log('🔬 DEBUG URL abertas funil 14:', debugUrl14);
         const [resp6, resp14] = await Promise.all([
-          fetch(debugUrl6, { method: 'GET', headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}`, 'apikey': supabaseServiceKey, 'Accept-Profile': supabaseSchema } }),
-          fetch(debugUrl14, { method: 'GET', headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}`, 'apikey': supabaseServiceKey, 'Accept-Profile': supabaseSchema } })
+          fetch(debugUrl6, { method: 'GET', headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}`, 'apikey': supabaseAnonKey, 'Accept-Profile': supabaseSchema } }),
+          fetch(debugUrl14, { method: 'GET', headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${supabaseAnonKey}`, 'apikey': supabaseAnonKey, 'Accept-Profile': supabaseSchema } })
         ]);
         const data6 = resp6.ok ? await resp6.json() : [];
         const data14 = resp14.ok ? await resp14.json() : [];
@@ -257,8 +257,8 @@ export const getTotalOportunidadesMetrics = async (
     // 🎯 EXECUTAR QUERIES COM PAGINAÇÃO
     const baseHeaders = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
       'Accept-Profile': supabaseSchema,
       'Prefer': 'count=exact'
     };
@@ -429,8 +429,8 @@ const getTotalOportunidadesAnteriores = async (startDate, endDate, selectedFunne
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
           }
         });
@@ -465,8 +465,8 @@ const getTotalOportunidadesAnteriores = async (startDate, endDate, selectedFunne
     // 🎯 EXECUTAR QUERIES COM PAGINAÇÃO PARA DADOS ANTERIORES
     const baseHeaders = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
       'Accept-Profile': supabaseSchema,
       'Prefer': 'count=exact'
     };
@@ -532,8 +532,8 @@ export const testFunilSpecificWithUnit = async (funilId, unidadeId) => {
     
     const testHeaders = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
       'Accept-Profile': schema,
       'Content-Profile': schema,
       'Prefer': 'count=exact'
@@ -614,8 +614,8 @@ export const testFunilSpecific = async (funilId) => {
     
     const testHeaders = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
       'Accept-Profile': schema,
       'Content-Profile': schema,
       'Prefer': 'count=exact'

@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { supabaseServiceKey } from '../config/supabase.js';
+import { supabaseAnonKey } from '../config/supabase.js';
 
 class GooglePatrocinadoService {
   // SEMPRE usar Supabase Edge Functions (backend local removido)
@@ -7,8 +7,8 @@ class GooglePatrocinadoService {
     console.log('🔧 Google Patrocinado Service configurado para usar: Supabase Edge Functions');
     console.log('📋 Focando apenas na conta configurada nos Secrets do Supabase');
     
-    // Obter service key de forma segura (runtime ou build-time)
-    this.getServiceKey = () => window.ENV?.VITE_SUPABASE_SERVICE_ROLE_KEY || supabaseServiceKey;
+    // Obter anon key (pública) de forma segura (runtime ou build-time)
+    this.getSupabaseKey = () => window.ENV?.VITE_SUPABASE_ANON_KEY || supabaseAnonKey;
     
     // ❌ REMOVIDO: Teste automático desabilitado - só executar quando necessário (página de Google Ads)
     // this.testConnectionAndCampaigns();
@@ -20,7 +20,7 @@ class GooglePatrocinadoService {
       console.log('🚀 INICIANDO TESTE AUTOMÁTICO DA CONTA GOOGLE ADS...');
       console.log('🔗 URL da Edge Function:', 'https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api');
       
-      console.log('🔑 Service Key disponível:', this.getServiceKey() ? '✅ Sim' : '❌ Não');
+      console.log('🔑 Anon key disponível:', this.getSupabaseKey() ? '✅ Sim' : '❌ Não');
       
       // Definir período padrão (últimos 30 dias)
       const today = new Date();
@@ -38,7 +38,7 @@ class GooglePatrocinadoService {
       const connectionResponse = await fetch('https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api/test-connection', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.getServiceKey()}`,
+          'Authorization': `Bearer ${this.getSupabaseKey()}`,
           'Content-Type': 'application/json',
         }
       });
@@ -54,7 +54,7 @@ class GooglePatrocinadoService {
         // Tentar diagnóstico do erro
         if (connectionResponse.status === 401) {
           console.error('🔐 ERRO 401: Problema de autenticação');
-          console.error('   - Verifique se o Service Role Key está correto');
+          console.error('   - Verifique se o Supabase anon key está correto');
           console.error('   - Verifique se os secrets estão configurados no Supabase');
         } else if (connectionResponse.status === 404) {
           console.error('🔍 ERRO 404: Edge Function não encontrada');
@@ -89,7 +89,7 @@ class GooglePatrocinadoService {
       const campaignsResponse = await fetch(`https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api/campaigns?${params.toString()}`, {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.getServiceKey()}`,
+          'Authorization': `Bearer ${this.getSupabaseKey()}`,
           'Content-Type': 'application/json',
         }
       });
@@ -159,7 +159,7 @@ class GooglePatrocinadoService {
       const debugResponse = await fetch('https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api/debug-unidades', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.getServiceKey()}`,
+          'Authorization': `Bearer ${this.getSupabaseKey()}`,
           'Content-Type': 'application/json',
         }
       });
@@ -203,7 +203,7 @@ class GooglePatrocinadoService {
       const connectionResponse = await fetch('https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api/test-connection', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.getServiceKey()}`,
+          'Authorization': `Bearer ${this.getSupabaseKey()}`,
           'Content-Type': 'application/json',
         }
       });
@@ -242,7 +242,7 @@ class GooglePatrocinadoService {
         const campaignsResponse = await fetch(`https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api/campaigns?customer_id=${unit.customerId}`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${this.getServiceKey()}`,
+            'Authorization': `Bearer ${this.getSupabaseKey()}`,
             'Content-Type': 'application/json',
           }
         });
@@ -341,7 +341,7 @@ class GooglePatrocinadoService {
       const response = await fetch(url, {
         method,
         headers: {
-          'Authorization': `Bearer ${this.getServiceKey()}`,
+          'Authorization': `Bearer ${this.getSupabaseKey()}`,
           'Content-Type': 'application/json',
         },
         ...(method === 'POST' ? { body: JSON.stringify(params) } : {})
@@ -593,7 +593,7 @@ class GooglePatrocinadoService {
       const campaignsResponse = await fetch('https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api/campaigns?status=all', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.getServiceKey()}`,
+          'Authorization': `Bearer ${this.getSupabaseKey()}`,
           'Content-Type': 'application/json',
         }
       });
@@ -687,7 +687,7 @@ class GooglePatrocinadoService {
         const statsResponse = await fetch(`https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api/stats?startDate=${dateRange.since}&endDate=${dateRange.until}`, {
           method: 'GET',
           headers: {
-            'Authorization': `Bearer ${this.getServiceKey()}`,
+            'Authorization': `Bearer ${this.getSupabaseKey()}`,
             'Content-Type': 'application/json',
           }
         });
@@ -729,7 +729,7 @@ class GooglePatrocinadoService {
       const debugResponse = await fetch('https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api/debug-unidades', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${this.getServiceKey()}`,
+          'Authorization': `Bearer ${this.getSupabaseKey()}`,
           'Content-Type': 'application/json',
         }
       });
@@ -780,7 +780,7 @@ class GooglePatrocinadoService {
           const statsResponse = await fetch(`https://agdffspstbxeqhqtltvb.supabase.co/functions/v1/google-ads-api/stats?${new URLSearchParams(params)}`, {
             method: 'GET',
             headers: {
-              'Authorization': `Bearer ${this.getServiceKey()}`,
+              'Authorization': `Bearer ${this.getSupabaseKey()}`,
               'Content-Type': 'application/json',
             }
           });

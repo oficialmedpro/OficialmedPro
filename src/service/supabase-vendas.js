@@ -6,7 +6,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 // Função para limpar e validar URL
 const cleanAndValidateUrl = (url) => {
@@ -39,12 +39,15 @@ const cleanAndValidateUrl = (url) => {
 
 // Validar e limpar URLs antes de criar cliente
 let validSupabaseUrl = cleanAndValidateUrl(supabaseUrl);
-let validSupabaseServiceKey = supabaseServiceKey;
+let validSupabaseAnonKey = typeof supabaseAnonKey === 'string' ? supabaseAnonKey.trim() : '';
+if (!validSupabaseAnonKey) {
+  console.warn('⚠️ [supabase-vendas.js] Anon key não encontrada. Configure VITE_SUPABASE_ANON_KEY.');
+}
 
-// Cliente Supabase com service role key (permite acesso a todos os schemas)
+// Cliente Supabase com anon key (somente privilégios públicos)
 let supabase;
 try {
-  supabase = createClient(validSupabaseUrl, validSupabaseServiceKey, {
+  supabase = createClient(validSupabaseUrl, validSupabaseAnonKey || '', {
     auth: {
       autoRefreshToken: false,
       persistSession: false
@@ -62,13 +65,8 @@ try {
 } catch (error) {
   console.error('❌ [supabase-vendas.js] Erro ao criar cliente Supabase:', error);
   console.error('❌ [supabase-vendas.js] URL usada:', validSupabaseUrl);
-  console.error('❌ [supabase-vendas.js] Service Key presente:', !!validSupabaseServiceKey);
-  // Fallback client
-  supabase = createClient('https://agdffspstbxeqhqtltvb.supabase.co', validSupabaseServiceKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDQ1MzY2NiwiZXhwIjoyMDY2MDI5NjY2fQ.grInwGHFAH2WYvYerwfHkUsM08wXCJASg4CPMD2cTaA', {
-    auth: { autoRefreshToken: false, persistSession: false },
-    db: { schema: 'api' },
-    global: { headers: { 'Accept-Profile': 'api', 'Content-Profile': 'api' } }
-  });
+  console.error('❌ [supabase-vendas.js] Anon key presente:', !!validSupabaseAnonKey);
+  throw error;
 }
 
 // Função para obter o cliente com schema específico
@@ -86,7 +84,7 @@ export const getSupabaseWithSchema = (schema) => {
   // Criar novo cliente
   let client;
   try {
-    client = createClient(validSupabaseUrl, validSupabaseServiceKey, {
+    client = createClient(validSupabaseUrl, validSupabaseAnonKey || '', {
       auth: {
         autoRefreshToken: false,
         persistSession: false
@@ -103,12 +101,7 @@ export const getSupabaseWithSchema = (schema) => {
     });
   } catch (error) {
     console.error('❌ [supabase-vendas.js] Erro ao criar cliente com schema:', error);
-    // Fallback client
-    client = createClient('https://agdffspstbxeqhqtltvb.supabase.co', validSupabaseServiceKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDQ1MzY2NiwiZXhwIjoyMDY2MDI5NjY2fQ.grInwGHFAH2WYvYerwfHkUsM08wXCJASg4CPMD2cTaA', {
-      auth: { autoRefreshToken: false, persistSession: false },
-      db: { schema: schemaKey },
-      global: { headers: { 'Accept-Profile': schemaKey, 'Content-Profile': schemaKey } }
-    });
+    throw error;
   }
   
   // Armazenar no cache
@@ -120,7 +113,7 @@ export const getSupabaseWithSchema = (schema) => {
 export { supabase };
 
 // Exportar configurações
-export { supabaseUrl, supabaseServiceKey, supabaseSchema };
+export { supabaseUrl, supabaseAnonKey, supabaseSchema };
 
 
 

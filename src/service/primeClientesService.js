@@ -5,7 +5,7 @@
  */
 
 import { supabase, getSupabaseWithSchema } from './supabase.js';
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 export const primeClientesService = {
   /**

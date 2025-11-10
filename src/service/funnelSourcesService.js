@@ -10,7 +10,7 @@
  */
 
 // Configurações do Supabase - usando configuração centralizada
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 // Importar serviço de qualificados
 import { calcularQualificados, calcularQualificadosMultiplosFunils } from './qualificadosService.js';
@@ -178,8 +178,8 @@ export const getFunnelSourcesMetrics = async (startDate, endDate, selectedFunnel
     // Headers base com paginação
     const baseHeaders = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
       'Accept-Profile': supabaseSchema,
       'Content-Profile': supabaseSchema,
       'Prefer': 'count=exact'

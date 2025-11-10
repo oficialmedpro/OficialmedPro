@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './GoogleAdsMetricsBar.css';
 import GoogleAdsLogoLight from '../assets/google_ads_light.png';
 import GoogleAdsLogoDark from '../assets/google_ads_dark.png';
-import { supabaseServiceKey } from '../config/supabase.js';
+import { supabaseAnonKey } from '../config/supabase.js';
 
 const SimpleGoogleAdsMetricsBar = ({ 
   isDarkMode = false, 
@@ -40,7 +40,7 @@ const SimpleGoogleAdsMetricsBar = ({
       const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`
+          'Authorization': `Bearer ${supabaseAnonKey}`
         }
       });
 

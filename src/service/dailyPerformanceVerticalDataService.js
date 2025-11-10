@@ -5,7 +5,7 @@
  * Baseado na mesma estrutura do daily-performance-table mas agrupando por intervalos de horário
  */
 
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * Buscar metas diárias e calcular metas por ronda
@@ -70,8 +70,8 @@ const buscarMetasDiarias = async (params, metasDebugInfo = {}) => {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': 'api',
           'Content-Profile': 'api'
         }
@@ -148,8 +148,8 @@ export const getPerformanceDataByRondaHorario = async (params) => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': 'api',  // FORÇAR schema api
         'Content-Profile': 'api'  // FORÇAR schema api
       }
@@ -182,8 +182,8 @@ export const getPerformanceDataByRondaHorario = async (params) => {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': 'api',
           'Content-Profile': 'api'
         }
@@ -208,8 +208,8 @@ export const getPerformanceDataByRondaHorario = async (params) => {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': 'api',
           'Content-Profile': 'api'
         }
@@ -264,8 +264,8 @@ export const getPerformanceDataByRondaHorario = async (params) => {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': 'api',
           'Content-Profile': 'api'
         }
@@ -310,8 +310,8 @@ export const getPerformanceDataByRondaHorario = async (params) => {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': 'api',
           'Content-Profile': 'api'
         }
@@ -431,8 +431,8 @@ export const getPerformanceDataByRondaHorario = async (params) => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': 'api',
         'Content-Profile': 'api'
       }
@@ -478,8 +478,8 @@ export const getPerformanceDataByRondaHorario = async (params) => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': 'api',
         'Content-Profile': 'api'
       }

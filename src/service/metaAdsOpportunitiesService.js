@@ -1,7 +1,7 @@
 import { getSupabaseWithSchema } from './supabase.js';
 
 // Configurações do Supabase - usando configuração centralizada
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js';
 
 /**
  * Service específico para buscar dados de oportunidades do Meta Ads
@@ -74,8 +74,8 @@ export const getMetaAdsOpportunitiesMetrics = async (startDate = null, endDate =
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
           'Content-Profile': supabaseSchema
         }
@@ -84,8 +84,8 @@ export const getMetaAdsOpportunitiesMetrics = async (startDate = null, endDate =
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
           'Content-Profile': supabaseSchema
         }
@@ -94,8 +94,8 @@ export const getMetaAdsOpportunitiesMetrics = async (startDate = null, endDate =
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
           'Content-Profile': supabaseSchema
         }
@@ -238,8 +238,8 @@ export const getMetaAdsFinancialMetrics = async (startDate = null, endDate = nul
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Content-Profile': supabaseSchema
       }
@@ -333,8 +333,8 @@ export const getMetaAdsTimeMetrics = async (startDate = null, endDate = null, se
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Content-Profile': supabaseSchema
       }

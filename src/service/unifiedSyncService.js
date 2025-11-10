@@ -14,11 +14,11 @@ const SPRINTHUB_CONFIG = {
     apiToken: '9ad36c85-5858-4960-9935-e73c3698dd0c'
 };
 
-import { supabaseUrl, supabaseServiceKey } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey } from '../config/supabase.js';
 
 const SUPABASE_CONFIG = {
     url: supabaseUrl,
-    serviceRoleKey: supabaseServiceKey
+    serviceRoleKey: supabaseAnonKey
 };
 
 // 📋 CONFIGURAÇÃO COMPLETA DOS FUNIS E ETAPAS

@@ -5,6 +5,22 @@ import { getTodayDateSP, getStartOfDaySP, getEndOfDaySP } from '../utils/utils.j
 // Isso evita carregar dependências desnecessárias na página de vendas
 import { getSupabaseConfig } from '../config/supabase.js'
 
+// Snapshot inicial das configurações públicas
+let {
+  supabaseUrl,
+  supabaseAnonKey,
+  supabaseSchema
+} = getSupabaseConfig();
+
+// Função utilitária para atualizar o snapshot sempre que necessário
+const refreshSupabaseConfig = () => {
+  const config = getSupabaseConfig();
+  supabaseUrl = config.supabaseUrl;
+  supabaseAnonKey = config.supabaseAnonKey;
+  supabaseSchema = config.supabaseSchema;
+  return config;
+};
+
 // Cache do cliente Supabase (lazy initialization)
 let supabaseClient = null;
 
@@ -16,11 +32,11 @@ const getSupabaseClient = () => {
   }
   
   // Obter configuração atualizada (pode ter mudado se window.ENV foi injetado)
-  const { supabaseUrl, supabaseServiceKey, supabaseSchema } = getSupabaseConfig();
+  const { supabaseUrl: currentSupabaseUrl, supabaseAnonKey: currentSupabaseAnonKey, supabaseSchema: currentSupabaseSchema } = refreshSupabaseConfig();
   
   // Validar URLs antes de criar cliente
-  let validSupabaseUrl = supabaseUrl;
-  let validSupabaseServiceKey = supabaseServiceKey;
+  let validSupabaseUrl = currentSupabaseUrl;
+  let validSupabaseAnonKey = currentSupabaseAnonKey;
 
   // Validar e limpar URL
   if (validSupabaseUrl && typeof validSupabaseUrl === 'string') {
@@ -55,30 +71,29 @@ const getSupabaseClient = () => {
     validSupabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
   }
 
-  // Validar service key
-  if (!validSupabaseServiceKey || 
-      typeof validSupabaseServiceKey !== 'string' || 
-      validSupabaseServiceKey === 'undefined' || 
-      validSupabaseServiceKey === 'null' || 
-      validSupabaseServiceKey === '') {
-    console.error('❌ [supabase.js] Service key inválida');
-    validSupabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDQ1MzY2NiwiZXhwIjoyMDY2MDI5NjY2fQ.grInwGHFAH2WYvYerwfHkUsM08wXCJASg4CPMD2cTaA';
+  // Validar anon key
+  if (!validSupabaseAnonKey || 
+      typeof validSupabaseAnonKey !== 'string' || 
+      validSupabaseAnonKey === 'undefined' || 
+      validSupabaseAnonKey === 'null' || 
+      validSupabaseAnonKey === '') {
+    console.error('❌ [supabase.js] Anon key inválida. Configure VITE_SUPABASE_ANON_KEY.');
+    validSupabaseAnonKey = '';
   }
 
-  // Criar cliente Supabase com service role key (permite acesso a todos os schemas)
-  // Já configura o schema e os headers necessários para evitar erro 406 no PostgREST
-  supabaseClient = createClient(validSupabaseUrl, validSupabaseServiceKey, {
+  // Criar cliente Supabase com anon key (somente privilégios públicos)
+  supabaseClient = createClient(validSupabaseUrl, validSupabaseAnonKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
     },
     db: {
-      schema: supabaseSchema || 'api'
+      schema: currentSupabaseSchema || 'api'
     },
     global: {
       headers: {
-        'Accept-Profile': supabaseSchema || 'api',
-        'Content-Profile': supabaseSchema || 'api'
+        'Accept-Profile': currentSupabaseSchema || 'api',
+        'Content-Profile': currentSupabaseSchema || 'api'
       }
     }
   });
@@ -100,6 +115,7 @@ const supabaseClients = new Map();
 
 export const getSupabaseWithSchema = (schema) => {
   const schemaKey = schema || 'api';
+  const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
   
   // Verificar se já existe um cliente para este schema
   if (supabaseClients.has(schemaKey)) {
@@ -107,9 +123,9 @@ export const getSupabaseWithSchema = (schema) => {
     return supabaseClients.get(schemaKey);
   }
   
-  // Validar URL e service key antes de criar cliente
-  let urlToUse = validSupabaseUrl;
-  let keyToUse = validSupabaseServiceKey;
+  // Validar URL e anon key antes de criar cliente
+  let urlToUse = supabaseUrl;
+  let keyToUse = supabaseAnonKey;
   
   if (!urlToUse || typeof urlToUse !== 'string' || !urlToUse.startsWith('https://')) {
     console.error('❌ [getSupabaseWithSchema] URL inválida, usando fallback');
@@ -124,16 +140,16 @@ export const getSupabaseWithSchema = (schema) => {
   }
   
   if (!keyToUse || typeof keyToUse !== 'string') {
-    console.error('❌ [getSupabaseWithSchema] Service key inválida, usando fallback');
-    keyToUse = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDQ1MzY2NiwiZXhwIjoyMDY2MDI5NjY2fQ.grInwGHFAH2WYvYerwfHkUsM08wXCJASg4CPMD2cTaA';
+    console.error('❌ [getSupabaseWithSchema] Anon key inválida. Configure VITE_SUPABASE_ANON_KEY.');
+    keyToUse = '';
   }
   
   console.log('🔧 [getSupabaseWithSchema] Criando novo cliente Supabase...');
   console.log('🔍 [getSupabaseWithSchema] Configuração:', {
     schema: schemaKey,
     url: urlToUse ? `${urlToUse.substring(0, 30)}...` : 'NÃO DEFINIDA',
-    hasServiceKey: !!keyToUse,
-    serviceKeyLength: keyToUse?.length || 0
+    hasAnonKey: !!keyToUse,
+    anonKeyLength: keyToUse?.length || 0
   });
   
   const client = createClient(urlToUse, keyToUse, {
@@ -169,9 +185,10 @@ export const getSupabaseWithSchema = (schema) => {
 export const testConnection = async () => {
   try {
     console.log('🔌 Testando conexão com Supabase...')
+    const { supabaseUrl, supabaseAnonKey, supabaseSchema } = getSupabaseConfig();
     console.log('URL:', supabaseUrl)
     console.log('Schema:', supabaseSchema)
-    console.log('Service Key:', supabaseServiceKey ? '✅ Configurada' : '❌ Não configurada')
+    console.log('Anon Key:', supabaseAnonKey ? '✅ Configurada' : '❌ Não configurada')
     
     // Testar conexão básica com schema específico
     const supabaseWithSchema = getSupabaseWithSchema(supabaseSchema)
@@ -352,8 +369,8 @@ export const getFunilEtapas = async (idFunilSprint) => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Content-Profile': supabaseSchema
       }
@@ -414,8 +431,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
 
     const baseHeaders = {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${supabaseServiceKey}`,
-      'apikey': supabaseServiceKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`,
+      'apikey': supabaseAnonKey,
       'Accept-Profile': supabaseSchema,
       'Content-Profile': supabaseSchema,
       'Prefer': 'count=exact'

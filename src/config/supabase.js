@@ -63,33 +63,33 @@ const getSupabaseConfig = () => {
     supabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
   }
 
-  let supabaseServiceKey = null;
-  
+  let supabaseAnonKey = null;
+
   // Tentar ler de window.ENV primeiro
   if (isBrowser) {
     try {
-      if (window.ENV && window.ENV.VITE_SUPABASE_SERVICE_ROLE_KEY) {
-        const keyValue = getValidValue(window.ENV.VITE_SUPABASE_SERVICE_ROLE_KEY);
-        if (keyValue && keyValue.length > 50) {
-          supabaseServiceKey = keyValue;
+      if (window.ENV && window.ENV.VITE_SUPABASE_ANON_KEY) {
+        const anonValue = getValidValue(window.ENV.VITE_SUPABASE_ANON_KEY);
+        if (anonValue) {
+          supabaseAnonKey = anonValue;
         }
       }
     } catch (e) {
-      console.warn('⚠️ Erro ao ler window.ENV.VITE_SUPABASE_SERVICE_ROLE_KEY:', e);
+      console.warn('⚠️ Erro ao ler window.ENV.VITE_SUPABASE_ANON_KEY:', e);
     }
   }
-  
+
   // Se não conseguiu de window.ENV, tentar import.meta.env
-  if (!supabaseServiceKey && importMetaEnv.VITE_SUPABASE_SERVICE_ROLE_KEY) {
-    const keyValue = getValidValue(importMetaEnv.VITE_SUPABASE_SERVICE_ROLE_KEY);
-    if (keyValue && keyValue.length > 50) {
-      supabaseServiceKey = keyValue;
+  if (!supabaseAnonKey && importMetaEnv.VITE_SUPABASE_ANON_KEY) {
+    const anonValue = getValidValue(importMetaEnv.VITE_SUPABASE_ANON_KEY);
+    if (anonValue) {
+      supabaseAnonKey = anonValue;
     }
   }
-  
-  // Fallback se não encontrou
-  if (!supabaseServiceKey) {
-    supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDQ1MzY2NiwiZXhwIjoyMDY2MDI5NjY2fQ.grInwGHFAH2WYvYerwfHkUsM08wXCJASg4CPMD2cTaA';
+
+  // Logar aviso se não encontrou chave pública
+  if (!supabaseAnonKey) {
+    console.warn('⚠️ VITE_SUPABASE_ANON_KEY não encontrada. Configure a chave pública do Supabase.');
   }
 
   let supabaseSchema = null;
@@ -141,10 +141,10 @@ const getSupabaseConfig = () => {
     supabaseUrl = 'https://agdffspstbxeqhqtltvb.supabase.co';
   }
 
-  // Garantir que service key é válida
-  if (!supabaseServiceKey || typeof supabaseServiceKey !== 'string' || supabaseServiceKey.length < 50) {
-    console.warn('⚠️ VITE_SUPABASE_SERVICE_ROLE_KEY não encontrada ou inválida, usando fallback');
-    supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZGZmc3BzdGJ4ZXFocXRsdHZiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MDQ1MzY2NiwiZXhwIjoyMDY2MDI5NjY2fQ.grInwGHFAH2WYvYerwfHkUsM08wXCJASg4CPMD2cTaA';
+  // Garantir que anon key é válida
+  if (!supabaseAnonKey || typeof supabaseAnonKey !== 'string' || supabaseAnonKey.trim() === '') {
+    console.warn('⚠️ VITE_SUPABASE_ANON_KEY não encontrada ou inválida. É necessário informar a chave pública.');
+    supabaseAnonKey = null;
   }
   
   // Garantir que schema é válido
@@ -155,11 +155,11 @@ const getSupabaseConfig = () => {
   // Log de debug para entender o que está acontecendo
   console.log('🔧 Configuração Supabase:', {
     hasUrl: !!supabaseUrl,
-    hasKey: !!supabaseServiceKey,
+    hasAnonKey: !!supabaseAnonKey,
     schema: supabaseSchema,
     environment: importMetaEnv.MODE,
     urlStart: supabaseUrl?.substring(0, 30) + '...',
-    keyStart: supabaseServiceKey?.substring(0, 20) + '...',
+    anonKeyStart: supabaseAnonKey?.substring(0, 20) + '...',
     source: {
       fromWindowEnv: !!(isBrowser && window.ENV?.VITE_SUPABASE_URL),
       fromImportMeta: !!importMetaEnv.VITE_SUPABASE_URL,
@@ -169,7 +169,7 @@ const getSupabaseConfig = () => {
 
   return {
     supabaseUrl,
-    supabaseServiceKey,
+    supabaseAnonKey,
     supabaseSchema
   };
 };
@@ -178,19 +178,19 @@ const getSupabaseConfig = () => {
 export { getSupabaseConfig };
 
 // Exportar valores iniciais (para compatibilidade)
-export const { supabaseUrl, supabaseServiceKey, supabaseSchema } = getSupabaseConfig();
+export const { supabaseUrl, supabaseAnonKey, supabaseSchema } = getSupabaseConfig();
 
 // ✅ Garantir que as variáveis fiquem disponíveis globalmente (browser e SSR)
 if (typeof globalThis !== 'undefined') {
   globalThis.supabaseUrl = supabaseUrl;
-  globalThis.supabaseServiceKey = supabaseServiceKey;
+  globalThis.supabaseAnonKey = supabaseAnonKey;
   globalThis.supabaseSchema = supabaseSchema;
   globalThis.SUPABASE_URL = supabaseUrl;
-  globalThis.SUPABASE_SERVICE_ROLE_KEY = supabaseServiceKey;
+  globalThis.SUPABASE_ANON_KEY = supabaseAnonKey;
 }
 
 export default {
   supabaseUrl,
-  supabaseServiceKey,
+  supabaseAnonKey,
   supabaseSchema
 };

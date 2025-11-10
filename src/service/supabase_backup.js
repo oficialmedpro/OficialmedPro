@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 import { getTodayDateSP, getStartOfDaySP, getEndOfDaySP } from '../utils/utils.js'
-import { supabaseUrl, supabaseServiceKey, supabaseSchema } from '../config/supabase.js'
+import { supabaseUrl, supabaseAnonKey, supabaseSchema } from '../config/supabase.js'
 
-// Cliente Supabase com service role key (permite acesso a todos os schemas)
-export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+// Cliente Supabase com anon key (somente privilégios públicos)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
@@ -13,7 +13,7 @@ export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 // Função para obter o cliente com schema específico
 export const getSupabaseWithSchema = (schema) => {
   console.log('🔧 Criando cliente Supabase com schema:', schema)
-  return createClient(supabaseUrl, supabaseServiceKey, {
+  return createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false
@@ -33,7 +33,7 @@ export const testConnection = async () => {
     console.log('🔌 Testando conexão com Supabase...')
     console.log('URL:', supabaseUrl)
     console.log('Schema:', supabaseSchema)
-    console.log('Service Key:', supabaseServiceKey ? '✅ Configurada' : '❌ Não configurada')
+    console.log('Anon Key:', supabaseAnonKey ? '✅ Configurada' : '❌ Não configurada')
     
     // Testar conexão básica com schema específico
     const supabaseWithSchema = getSupabaseWithSchema(supabaseSchema)
@@ -203,8 +203,8 @@ export const getFunilEtapas = async (idFunilSprint) => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Content-Profile': supabaseSchema
       }
@@ -268,8 +268,8 @@ export const getFunisPorUnidade = async (unidadeId = null) => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Content-Profile': supabaseSchema
       }
@@ -307,8 +307,8 @@ export const getVendedores = async (unidadeId = null) => {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Content-Profile': supabaseSchema
       }
@@ -365,8 +365,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Content-Profile': supabaseSchema
       }
@@ -423,8 +423,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseServiceKey}`,
-        'apikey': supabaseServiceKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
         'Accept-Profile': supabaseSchema,
         'Content-Profile': supabaseSchema
       }
@@ -466,8 +466,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
             method: 'GET',
             headers: {
               'Accept': 'application/json',
-              'Authorization': `Bearer ${supabaseServiceKey}`,
-              'apikey': supabaseServiceKey,
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'apikey': supabaseAnonKey,
               'Accept-Profile': supabaseSchema,
               'Content-Profile': supabaseSchema
             }
@@ -476,8 +476,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
             method: 'GET',
             headers: {
               'Accept': 'application/json',
-              'Authorization': `Bearer ${supabaseServiceKey}`,
-              'apikey': supabaseServiceKey,
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'apikey': supabaseAnonKey,
               'Accept-Profile': supabaseSchema,
               'Content-Profile': supabaseSchema
             }
@@ -559,8 +559,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
             'Content-Profile': supabaseSchema
           }
@@ -569,8 +569,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
             'Content-Profile': supabaseSchema
           }
@@ -579,8 +579,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
             'Content-Profile': supabaseSchema
           }
@@ -589,8 +589,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
             'Content-Profile': supabaseSchema
           }
@@ -599,8 +599,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
             'Content-Profile': supabaseSchema
           }
@@ -609,8 +609,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
           method: 'GET',
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
             'Content-Profile': supabaseSchema
           }
@@ -672,8 +672,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
         fetch(googleAbertasUrl, {
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
             'Content-Profile': supabaseSchema
           }
@@ -681,8 +681,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
         fetch(metaAbertasUrl, {
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
             'Content-Profile': supabaseSchema
           }
@@ -690,8 +690,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
         fetch(whatsappAbertasUrl, {
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
             'Content-Profile': supabaseSchema
           }
@@ -699,8 +699,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
         fetch(organicoAbertasUrl, {
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
             'Content-Profile': supabaseSchema
           }
@@ -708,8 +708,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
         fetch(prescritorAbertasUrl, {
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
             'Content-Profile': supabaseSchema
           }
@@ -717,8 +717,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
         fetch(franquiaAbertasUrl, {
           headers: {
             'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': supabaseSchema,
             'Content-Profile': supabaseSchema
           }
@@ -782,8 +782,8 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
           'Accept-Profile': supabaseSchema,
           'Content-Profile': supabaseSchema
         }

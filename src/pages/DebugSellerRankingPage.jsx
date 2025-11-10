@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getSellerRankingData, getSellerRankingFilterNames } from '../service/sellerRankingService';
-import { supabaseUrl, supabaseServiceKey } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey } from '../config/supabase.js';
 
 const DebugSellerRankingPage = ({ onLogout }) => {
   const [loading, setLoading] = useState(false);
@@ -37,8 +37,8 @@ const DebugSellerRankingPage = ({ onLogout }) => {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey
         }
       });
       
@@ -70,8 +70,8 @@ const DebugSellerRankingPage = ({ onLogout }) => {
         method: 'GET',
         headers: {
           'Accept': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
-          'apikey': supabaseServiceKey
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey
         }
       });
       
