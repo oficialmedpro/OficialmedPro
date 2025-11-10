@@ -89,6 +89,69 @@ async function logRunFinish(runId, payload) {
     } catch {}
 }
 
+async function registerSyncControl({
+    startedAt,
+    completedAt,
+    totals = {},
+    trigger = 'manual_api',
+    status = 'success',
+    errorMessage = null
+}) {
+    if (!startedAt) return;
+
+    const safeTotals = {
+        totalProcessed: totals.totalProcessed ?? 0,
+        totalInserted: totals.totalInserted ?? 0,
+        totalUpdated: totals.totalUpdated ?? 0,
+        totalErrors: totals.totalErrors ?? 0
+    };
+
+    const executionSeconds = completedAt
+        ? parseFloat(((completedAt - startedAt) / 1000).toFixed(2))
+        : null;
+
+    try {
+        await supabase
+            .from('sync_control')
+            .insert({
+                job_name: 'sync_hourly_cron',
+                started_at: startedAt.toISOString(),
+                completed_at: completedAt ? completedAt.toISOString() : null,
+                status: status === 'success_with_errors' ? 'success' : status,
+                total_processed: safeTotals.totalProcessed,
+                total_inserted: safeTotals.totalInserted,
+                total_updated: safeTotals.totalUpdated,
+                total_errors: safeTotals.totalErrors,
+                execution_time_seconds: executionSeconds,
+                error_message: errorMessage || null,
+                details: {
+                    trigger,
+                    source: 'api-sync-opportunities',
+                    totals: safeTotals,
+                    reportedStatus: status
+                }
+            });
+    } catch (error) {
+        console.error('⚠️ Erro ao registrar sync_control:', error.message);
+    }
+
+    if (status === 'success' || status === 'success_with_errors') {
+        try {
+            const description = `Sync manual via API: ${safeTotals.totalProcessed} processadas | ${safeTotals.totalInserted} inseridas | ${safeTotals.totalUpdated} atualizadas | Erros: ${safeTotals.totalErrors}`;
+            const timestamp = (completedAt || new Date()).toISOString();
+            await supabase
+                .from('sincronizacao')
+                .insert({
+                    created_at: timestamp,
+                    data: timestamp,
+                    descricao: description
+                });
+        } catch (error) {
+            console.error('⚠️ Erro ao registrar sincronizacao:', error.message);
+        }
+    }
+}
+
 // Configuração SprintHub
 const SPRINTHUB_CONFIG = {
     baseUrl: SPRINTHUB_BASE_URL,
@@ -360,16 +423,13 @@ async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = 
     const url = `https://${SPRINTHUB_CONFIG.baseUrl}/crm/opportunities/${funnelId}?apitoken=${SPRINTHUB_CONFIG.apiToken}&i=${SPRINTHUB_CONFIG.instance}`;
     
     try {
-        // Tentar usar filtros incrementais, quando suportados pelo SprintHub
-        const incrementalHints = {};
-        if (globalThis.__LAST_UPDATE_PER_STAGE && globalThis.__LAST_UPDATE_PER_STAGE[`${funnelId}:${stageId}`]) {
+        const payloadObject = { page, limit, columnId: stageId };
+        if (process.env.SPRINTHUB_SUPPORTS_INCREMENTAL === 'true'
+            && globalThis.__LAST_UPDATE_PER_STAGE
+            && globalThis.__LAST_UPDATE_PER_STAGE[`${funnelId}:${stageId}`]) {
             const since = globalThis.__LAST_UPDATE_PER_STAGE[`${funnelId}:${stageId}`];
-            // Alguns backends usam nomes diferentes; enviamos todos de maneira inofensiva
-            incrementalHints.updatedSince = since;
-            incrementalHints.modifiedSince = since;
-            incrementalHints.lastUpdate = since;
+            payloadObject.modifiedSince = since;
         }
-        const payloadObject = { page, limit, columnId: stageId, ...incrementalHints };
         const postData = JSON.stringify(payloadObject);
         
         const response = await fetch(url, {
@@ -407,35 +467,28 @@ function mapOpportunityFields(opportunity, funnelId) {
         value: parseFloat(opportunity.value) || 0.00,
         crm_column: opportunity.crm_column,
         lead_id: opportunity.lead_id,
-        firstname: lead.firstname || null,
-        lastname: lead.lastname || null,
-        email: lead.email || null,
-        phone: lead.phone || null,
-        mobile: lead.mobile || null,
-        whatsapp: lead.whatsapp || null,
-        address: lead.address || null,
-        city: lead.city || null,
-        state: lead.state || null,
-        zipcode: lead.zipcode || null,
-        country: lead.country || null,
-        company: lead.company || null,
+        user_id: opportunity.user || null,
         funil_id: funnelId,
         status: opportunity.status || null,
-        origem: lead.origin || null,
-        categoria: lead.category || null,
-        segmento: lead.segment || null,
-        stage: lead.stage || null,
-        observacao: lead.observation || null,
-        produto: lead.product || null,
-        utm_source: utmTags.utm_source || null,
-        utm_medium: utmTags.utm_medium || null,
-        utm_campaign: utmTags.utm_campaign || null,
-        utm_content: utmTags.utm_content || null,
-        utm_term: utmTags.utm_term || null,
+        loss_reason: opportunity.loss_reason || null,
+        gain_reason: opportunity.gain_reason || null,
+        origem_oportunidade: fields['ORIGEM OPORTUNIDADE'] || null,
+        qualificacao: fields['QUALIFICACAO'] || null,
+        status_orcamento: fields['Status Orcamento'] || null,
+        lead_firstname: lead.firstname || null,
+        lead_lastname: lead.lastname || null,
+        lead_email: lead.email || null,
+        lead_whatsapp: lead.whatsapp || null,
+        lead_city: lead.city || null,
+        utm_source: utmTags.utmSource || utmTags.source || null,
+        utm_medium: utmTags.utmMedium || utmTags.medium || null,
+        utm_campaign: utmTags.utmCampaign || utmTags.campaign || null,
         create_date: opportunity.createDate ? new Date(opportunity.createDate).toISOString() : null,
         update_date: opportunity.updateDate ? new Date(opportunity.updateDate).toISOString() : null,
         gain_date: opportunity.gain_date ? new Date(opportunity.gain_date).toISOString() : null,
         lost_date: opportunity.lost_date ? new Date(opportunity.lost_date).toISOString() : null,
+        archived: opportunity.archived ?? 0,
+        unidade_id: '[1]',
         synced_at: new Date().toISOString()
     };
 }
@@ -596,6 +649,17 @@ const handleSync = async (req, res) => {
         
         console.log(`✅ [${endTime.toISOString()}] Sincronização concluída em ${duration.toFixed(2)}s`);
         console.log(`📊 Processadas: ${result.totalProcessed}, Inseridas: ${result.totalInserted}, Atualizadas: ${result.totalUpdated}, Erros: ${result.totalErrors}`);
+
+        const status =
+            result.totalErrors > 0 ? 'success_with_errors' : 'success';
+
+        await registerSyncControl({
+            startedAt: startTime,
+            completedAt: endTime,
+            totals: result,
+            trigger: 'manual_api',
+            status
+        });
         
         res.json({
             success: true,
@@ -612,6 +676,18 @@ const handleSync = async (req, res) => {
         try {
             await logRunFinish(undefined, {}); // no-op
         } catch {}
+
+        try {
+            await registerSyncControl({
+                startedAt: startTime,
+                completedAt: new Date(),
+                totals: { totalProcessed: 0, totalInserted: 0, totalUpdated: 0, totalErrors: 0 },
+                trigger: 'manual_api',
+                status: 'error',
+                errorMessage: error.message
+            });
+        } catch {}
+
         res.status(500).json({
             success: false,
             message: 'Erro na sincronização de oportunidades',

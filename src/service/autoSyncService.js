@@ -1,12 +1,12 @@
 /**
  * 🔄 SERVIÇO DE SINCRONIZAÇÃO AUTOMÁTICA
- * 
+ *
  * Executa sincronização automática a cada 2 horas
  * Horário de funcionamento: 06:00 - 22:00 (GMT-3 São Paulo)
  * Fora desse horário o serviço fica inativo
  */
 
-import { syncFollowUpStage, checkFollowUpSync } from './sprintHubSyncService.js';
+import syncApiService from './syncApiService.js';
 
 class AutoSyncService {
     constructor() {
@@ -56,47 +56,43 @@ class AutoSyncService {
             return;
         }
 
+        let responsePayload = {
+            success: false,
+            error: 'Sincronização não executada'
+        };
+
         try {
-            console.log('🔄 Iniciando sincronização automática...');
-            
-            // Verificar status atual
-            const checkResult = await checkFollowUpSync();
-            console.log(`📊 Status: ${checkResult.supabaseTotal}/${checkResult.sprintHubTotal} sincronizadas`);
-            
-            // Se houver dados faltando, sincronizar
-            if (checkResult.missing > 0) {
-                console.log(`⚠️ Encontradas ${checkResult.missing} oportunidades faltando. Sincronizando...`);
-                
-                const syncResult = await syncFollowUpStage();
-                
-                if (syncResult.success) {
-                    console.log(`✅ Sincronização concluída: ${syncResult.inserted} inseridas, ${syncResult.updated} atualizadas`);
-                    
-                    // Atualizar tempo da última sincronização
-                    this.lastSyncTime = new Date();
-                    this.saveLastSyncTime();
-                    
-                    // Disparar evento para componentes interessados
-                    this.notifyComponents();
-                } else {
-                    console.error('❌ Erro na sincronização:', syncResult.error);
-                }
-            } else {
-                console.log('✅ Dados já estão sincronizados. Nenhuma ação necessária.');
-                
-                // Atualizar tempo mesmo se não sincronizou
-                this.lastSyncTime = new Date();
-                this.saveLastSyncTime();
-                this.notifyComponents();
+            if (!syncApiService.isConfigured()) {
+                throw new Error('API de sincronização (VITE_SYNC_API_URL) não configurada');
             }
-            
+
+            console.log('🔄 Iniciando sincronização automática...');
+
+            const result = await syncApiService.triggerFull();
+
+            console.log('✅ Sincronização concluída via API:', result?.data || result);
+
+            this.lastSyncTime = new Date();
+            this.saveLastSyncTime();
+            this.notifyComponents();
+
+            responsePayload = {
+                success: true,
+                result: result?.data || result
+            };
         } catch (error) {
             console.error('❌ Erro na sincronização automática:', error);
+            responsePayload = {
+                success: false,
+                error: error.message
+            };
         }
-        
+
         // Calcular próxima sincronização
         this.nextSyncTime = this.calculateNextSyncTime();
         console.log(`⏰ Próxima sincronização agendada para: ${this.nextSyncTime.toLocaleString('pt-BR')}`);
+
+        return responsePayload;
     }
 
     // Notificar componentes sobre atualização
@@ -160,8 +156,8 @@ class AutoSyncService {
 
     // Forçar sincronização manual
     async forcSync() {
-        console.log('🔄 Sincronização manual iniciada...');
-        await this.performSync();
+        console.log('🔄 Sincronização manual iniciada via API...');
+        return await this.performSync();
     }
 
     // Salvar tempo da última sincronização

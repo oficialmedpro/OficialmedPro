@@ -27,8 +27,12 @@ if "%VITE_SUPABASE_URL%"=="" (
     echo ⚠️  Aviso: VITE_SUPABASE_URL não está definida
 )
 
-if "%VITE_SUPABASE_SERVICE_ROLE_KEY%"=="" (
-    echo ⚠️  Aviso: VITE_SUPABASE_SERVICE_ROLE_KEY não está definida
+if "%VITE_SUPABASE_ANON_KEY%"=="" (
+    echo ⚠️  Aviso: VITE_SUPABASE_ANON_KEY não está definida
+)
+
+if "%VITE_SYNC_API_URL%"=="" (
+    echo ⚠️  Aviso: VITE_SYNC_API_URL não está definida (necessária para acionar a API de sincronização)
 )
 
 REM Fazer build
@@ -47,7 +51,7 @@ if exist "dist" (
     echo 2. No Render, configure o deploy com:
     echo    - Build Command: npm install && npm run build
     echo    - Publish Directory: dist
-    echo    - Variáveis de ambiente: VITE_SUPABASE_URL, VITE_SUPABASE_SERVICE_ROLE_KEY
+    echo    - Variáveis de ambiente: VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_SYNC_API_URL
 ) else (
     echo ❌ Erro: Build não foi criado. Verifique os logs acima.
     exit /b 1

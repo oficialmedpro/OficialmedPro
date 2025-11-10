@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { syncFollowUpStage, checkFollowUpSync } from '../service/sprintHubSyncService';
 import { testFunilSpecific, testFunilSpecificWithUnit } from '../service/totalOportunidadesService';
 import autoSyncService from '../service/autoSyncService';
 import scheduledSyncService from '../service/scheduledSyncService';
 import notificationService from '../service/notificationService';
+import syncApiService from '../service/syncApiService';
 // Imports temporariamente removidos - arquivos não existem no repositório
 // import { generateDuplicateReport, performFullCleanup } from '../service/duplicateCleanupService';
 // import { syncTodayOnly, syncAll, checkFullSync } from '../service/unifiedSyncService';
 // import todaySyncService from '../service/todaySyncService';
 // import detacorretaIncremental from '../service/detacorreta_incremental';
 import dailySyncService from '../service/dailySyncService';
-import { supabaseUrl, supabaseServiceKey } from '../config/supabase.js';
+import { supabaseUrl, supabaseAnonKey } from '../config/supabase.js';
 import './TopMenuBar.css';
 
 // Sistema de Logger Configurável
@@ -86,7 +86,7 @@ const TopMenuBar = ({
   const isAdmin = true; // Por enquanto sempre admin, depois implementar lógica real
 
   const fetchMissingFields = useCallback(async () => {
-    if (!supabaseUrl || !supabaseServiceKey) {
+    if (!supabaseUrl || !supabaseAnonKey) {
       setMissingFields([]);
       setAlertsError('Credenciais Supabase ausentes');
       setAlertsLoading(false);
@@ -101,8 +101,8 @@ const TopMenuBar = ({
         `${supabaseUrl}/rest/v1/sync_missing_fields?select=resource,field_name,occurrences,last_seen,sample&order=last_seen.desc`,
         {
           headers: {
-            'Authorization': `Bearer ${supabaseServiceKey}`,
-            'apikey': supabaseServiceKey,
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
             'Accept-Profile': 'api'
           }
         }
@@ -123,7 +123,7 @@ const TopMenuBar = ({
     } finally {
       setAlertsLoading(false);
     }
-  }, [supabaseUrl, supabaseServiceKey]);
+  }, [supabaseUrl, supabaseAnonKey]);
 
   useEffect(() => {
     fetchMissingFields();
@@ -158,7 +158,7 @@ const TopMenuBar = ({
   const insertSyncRecordBrowser = async (description) => {
     try {
       const SUPABASE_URL = supabaseUrl;
-      const SUPABASE_KEY = supabaseServiceKey;
+      const SUPABASE_KEY = supabaseAnonKey;
       if (!SUPABASE_URL || !SUPABASE_KEY) return;
       const resp = await fetch(`${SUPABASE_URL}/rest/v1/sincronizacao`, {
         method: 'POST',
@@ -193,7 +193,7 @@ const TopMenuBar = ({
   const fetchLastSyncFromDB = async () => {
     try {
       const SUPABASE_URL = supabaseUrl;
-      const SUPABASE_KEY = supabaseServiceKey;
+      const SUPABASE_KEY = supabaseAnonKey;
       
       // Debug específico para o erro 401
       console.log('🔍 DEBUG sync_status - Configuração:', {
@@ -348,7 +348,7 @@ const TopMenuBar = ({
       };
 
       const SUPABASE_URL = supabaseUrl;
-      const SUPABASE_KEY = supabaseServiceKey;
+      const SUPABASE_KEY = supabaseAnonKey;
 
       const FUNIL_14_STAGES = [238, 239, 240, 241, 242, 243];
       const TARGET_FUNNEL = 14;
@@ -660,7 +660,7 @@ const TopMenuBar = ({
       updateSyncProgress('Auditoria Oportunidades Ganhas', 10, 100, 'Consultando Supabase...');
       
       const SUPABASE_URL = supabaseUrl;
-      const SUPABASE_KEY = supabaseServiceKey;
+      const SUPABASE_KEY = supabaseAnonKey;
       
       const supabaseQuery = `${SUPABASE_URL}/rest/v1/oportunidade_sprint?select=*&archived=eq.0&status=eq.gain&gain_date=gte.${PERIODO.inicio}&gain_date=lte.${PERIODO.fim}&funil_id=in.(6,14)&order=gain_date.desc`;
       
@@ -826,15 +826,30 @@ const TopMenuBar = ({
   // Função para sincronização manual
   const handleSync = async () => {
     if (isSyncing) return;
-    
+
+    if (!syncApiService.isConfigured()) {
+      alert('❌ API de sincronização não configurada. Defina VITE_SYNC_API_URL para usar o botão ⚡ SYNC AGORA.');
+      return;
+    }
+
     setIsSyncing(true);
     try {
-      // Usar o serviço de sincronização automática para manter consistência
-      await autoSyncService.forcSync();
-      
-      // Status será atualizado automaticamente via evento
+      const response = await autoSyncService.forcSync();
+
+      if (!response?.success) {
+        throw new Error(response?.error || 'Sincronização retornou sem sucesso');
+      }
+
+      logger.info('✅ Sincronização manual concluída via API:', response.result || {});
+
+      await fetchLastSyncFromDB();
+
+      setLastSyncTime(new Date());
+      notificationService.notifySyncCompleted?.(true, 'Sincronização manual concluída');
     } catch (error) {
       logger.error('❌ Erro na sincronização manual:', error);
+      notificationService.notifySyncCompleted?.(false, error.message);
+      alert(`❌ Erro na sincronização: ${error.message}`);
     } finally {
       setIsSyncing(false);
     }
@@ -869,7 +884,7 @@ const TopMenuBar = ({
       const API_TOKEN = '9ad36c85-5858-4960-9935-e73c3698dd0c';
       const INSTANCE = 'oficialmed';
       const SUPABASE_URL = supabaseUrl;
-      const SUPABASE_KEY = supabaseServiceKey;
+      const SUPABASE_KEY = supabaseAnonKey;
       
       // 1. Buscar oportunidades da etapa CADASTRO (232)
       logger.debug('🔍 1. Buscando etapa CADASTRO...');
@@ -1198,7 +1213,7 @@ const TopMenuBar = ({
       
       const SUPABASE_CONFIG = {
         url: supabaseUrl,
-        serviceRoleKey: supabaseServiceKey
+        serviceRoleKey: supabaseAnonKey
       };
       
       const PAGE_LIMIT = 100;
@@ -1702,7 +1717,7 @@ const TopMenuBar = ({
       
       const SUPABASE_CONFIG = {
         url: supabaseUrl,
-        serviceRoleKey: supabaseServiceKey
+        serviceRoleKey: supabaseAnonKey
       };
       
       const PAGE_LIMIT = 100;
@@ -2227,7 +2242,7 @@ const TopMenuBar = ({
       
       const SUPABASE_CONFIG = {
         url: supabaseUrl,
-        key: supabaseServiceKey
+        key: supabaseAnonKey
       };
 
       const SPRINTHUB_CONFIG = {

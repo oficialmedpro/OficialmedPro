@@ -10,13 +10,15 @@ services:
     
     environment:
       - VITE_SUPABASE_URL_FILE=/run/secrets/VITE_SUPABASE_URL_CORRETO
-      - VITE_SUPABASE_SERVICE_ROLE_KEY_FILE=/run/secrets/VITE_SUPABASE_SERVICE_ROLE_KEY
+      - VITE_SUPABASE_ANON_KEY_FILE=/run/secrets/VITE_SUPABASE_ANON_KEY
       - VITE_SUPABASE_SCHEMA_FILE=/run/secrets/VITE_SUPABASE_SCHEMA
+      - VITE_SYNC_API_URL_FILE=/run/secrets/VITE_SYNC_API_URL
 
     secrets:
       - VITE_SUPABASE_URL_CORRETO
-      - VITE_SUPABASE_SERVICE_ROLE_KEY
+      - VITE_SUPABASE_ANON_KEY
       - VITE_SUPABASE_SCHEMA
+      - VITE_SYNC_API_URL
       
     deploy:
       mode: replicated
@@ -59,7 +61,7 @@ services:
     environment:
       - NODE_ENV=production
       - VITE_SUPABASE_URL_FILE=/run/secrets/VITE_SUPABASE_URL_CORRETO
-      - VITE_SUPABASE_SERVICE_ROLE_KEY_FILE=/run/secrets/VITE_SUPABASE_SERVICE_ROLE_KEY
+      - VITE_SUPABASE_ANON_KEY_FILE=/run/secrets/VITE_SUPABASE_ANON_KEY
       - VITE_SUPABASE_SCHEMA_FILE=/run/secrets/VITE_SUPABASE_SCHEMA
       - VITE_SPRINTHUB_BASE_URL=sprinthub-api-master.sprinthub.app
       - VITE_SPRINTHUB_API_TOKEN=9ad36c85-5858-4960-9935-e73c3698dd0c
@@ -67,7 +69,7 @@ services:
       - ENABLE_BACKEND_SCHEDULER=true
     secrets:
       - VITE_SUPABASE_URL_CORRETO
-      - VITE_SUPABASE_SERVICE_ROLE_KEY
+      - VITE_SUPABASE_ANON_KEY
       - VITE_SUPABASE_SCHEMA
     command: sh -c "apk add --no-cache git && git clone https://github.com/oficialmedpro/OficialmedPro.git /app && cd /app && npm install && node api/server.js"
     deploy:
@@ -91,10 +93,13 @@ networks:
 secrets:
   VITE_SUPABASE_URL_CORRETO:
     external: true
-  VITE_SUPABASE_SERVICE_ROLE_KEY:
+  VITE_SUPABASE_ANON_KEY:
     external: true
   VITE_SUPABASE_SCHEMA:
     external: true
+  VITE_SYNC_API_URL:
+    external: true
+
 
 
 

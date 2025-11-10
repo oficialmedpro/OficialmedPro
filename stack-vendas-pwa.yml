@@ -10,14 +10,16 @@ services:
     # Variáveis de ambiente para o docker-entrypoint.sh (opcional, mas útil para fallback)
     environment:
       - VITE_SUPABASE_URL_FILE=/run/secrets/VITE_SUPABASE_URL_CORRETO
-      - VITE_SUPABASE_SERVICE_ROLE_KEY_FILE=/run/secrets/VITE_SUPABASE_SERVICE_ROLE_KEY
+      - VITE_SUPABASE_ANON_KEY_FILE=/run/secrets/VITE_SUPABASE_ANON_KEY
       - VITE_SUPABASE_SCHEMA_FILE=/run/secrets/VITE_SUPABASE_SCHEMA
+      - VITE_SYNC_API_URL_FILE=/run/secrets/VITE_SYNC_API_URL
 
     # Secrets montados diretamente em /run/secrets/
     secrets:
       - VITE_SUPABASE_URL_CORRETO
-      - VITE_SUPABASE_SERVICE_ROLE_KEY
+      - VITE_SUPABASE_ANON_KEY
       - VITE_SUPABASE_SCHEMA
+      - VITE_SYNC_API_URL
       
     deploy:
       mode: replicated
@@ -60,7 +62,9 @@ networks:
 secrets:
   VITE_SUPABASE_URL_CORRETO:
     external: true
-  VITE_SUPABASE_SERVICE_ROLE_KEY:
+  VITE_SUPABASE_ANON_KEY:
     external: true
   VITE_SUPABASE_SCHEMA:
+    external: true
+  VITE_SYNC_API_URL:
     external: true

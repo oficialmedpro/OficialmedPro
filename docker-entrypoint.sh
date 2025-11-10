@@ -24,15 +24,15 @@ else
     fi
 fi
 
-if [ -f "/run/secrets/VITE_SUPABASE_SERVICE_ROLE_KEY" ]; then
-    export VITE_SUPABASE_SERVICE_ROLE_KEY=$(cat /run/secrets/VITE_SUPABASE_SERVICE_ROLE_KEY)
-    echo "✅ VITE_SUPABASE_SERVICE_ROLE_KEY carregada do secret"
+if [ -f "/run/secrets/VITE_SUPABASE_ANON_KEY" ]; then
+    export VITE_SUPABASE_ANON_KEY=$(cat /run/secrets/VITE_SUPABASE_ANON_KEY)
+    echo "✅ VITE_SUPABASE_ANON_KEY carregada do secret"
 else
-    echo "⚠️ Secret VITE_SUPABASE_SERVICE_ROLE_KEY não encontrado"
-    echo "🔍 Tentando usar variável de ambiente VITE_SUPABASE_SERVICE_ROLE_KEY_FILE..."
-    if [ -n "$VITE_SUPABASE_SERVICE_ROLE_KEY_FILE" ] && [ -f "$VITE_SUPABASE_SERVICE_ROLE_KEY_FILE" ]; then
-        export VITE_SUPABASE_SERVICE_ROLE_KEY=$(cat "$VITE_SUPABASE_SERVICE_ROLE_KEY_FILE")
-        echo "✅ VITE_SUPABASE_SERVICE_ROLE_KEY carregada de $VITE_SUPABASE_SERVICE_ROLE_KEY_FILE"
+    echo "⚠️ Secret VITE_SUPABASE_ANON_KEY não encontrado"
+    echo "🔍 Tentando usar variável de ambiente VITE_SUPABASE_ANON_KEY_FILE..."
+    if [ -n "$VITE_SUPABASE_ANON_KEY_FILE" ] && [ -f "$VITE_SUPABASE_ANON_KEY_FILE" ]; then
+        export VITE_SUPABASE_ANON_KEY=$(cat "$VITE_SUPABASE_ANON_KEY_FILE")
+        echo "✅ VITE_SUPABASE_ANON_KEY carregada de $VITE_SUPABASE_ANON_KEY_FILE"
     fi
 fi
 
@@ -48,11 +48,26 @@ else
     fi
 fi
 
+if [ -f "/run/secrets/VITE_SYNC_API_URL" ]; then
+    export VITE_SYNC_API_URL=$(cat /run/secrets/VITE_SYNC_API_URL)
+    echo "✅ VITE_SYNC_API_URL carregada do secret"
+else
+    echo "⚠️ Secret VITE_SYNC_API_URL não encontrado"
+    echo "🔍 Tentando usar variável de ambiente VITE_SYNC_API_URL_FILE..."
+    if [ -n "$VITE_SYNC_API_URL_FILE" ] && [ -f "$VITE_SYNC_API_URL_FILE" ]; then
+        export VITE_SYNC_API_URL=$(cat "$VITE_SYNC_API_URL_FILE")
+        echo "✅ VITE_SYNC_API_URL carregada de $VITE_SYNC_API_URL_FILE"
+    elif [ -n "$VITE_SYNC_API_URL" ]; then
+        echo "✅ VITE_SYNC_API_URL definida via variável de ambiente"
+    fi
+fi
+
 # Log das variáveis (sem mostrar valores sensíveis)
 echo "🔍 Variáveis carregadas:"
 echo "  VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:0:30}..."
-echo "  VITE_SUPABASE_SERVICE_ROLE_KEY: ${VITE_SUPABASE_SERVICE_ROLE_KEY:0:20}..."
+echo "  VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY:0:20}..."
 echo "  VITE_SUPABASE_SCHEMA: $VITE_SUPABASE_SCHEMA"
+echo "  VITE_SYNC_API_URL: ${VITE_SYNC_API_URL:-não configurada}"
 
 # Injetar variáveis no HTML para o frontend acessar
 echo "🔧 Injetando variáveis no HTML..."
@@ -76,11 +91,11 @@ else
 <script>
 (function() {
   try {
-    window.ENV = {
-      VITE_SUPABASE_URL: 'ENV_URL_PLACEHOLDER',
-      VITE_SUPABASE_SERVICE_ROLE_KEY: 'ENV_KEY_PLACEHOLDER',
-      VITE_SUPABASE_SCHEMA: 'ENV_SCHEMA_PLACEHOLDER'
-    };
+    window.ENV = window.ENV || {};
+    window.ENV.VITE_SUPABASE_URL = 'ENV_URL_PLACEHOLDER';
+    window.ENV.VITE_SUPABASE_ANON_KEY = 'ENV_KEY_PLACEHOLDER';
+    window.ENV.VITE_SUPABASE_SCHEMA = 'ENV_SCHEMA_PLACEHOLDER';
+    window.ENV.VITE_SYNC_API_URL = 'ENV_SYNC_API_PLACEHOLDER';
   } catch (e) {
     console.error('Erro ao definir window.ENV:', e);
   }
@@ -90,8 +105,9 @@ ENVEOF
     
     # Substituir placeholders com valores reais (escapando barras)
     sed -i "s|ENV_URL_PLACEHOLDER|${VITE_SUPABASE_URL//\//\\/}|g" "$ENV_SCRIPT_FILE"
-    sed -i "s|ENV_KEY_PLACEHOLDER|${VITE_SUPABASE_SERVICE_ROLE_KEY//\//\\/}|g" "$ENV_SCRIPT_FILE"
+    sed -i "s|ENV_KEY_PLACEHOLDER|${VITE_SUPABASE_ANON_KEY//\//\\/}|g" "$ENV_SCRIPT_FILE"
     sed -i "s|ENV_SCHEMA_PLACEHOLDER|${VITE_SUPABASE_SCHEMA//\//\\/}|g" "$ENV_SCRIPT_FILE"
+    sed -i "s|ENV_SYNC_API_PLACEHOLDER|${VITE_SYNC_API_URL//\//\\/}|g" "$ENV_SCRIPT_FILE"
     
     # Injetar o script antes de </head>
     sed -i "/<\/head>/r $ENV_SCRIPT_FILE" /usr/share/nginx/html/index.html

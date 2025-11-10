@@ -1,13 +1,14 @@
 /**
  * 🕐 SERVIÇO DE SINCRONIZAÇÃO AGENDADA
- * 
+ *
  * Executa sincronização automática nos horários específicos:
  * 8:00, 9:50, 11:50, 13:50, 15:50, 17:50, 19:50, 20:50 (horário de Brasília - GMT-3)
- * 
+ *
  * Funciona tanto no frontend quanto no backend
  */
 
 import notificationService from './notificationService.js';
+import syncApiService from './syncApiService.js';
 
 class ScheduledSyncService {
     constructor() {
@@ -72,57 +73,46 @@ class ScheduledSyncService {
 
     // Executar sincronização via API
     async performSync() {
+        let payload = {
+            success: false,
+            error: 'Sincronização não executada'
+        };
+
         try {
+            if (!syncApiService.isConfigured()) {
+                throw new Error('API de sincronização (VITE_SYNC_API_URL) não configurada');
+            }
+
             console.log('🚀 Iniciando sincronização OTIMIZADA automática agendada...');
-            
+
             // Notificar início da sincronização
             notificationService.notifySyncStarted();
-            
-            // Chamar endpoint de sincronização com flag optimized=true
-            const response = await fetch('/api/sync-now', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    source: 'scheduled_sync',
-                    timestamp: new Date().toISOString(),
-                    optimized: true // ⚡ Usar sincronização otimizada
-                })
-            });
 
-            if (response.ok) {
-                const result = await response.json();
-                console.log('✅ Sincronização OTIMIZADA automática concluída:', result);
-                
-                // Atualizar tempo da última sincronização
-                this.lastSyncTime = new Date();
-                this.saveLastSyncTime();
-                
-                // Notificar sucesso
-                notificationService.notifySyncCompleted(true, `Processadas: ${result.result?.totalProcessed || 'N/A'}`);
-                
-                // Disparar evento para componentes interessados
-                this.notifyComponents();
-                
-                return { success: true, result };
-            } else {
-                console.error('❌ Erro na sincronização automática:', response.status);
-                
-                // Notificar erro
-                notificationService.notifySyncCompleted(false, `HTTP ${response.status}`);
-                
-                return { success: false, error: `HTTP ${response.status}` };
-            }
-            
+            const result = await syncApiService.triggerFull();
+            const data = result?.data || result;
+
+            console.log('✅ Sincronização OTIMIZADA automática concluída:', data);
+
+            this.lastSyncTime = new Date();
+            this.saveLastSyncTime();
+
+            notificationService.notifySyncCompleted(
+                true,
+                `Processadas: ${data?.oportunidades?.totalProcessed ?? data?.totalProcessed ?? 'N/A'}`
+            );
+
+            this.notifyComponents();
+
+            payload = { success: true, result: data };
         } catch (error) {
             console.error('❌ Erro na sincronização automática:', error);
-            
-            // Notificar erro
+
             notificationService.notifySyncCompleted(false, error.message);
-            
-            return { success: false, error: error.message };
+
+            payload = { success: false, error: error.message };
         }
+
+        return payload;
     }
 
     // Verificar se é hora de sincronizar

@@ -15,6 +15,7 @@ services:
       - VITE_SPRINTHUB_API_TOKEN_FILE=/run/secrets/VITE_SPRINTHUB_API_TOKEN
       - VITE_SPRINTHUB_INSTANCE_FILE=/run/secrets/VITE_SPRINTHUB_INSTANCE
       - VITE_CALLIX_API_TOKEN_FILE=/run/secrets/VITE_CALLIX_API_TOKEN
+      - VITE_SYNC_API_URL_FILE=/run/secrets/VITE_SYNC_API_URL
       - CRON_AUTH_TOKEN=meu-token-super-secreto-2024
 
     secrets:
@@ -26,6 +27,7 @@ services:
       - VITE_SPRINTHUB_API_TOKEN
       - VITE_SPRINTHUB_INSTANCE
       - VITE_CALLIX_API_TOKEN
+      - VITE_SYNC_API_URL
       
     deploy:
       mode: replicated
@@ -119,4 +121,6 @@ secrets:
   VITE_SPRINTHUB_INSTANCE:
     external: true
   VITE_CALLIX_API_TOKEN:
+    external: true
+  VITE_SYNC_API_URL:
     external: true
