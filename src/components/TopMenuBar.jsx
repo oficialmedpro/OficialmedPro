@@ -45,6 +45,7 @@ const logger = {
 import BandeiraEUA from '../../icones/eua.svg';
 import BandeiraBrasil from '../../icones/brasil.svg';
 import LogoOficialmed from '../../icones/icone_oficialmed.svg';
+import sairIcon from '../assets/sair.png';
 
 const TopMenuBar = ({ 
   sidebarExpanded, 
@@ -2941,7 +2942,7 @@ const TopMenuBar = ({
             title="Sair" 
             onClick={onLogout}
           >
-            <img src="/src/assets/sair.png" alt="Sair" className="tmb-logout-icon" />
+            <img src={sairIcon} alt="Sair" className="tmb-logout-icon" />
           </button>
         )}
       </div>
