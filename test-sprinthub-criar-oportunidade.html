@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Criar Oportunidade SprintHub</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        .container {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        pre {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error {
+            color: #ff6b6b;
+        }
+        .success {
+            color: #51cf66;
+        }
+        .info {
+            color: #74c0fc;
+        }
+        .warning {
+            color: #ffd93d;
+        }
+        .test-item {
+            background: #1e293b;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste Automático - Criar Oportunidade SprintHub</h1>
+    
+    <div class="container">
+        <h2>Configuração</h2>
+        <p>
+            Lead ID: <input type="number" id="leadId" value="111184" style="padding: 5px; width: 100px;">
+            Funil ID: <input type="number" id="funnelId" value="34" style="padding: 5px; width: 100px;">
+            Coluna: <input type="number" id="crmColumn" value="286" style="padding: 5px; width: 100px;">
+            User: <input type="number" id="userId" value="230" style="padding: 5px; width: 100px;">
+        </p>
+        <button onclick="testarTodos()">🚀 Testar Todas as Variações</button>
+        <button onclick="pararTestes()">⏹️ Parar Testes</button>
+        <div id="status"></div>
+    </div>
+
+    <div class="container">
+        <h2>Resultados dos Testes</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const CONFIG = {
+            baseUrl: 'sprinthub-api-master.sprinthub.app',
+            apiToken: '9ad36c85-5858-4960-9935-e73c3698dd0c',
+            instance: 'oficialmed'
+        };
+
+        let isTesting = false;
+        let testIndex = 0;
+
+        function buildUrl(path, query = {}) {
+            const base = `https://${CONFIG.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+            const params = new URLSearchParams({
+                apitoken: CONFIG.apiToken,
+                i: CONFIG.instance,
+                ...query
+            });
+            return `${base}?${params.toString()}`;
+        }
+
+        // Colunas conhecidas dos funis
+        const FUNIL_COLUMNS = {
+            6: [130, 231, 82, 207, 83, 85, 232], // Funil 6 - COMERCIAL
+            14: [227, 202, 228, 229, 206, 203, 204, 230, 205, 241, 146, 147, 167, 148, 168, 149, 169, 150], // Funil 14 - RECOMPRA
+            34: [286] // Funil 34 - assumindo que 286 existe
+        };
+
+        // Variações de payload para testar
+        const testVariations = [
+            {
+                name: 'Teste 1: Campos mínimos (sem fields, sem sequence)',
+                payload: {
+                    title: "Teste | WILSON",
+                    value: "177.94",
+                    crm_column: 286,
+                    lead_id: 111184,
+                    status: "open"
+                }
+            },
+            {
+                name: 'Teste 2: Com user e sequence (string)',
+                payload: {
+                    title: "Teste | WILSON",
+                    value: "177.94",
+                    crm_column: 286,
+                    lead_id: 111184,
+                    status: "open",
+                    user: 230,
+                    sequence: "0"
+                }
+            },
+            {
+                name: 'Teste 3: Com fields vazio',
+                payload: {
+                    title: "Teste | WILSON",
+                    value: "177.94",
+                    crm_column: 286,
+                    lead_id: 111184,
+                    status: "open",
+                    user: 230,
+                    sequence: "0",
+                    fields: {}
+                }
+            },
+            {
+                name: 'Teste 4: Com campos personalizados (idprime, ultimopedido como data)',
+                payload: {
+                    title: "Teste | WILSON",
+                    value: "177.94",
+                    crm_column: 286,
+                    lead_id: 111184,
+                    status: "open",
+                    user: 230,
+                    sequence: "0",
+                    fields: {
+                        "idprime": "405748",
+                        "ultimopedido": "2025-06-20"
+                    }
+                }
+            },
+            {
+                name: 'Teste 5: Com campos padrão (ORIGEM OPORTUNIDADE, Tipo de Compra)',
+                payload: {
+                    title: "Teste | WILSON",
+                    value: "177.94",
+                    crm_column: 286,
+                    lead_id: 111184,
+                    status: "open",
+                    user: 230,
+                    sequence: "0",
+                    fields: {
+                        "ORIGEM OPORTUNIDADE": "Reativação",
+                        "Tipo de Compra": "reativação"
+                    }
+                }
+            },
+            {
+                name: 'Teste 6: Todos os campos juntos (nomes corretos)',
+                payload: {
+                    title: "Teste | WILSON",
+                    value: "177.94",
+                    crm_column: 286,
+                    lead_id: 111184,
+                    status: "open",
+                    user: 230,
+                    sequence: "0",
+                    fields: {
+                        "idprime": "405748",
+                        "ultimopedido": "2025-06-20",
+                        "ultimoorcamento": "2025-06-15",
+                        "Descricao da Formula": "Pedido #250601967 - 20/06/2025 - R$ 177,94 - APROVADO | Fórmulas: F#1: ALOGLIPTINA 25mg - PIOGLITAZONA HCL 30mg - TOMAR 1 CAP 1X AO DIA - R$ 177,94",
+                        "ORIGEM OPORTUNIDADE": "Reativação",
+                        "Tipo de Compra": "reativação"
+                    }
+                }
+            },
+            {
+                name: 'Teste 7: Com idprime e Descricao da Formula',
+                payload: {
+                    title: "Teste | WILSON",
+                    value: "177.94",
+                    crm_column: 286,
+                    lead_id: 111184,
+                    status: "open",
+                    user: 230,
+                    sequence: "0",
+                    fields: {
+                        "idprime": "405748",
+                        "Descricao da Formula": "Pedido #250601967 - 20/06/2025 - R$ 177,94 - APROVADO"
+                    }
+                }
+            },
+            {
+                name: 'Teste 8: Com todos os campos personalizados (datas corretas)',
+                payload: {
+                    title: "Teste | WILSON",
+                    value: "177.94",
+                    crm_column: 286,
+                    lead_id: 111184,
+                    status: "open",
+                    user: 230,
+                    sequence: "0",
+                    fields: {
+                        "idprime": "405748",
+                        "ultimopedido": "2025-06-20",
+                        "ultimoorcamento": "2025-06-15",
+                        "Descricao da Formula": "Pedido #250601967 - 20/06/2025 - R$ 177,94 - APROVADO",
+                        "ORIGEM OPORTUNIDADE": "Reativação",
+                        "Tipo de Compra": "reativação"
+                    }
+                }
+            },
+            {
+                name: 'Teste 9: Apenas idprime e campos padrão',
+                payload: {
+                    title: "Teste | WILSON",
+                    value: "177.94",
+                    crm_column: 286,
+                    lead_id: 111184,
+                    status: "open",
+                    user: 230,
+                    sequence: "0",
+                    fields: {
+                        "idprime": "405748",
+                        "ORIGEM OPORTUNIDADE": "Reativação",
+                        "Tipo de Compra": "reativação"
+                    }
+                }
+            },
+            {
+                name: 'Teste 10: Payload completo (todos os campos corretos)',
+                payload: {
+                    title: "REATIVAÇÃO | WILSON",
+                    value: "177.94",
+                    crm_column: 286,
+                    lead_id: 111184,
+                    status: "open",
+                    user: 230,
+                    sequence: "0",
+                    fields: {
+                        "idprime": "405748",
+                        "ultimopedido": "2025-06-20",
+                        "ultimoorcamento": "2025-06-15",
+                        "Descricao da Formula": "Pedido #250601967 - 20/06/2025 - R$ 177,94 - APROVADO | Fórmulas: F#1: ALOGLIPTINA 25mg - PIOGLITAZONA HCL 30mg - TOMAR 1 CAP 1X AO DIA - R$ 177,94",
+                        "ORIGEM OPORTUNIDADE": "Reativação",
+                        "Tipo de Compra": "reativação"
+                    }
+                }
+            },
+            {
+                name: 'Teste 11: Funil 6, Coluna 232 (CADASTRO) - com campos corretos',
+                payload: {
+                    title: "REATIVAÇÃO | WILSON",
+                    value: "177.94",
+                    crm_column: 232,
+                    lead_id: 111184,
+                    status: "open",
+                    user: 230,
+                    sequence: "0",
+                    fields: {
+                        "idprime": "405748",
+                        "ultimopedido": "2025-06-20",
+                        "Descricao da Formula": "Pedido #250601967",
+                        "ORIGEM OPORTUNIDADE": "Reativação",
+                        "Tipo de Compra": "reativação"
+                    }
+                }
+            },
+            {
+                name: 'Teste 12: Funil 14, Coluna 227 (ENTRADA) - com campos corretos',
+                payload: {
+                    title: "REATIVAÇÃO | WILSON",
+                    value: "177.94",
+                    crm_column: 227,
+                    lead_id: 111184,
+                    status: "open",
+                    user: 230,
+                    sequence: "0",
+                    fields: {
+                        "idprime": "405748",
+                        "ultimopedido": "2025-06-20",
+                        "Descricao da Formula": "Pedido #250601967",
+                        "ORIGEM OPORTUNIDADE": "Reativação",
+                        "Tipo de Compra": "reativação"
+                    }
+                }
+            },
+            {
+                name: 'Teste 13: Funil 6, Coluna 130 (ENTRADA) - com campos corretos',
+                payload: {
+                    title: "REATIVAÇÃO | WILSON",
+                    value: "177.94",
+                    crm_column: 130,
+                    lead_id: 111184,
+                    status: "open",
+                    user: 230,
+                    sequence: "0",
+                    fields: {
+                        "idprime": "405748",
+                        "ultimopedido": "2025-06-20",
+                        "Descricao da Formula": "Pedido #250601967",
+                        "ORIGEM OPORTUNIDADE": "Reativação",
+                        "Tipo de Compra": "reativação"
+                    }
+                }
+            }
+        ];
+
+        async function testarVariacao(variation, funnelId) {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'test-item';
+            resultDiv.innerHTML = `<p class="info">⏳ ${variation.name}...</p>`;
+            document.getElementById('results').appendChild(resultDiv);
+
+            try {
+                const url = buildUrl('/crmopportunity', { id: funnelId });
+                console.log(`[Teste] ${variation.name}`);
+                console.log(`[Teste] URL: ${url}`);
+                console.log(`[Teste] Payload:`, JSON.stringify(variation.payload, null, 2));
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(variation.payload)
+                });
+
+                // Ler o body apenas uma vez
+                const responseText = await response.text();
+                let data = null;
+                
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    // Se não for JSON, usar o texto como está
+                    data = responseText;
+                }
+
+                if (!response.ok) {
+                    throw new Error(`Erro ${response.status}: ${typeof data === 'string' ? data : JSON.stringify(data)}`);
+                }
+
+                resultDiv.innerHTML = `
+                    <p class="success">✅ ${variation.name} - SUCESSO!</p>
+                    <pre>${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>
+                `;
+                console.log(`[Teste] ✅ SUCESSO: ${variation.name}`, data);
+                return { success: true, variation, data, payload: variation.payload };
+
+            } catch (error) {
+                // Tentar obter mais detalhes do erro
+                let errorDetails = error.message;
+                if (error.stack) {
+                    errorDetails += '\n\nStack: ' + error.stack;
+                }
+                
+                resultDiv.innerHTML = `
+                    <p class="error">❌ ${variation.name} - ERRO</p>
+                    <pre class="error">${errorDetails}</pre>
+                    <details>
+                        <summary>Payload enviado:</summary>
+                        <pre>${JSON.stringify(variation.payload, null, 2)}</pre>
+                    </details>
+                `;
+                console.error(`[Teste] ❌ ERRO: ${variation.name}`, error);
+                return { success: false, variation, error: errorDetails };
+            }
+        }
+
+        async function testarTodos() {
+            if (isTesting) {
+                alert('Teste já em andamento!');
+                return;
+            }
+
+            const leadId = parseInt(document.getElementById('leadId').value);
+            const funnelId = parseInt(document.getElementById('funnelId').value);
+            const crmColumn = parseInt(document.getElementById('crmColumn').value);
+            const userId = parseInt(document.getElementById('userId').value);
+
+            if (!leadId || !funnelId || !crmColumn) {
+                alert('Preencha Lead ID, Funil ID e Coluna!');
+                return;
+            }
+
+            isTesting = true;
+            testIndex = 0;
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('status').innerHTML = '<p class="info">🚀 Iniciando testes...</p>';
+
+            // Atualizar lead_id em todas as variações
+            // Mas manter crm_column se já estiver definido (testes 11, 12, 13)
+            const variations = testVariations.map(v => ({
+                ...v,
+                payload: {
+                    ...v.payload,
+                    lead_id: leadId,
+                    // Só atualizar crm_column se não for um teste específico de funil
+                    crm_column: v.payload.crm_column || crmColumn,
+                    ...(v.payload.user !== undefined && { user: userId })
+                }
+            }));
+            
+            // Ajustar funnelId para testes específicos de funil
+            variations.forEach((v, i) => {
+                if (v.name.includes('Funil 6')) {
+                    variations[i].funnelId = 6;
+                } else if (v.name.includes('Funil 14')) {
+                    variations[i].funnelId = 14;
+                } else {
+                    variations[i].funnelId = funnelId;
+                }
+            });
+
+            let successCount = 0;
+            let errorCount = 0;
+            let firstSuccess = null;
+
+            for (let i = 0; i < variations.length && isTesting; i++) {
+                testIndex = i + 1;
+                const testFunnelId = variations[i].funnelId || funnelId;
+                document.getElementById('status').innerHTML = `
+                    <p class="info">🔄 Testando ${testIndex}/${variations.length}: ${variations[i].name}</p>
+                    <p class="info">Funil: ${testFunnelId} | Coluna: ${variations[i].payload.crm_column}</p>
+                `;
+
+                const result = await testarVariacao(variations[i], testFunnelId);
+                
+                if (result.success) {
+                    successCount++;
+                    if (!firstSuccess) {
+                        firstSuccess = result;
+                        document.getElementById('status').innerHTML = `
+                            <p class="success">✅ PRIMEIRO SUCESSO ENCONTRADO!</p>
+                            <p class="info">Teste: ${result.variation.name}</p>
+                            <button onclick="copiarPayloadSucesso()">📋 Copiar Payload que Funcionou</button>
+                        `;
+                        // Salvar payload que funcionou
+                        window.successfulPayload = result.payload || result.variation.payload;
+                        window.successfulVariation = result.variation.name;
+                    }
+                } else {
+                    errorCount++;
+                }
+
+                // Pequeno delay entre testes
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            if (!isTesting) {
+                document.getElementById('status').innerHTML = '<p class="warning">⏹️ Testes interrompidos pelo usuário</p>';
+            } else {
+                document.getElementById('status').innerHTML = `
+                    <p class="info">✅ Testes concluídos!</p>
+                    <p>Sucessos: ${successCount} | Erros: ${errorCount}</p>
+                    ${firstSuccess ? `<p class="success">✅ Payload que funcionou: ${firstSuccess.variation.name}</p>` : '<p class="error">❌ Nenhum teste funcionou</p>'}
+                `;
+            }
+
+            isTesting = false;
+        }
+
+        function pararTestes() {
+            isTesting = false;
+            document.getElementById('status').innerHTML = '<p class="warning">⏹️ Parando testes...</p>';
+        }
+
+        function copiarPayloadSucesso() {
+            if (window.successfulPayload) {
+                const payloadStr = JSON.stringify(window.successfulPayload, null, 2);
+                const info = `Variation: ${window.successfulVariation || 'N/A'}\n\n${payloadStr}`;
+                navigator.clipboard.writeText(info).then(() => {
+                    alert('✅ Payload copiado para a área de transferência!');
+                }).catch(() => {
+                    // Fallback
+                    const textarea = document.createElement('textarea');
+                    textarea.value = info;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    alert('✅ Payload copiado para a área de transferência!');
+                });
+            } else {
+                alert('❌ Nenhum payload de sucesso encontrado ainda');
+            }
+        }
+    </script>
+</body>
+</html>
+

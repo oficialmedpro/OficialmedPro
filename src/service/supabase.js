@@ -1,8 +1,4 @@
 import { createClient } from '@supabase/supabase-js'
-import { getTodayDateSP, getStartOfDaySP, getEndOfDaySP } from '../utils/utils.js'
-// ❌ REMOVIDO: import { getGoogleAdsOriginFilter } from './googleOriginFilter';
-// O googleOriginFilter não é usado neste arquivo, então não precisa ser importado
-// Isso evita carregar dependências desnecessárias na página de vendas
 import { getSupabaseConfig } from '../config/supabase.js'
 
 // Snapshot inicial das configurações públicas
@@ -81,6 +77,16 @@ const getSupabaseClient = () => {
     validSupabaseAnonKey = '';
   }
 
+  const defaultSchema = currentSupabaseSchema || 'api';
+  const globalHeaders = {
+    'Accept-Profile': defaultSchema,
+    'Content-Profile': defaultSchema,
+  };
+  if (validSupabaseAnonKey) {
+    globalHeaders.apikey = validSupabaseAnonKey;
+    globalHeaders.Authorization = `Bearer ${validSupabaseAnonKey}`;
+  }
+
   // Criar cliente Supabase com anon key (somente privilégios públicos)
   supabaseClient = createClient(validSupabaseUrl, validSupabaseAnonKey, {
     auth: {
@@ -88,13 +94,10 @@ const getSupabaseClient = () => {
       persistSession: false
     },
     db: {
-      schema: currentSupabaseSchema || 'api'
+      schema: defaultSchema
     },
     global: {
-      headers: {
-        'Accept-Profile': currentSupabaseSchema || 'api',
-        'Content-Profile': currentSupabaseSchema || 'api'
-      }
+      headers: globalHeaders
     }
   });
   
@@ -152,6 +155,15 @@ export const getSupabaseWithSchema = (schema) => {
     anonKeyLength: keyToUse?.length || 0
   });
   
+  const globalHeadersSchema = {
+    'Accept-Profile': schemaKey,
+    'Content-Profile': schemaKey,
+  };
+  if (keyToUse) {
+    globalHeadersSchema.apikey = keyToUse;
+    globalHeadersSchema.Authorization = `Bearer ${keyToUse}`;
+  }
+
   const client = createClient(urlToUse, keyToUse, {
     auth: {
       autoRefreshToken: false,
@@ -163,10 +175,7 @@ export const getSupabaseWithSchema = (schema) => {
     },
     // Garante os headers também (algumas versões do SDK dependem desses)
     global: {
-      headers: {
-        'Accept-Profile': schemaKey,
-        'Content-Profile': schemaKey
-      }
+      headers: globalHeadersSchema
     }
   });
   

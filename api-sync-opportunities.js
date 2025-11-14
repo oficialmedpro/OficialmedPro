@@ -66,6 +66,65 @@ console.log(`   Instância: ${SPRINTHUB_INSTANCE}`);
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY, {
     db: { schema: 'api' }
 });
+
+const parseDateTime = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+const parseDateOnly = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return null;
+    return date.toISOString().split('T')[0];
+};
+
+const toInteger = (value) => {
+    if (value === null || value === undefined || value === '') return null;
+    if (typeof value === 'number' && Number.isFinite(value)) return Math.trunc(value);
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (/^-?\d+$/.test(trimmed)) {
+            const parsed = parseInt(trimmed, 10);
+            return Number.isNaN(parsed) ? null : parsed;
+        }
+    }
+    return null;
+};
+
+const toBigIntField = (value) => {
+    const parsed = toInteger(value);
+    return parsed === null ? null : parsed;
+};
+
+async function logMissingFieldEvents(entityType, events = []) {
+    if (!events.length) return;
+    const payload = events.map((event) => ({
+        entity_type: entityType,
+        entity_id: String(event.entityId ?? 'unknown'),
+        action: 'missing_field',
+        status: 'warning',
+        payload: {
+            field: event.field,
+            sample: event.sample ?? null
+        },
+        metadata: {
+            resource: entityType,
+            field: event.field,
+            sample: event.sample ?? null
+        }
+    }));
+
+    try {
+        for (let i = 0; i < payload.length; i += 100) {
+            const chunk = payload.slice(i, i + 100);
+            await supabase.from('sprinthub_sync_logs').insert(chunk);
+        }
+    } catch (error) {
+        console.warn('⚠️ Falha ao registrar campos ausentes:', error.message);
+    }
+}
 // Helpers de log (api.sync_runs)
 async function logRunStart(resource) {
     try {
@@ -162,14 +221,27 @@ const SPRINTHUB_CONFIG = {
 // =============== LEADS (mesmo serviço) ==================
 const LEADS_PAGE_LIMIT = 100;
 let LEADS_DELAY_BETWEEN_PAGES = 500;
+const CRITICAL_LEAD_FIELDS = ['firstname', 'lastname', 'whatsapp'];
 
 async function fetchLeadsFromSprintHub(page = 0, limit = LEADS_PAGE_LIMIT) {
-    const url = `https://${SPRINTHUB_CONFIG.baseUrl}/leads?i=${SPRINTHUB_CONFIG.instance}&page=${page}&limit=${limit}&apitoken=${SPRINTHUB_CONFIG.apiToken}`;
+    const params = new URLSearchParams({
+        i: SPRINTHUB_CONFIG.instance,
+        page: String(page),
+        limit: String(limit),
+        allFields: '1',
+        apitoken: SPRINTHUB_CONFIG.apiToken
+    });
+    const url = `https://${SPRINTHUB_CONFIG.baseUrl}/leads?${params.toString()}`;
     try {
-        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+        const response = await fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${SPRINTHUB_CONFIG.apiToken}`,
+                'apitoken': SPRINTHUB_CONFIG.apiToken
+            }
+        });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        // Suportar formatos diferentes
         if (Array.isArray(data)) return data;
         if (data?.data?.leads) return data.data.leads;
         return [];
@@ -179,31 +251,63 @@ async function fetchLeadsFromSprintHub(page = 0, limit = LEADS_PAGE_LIMIT) {
     }
 }
 
-function mapLeadToSupabase(lead) {
+function mapLeadToSupabase(lead, onMissingField = () => {}) {
+    CRITICAL_LEAD_FIELDS.forEach((field) => {
+        const value = (lead[field] ?? '').toString().trim();
+        if (!value) {
+            onMissingField(field, {
+                id: lead.id,
+                email: lead.email || null,
+                whatsapp: lead.whatsapp || null
+            });
+        }
+    });
+
     return {
-        id: lead.id,
-        firstname: lead.firstname || null,
-        lastname: lead.lastname || null,
-        email: lead.email || null,
-        phone: lead.phone || null,
-        mobile: lead.mobile || null,
-        whatsapp: lead.whatsapp || null,
-        address: lead.address || null,
-        city: lead.city || null,
-        state: lead.state || null,
-        zipcode: lead.zipcode || null,
-        country: lead.country || null,
-        company: lead.company || null,
-        status: lead.status || null,
-        origem: lead.origin || null,
-        categoria: lead.category || null,
-        segmento: lead.segment || null,
-        stage: lead.stage || null,
-        observacao: lead.observation || null,
-        produto: lead.product || null,
-        create_date: lead.createDate ? new Date(lead.createDate).toISOString() : null,
-        updated_date: lead.updateDate ? new Date(lead.updateDate).toISOString() : null,
-        synced_at: new Date().toISOString()
+        id: toBigIntField(lead.id),
+        firstname: lead.firstname ?? null,
+        lastname: lead.lastname ?? null,
+        email: lead.email ?? null,
+        phone: lead.phone ?? null,
+        mobile: lead.mobile ?? null,
+        whatsapp: lead.whatsapp ?? null,
+        photo_url: lead.photoUrl ?? null,
+        address: lead.address ?? null,
+        city: lead.city ?? null,
+        state: lead.state ?? null,
+        zipcode: lead.zipcode ?? null,
+        country: lead.country ?? null,
+        timezone: lead.timezone ?? null,
+        bairro: lead.bairro ?? null,
+        complemento: lead.complemento ?? null,
+        numero_entrega: lead.numero_entrega ?? null,
+        rua_entrega: lead.rua_entrega ?? null,
+        company: lead.company ?? null,
+        points: toInteger(lead.points) ?? 0,
+        owner: toBigIntField(lead.owner),
+        stage: lead.stage ?? null,
+        preferred_locale: lead.preferred_locale ?? null,
+        user_access: lead.userAccess ?? null,
+        department_access: lead.departmentAccess ?? null,
+        ignore_sub_departments: Boolean(lead.ignoreSubDepartments),
+        create_date: parseDateTime(lead.createDate),
+        updated_date: parseDateTime(lead.updatedDate),
+        last_active: parseDateTime(lead.lastActive),
+        created_by: toBigIntField(lead.createdBy),
+        created_by_name: lead.createdByName ?? null,
+        created_by_type: lead.createdByType ?? null,
+        updated_by: toBigIntField(lead.updatedBy),
+        updated_by_name: lead.updatedByName ?? null,
+        synced_at: new Date().toISOString(),
+        archived: Boolean(lead.archived),
+        third_party_data: lead.thirdPartyData ?? null,
+        categoria: lead.categoria ?? lead.category ?? null,
+        origem: lead.origem ?? lead.origin ?? null,
+        observacao: lead.observacao ?? lead.observation ?? null,
+        produto: lead.produto ?? lead.product ?? null,
+        segmento: lead.segmento ?? lead.segment ?? null,
+        data_de_nascimento: parseDateOnly(lead.data_de_nascimento),
+        data_do_contato: parseDateOnly(lead.data_do_contato)
     };
 }
 
@@ -221,10 +325,24 @@ async function syncLeads() {
     const runId = await logRunStart('leads');
     let page = 0;
     let processed = 0, errors = 0;
+    const missingFieldCounts = {};
+    const missingFieldEvents = [];
+
     while (true) {
         const batch = await fetchLeadsFromSprintHub(page);
         if (!batch || batch.length === 0) break;
-        const mapped = batch.map(mapLeadToSupabase);
+
+        const mapped = batch.map((lead) =>
+            mapLeadToSupabase(lead, (field, sample) => {
+                missingFieldCounts[field] = (missingFieldCounts[field] || 0) + 1;
+                missingFieldEvents.push({
+                    entityId: lead.id,
+                    field,
+                    sample
+                });
+            })
+        );
+
         processed += mapped.length;
         const r = await upsertLeadsBatch(mapped);
         if (!r.success) {
@@ -236,12 +354,16 @@ async function syncLeads() {
         page++;
         await sleep(LEADS_DELAY_BETWEEN_PAGES);
     }
+
+    await logMissingFieldEvents('lead', missingFieldEvents);
+
     await logRunFinish(runId, {
         status: errors > 0 ? 'success_with_errors' : 'success',
         total_processed: processed,
-        total_errors: errors
+        total_errors: errors,
+        details: { missingFields: missingFieldCounts }
     });
-    return { totalProcessed: processed, totalErrors: errors };
+    return { totalProcessed: processed, totalErrors: errors, missingFields: missingFieldCounts };
 }
 
 app.get('/leads', async (_req, res) => {
@@ -747,22 +869,83 @@ app.get('/metrics', (_req, res) => {
 });
 
 // Orquestrador sequencial com lock
-app.get('/sync/all', async (_req, res) => {
-    if (isSyncRunning) return res.json({ success: true, message: 'Execução já em andamento' });
+async function runFullSync(trigger = 'manual_api') {
+    if (isSyncRunning) {
+        return {
+            alreadyRunning: true,
+            lastRun
+        };
+    }
+
     isSyncRunning = true;
+    const startedAt = new Date();
+    const summary = {};
+
     try {
-        const results = {};
-        results.oportunidades = await syncOpportunities();
-        results.leads = await syncLeads();
-        results.segmentos = await syncSegments();
-        results.vendedores = await syncVendedores();
-        res.json({ success: true, data: results });
-    } catch (e) {
-        res.status(500).json({ success: false, message: e.message });
+        summary.oportunidades = await syncOpportunities();
+        summary.leads = await syncLeads();
+        summary.segmentos = await syncSegments();
+        summary.vendedores = await syncVendedores();
+
+        const totals = Object.values(summary).reduce((acc, curr = {}) => {
+            acc.totalProcessed += curr.totalProcessed || 0;
+            acc.totalInserted += curr.totalInserted || 0;
+            acc.totalUpdated += curr.totalUpdated || 0;
+            acc.totalErrors += curr.totalErrors || 0;
+            return acc;
+        }, { totalProcessed: 0, totalInserted: 0, totalUpdated: 0, totalErrors: 0 });
+
+        const completedAt = new Date();
+        await registerSyncControl({
+            startedAt,
+            completedAt,
+            totals,
+            trigger,
+            status: totals.totalErrors > 0 ? 'success_with_errors' : 'success'
+        });
+
+        return {
+            startedAt: startedAt.toISOString(),
+            completedAt: completedAt.toISOString(),
+            durationSeconds: (completedAt - startedAt) / 1000,
+            summary
+        };
+    } catch (error) {
+        const completedAt = new Date();
+        await registerSyncControl({
+            startedAt,
+            completedAt,
+            totals: { totalProcessed: 0, totalInserted: 0, totalUpdated: 0, totalErrors: 1 },
+            trigger,
+            status: 'error',
+            errorMessage: error.message
+        });
+        throw error;
     } finally {
         isSyncRunning = false;
     }
-});
+}
+
+const handleFullSync = async (req, res) => {
+    try {
+        const trigger = req.body?.trigger || 'manual_api';
+        const result = await runFullSync(trigger);
+        if (result.alreadyRunning) {
+            return res.json({
+                success: true,
+                message: 'Execução já em andamento',
+                data: result.lastRun
+            });
+        }
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('❌ Erro na sincronização completa:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+app.post('/sync/all', handleFullSync);
+app.get(['/sync/all', '/sync', '/oportunidades/sync', '/oportunidades/sync/all'], handleFullSync);
 
 // Iniciar servidor
 app.listen(PORT, () => {

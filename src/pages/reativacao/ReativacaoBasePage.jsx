@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../ClientesConsolidados.css';
 import { supabase } from '../../service/supabase';
@@ -7,6 +7,7 @@ import ReativacaoMenu from './ReativacaoMenu';
 import './ReativacaoBasePage.css';
 import * as XLSX from 'xlsx';
 import { Mail, Copy, FileText, MessageCircle, Phone } from 'lucide-react';
+import sprinthubService from '../../service/sprinthubService';
 
 // Mapeamento de rotas para views do banco
 const VIEW_MAP = {
@@ -22,6 +23,8 @@ const TITLE_MAP = {
   '3x': '3️⃣ Reativação - Compraram 3x',
   '3x-plus': '🔥 Reativação - Compraram 3+ vezes'
 };
+
+const SPRINTHUB_CONFIG = sprinthubService.getConfig();
 
 const ReativacaoBasePage = ({ tipo }) => {
   const navigate = useNavigate();
@@ -55,17 +58,84 @@ const ReativacaoBasePage = ({ tipo }) => {
   const [exportFilter, setExportFilter] = useState('all'); // 'all' | 'exported' | 'never-exported'
   const [exportTagFilter, setExportTagFilter] = useState('all'); // Filtro por tag de exportação
   const [availableExportTags, setAvailableExportTags] = useState([]); // Tags disponíveis para filtro
+  const [sprinthubExportFlags, setSprinthubExportFlags] = useState({}); // IDs com export SprintHub
   const [currentLanguage, setCurrentLanguage] = useState('pt-BR');
+  const [sprinthubStatusFilter, setSprinthubStatusFilter] = useState('all'); // 'all' | 'sent' | 'not-sent'
+  const [sprinthubLeadTagFilter, setSprinthubLeadTagFilter] = useState('all');
+  const [availableSprinthubLeadTags, setAvailableSprinthubLeadTags] = useState([]);
   
   // Estados específicos para exportação Sprinthub
-  const [sprinthubEtapa, setSprinthubEtapa] = useState('167'); // Etapa padrão
-  const [sprinthubVendedor, setSprinthubVendedor] = useState('229'); // ID do vendedor padrão
+  const [sprinthubEtapa, setSprinthubEtapa] = useState(() => {
+    if (SPRINTHUB_CONFIG.defaultColumnId != null) {
+      return String(SPRINTHUB_CONFIG.defaultColumnId);
+    }
+    return '167';
+  }); // Etapa/coluna padrão
+  const [sprinthubVendedor, setSprinthubVendedor] = useState(() => {
+    if (SPRINTHUB_CONFIG.defaultUserId != null) {
+      return String(SPRINTHUB_CONFIG.defaultUserId);
+    }
+    return '229';
+  }); // ID do vendedor padrão
   const [sprinthubTituloPrefix, setSprinthubTituloPrefix] = useState('MONITORAMENTO 28-7 05-8'); // Prefixo do título
+  const [sprinthubFunnelId, setSprinthubFunnelId] = useState(() => {
+    if (SPRINTHUB_CONFIG.defaultFunnelId != null) {
+      return String(SPRINTHUB_CONFIG.defaultFunnelId);
+    }
+    return '';
+  });
+  const [sprinthubSequence, setSprinthubSequence] = useState(() => {
+    if (SPRINTHUB_CONFIG.defaultSequenceId != null) {
+      return String(SPRINTHUB_CONFIG.defaultSequenceId);
+    }
+    return '0';
+  });
+  const [sprinthubTagId, setSprinthubTagId] = useState('221'); // Tag padrão REATIVAÇÃO
+  const [sprinthubOrigemOportunidade, setSprinthubOrigemOportunidade] = useState('Reativação');
+  const [sprinthubTipoCompra, setSprinthubTipoCompra] = useState('reativação');
+  const [showSprinthubModal, setShowSprinthubModal] = useState(false);
+  const [isSendingToSprinthub, setIsSendingToSprinthub] = useState(false);
+  const [sprinthubResults, setSprinthubResults] = useState([]);
+  const [sprinthubError, setSprinthubError] = useState(null);
+  const [sprinthubAvailableTags, setSprinthubAvailableTags] = useState([]);
+  const [isLoadingSprinthubTags, setIsLoadingSprinthubTags] = useState(false);
+  
+  // Opções para dropdowns
+  const ORIGENS_OPORTUNIDADE = [
+    'Google Ads',
+    'Meta Ads',
+    'Orgânico',
+    'Indicação',
+    'Prescritor',
+    'Campanha',
+    'Monitoramento',
+    'Colaborador',
+    'Franquia',
+    'Farmácia Parceira',
+    'Monitoramento/disparo',
+    'Site',
+    'Phusion/disparo',
+    'Contato Rosana',
+    'Contato Poliana',
+    'Yampi Parceiro',
+    'Disparo',
+    'Reativação'
+  ];
+  
+  const TIPOS_COMPRA = [
+    'compra',
+    'recompra',
+    'recompra monitoramento',
+    'reativação',
+    'ativação'
+  ];
   
   // Estado para modal de histórico de exportação
   const [showExportHistoryModal, setShowExportHistoryModal] = useState(false);
+  const [showSprinthubHistoryModal, setShowSprinthubHistoryModal] = useState(false);
   const [selectedClientForHistory, setSelectedClientForHistory] = useState(null);
   const [clientExportHistory, setClientExportHistory] = useState([]);
+  const [sprinthubHistory, setSprinthubHistory] = useState([]);
   
   const t = translations[currentLanguage] || {};
   
@@ -211,6 +281,89 @@ const ReativacaoBasePage = ({ tipo }) => {
     }
   }, [isVendedor, isSupervisor]);
 
+  useEffect(() => {
+    if (!isSupervisor) return undefined;
+    let active = true;
+    const fetchTagsFromSprint = async () => {
+      try {
+        setIsLoadingSprinthubTags(true);
+        const tags = await sprinthubService.getInstanceTags();
+        if (active) {
+          setSprinthubAvailableTags(Array.isArray(tags) ? tags : []);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar tags da SprintHub:', error);
+      } finally {
+        if (active) {
+          setIsLoadingSprinthubTags(false);
+        }
+      }
+    };
+    fetchTagsFromSprint();
+    return () => {
+      active = false;
+    };
+  }, [isSupervisor]);
+
+  const normalizeTagKey = (value) => {
+    if (!value) return '';
+    return String(value)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+  };
+
+  const sprinthubTagIndex = useMemo(() => {
+    const index = {};
+    (sprinthubAvailableTags || []).forEach((tag) => {
+      const key = normalizeTagKey(tag?.tag || tag?.name);
+      if (key && !index[key]) {
+        index[key] = tag;
+      }
+    });
+    return index;
+  }, [sprinthubAvailableTags]);
+
+  const resolveTagsForRow = (row) => {
+    if (!row) return [];
+    const tags = [];
+
+    const addTagIfExists = (value) => {
+      const key = normalizeTagKey(value);
+      if (!key) return;
+      const found = sprinthubTagIndex[key];
+      if (found && !tags.includes(found.id)) {
+        tags.push(found.id);
+      }
+    };
+
+    if (row.origens) {
+      if (Array.isArray(row.origens)) {
+        row.origens.forEach(addTagIfExists);
+      } else if (typeof row.origens === 'string') {
+        row.origens
+          .split(/[,;|]/)
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .forEach(addTagIfExists);
+      }
+    }
+
+    if (row.tags && Array.isArray(row.tags)) {
+      row.tags.forEach(addTagIfExists);
+    }
+
+    return tags;
+  };
+
+  const toNumberOrUndefined = (value) => {
+    if (value === null || value === undefined || value === '') return undefined;
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) return undefined;
+    return parsed;
+  };
+
   const viewName = VIEW_MAP[tipo] || VIEW_MAP['1x'];
   const pageTitle = TITLE_MAP[tipo] || TITLE_MAP['1x'];
 
@@ -239,6 +392,84 @@ const ReativacaoBasePage = ({ tipo }) => {
     }
   };
 
+const isSprinthubHistoryEntry = (entry) => {
+  if (!entry) return false;
+  const tag = (entry.tag_exportacao || '').toLowerCase();
+  const motivo = (entry.motivo || '').toLowerCase();
+  const observacao = (entry.observacao || '').toLowerCase();
+  return tag.includes('sprinthub') || motivo.includes('sprinthub') || observacao.includes('sprinthub');
+};
+
+const SPRINT_HISTORY_TAG_PREFIX = 'SPRINTHUB_LEADTAG_';
+
+const buildSprinthubHistoryTagValue = (leadTagId) => {
+  if (!leadTagId) return 'SPRINTHUB';
+  return `${SPRINT_HISTORY_TAG_PREFIX}${leadTagId}`;
+};
+
+const extractSprinthubLeadTag = (tagValue) => {
+  if (!tagValue) return null;
+  if (tagValue.startsWith(SPRINT_HISTORY_TAG_PREFIX)) {
+    return tagValue.substring(SPRINT_HISTORY_TAG_PREFIX.length);
+  }
+  if (tagValue.toLowerCase() === 'sprinthub') {
+    return 'default';
+  }
+  return null;
+};
+
+const formatSprinthubTagLabel = (tagValue) => {
+  if (!tagValue) return '-';
+  const leadTag = extractSprinthubLeadTag(tagValue);
+  if (leadTag && leadTag !== 'default') {
+    return `SPRINTHUB (Tag ${leadTag})`;
+  }
+  return tagValue;
+};
+
+const getLeadIdentifier = (row) => {
+  if (!row) return null;
+  const candidates = getLeadIdentifierCandidates(row);
+  return candidates.length > 0 ? candidates[0] : null;
+};
+
+const getLeadIdentifierCandidates = (row) => {
+  if (!row) return [];
+  const ids = [];
+  const pushId = (value) => {
+    if (value === undefined || value === null) return;
+    const str = String(value).trim();
+    if (!str) return;
+    ids.push(str);
+  };
+  
+  pushId(row.id);
+  pushId(row.id_cliente_mestre);
+  pushId(row.id_cliente);
+  pushId(row.id_prime);
+  pushId(row.prime_id);
+  pushId(row.id_lead);
+  pushId(row.lead_id);
+  pushId(row.id_sprinthub);
+  pushId(row.id_sprint);
+  
+  return [...new Set(ids)];
+};
+
+const collectLeadIdsFromRows = (rows) => {
+  const idSet = new Set();
+  (rows || []).forEach(row => {
+    const candidates = getLeadIdentifierCandidates(row);
+    candidates.forEach(id => {
+      const numericId = Number(id);
+      if (!Number.isNaN(numericId)) {
+        idSet.add(numericId);
+      }
+    });
+  });
+  return Array.from(idSet);
+};
+
   // Carregar histórico de exportações
   const loadExportHistory = async (leadIds) => {
     if (!leadIds || leadIds.length === 0) return {};
@@ -254,6 +485,7 @@ const ReativacaoBasePage = ({ tipo }) => {
       if (!data) return {};
       
       const history = {};
+      const sprinthubFlags = {};
       leadIds.forEach(id => {
         const idStr = String(id);
         // Buscar por id_lead ou id_cliente (caso o campo seja diferente)
@@ -263,8 +495,21 @@ const ReativacaoBasePage = ({ tipo }) => {
         });
         if (exports.length > 0) {
           history[idStr] = exports;
+          const hasSprinthub = exports.some(exp => {
+            const tag = (exp.tag_exportacao || '').toLowerCase();
+            const motivo = (exp.motivo || '').toLowerCase();
+            const observacao = (exp.observacao || '').toLowerCase();
+            return tag.includes('sprinthub') || motivo.includes('sprinthub') || observacao.includes('sprinthub');
+          });
+          if (hasSprinthub) {
+            sprinthubFlags[idStr] = true;
+          }
         }
       });
+      
+      if (Object.keys(sprinthubFlags).length > 0) {
+        setSprinthubExportFlags(prev => ({ ...prev, ...sprinthubFlags }));
+      }
       
       return history;
     } catch (error) {
@@ -275,6 +520,7 @@ const ReativacaoBasePage = ({ tipo }) => {
 
   // Registrar exportação
   const registerExport = async (leadIds, motivo, observacao, tag) => {
+    let recordsPayload = [];
     try {
       let userId = null;
       if (userData?.id) {
@@ -288,14 +534,28 @@ const ReativacaoBasePage = ({ tipo }) => {
       const now = new Date();
       const fiveSecondsAgo = new Date(now.getTime() - 5000);
       
-      const { data: existingRecords } = await supabase
+      const normalizedTag = tag?.trim() || null;
+      const safeMotivo = motivo || 'Exportação';
+
+      let existingQuery = supabase
         .schema('api')
         .from('historico_exportacoes')
         .select('id_lead')
         .in('id_lead', uniqueLeadIds)
-        .eq('tag_exportacao', tag?.trim() || null)
-        .eq('motivo', motivo)
+        .eq('motivo', safeMotivo)
         .gte('data_exportacao', fiveSecondsAgo.toISOString());
+
+      if (normalizedTag === null) {
+        existingQuery = existingQuery.is('tag_exportacao', null);
+      } else {
+        existingQuery = existingQuery.eq('tag_exportacao', normalizedTag);
+      }
+
+      const { data: existingRecords, error: existingError } = await existingQuery;
+      if (existingError) {
+        console.error('Erro ao consultar histórico antes de registrar exportação:', existingError);
+        throw existingError;
+      }
       
       const existingLeadIds = new Set(existingRecords?.map(r => r.id_lead) || []);
       
@@ -307,32 +567,64 @@ const ReativacaoBasePage = ({ tipo }) => {
         return { success: true };
       }
       
-      const records = newLeadIds.map(id_lead => {
+      recordsPayload = newLeadIds.map(id_lead => {
+        // Garantir que id_lead seja um número (bigint)
+        const leadIdNum = typeof id_lead === 'string' ? parseInt(id_lead, 10) : Number(id_lead);
+        
+        if (isNaN(leadIdNum) || leadIdNum <= 0) {
+          console.warn(`⚠️ ID de lead inválido ignorado: ${id_lead}`);
+          return null;
+        }
+        
         const record = {
-          id_lead,
-          motivo,
+          id_lead: leadIdNum, // Garantir que seja número
+          motivo: safeMotivo, // Garantir que motivo não seja null
           observacao: observacao?.trim() || null,
-          tag_exportacao: tag?.trim() || null
+          tag_exportacao: normalizedTag
         };
         if (userId) {
           record.usuario_id = userId;
         }
         return record;
-      });
+      }).filter(Boolean); // Remover registros inválidos
+      
+      if (recordsPayload.length === 0) {
+        console.warn('⚠️ Nenhum registro válido para inserir no histórico');
+        return { success: true };
+      }
       
       const { error } = await supabase
         .schema('api')
         .from('historico_exportacoes')
-        .insert(records);
+        .insert(recordsPayload);
       
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Supabase retornou erro ao inserir histórico:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+          status: error.status,
+        });
+        console.error('Payload que causou o erro:', recordsPayload);
+        throw error;
+      }
       
       const newHistory = await loadExportHistory(uniqueLeadIds);
       setExportHistory(prev => ({ ...prev, ...newHistory }));
       
       return { success: true };
     } catch (error) {
-      console.error('Erro ao registrar exportação:', error);
+      console.error('Erro ao registrar exportação:', {
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code,
+        status: error?.status,
+      });
+      if (recordsPayload.length > 0) {
+        console.error('Payload utilizado no registro:', recordsPayload);
+      }
       return { success: false, error };
     }
   };
@@ -403,147 +695,153 @@ const ReativacaoBasePage = ({ tipo }) => {
             setIsLoading(false);
             return;
           }
-        } else if (exportFilter === 'never-exported') {
-          // Buscar TODOS os IDs exportados para excluir
-          const { data: exportedIds } = await supabase
-            .schema('api')
-            .from('historico_exportacoes')
-            .select('id_lead');
+        } else if (filters.phoneStatus !== 'any') {
+          // Buscar TODOS os dados quando:
+          // 1. Filtro "Nunca Exportados" está ativo (precisa buscar todos para excluir exportados)
+          // 2. Filtro de telefone está ativo (precisa buscar todos para filtrar por telefone/whatsapp)
           
-          const exportedLeadIds = exportedIds?.map(e => e.id_lead).filter(Boolean) || [];
-          if (exportedLeadIds.length > 0) {
-            // Excluir os IDs exportados da busca
-            // Para fazer NOT IN com array grande, vamos buscar todos os dados sem paginação
-            // filtrar no cliente, e depois aplicar paginação no cliente
-            // Isso permite aplicar o filtro corretamente em TODOS os dados, não apenas na página atual
-            
-            // Buscar TODOS os dados sem paginação temporariamente
-            // IMPORTANTE: Não usar range() para buscar todos, usar uma query sem limite
-            // Mas o Supabase tem limite de 1000 por padrão, então vamos buscar em lotes
-            // Por enquanto, vamos buscar todos usando uma query grande
-            
-            // Fazer a query sem paginação
-            let tempQuery = supabase
+          let exportedLeadIds = [];
+          if (exportFilter === 'never-exported') {
+            // Buscar TODOS os IDs exportados para excluir
+            const { data: exportedIds } = await supabase
               .schema('api')
-              .from(viewName)
-              .select('*', { count: 'exact' });
+              .from('historico_exportacoes')
+              .select('id_lead');
             
-            // Aplicar outros filtros (mas NÃO aplicar filtros de nome/duplicatas aqui, só os filtros básicos)
-            tempQuery = applyFiltersToQuery(tempQuery);
-            
-            // Buscar todos os dados em lotes (limite do Supabase é 1000 por vez)
-            let allData = [];
-            let offset = 0;
-            const limit = 1000;
-            let totalCountAll = 0;
-            
-            // Aplicar ordenação uma vez na query base
-            if (sortField) {
-              if (sortField === 'dias_desde_ultima_compra' || sortField === 'dias_sem_compra') {
-                tempQuery = tempQuery.order('dias_desde_ultima_compra', { ascending: sortDirection === 'asc', nullsFirst: false });
-              } else {
-                tempQuery = tempQuery.order(sortField, { ascending: sortDirection === 'asc' });
-              }
-            }
-            
-            // Buscar o count total primeiro
-            const { count: totalCountQuery, error: countError } = await tempQuery.select('*', { count: 'exact', head: true });
-            if (!countError && totalCountQuery !== null) {
-              totalCountAll = totalCountQuery;
-            }
-            
-            // Buscar todos os dados em lotes
-            while (true) {
-              const { data: batchData, error: batchError } = await tempQuery.range(offset, offset + limit - 1);
-              
-              if (batchError) {
-                console.error('Erro ao buscar lote de dados:', batchError);
-                throw batchError;
-              }
-              
-              if (!batchData || batchData.length === 0) break;
-              
-              allData = [...allData, ...batchData];
-              
-              if (batchData.length < limit) break; // Última página
-              offset += limit;
-            }
-            
-            console.log(`📊 Buscados ${allData.length} registros de ${totalCountAll} totais`);
-            
-            // Filtrar no cliente: excluir os IDs exportados
-            // IMPORTANTE: Usar apenas o campo 'id' que é o campo correto da view
-            const exportedSet = new Set(exportedLeadIds);
-            let filteredAllData = (allData || []).filter(row => {
-              // Usar apenas 'id' que é o campo correto das views de reativação
-              const leadId = row.id;
-              return leadId && !exportedSet.has(leadId);
-            });
-            
-            console.log(`🔍 Filtro "Nunca Exportados": ${allData?.length || 0} total, ${exportedLeadIds.length} exportados, ${filteredAllData.length} não exportados`);
-            
-            // Aplicar filtros no cliente na ordem correta:
-            // 1. Primeiro filtrar por endereço (se aplicável)
-            filteredAllData = filterClientSideIfNeeded(filteredAllData);
-            console.log(`📍 Após filtro de endereço: ${filteredAllData.length} registros`);
-            
-            // 2. Filtrar por origem exclusiva (se filtro de origem estiver ativo)
-            if (filters.origins && filters.origins.length > 0) {
-              const beforeOrigins = filteredAllData.length;
-              filteredAllData = filterRowsByExclusiveOrigins(filteredAllData);
-              console.log(`🏷️ Após filtro de origem: ${beforeOrigins} → ${filteredAllData.length} registros`);
-            }
-            
-            // 3. Filtrar por nome (apenas se o filtro estiver ativo)
-            if (nameFilter && nameFilter !== 'all') {
-              const beforeName = filteredAllData.length;
-              filteredAllData = filterRowsByNameStatus(filteredAllData);
-              console.log(`👤 Após filtro de nome: ${beforeName} → ${filteredAllData.length} registros`);
-            }
-            
-            // 4. Filtrar por duplicatas (apenas se o filtro estiver ativo)
-            if (duplicatesFilter && duplicatesFilter !== 'all') {
-              const beforeDup = filteredAllData.length;
-              filteredAllData = filterRowsByDuplicates(filteredAllData);
-              console.log(`🔁 Após filtro de duplicatas: ${beforeDup} → ${filteredAllData.length} registros`);
-            }
-            
-            // 5. Aplicar pesquisa (apenas se houver termo de pesquisa)
-            if (searchTerm && searchTerm.trim() !== '') {
-              const beforeSearch = filteredAllData.length;
-              filteredAllData = filterRowsBySearch(filteredAllData);
-              console.log(`🔎 Após pesquisa: ${beforeSearch} → ${filteredAllData.length} registros`);
-            }
-            
-            // Carregar histórico de exportações para os dados filtrados (após todos os filtros)
-            const leadIds = filteredAllData.map(row => row.id).filter(Boolean);
-            if (leadIds.length > 0) {
-              const history = await loadExportHistory(leadIds);
-              setExportHistory(prev => ({ ...prev, ...history }));
-            }
-            
-            console.log(`✅ Total final após todos os filtros: ${filteredAllData.length} registros`);
-            
-            // Aplicar ordenação adicional se necessário
-            let sorted = filteredAllData;
-            if (sortField === 'dias_desde_ultima_compra' || sortField === 'dias_sem_compra') {
-              sorted = [...filteredAllData].sort((a, b) => {
-                const valA = parseInt(a.dias_desde_ultima_compra || a.dias_sem_compra || 0) || 0;
-                const valB = parseInt(b.dias_desde_ultima_compra || b.dias_sem_compra || 0) || 0;
-                return sortDirection === 'asc' ? valA - valB : valB - valA;
-              });
-            }
-            
-            // Aplicar paginação no cliente
-            const totalFiltered = sorted.length;
-            const paginatedData = sorted.slice(start, end + 1);
-            
-            setData(paginatedData);
-            setTotalCount(totalFiltered);
-            setIsLoading(false);
-            return; // Retornar aqui, não precisa continuar com a query normal
+            exportedLeadIds = exportedIds?.map(e => e.id_lead).filter(Boolean) || [];
           }
-          // Se não há exportados, não precisa filtrar (todos são não exportados)
+          
+          // Buscar TODOS os dados sem paginação temporariamente
+          // IMPORTANTE: Não usar range() para buscar todos, usar uma query sem limite
+          // Mas o Supabase tem limite de 1000 por padrão, então vamos buscar em lotes
+          // Por enquanto, vamos buscar todos usando uma query grande
+          
+          // Fazer a query sem paginação
+          let tempQuery = supabase
+            .schema('api')
+            .from(viewName)
+            .select('*', { count: 'exact' });
+          
+          // Aplicar outros filtros (mas NÃO aplicar filtros de nome/duplicatas aqui, só os filtros básicos)
+          // NOTA: O filtro de telefone será aplicado no cliente, não na query
+          tempQuery = applyFiltersToQuery(tempQuery);
+          
+          // Buscar todos os dados em lotes (limite do Supabase é 1000 por vez)
+          let allData = [];
+          let offset = 0;
+          const limit = 1000;
+          let totalCountAll = 0;
+          
+          // Aplicar ordenação uma vez na query base
+          if (sortField) {
+            if (sortField === 'dias_desde_ultima_compra' || sortField === 'dias_sem_compra') {
+              tempQuery = tempQuery.order('dias_desde_ultima_compra', { ascending: sortDirection === 'asc', nullsFirst: false });
+            } else {
+              tempQuery = tempQuery.order(sortField, { ascending: sortDirection === 'asc' });
+            }
+          }
+          
+          // Buscar o count total primeiro
+          const { count: totalCountQuery, error: countError } = await tempQuery.select('*', { count: 'exact', head: true });
+          if (!countError && totalCountQuery !== null) {
+            totalCountAll = totalCountQuery;
+          }
+          
+          // Buscar todos os dados em lotes
+          while (true) {
+            const { data: batchData, error: batchError } = await tempQuery.range(offset, offset + limit - 1);
+            
+            if (batchError) {
+              console.error('Erro ao buscar lote de dados:', batchError);
+              throw batchError;
+            }
+            
+            if (!batchData || batchData.length === 0) break;
+            
+            allData = [...allData, ...batchData];
+            
+            if (batchData.length < limit) break; // Última página
+            offset += limit;
+          }
+          
+          console.log(`📊 Buscados ${allData.length} registros de ${totalCountAll} totais`);
+          
+          // Filtrar no cliente: excluir os IDs exportados (se filtro "Nunca Exportados" estiver ativo)
+          let filteredAllData = allData || [];
+          const exportSet = new Set(exportedLeadIds);
+          if (exportFilter === 'never-exported' && exportSet.size > 0) {
+            // IMPORTANTE: Usar apenas o campo 'id' que é o campo correto da view
+            filteredAllData = filteredAllData.filter(row => {
+              const leadId = row.id;
+              return leadId && !exportSet.has(leadId);
+            });
+            console.log(`🔍 Filtro "Nunca Exportados": ${allData?.length || 0} total, ${exportSet.size} exportados, ${filteredAllData.length} não exportados`);
+          }
+          
+          // Aplicar filtros no cliente na ordem correta:
+          // 1. Primeiro filtrar por telefone (se aplicável)
+          filteredAllData = filterRowsByPhoneStatus(filteredAllData);
+          console.log(`📞 Após filtro de telefone: ${filteredAllData.length} registros`);
+          
+          // 2. Filtrar por endereço (se aplicável)
+          filteredAllData = filterClientSideIfNeeded(filteredAllData);
+          console.log(`📍 Após filtro de endereço: ${filteredAllData.length} registros`);
+          
+          // 3. Filtrar por origem exclusiva (se filtro de origem estiver ativo)
+          if (filters.origins && filters.origins.length > 0) {
+            const beforeOrigins = filteredAllData.length;
+            filteredAllData = filterRowsByExclusiveOrigins(filteredAllData);
+            console.log(`🏷️ Após filtro de origem: ${beforeOrigins} → ${filteredAllData.length} registros`);
+          }
+          
+          // 4. Filtrar por nome (apenas se o filtro estiver ativo)
+          if (nameFilter && nameFilter !== 'all') {
+            const beforeName = filteredAllData.length;
+            filteredAllData = filterRowsByNameStatus(filteredAllData);
+            console.log(`👤 Após filtro de nome: ${beforeName} → ${filteredAllData.length} registros`);
+          }
+          
+          // 5. Filtrar por duplicatas (apenas se o filtro estiver ativo)
+          if (duplicatesFilter && duplicatesFilter !== 'all') {
+            const beforeDup = filteredAllData.length;
+            filteredAllData = filterRowsByDuplicates(filteredAllData);
+            console.log(`🔁 Após filtro de duplicatas: ${beforeDup} → ${filteredAllData.length} registros`);
+          }
+          
+          // 6. Aplicar pesquisa (apenas se houver termo de pesquisa)
+          if (searchTerm && searchTerm.trim() !== '') {
+            const beforeSearch = filteredAllData.length;
+            filteredAllData = filterRowsBySearch(filteredAllData);
+            console.log(`🔎 Após pesquisa: ${beforeSearch} → ${filteredAllData.length} registros`);
+          }
+          
+      // Carregar histórico de exportações para os dados filtrados (após todos os filtros)
+      const leadIds = collectLeadIdsFromRows(filteredAllData);
+      if (leadIds.length > 0) {
+        const history = await loadExportHistory(leadIds);
+        setExportHistory(prev => ({ ...prev, ...history }));
+      }
+          
+          console.log(`✅ Total final após todos os filtros: ${filteredAllData.length} registros`);
+          
+          // Aplicar ordenação adicional se necessário
+          let sorted = filteredAllData;
+          if (sortField === 'dias_desde_ultima_compra' || sortField === 'dias_sem_compra') {
+            sorted = [...filteredAllData].sort((a, b) => {
+              const valA = parseInt(a.dias_desde_ultima_compra || a.dias_sem_compra || 0) || 0;
+              const valB = parseInt(b.dias_desde_ultima_compra || b.dias_sem_compra || 0) || 0;
+              return sortDirection === 'asc' ? valA - valB : valB - valA;
+            });
+          }
+          
+          // Aplicar paginação no cliente
+          const totalFiltered = sorted.length;
+          const paginatedData = sorted.slice(start, end + 1);
+          
+          setData(paginatedData);
+          setTotalCount(totalFiltered);
+          setIsLoading(false);
+          return; // Retornar aqui, não precisa continuar com a query normal
         }
       }
       
@@ -597,6 +895,34 @@ const ReativacaoBasePage = ({ tipo }) => {
         }
       }
       
+      // Aplicar filtro de status exportação diretamente na query
+      if (currentIsSupervisor) {
+        if (exportFilter === 'exported') {
+          const { data: exportedIds } = await supabase
+            .schema('api')
+            .from('historico_exportacoes')
+            .select('id_lead');
+          const exportedLeadIds = exportedIds?.map(e => e.id_lead).filter(Boolean) || [];
+          if (exportedLeadIds.length > 0) {
+            query = query.in('id', exportedLeadIds);
+          } else {
+            setData([]);
+            setTotalCount(0);
+            setIsLoading(false);
+            return;
+          }
+        } else if (exportFilter === 'never-exported') {
+          const { data: exportedIds } = await supabase
+            .schema('api')
+            .from('historico_exportacoes')
+            .select('id_lead');
+          const exportedLeadIds = exportedIds?.map(e => e.id_lead).filter(Boolean) || [];
+          if (exportedLeadIds.length > 0) {
+            query = query.not('id', 'in', `(${exportedLeadIds.join(',')})`);
+          }
+        }
+      }
+      
       const { data, count, error } = await query.range(start, end);
       
       if (error) {
@@ -604,14 +930,12 @@ const ReativacaoBasePage = ({ tipo }) => {
         throw error;
       }
       
-      // Filtrar no cliente (endereço)
-      let filteredData = filterClientSideIfNeeded(data || []);
+      // Filtrar no cliente (telefone e endereço)
+      let filteredData = filterRowsByPhoneStatus(data || []);
+      filteredData = filterClientSideIfNeeded(filteredData);
       
       // Carregar histórico de exportações
-      const leadIds = filteredData.map(row => {
-        // Tentar vários campos possíveis para o ID
-        return row.id || row.id_lead || row.id_cliente_mestre || row.id_prime || row.prime_id;
-      }).filter(Boolean);
+      const leadIds = collectLeadIdsFromRows(filteredData);
       if (leadIds.length > 0) {
         const history = await loadExportHistory(leadIds);
         setExportHistory(prev => ({ ...prev, ...history }));
@@ -682,7 +1006,12 @@ const ReativacaoBasePage = ({ tipo }) => {
       }
       
       setData(sorted);
-      setTotalCount(count || 0);
+      // A contagem total deve refletir os dados filtrados quando há filtros client-side
+      // Se houver filtros client-side aplicados (telefone, endereço, origem, busca), usar o tamanho dos dados filtrados
+      const hasClientSideFilters = filters.phoneStatus !== 'any' || filters.hasEndereco || 
+                                   (filters.origins && filters.origins.length > 0) || 
+                                   (searchTerm && searchTerm.trim() !== '');
+      setTotalCount(hasClientSideFilters ? sorted.length : (count || 0));
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       setData([]);
@@ -707,12 +1036,9 @@ const ReativacaoBasePage = ({ tipo }) => {
     if (filters.hasDataNascimento) {
       query = query.not('data_nascimento', 'is', null);
     }
-    // Telefone: considerar whatsapp ou telefone
-    if (filters.phoneStatus === 'has') {
-      query = query.or('whatsapp.not.is.null,telefone.not.is.null');
-    } else if (filters.phoneStatus === 'none') {
-      query = query.and('whatsapp.is.null,telefone.is.null');
-    }
+    // Telefone: filtro será aplicado no cliente (filterRowsByPhoneStatus)
+    // A sintaxe do Supabase para .or() com null não funciona corretamente
+    // Por isso, removemos o filtro da query e aplicamos no cliente após buscar os dados
     // DDD: tenta filtrar por whatsapp ou telefone iniciando com DDD
     if (filters.ddd && filters.ddd.length === 2) {
       const d = filters.ddd;
@@ -722,6 +1048,51 @@ const ReativacaoBasePage = ({ tipo }) => {
     // Isso permite filtrar apenas quem está EXCLUSIVAMENTE na origem selecionada
     // Removido o filtro de origens da query para fazer no cliente
     return query;
+  };
+
+  // Função auxiliar para validar se um telefone é válido
+  const isValidPhone = (phone) => {
+    if (!phone) return false;
+    const phoneStr = String(phone).trim();
+    if (phoneStr === '' || phoneStr === '-' || phoneStr === 'null' || phoneStr === 'undefined') return false;
+    // Verificar se tem pelo menos 8 dígitos numéricos (número mínimo válido)
+    const digitsOnly = phoneStr.replace(/\D/g, '');
+    return digitsOnly.length >= 8;
+  };
+
+  // Filtro cliente para telefone (whatsapp ou telefone)
+  const filterRowsByPhoneStatus = (rows) => {
+    if (filters.phoneStatus === 'any') return rows;
+    
+    const filtered = rows.filter(r => {
+      const hasWhatsapp = isValidPhone(r.whatsapp);
+      const hasTelefone = isValidPhone(r.telefone);
+      const hasPhone = hasWhatsapp || hasTelefone;
+      
+      if (filters.phoneStatus === 'has') {
+        return hasPhone;
+      } else if (filters.phoneStatus === 'none') {
+        return !hasPhone;
+      }
+      return true;
+    });
+    
+    // Debug: quando filtrando "sem telefone", mostrar alguns exemplos
+    if (filters.phoneStatus === 'none' && filtered.length > 0) {
+      console.log(`📞 [DEBUG] Filtro "Sem Telefone": ${filtered.length} registros encontrados`);
+      // Mostrar primeiros 5 exemplos para debug
+      const samples = filtered.slice(0, 5).map(r => ({
+        id: r.id,
+        nome: r.nome_completo,
+        whatsapp: r.whatsapp,
+        telefone: r.telefone,
+        whatsapp_valid: isValidPhone(r.whatsapp),
+        telefone_valid: isValidPhone(r.telefone)
+      }));
+      console.log('📞 [DEBUG] Exemplos de registros sem telefone:', samples);
+    }
+    
+    return filtered;
   };
 
   // Filtro cliente para endereço quando existir o campo
@@ -903,9 +1274,97 @@ const ReativacaoBasePage = ({ tipo }) => {
     }
   };
 
+  const fetchPedidosDataForRows = async (rows) => {
+    if (!rows || rows.length === 0) return {};
+    const clientIdsRaw = rows
+      .map(r => r.id_prime || r.prime_id || r.id_cliente || r.id_cliente_mestre || null)
+      .filter(Boolean);
+    
+    if (clientIdsRaw.length === 0) return {};
+    
+    const uniqueClientIds = Array.from(new Set(clientIdsRaw.map(id => {
+      if (typeof id === 'number') return id;
+      const parsed = Number(id);
+      return Number.isNaN(parsed) ? id : parsed;
+    })));
+    
+    const pedidosData = {};
+    
+    try {
+      const { data: allPedidos, error: pedidosError } = await supabase
+        .schema('api')
+        .from('prime_pedidos')
+        .select('id, cliente_id, valor_total, data_criacao, data_aprovacao, data_entrega, status_aprovacao, status_geral, status_entrega, codigo_orcamento_original')
+        .in('cliente_id', uniqueClientIds)
+        .order('data_criacao', { ascending: false });
+      
+      if (pedidosError) {
+        console.error('Erro ao carregar pedidos para SprintHub:', pedidosError);
+        return pedidosData;
+      }
+      
+      const pedidosIds = (allPedidos || []).map(p => p.id).filter(Boolean);
+      let formulasPorPedido = {};
+      
+      if (pedidosIds.length > 0) {
+        const { data: allFormulas, error: formulasError } = await supabase
+          .schema('api')
+          .from('prime_formulas')
+          .select('id, pedido_id, numero_formula, descricao, posologia, valor_formula')
+          .in('pedido_id', pedidosIds)
+          .order('numero_formula', { ascending: true });
+        
+        if (!formulasError && allFormulas) {
+          formulasPorPedido = allFormulas.reduce((acc, formula) => {
+            if (!acc[formula.pedido_id]) {
+              acc[formula.pedido_id] = [];
+            }
+            acc[formula.pedido_id].push(formula);
+            return acc;
+          }, {});
+        }
+      }
+      
+      uniqueClientIds.forEach(clienteId => {
+        const pedidosCliente = (allPedidos || []).filter(p => String(p.cliente_id) === String(clienteId));
+        
+        const ultimoPedido = pedidosCliente.find(p =>
+          p.status_aprovacao === 'APROVADO' ||
+          p.status_geral === 'APROVADO' ||
+          p.status_entrega === 'ENTREGUE'
+        );
+        
+        const ultimoOrcamento = pedidosCliente.find(p =>
+          p.status_aprovacao !== 'APROVADO' &&
+          p.status_geral !== 'APROVADO' &&
+          p.status_entrega !== 'ENTREGUE'
+        );
+        
+        if (ultimoPedido && formulasPorPedido[ultimoPedido.id]) {
+          ultimoPedido.formulas = formulasPorPedido[ultimoPedido.id];
+        }
+        if (ultimoOrcamento && formulasPorPedido[ultimoOrcamento.id]) {
+          ultimoOrcamento.formulas = formulasPorPedido[ultimoOrcamento.id];
+        }
+        
+        const referencia = ultimoPedido || ultimoOrcamento || pedidosCliente?.[0] || null;
+        
+        pedidosData[clienteId] = {
+          ultimoPedido,
+          ultimoOrcamento,
+          referencia
+        };
+      });
+    } catch (error) {
+      console.error('Erro ao buscar dados de pedidos para SprintHub:', error);
+    }
+    
+    return pedidosData;
+  };
+
   const handleExportConfirm = async () => {
     const selected = selectedRows.map(i => data[i]).filter(Boolean);
-    const leadIds = selected.map(row => row.id || row.id_lead || row.id_cliente_mestre).filter(Boolean);
+    const leadIds = Array.from(new Set(selected.flatMap(row => getLeadIdentifierCandidates(row))));
     
     if (leadIds.length > 0) {
       await registerExport(leadIds, exportMotivo, exportObservacao, exportTag);
@@ -922,88 +1381,262 @@ const ReativacaoBasePage = ({ tipo }) => {
     loadData();
   };
 
+  const handleSprinthubSend = () => {
+    if (selectedRows.length === 0) {
+      alert('Nenhum registro selecionado.');
+      return;
+    }
+    setSprinthubResults([]);
+    setSprinthubError(null);
+    setShowSprinthubModal(true);
+  };
+
+  const closeSprinthubModal = () => {
+    if (isSendingToSprinthub) return;
+    setShowSprinthubModal(false);
+    setSprinthubResults([]);
+    setSprinthubError(null);
+  };
+
+  const handleSprinthubConfirm = async () => {
+    const selected = selectedRows.map(i => data[i]).filter(Boolean);
+    if (selected.length === 0) {
+      setSprinthubError('Nenhum registro válido selecionado.');
+      return;
+    }
+
+    // Validar campos obrigatórios do modal ANTES de processar
+    const funnelIdValue = sprinthubFunnelId?.trim();
+    if (!funnelIdValue || funnelIdValue === '') {
+      setSprinthubError('Por favor, preencha o campo "Funil (ID)" no modal.');
+      setIsSendingToSprinthub(false);
+      return;
+    }
+
+    console.log('[ReativacaoBasePage] Valores do modal:', {
+      sprinthubFunnelId: sprinthubFunnelId,
+      sprinthubFunnelIdTrimmed: funnelIdValue,
+      sprinthubEtapa,
+      sprinthubVendedor,
+      sprinthubTagId
+    });
+
+    setIsSendingToSprinthub(true);
+    setSprinthubError(null);
+
+    try {
+      const pedidosData = await fetchPedidosDataForRows(selected);
+      const normalizedOrders = sprinthubService.normalizeOrdersFromPrime(pedidosData);
+      const results = [];
+
+      for (const row of selected) {
+        const clientId = row.id_prime || row.prime_id || row.id_cliente || row.id_cliente_mestre || null;
+        const leadPayload = sprinthubService.normalizeLeadFromRow(row);
+        const tagsForLead = resolveTagsForRow(row);
+        const ordersForLead = normalizedOrders.filter(order => String(order.leadPrimeId) === String(clientId));
+
+        let referencia = null;
+        if (clientId && pedidosData[clientId]) {
+          referencia = pedidosData[clientId].ultimoPedido || pedidosData[clientId].ultimoOrcamento || pedidosData[clientId].referencia || null;
+        }
+
+        const ultimoPedidoResumo = clientId && pedidosData[clientId]?.ultimoPedido
+          ? sprinthubService.buildResumoPedido(pedidosData[clientId].ultimoPedido)
+          : '';
+        const ultimoOrcamentoResumo = clientId && pedidosData[clientId]?.ultimoOrcamento
+          ? sprinthubService.buildResumoPedido(pedidosData[clientId].ultimoOrcamento, { isOrcamento: true })
+          : '';
+        
+        // Extrair datas dos pedidos para os campos personalizados do SprintHub
+        const ultimoPedidoData = clientId && pedidosData[clientId]?.ultimoPedido?.data_criacao
+          ? pedidosData[clientId].ultimoPedido.data_criacao
+          : null;
+        const ultimoOrcamentoData = clientId && pedidosData[clientId]?.ultimoOrcamento?.data_criacao
+          ? pedidosData[clientId].ultimoOrcamento.data_criacao
+          : null;
+
+        const referenceValueRaw = referencia?.valor_total ?? ordersForLead?.[0]?.valor ?? 0;
+        const referenceValue = Number(referenceValueRaw);
+
+        // Validar funnelId do modal (prioridade sobre config)
+        const funnelIdFromModal = toNumberOrUndefined(sprinthubFunnelId);
+        const funnelIdFinal = funnelIdFromModal ?? SPRINTHUB_CONFIG.defaultFunnelId;
+        
+        if (!funnelIdFinal || funnelIdFinal === null || funnelIdFinal === undefined) {
+          console.error('[ReativacaoBasePage] funnelId não configurado:', {
+            sprinthubFunnelId,
+            funnelIdFromModal,
+            defaultFunnelId: SPRINTHUB_CONFIG.defaultFunnelId,
+            envVar: import.meta.env.VITE_SPRINTHUB_FUNNEL_ID
+          });
+          throw new Error('Funil (ID) não configurado. Por favor, preencha o campo "Funil (ID)" no modal ou configure VITE_SPRINTHUB_FUNNEL_ID no .env');
+        }
+
+        // Converter value para string (como a SprintHub espera, baseado nas oportunidades existentes)
+        const valueAsString = Number.isNaN(referenceValue) ? '0' : String(referenceValue);
+        
+        // A SprintHub espera sequence como STRING, não número (testado e confirmado)
+        const sequenceValue = toNumberOrUndefined(sprinthubSequence) ?? SPRINTHUB_CONFIG.defaultSequenceId;
+        const sequenceAsString = sequenceValue !== undefined && sequenceValue !== null 
+          ? String(sequenceValue) 
+          : '0';
+        
+        const opportunityPayload = {
+          funnelId: funnelIdFinal,
+          title: `${sprinthubTituloPrefix || 'Reativação'} | ${leadPayload.firstname || row.nome_completo || row.nome || ''}`.trim(),
+          value: valueAsString, // SprintHub espera string, não número
+          crm_column: toNumberOrUndefined(sprinthubEtapa) ?? SPRINTHUB_CONFIG.defaultColumnId,
+          sequence: sequenceAsString, // SprintHub espera STRING, não número
+          status: 'open',
+          user: toNumberOrUndefined(sprinthubVendedor) ?? SPRINTHUB_CONFIG.defaultUserId,
+          fields: {},
+        };
+
+        // Campos personalizados do SprintHub (nomes exatos conforme a configuração):
+        // - "idprime" (Texto) - ID do cliente no Prime
+        // - "ultimopedido" (Data) - Data do último pedido
+        // - "ultimoorcamento" (Data) - Data do último orçamento
+        // - "Descricao da Formula" (Texto) - Descrição/resumo do pedido
+        
+        if (clientId) {
+          opportunityPayload.fields["idprime"] = String(clientId);
+        }
+        
+        // Se tiver data do último pedido, enviar como data (formato ISO)
+        if (ultimoPedidoData) {
+          // Se for string, tentar converter para Date e depois para ISO
+          try {
+            const dataPedido = ultimoPedidoData instanceof Date 
+              ? ultimoPedidoData 
+              : new Date(ultimoPedidoData);
+            if (!isNaN(dataPedido.getTime())) {
+              opportunityPayload.fields["ultimopedido"] = dataPedido.toISOString().split('T')[0]; // YYYY-MM-DD
+            }
+          } catch (e) {
+            console.warn('[ReativacaoBasePage] Erro ao converter data do pedido:', e);
+          }
+        }
+        
+        // Se tiver data do último orçamento, enviar como data (formato ISO)
+        if (ultimoOrcamentoData) {
+          try {
+            const dataOrcamento = ultimoOrcamentoData instanceof Date 
+              ? ultimoOrcamentoData 
+              : new Date(ultimoOrcamentoData);
+            if (!isNaN(dataOrcamento.getTime())) {
+              opportunityPayload.fields["ultimoorcamento"] = dataOrcamento.toISOString().split('T')[0]; // YYYY-MM-DD
+            }
+          } catch (e) {
+            console.warn('[ReativacaoBasePage] Erro ao converter data do orçamento:', e);
+          }
+        }
+        
+        // Usar "Descricao da Formula" para o resumo do pedido (se disponível)
+        if (ultimoPedidoResumo) {
+          opportunityPayload.fields["Descricao da Formula"] = ultimoPedidoResumo;
+        }
+        
+        // Campos padrão da SprintHub (usar valores do modal)
+        opportunityPayload.fields["ORIGEM OPORTUNIDADE"] = sprinthubOrigemOportunidade || "Reativação";
+        opportunityPayload.fields["Tipo de Compra"] = sprinthubTipoCompra || "reativação";
+        // QUALIFICACAO removido conforme solicitado
+        
+        // Log para debug
+        console.log('[ReativacaoBasePage] Payload da oportunidade:', {
+          funnelId: opportunityPayload.funnelId,
+          title: opportunityPayload.title,
+          value: opportunityPayload.value,
+          crm_column: opportunityPayload.crm_column,
+          sequence: opportunityPayload.sequence,
+          sequenceType: typeof opportunityPayload.sequence,
+          user: opportunityPayload.user,
+          fields: opportunityPayload.fields,
+          totalFields: Object.keys(opportunityPayload.fields).length,
+          todosOsFields: Object.keys(opportunityPayload.fields)
+        });
+
+        const ensureResult = await sprinthubService.ensureLeadAndOpportunity({
+          lead: leadPayload,
+          opportunity: opportunityPayload,
+          tags: tagsForLead,
+          orders: ordersForLead,
+          reativacaoTagId: toNumberOrUndefined(sprinthubTagId) || 221,
+          rowData: row, // Passar dados da linha para salvar id_sprinthub
+        });
+
+        const leadIdentifier = getLeadIdentifier(row);
+        results.push({
+          id: leadIdentifier,
+          nome: row.nome_completo || row.nome || 'Cliente',
+          ensureResult,
+        });
+      }
+
+      setSprinthubResults(results);
+
+      // Registrar no histórico de exportações
+      try {
+        const leadIds = Array.from(
+          new Set(
+            results
+              .map(r => r?.id)
+              .filter(id => id !== null && id !== undefined)
+          )
+        );
+        if (leadIds.length > 0) {
+          const successCount = results.filter(r => r.ensureResult?.lead?.id && !r.ensureResult?.errors?.length).length;
+          const errorCount = results.length - successCount;
+
+          const resumoConfiguracao = [
+            `Funil: ${sprinthubFunnelId || SPRINTHUB_CONFIG.defaultFunnelId || '-'}`,
+            `Coluna: ${sprinthubEtapa || SPRINTHUB_CONFIG.defaultColumnId || '-'}`,
+            `Sequência: ${sprinthubSequence || SPRINTHUB_CONFIG.defaultSequenceId || '0'}`,
+            `Vendedor: ${sprinthubVendedor || SPRINTHUB_CONFIG.defaultUserId || '-'}`,
+            `Prefixo: ${sprinthubTituloPrefix || '-'}`,
+            `Tag Lead: ${sprinthubTagId || '221'}`,
+            `Origem: ${sprinthubOrigemOportunidade || '-'}`,
+            `Tipo de Compra: ${sprinthubTipoCompra || '-'}`
+          ].join(' | ');
+
+          const observacaoSprintHub = `${resumoConfiguracao} | Enviados: ${successCount} | Erros: ${errorCount}`;
+          const motivoSprintHub = 'WHATSAPI'; // manter motivo permitido pela tabela; detalhes ficam na observação
+          
+          await registerExport(
+            leadIds,
+            motivoSprintHub,
+            observacaoSprintHub,
+            'SPRINTHUB'
+          );
+
+          const newFlags = {};
+          leadIds.forEach(id => {
+            if (id) newFlags[String(id)] = true;
+          });
+          if (Object.keys(newFlags).length > 0) {
+            setSprinthubExportFlags(prev => ({ ...prev, ...newFlags }));
+          }
+        }
+      } catch (histError) {
+        console.warn('Erro ao registrar histórico de envio para SprintHub:', histError);
+      }
+
+      setSelectedRows([]);
+      await loadData();
+    } catch (error) {
+      console.error('Erro ao enviar dados para SprintHub:', error);
+      setSprinthubError(error.message || 'Erro ao enviar dados para a SprintHub.');
+    } finally {
+      setIsSendingToSprinthub(false);
+    }
+  };
+
   const exportSelected = async (rows, baseName) => {
     if (!rows || rows.length === 0) return;
     
     setIsLoading(true);
     
     try {
-      // Buscar dados de pedidos e orçamentos para cada cliente
-      const clientIds = rows.map(r => {
-        // Tentar obter id_prime de diferentes campos
-        return r.id_prime || r.prime_id || r.id_cliente || r.id_cliente_mestre || null;
-      }).filter(Boolean);
-      
-      const pedidosData = {};
-      
-      // Buscar pedidos e orçamentos em lote
-      if (clientIds.length > 0) {
-        const { data: allPedidos, error: pedidosError } = await supabase
-          .schema('api')
-          .from('prime_pedidos')
-          .select('id, cliente_id, valor_total, data_criacao, data_aprovacao, data_entrega, status_aprovacao, status_geral, status_entrega, codigo_orcamento_original')
-          .in('cliente_id', clientIds)
-          .order('data_criacao', { ascending: false });
-        
-        if (!pedidosError && allPedidos) {
-          // Buscar fórmulas para todos os pedidos encontrados
-          const pedidosIds = allPedidos.map(p => p.id).filter(Boolean);
-          const { data: allFormulas, error: formulasError } = await supabase
-            .schema('api')
-            .from('prime_formulas')
-            .select('id, pedido_id, numero_formula, descricao, posologia, valor_formula')
-            .in('pedido_id', pedidosIds)
-            .order('numero_formula', { ascending: true });
-          
-          // Organizar fórmulas por pedido_id
-          const formulasPorPedido = {};
-          if (!formulasError && allFormulas) {
-            allFormulas.forEach(formula => {
-              if (!formulasPorPedido[formula.pedido_id]) {
-                formulasPorPedido[formula.pedido_id] = [];
-              }
-              formulasPorPedido[formula.pedido_id].push(formula);
-            });
-          }
-          
-          // Organizar por cliente
-          clientIds.forEach(clienteId => {
-            const pedidosCliente = allPedidos.filter(p => p.cliente_id === clienteId);
-            
-            // Último pedido aprovado/entregue
-            const ultimoPedido = pedidosCliente.find(p => 
-              p.status_aprovacao === 'APROVADO' || 
-              p.status_geral === 'APROVADO' || 
-              p.status_entrega === 'ENTREGUE'
-            );
-            
-            // Último orçamento (não aprovado)
-            const ultimoOrcamento = pedidosCliente.find(p => 
-              p.status_aprovacao !== 'APROVADO' && 
-              p.status_geral !== 'APROVADO' && 
-              p.status_entrega !== 'ENTREGUE'
-            );
-            
-            // Adicionar fórmulas aos pedidos
-            if (ultimoPedido && formulasPorPedido[ultimoPedido.id]) {
-              ultimoPedido.formulas = formulasPorPedido[ultimoPedido.id];
-            }
-            if (ultimoOrcamento && formulasPorPedido[ultimoOrcamento.id]) {
-              ultimoOrcamento.formulas = formulasPorPedido[ultimoOrcamento.id];
-            }
-            
-            // Se não tem pedido, usar o último orçamento como referência
-            const referencia = ultimoPedido || ultimoOrcamento;
-            
-            pedidosData[clienteId] = {
-              ultimoPedido,
-              ultimoOrcamento,
-              referencia // Último pedido ou orçamento (o que existir)
-            };
-          });
-        }
-      }
-      
+      const pedidosData = await fetchPedidosDataForRows(rows);
       const normalizeValue = (v) => {
         if (v == null) return '';
         if (Array.isArray(v)) return v.join(', ');
@@ -2232,15 +2865,17 @@ const ReativacaoBasePage = ({ tipo }) => {
     }
   };
 
-  const loadClientExportHistory = async (leadId) => {
-    if (!leadId) return [];
+  const loadClientExportHistory = async (leadIdentifiers) => {
+    const leadIdsArray = Array.isArray(leadIdentifiers) ? leadIdentifiers : [leadIdentifiers];
+    const leadIds = [...new Set(leadIdsArray.filter(Boolean).map((id) => String(id)))];
+    if (leadIds.length === 0) return [];
     
     try {
       const { data, error } = await supabase
         .schema('api')
         .from('historico_exportacoes')
         .select('*')
-        .eq('id_lead', leadId)
+        .in('id_lead', leadIds)
         .order('data_exportacao', { ascending: false });
       
       if (error) throw error;
@@ -2262,6 +2897,22 @@ const ReativacaoBasePage = ({ tipo }) => {
         }
       });
       
+      const hasSprinthub = uniqueExports.some(exp => {
+        const tag = (exp.tag_exportacao || '').toLowerCase();
+        const motivo = (exp.motivo || '').toLowerCase();
+        const observacao = (exp.observacao || '').toLowerCase();
+        return tag.includes('sprinthub') || motivo.includes('sprinthub') || observacao.includes('sprinthub');
+      });
+      if (hasSprinthub) {
+        setSprinthubExportFlags(prev => {
+          const updates = { ...prev };
+          leadIds.forEach(id => {
+            updates[String(id)] = true;
+          });
+          return updates;
+        });
+      }
+      
       return uniqueExports;
     } catch (error) {
       console.error('Erro ao carregar histórico de exportação:', error);
@@ -2269,63 +2920,106 @@ const ReativacaoBasePage = ({ tipo }) => {
     }
   };
 
-  const handleExportIconClick = async (row) => {
-    const leadId = row.id || row.id_lead || row.id_cliente_mestre || row.id_prime || row.prime_id;
-    if (!leadId) return;
+  const handleExportIconClick = async (row, onlySprinthub = false) => {
+    const candidates = getLeadIdentifierCandidates(row);
+    if (candidates.length === 0) return;
     
     setSelectedClientForHistory({
-      id: leadId,
+      id: candidates[0],
       nome: row.nome_completo || 'Sem nome'
     });
     
-    const history = await loadClientExportHistory(leadId);
-    setClientExportHistory(history);
-    setShowExportHistoryModal(true);
+    const history = await loadClientExportHistory(candidates);
+    const sprinthubEntries = history.filter(isSprinthubHistoryEntry);
+    const exportEntries = history.filter((entry) => !isSprinthubHistoryEntry(entry));
+
+    if (onlySprinthub && sprinthubEntries.length === 0) {
+      alert('Nenhum histórico encontrado para SprintHub.');
+      return;
+    }
+
+    if (!onlySprinthub && exportEntries.length === 0) {
+      alert('Nenhum histórico encontrado de exportação.');
+      return;
+    }
+
+    if (onlySprinthub) {
+      setSprinthubHistory(sprinthubEntries);
+      setShowSprinthubHistoryModal(true);
+    } else {
+      setClientExportHistory(exportEntries);
+      setShowExportHistoryModal(true);
+    }
   };
 
   const renderExportStatusIcon = (row) => {
-    // Tentar vários campos possíveis para o ID
-    const leadId = row.id || row.id_lead || row.id_cliente_mestre || row.id_prime || row.prime_id;
-    if (!leadId) return null;
+    const candidateIds = getLeadIdentifierCandidates(row);
+    if (candidateIds.length === 0) return null;
     
-    // Converter para string para garantir match
-    const leadIdStr = String(leadId);
-    const hasExport = exportHistory[leadIdStr]?.length > 0;
+    const historyEntries = candidateIds.flatMap(id => exportHistory[id] || []);
+    if (historyEntries.length === 0) return null;
     
-    if (!hasExport) return null;
+    const hasSprinthubExport = candidateIds.some(id => sprinthubExportFlags[id])
+      || historyEntries.some(isSprinthubHistoryEntry);
     
-    return (
+    const baseStyle = {
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontWeight: 'bold',
+      lineHeight: '1',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      marginRight: '4px'
+    };
+    
+    const standardIcon = (
       <span
-        onClick={(e) => {
-          e.stopPropagation();
-          handleExportIconClick(row);
-        }}
         style={{
+          ...baseStyle,
           fontSize: '10px',
-          fontWeight: 'bold',
           color: '#22c55e',
           padding: '1px 4px',
           borderRadius: '3px',
           backgroundColor: '#dcfce7',
-          display: 'inline-block',
-          whiteSpace: 'nowrap',
-          lineHeight: '1.2',
-          textAlign: 'center',
-          cursor: 'pointer',
-          transition: 'all 0.2s ease'
         }}
-        onMouseEnter={(e) => {
-          e.target.style.backgroundColor = '#86efac';
-          e.target.style.transform = 'scale(1.1)';
+        title={`Clique para ver histórico de ${historyEntries.length} exportação(ões)`}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleExportIconClick(row, false);
         }}
-        onMouseLeave={(e) => {
-          e.target.style.backgroundColor = '#dcfce7';
-          e.target.style.transform = 'scale(1)';
-        }}
-        title={`Clique para ver histórico de ${exportHistory[leadIdStr].length} exportação(ões)`}
       >
         EX
       </span>
+    );
+    
+    const sprinthubIcon = (
+      <span
+        style={{
+          ...baseStyle,
+          width: '20px',
+          height: '20px',
+          borderRadius: '50%',
+          backgroundColor: '#7c3aed',
+          color: '#fff',
+          fontSize: '11px',
+          boxShadow: '0 0 6px rgba(124, 58, 237, 0.6)',
+        }}
+        title={`Enviado ao SprintHub (${historyEntries.length} registro(s)). Clique para ver o histórico.`}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleExportIconClick(row, true);
+        }}
+      >
+        S
+      </span>
+    );
+    
+    return (
+      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+        {standardIcon}
+        {hasSprinthubExport && sprinthubIcon}
+      </div>
     );
   };
 
@@ -2929,32 +3623,109 @@ const ReativacaoBasePage = ({ tipo }) => {
         }
       },
       { 
-        header: 'Whats', 
+        header: 'Whats/Telefone', 
         key: 'whatsapp', 
         field: 'whatsapp',
         render: (row) => {
-          const whatsapp = row.whatsapp || row.telefone || '';
-          if (!whatsapp) return '-';
-          return (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                copyToClipboard(whatsapp, 'WhatsApp');
-              }}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                cursor: 'pointer',
-                padding: '4px',
-                display: 'inline-flex',
-                alignItems: 'center',
-                color: '#25d366'
-              }}
-              title={whatsapp}
-            >
-              <MessageCircle size={16} />
-            </button>
-          );
+          const whatsapp = row.whatsapp || '';
+          const telefone = row.telefone || '';
+          
+          // Se não tiver nenhum, retornar '-'
+          if (!whatsapp && !telefone) return '-';
+          
+          // Se tiver ambos, mostrar ambos lado a lado
+          if (whatsapp && telefone) {
+            return (
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copyToClipboard(whatsapp, 'WhatsApp');
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    color: '#25d366'
+                  }}
+                  title={`WhatsApp: ${whatsapp}`}
+                >
+                  <MessageCircle size={16} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    copyToClipboard(telefone, 'Telefone');
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    color: '#3b82f6'
+                  }}
+                  title={`Telefone: ${telefone}`}
+                >
+                  <Phone size={16} />
+                </button>
+              </div>
+            );
+          }
+          
+          // Se tiver apenas WhatsApp
+          if (whatsapp) {
+            return (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyToClipboard(whatsapp, 'WhatsApp');
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  color: '#25d366'
+                }}
+                title={`WhatsApp: ${whatsapp}`}
+              >
+                <MessageCircle size={16} />
+              </button>
+            );
+          }
+          
+          // Se tiver apenas telefone
+          if (telefone) {
+            return (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyToClipboard(telefone, 'Telefone');
+                }}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  color: '#3b82f6'
+                }}
+                title={`Telefone: ${telefone}`}
+              >
+                <Phone size={16} />
+              </button>
+            );
+          }
+          
+          return '-';
         }
       },
       { 
@@ -3389,6 +4160,14 @@ const ReativacaoBasePage = ({ tipo }) => {
                   <option value="sprinthub">Sprinthub</option>
                   <option value="json">JSON</option>
                 </select>
+                <button
+                  className="cc-btn cc-btn-primary"
+                  onClick={handleSprinthubSend}
+                  disabled={isLoading || selectedRows.length === 0 || isSendingToSprinthub}
+                  title="Enviar para SprintHub"
+                >
+                  🚀 Enviar SprintHub
+                </button>
                 <button 
                   className="cc-btn cc-btn-export" 
                   onClick={() => {
@@ -3559,6 +4338,262 @@ const ReativacaoBasePage = ({ tipo }) => {
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <button className="cc-btn" onClick={() => setShowExportModal(false)}>Cancelar</button>
                 <button className="cc-btn cc-btn-primary" onClick={handleExportConfirm}>Exportar</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de envio para SprintHub */}
+        {showSprinthubModal && isSupervisor && (
+          <div className="cc-modal-overlay" onClick={closeSprinthubModal}>
+            <div className="cc-modal" onClick={(e) => e.stopPropagation()}>
+              <h3>Enviar Selecionados para SprintHub</h3>
+
+              <p style={{ marginBottom: '12px' }}>
+                {sprinthubResults.length > 0 || selectedRows.length > 0
+                  ? `Você enviará ${sprinthubResults.length > 0 ? sprinthubResults.length : selectedRows.length} registro(s) para a SprintHub.`
+                  : 'Nenhum registro atualmente selecionado.'}
+              </p>
+
+              {sprinthubError && (
+                <div
+                  style={{
+                    backgroundColor: '#fee2e2',
+                    color: '#b91c1c',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    marginBottom: '12px',
+                  }}
+                >
+                  {sprinthubError}
+                </div>
+              )}
+
+              {sprinthubResults.length === 0 && (
+                <>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gap: '12px',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    <label className="cc-field">
+                      <span>Funil (ID)</span>
+                      <input
+                        type="number"
+                        className="cc-input"
+                        value={sprinthubFunnelId}
+                        onChange={(e) => setSprinthubFunnelId(e.target.value)}
+                        placeholder={SPRINTHUB_CONFIG.defaultFunnelId || 'Ex: 56'}
+                      />
+                    </label>
+                    <label className="cc-field">
+                      <span>Coluna/Etapa (ID)</span>
+                      <input
+                        type="number"
+                        className="cc-input"
+                        value={sprinthubEtapa}
+                        onChange={(e) => setSprinthubEtapa(e.target.value)}
+                        placeholder={SPRINTHUB_CONFIG.defaultColumnId || 'Ex: 159'}
+                      />
+                    </label>
+                    <label className="cc-field">
+                      <span>Sequência</span>
+                      <input
+                        type="number"
+                        className="cc-input"
+                        value={sprinthubSequence}
+                        onChange={(e) => setSprinthubSequence(e.target.value)}
+                      />
+                    </label>
+                    <label className="cc-field">
+                      <span>ID do Vendedor</span>
+                      <input
+                        type="number"
+                        className="cc-input"
+                        value={sprinthubVendedor}
+                        onChange={(e) => setSprinthubVendedor(e.target.value)}
+                      />
+                    </label>
+                  </div>
+
+                  <label className="cc-field" style={{ display: 'block', marginBottom: '16px' }}>
+                    <span>Prefixo do título da oportunidade</span>
+                    <input
+                      type="text"
+                      className="cc-input"
+                      value={sprinthubTituloPrefix}
+                      onChange={(e) => setSprinthubTituloPrefix(e.target.value)}
+                      placeholder="Ex: REATIVAÇÃO"
+                    />
+                  </label>
+
+                  <label className="cc-field" style={{ display: 'block', marginBottom: '16px' }}>
+                    <span>ID da Tag de Reativação</span>
+                    <input
+                      type="number"
+                      className="cc-input"
+                      value={sprinthubTagId}
+                      onChange={(e) => setSprinthubTagId(e.target.value)}
+                      placeholder="Ex: 221"
+                    />
+                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                      Esta tag será adicionada automaticamente a todos os leads enviados.
+                    </div>
+                  </label>
+
+                  <label className="cc-field" style={{ display: 'block', marginBottom: '16px' }}>
+                    <span>Origem da Oportunidade</span>
+                    <select
+                      className="cc-input"
+                      value={sprinthubOrigemOportunidade}
+                      onChange={(e) => setSprinthubOrigemOportunidade(e.target.value)}
+                      style={{ width: '100%', padding: '8px', borderRadius: '4px', backgroundColor: '#1e293b', color: '#fff', border: '1px solid #334155' }}
+                    >
+                      {ORIGENS_OPORTUNIDADE.map(origem => (
+                        <option key={origem} value={origem}>{origem}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="cc-field" style={{ display: 'block', marginBottom: '16px' }}>
+                    <span>Tipo de Compra</span>
+                    <select
+                      className="cc-input"
+                      value={sprinthubTipoCompra}
+                      onChange={(e) => setSprinthubTipoCompra(e.target.value)}
+                      style={{ width: '100%', padding: '8px', borderRadius: '4px', backgroundColor: '#1e293b', color: '#fff', border: '1px solid #334155' }}
+                    >
+                      {TIPOS_COMPRA.map(tipo => (
+                        <option key={tipo} value={tipo}>{tipo}</option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '16px' }}>
+                    <div>
+                      Tags disponíveis na SprintHub:{' '}
+                      {isLoadingSprinthubTags ? 'carregando...' : sprinthubAvailableTags.length}
+                    </div>
+                    <div>
+                      As origens dos clientes serão mapeadas para as tags correspondentes na SprintHub automaticamente.
+                    </div>
+                  </div>
+
+                  {isSendingToSprinthub && (
+                    <div style={{ marginBottom: '12px', color: '#2563eb' }}>
+                      Enviando dados para a SprintHub. Aguarde...
+                    </div>
+                  )}
+                </>
+              )}
+
+              {sprinthubResults.length > 0 && (
+                <>
+                  <div style={{ 
+                    backgroundColor: '#1e293b', 
+                    padding: '12px', 
+                    borderRadius: '8px', 
+                    marginBottom: '12px',
+                    border: '1px solid rgba(59, 130, 246, 0.3)'
+                  }}>
+                    <div style={{ fontWeight: 600, marginBottom: '8px', color: '#60a5fa' }}>
+                      ✅ Envio Concluído
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#cbd5f5', lineHeight: '1.6' }}>
+                      <div>📊 Total processado: {sprinthubResults.length} registro(s)</div>
+                      <div>✅ Sucessos: {sprinthubResults.filter(r => r.ensureResult?.lead?.id && !r.ensureResult?.errors?.length).length}</div>
+                      <div>❌ Erros: {sprinthubResults.filter(r => r.ensureResult?.errors?.length).length}</div>
+                      <div style={{ marginTop: '8px', fontSize: '11px', color: '#94a3b8' }}>
+                        📝 Histórico registrado na tabela de exportações
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ maxHeight: '320px', overflowY: 'auto', marginTop: '8px', marginBottom: '16px' }}>
+                    {sprinthubResults.map((result, index) => {
+                      const leadId = result.ensureResult?.lead?.id;
+                      const leadStatus = result.ensureResult?.lead?.status;
+                      const opportunityStatus = result.ensureResult?.opportunity?.status;
+                      const opportunityId = result.ensureResult?.opportunity?.id;
+                      const ordersSummary = result.ensureResult?.orders || [];
+                      const errors = result.ensureResult?.errors || [];
+                      const hasError = errors.length > 0;
+                      const isSuccess = leadId && !hasError;
+
+                      return (
+                        <div
+                          key={`${result.id || index}-${index}`}
+                          style={{
+                            border: `1px solid ${hasError ? 'rgba(248, 113, 113, 0.3)' : isSuccess ? 'rgba(34, 197, 94, 0.3)' : 'rgba(148, 163, 184, 0.3)'}`,
+                            borderRadius: '8px',
+                            padding: '12px',
+                            marginBottom: '12px',
+                            backgroundColor: '#0f172a',
+                          }}
+                        >
+                          <div style={{ fontWeight: 600, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {isSuccess ? '✅' : hasError ? '❌' : '⚠️'} {result.nome}
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#cbd5f5' }}>
+                            <div>
+                              Lead ID SprintHub: <strong style={{ color: isSuccess ? '#22c55e' : '#f87171' }}>
+                                {leadId ? leadId : 'Não criado'}
+                              </strong>
+                              {leadStatus && ` (${leadStatus === 'created' ? 'Criado' : 'Atualizado'})`}
+                            </div>
+                            <div>
+                              Oportunidade:{' '}
+                              {opportunityStatus === 'already-exists' ? (
+                                <span style={{ color: '#fbbf24' }}>⚠️ Já existia (ID: {opportunityId || 'N/A'})</span>
+                              ) : opportunityId ? (
+                                <span style={{ color: '#22c55e' }}>✅ Criada (ID: {opportunityId})</span>
+                              ) : (
+                                <span style={{ color: '#f87171' }}>❌ Não criada</span>
+                              )}
+                            </div>
+                            {ordersSummary.length > 0 && (
+                              <div>
+                                Pedidos sincronizados:{' '}
+                                {ordersSummary.filter(item => item.status === 'synced').length}
+                                {ordersSummary.some(item => item.status === 'skipped') && (
+                                  <> (alguns já estavam sincronizados)</>
+                                )}
+                              </div>
+                            )}
+                            {errors.length > 0 && (
+                              <div style={{ color: '#f87171', marginTop: '6px', padding: '6px', backgroundColor: 'rgba(248, 113, 113, 0.1)', borderRadius: '4px' }}>
+                                <strong>Erros:</strong> {errors.map(err => err.message || 'Erro desconhecido').join(' | ')}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                {sprinthubResults.length === 0 ? (
+                  <>
+                    <button className="cc-btn" onClick={closeSprinthubModal} disabled={isSendingToSprinthub}>
+                      Cancelar
+                    </button>
+                    <button
+                      className="cc-btn cc-btn-primary"
+                      onClick={handleSprinthubConfirm}
+                      disabled={isSendingToSprinthub || selectedRows.length === 0}
+                    >
+                      {isSendingToSprinthub ? 'Enviando...' : 'Enviar agora'}
+                    </button>
+                  </>
+                ) : (
+                  <button className="cc-btn cc-btn-primary" onClick={closeSprinthubModal}>
+                    Fechar
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -3812,6 +4847,78 @@ const ReativacaoBasePage = ({ tipo }) => {
                   className="cc-btn"
                   onClick={() => setShowExportHistoryModal(false)}
                 >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Histórico SprintHub */}
+        {showSprinthubHistoryModal && selectedClientForHistory && (
+          <div
+            className="cc-modal-overlay"
+            onClick={() => {
+              setShowSprinthubHistoryModal(false);
+              setSprinthubHistory([]);
+            }}
+          >
+            <div className="cc-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px', width: '90%' }}>
+              <div className="cc-modal-header">
+                <h3>Histórico SprintHub</h3>
+                <button
+                  className="cc-btn-close"
+                  onClick={() => {
+                    setShowSprinthubHistoryModal(false);
+                    setSprinthubHistory([]);
+                  }}
+                  style={{ background: 'transparent', border: 'none', color: '#e0e7ff', cursor: 'pointer', fontSize: '24px', padding: '0', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  ×
+                </button>
+              </div>
+              <div style={{ marginBottom: '16px', color: '#94a3b8' }}>
+                <div><strong>Cliente:</strong> {selectedClientForHistory.nome}</div>
+                <div><strong>ID:</strong> {selectedClientForHistory.id}</div>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="cc-table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Motivo</th>
+                      <th>Tag</th>
+                      <th>Observação</th>
+                      <th>Usuário</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sprinthubHistory.map((hist, index) => (
+                      <tr key={index}>
+                        <td>{new Date(hist.data || hist.created_at).toLocaleString('pt-BR')}</td>
+                        <td>{hist.motivo || '-'}</td>
+                        <td>
+                          <span style={{ padding: '4px 8px', backgroundColor: '#7c3aed26', color: '#c084fc', borderRadius: '999px', fontWeight: '600', fontSize: '11px' }}>
+                            {hist.tag_exportacao || 'SPRINTHUB'}
+                          </span>
+                        </td>
+                        <td>{hist.observacao || '-'}</td>
+                        <td>{hist.usuario_id || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {sprinthubHistory.length === 0 && (
+                  <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8' }}>
+                    Nenhum histórico disponível para SprintHub.
+                  </div>
+                )}
+              </div>
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button className="cc-btn" onClick={() => {
+                  setShowSprinthubHistoryModal(false);
+                  setSprinthubHistory([]);
+                }}>
                   Fechar
                 </button>
               </div>

@@ -305,3 +305,7 @@ SELECT * FROM api.sync_oportunidades_log ORDER BY executed_at DESC LIMIT 5;
 
 
 
+
+
+
+

@@ -1,5 +1,7 @@
 # Documentação dos Arquivos - Dashboard OficialMed
 
+> 🔗 Referência SprintHub: consulte sempre o documento [`SERVICOS_SPRINT.md`](./SERVICOS_SPRINT.md) para integrações com a SprintHub.
+
 ## Descrição dos Arquivos Criados
 
 ### 1. `src/pages/DashboardPage.jsx`

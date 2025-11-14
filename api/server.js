@@ -4,8 +4,6 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleAdsApi } from 'google-ads-api';
-import firebirdService from './firebird-service.js';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -23,6 +21,12 @@ app.use(express.json());
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 const SUPABASE_SCHEMA = process.env.VITE_SUPABASE_SCHEMA || 'api';
+
+// Configurações SprintHub (proxy)
+const rawSprintBase = process.env.VITE_SPRINTHUB_BASE_URL || 'https://sprinthub-api-master.sprinthub.app';
+const SPRINTHUB_BASE_URL = (rawSprintBase.startsWith('http') ? rawSprintBase : `https://${rawSprintBase}`).replace(/\/$/, '');
+const SPRINTHUB_API_TOKEN = process.env.VITE_SPRINTHUB_API_TOKEN || '';
+const SPRINTHUB_INSTANCE = process.env.VITE_SPRINTHUB_INSTANCE || '';
 
 // Mapeamento de status do Google Ads
 const statusMap = {
@@ -211,6 +215,111 @@ app.get('/api/test-connection', async (req, res) => {
       success: false,
       error: error.message
     });
+  }
+});
+
+/**
+ * Proxy SprintHub (evita CORS no frontend)
+ */
+app.post('/api/sprinthub/proxy', async (req, res) => {
+  try {
+    // Verificar se as credenciais estão configuradas
+    if (!SPRINTHUB_API_TOKEN || !SPRINTHUB_INSTANCE) {
+      console.error('❌ Credenciais da SprintHub não configuradas:', {
+        hasToken: !!SPRINTHUB_API_TOKEN,
+        hasInstance: !!SPRINTHUB_INSTANCE,
+        baseUrl: SPRINTHUB_BASE_URL
+      });
+      return res.status(500).json({ 
+        error: 'Credenciais da SprintHub não configuradas no servidor.',
+        details: {
+          hasToken: !!SPRINTHUB_API_TOKEN,
+          hasInstance: !!SPRINTHUB_INSTANCE
+        }
+      });
+    }
+
+    const {
+      path: targetPath,
+      method = 'GET',
+      query = {},
+      body,
+      headers = {},
+    } = req.body || {};
+
+    if (!targetPath || typeof targetPath !== 'string') {
+      return res.status(400).json({ error: 'Parâmetro "path" é obrigatório.' });
+    }
+
+    let resolvedPath = targetPath.trim();
+    if (!resolvedPath.startsWith('http')) {
+      if (resolvedPath.startsWith('sprinthub')) {
+        resolvedPath = `https://${resolvedPath.replace(/^https?:\/\//, '')}`;
+      } else if (resolvedPath.startsWith('/')) {
+        resolvedPath = `${SPRINTHUB_BASE_URL}${resolvedPath}`;
+      } else {
+        resolvedPath = `${SPRINTHUB_BASE_URL}/${resolvedPath}`;
+      }
+    }
+
+    const url = new URL(resolvedPath);
+    url.searchParams.set('i', SPRINTHUB_INSTANCE);
+    url.searchParams.set('apitoken', SPRINTHUB_API_TOKEN);
+
+    Object.entries(query || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        url.searchParams.set(key, value);
+      }
+    });
+
+    const finalHeaders = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${SPRINTHUB_API_TOKEN}`,
+      apitoken: SPRINTHUB_API_TOKEN,
+      ...headers,
+    };
+
+    Object.keys(finalHeaders).forEach((key) => {
+      if (finalHeaders[key] === undefined || finalHeaders[key] === null || finalHeaders[key] === '') {
+        delete finalHeaders[key];
+      }
+    });
+
+    const response = await fetch(url, {
+      method,
+      headers: finalHeaders,
+      body: body !== undefined && body !== null && method !== 'GET' && method !== 'HEAD'
+        ? (typeof body === 'string' ? body : JSON.stringify(body))
+        : undefined,
+    });
+
+    const responseText = await response.text();
+    const responseContentType = response.headers.get('content-type') || '';
+    let parsed;
+
+    if (responseContentType.includes('application/json') && responseText) {
+      try {
+        parsed = JSON.parse(responseText);
+      } catch (error) {
+        parsed = responseText;
+      }
+    } else if (!responseText) {
+      parsed = null;
+    } else {
+      parsed = responseText;
+    }
+
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: parsed || response.statusText || 'Erro desconhecido na SprintHub',
+        status: response.status,
+      });
+    }
+
+    return res.status(response.status).json(parsed);
+  } catch (error) {
+    console.error('❌ Erro no proxy SprintHub:', error);
+    return res.status(500).json({ error: error.message || 'Erro interno no proxy SprintHub' });
   }
 });
 
@@ -1091,77 +1200,57 @@ import segmentosRouter from './processar-segmentos-lote.js';
 // Usar router de segmentos
 app.use('/api', segmentosRouter);
 
+const SYNC_SERVICE_URL = process.env.SYNC_SERVICE_URL
+  || process.env.SYNC_MASTER_URL
+  || `http://localhost:${process.env.SYNC_SERVICE_PORT || 5001}/sync/all`;
+const SYNC_SERVICE_TOKEN = process.env.SYNC_SERVICE_TOKEN || process.env.API_TOKEN || '';
+
 // Endpoint para sincronização automática
 app.post('/api/sync-now', async (req, res) => {
   try {
     console.log('🔄 Iniciando sincronização via API...');
     
-    const { source = 'api', timestamp, optimized = true } = req.body;
-    
-    // Escolher script de sincronização (otimizado por padrão)
-    const syncScript = optimized 
-      ? path.join(__dirname, '..', 'src', 'sincronizacao', 'sync-hourly-optimized.js')
-      : path.join(__dirname, '..', 'src', 'sincronizacao', 'sync-now.js');
-    
-    console.log(`🚀 Usando sincronização ${optimized ? 'OTIMIZADA' : 'PADRÃO'}`);
-    
-    const child = spawn('node', [syncScript], {
-      stdio: 'pipe',
-      cwd: path.join(__dirname, '..'),
-      env: {
-        ...process.env,
-        FORCE_SYNC: 'true'
-      }
+    const { source = 'api', optimized = true } = req.body || {};
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    if (SYNC_SERVICE_TOKEN) {
+      headers['Authorization'] = `Bearer ${SYNC_SERVICE_TOKEN}`;
+    }
+
+    console.log(`🚀 Encaminhando para serviço de sincronização (${SYNC_SERVICE_URL})`);
+
+    const response = await fetch(SYNC_SERVICE_URL, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        trigger: source,
+        optimized
+      })
     });
-    
-    let output = '';
-    let errorOutput = '';
-    
-    child.stdout.on('data', (data) => {
-      output += data.toString();
-    });
-    
-    child.stderr.on('data', (data) => {
-      errorOutput += data.toString();
-    });
-    
-    child.on('close', (code) => {
-      if (code === 0) {
-        console.log('✅ Sincronização concluída com sucesso');
-        res.json({
-          success: true,
-          message: `Sincronização ${optimized ? 'OTIMIZADA' : 'padrão'} concluída com sucesso`,
-          source,
-          optimized,
-          timestamp: new Date().toISOString(),
-          output: output.trim()
-        });
-      } else {
-        console.error('❌ Erro na sincronização:', errorOutput);
-        res.status(500).json({
-          success: false,
-          message: 'Erro na sincronização',
-          source,
-          optimized,
-          timestamp: new Date().toISOString(),
-          error: errorOutput.trim(),
-          code
-        });
-      }
-    });
-    
-    child.on('error', (error) => {
-      console.error('❌ Erro ao executar sincronização:', error);
-      res.status(500).json({
+
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      console.error('❌ Erro na sincronização via serviço:', data);
+      return res.status(response.status).json({
         success: false,
-        message: 'Erro ao executar sincronização',
+        message: data?.message || 'Erro na sincronização',
         source,
         optimized,
         timestamp: new Date().toISOString(),
-        error: error.message
+        error: data?.error || null
       });
+    }
+
+    res.json({
+      success: true,
+      message: 'Sincronização encaminhada com sucesso',
+      source,
+      optimized,
+      timestamp: new Date().toISOString(),
+      data
     });
-    
   } catch (error) {
     console.error('❌ Erro no endpoint de sincronização:', error);
     res.status(500).json({

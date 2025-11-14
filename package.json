@@ -11,7 +11,7 @@
     "backend:install": "cd api && npm install",
     "backend:dev": "cd api && npm run dev",
     "backend:start": "cd api && npm start",
-    "dev:full": "concurrently \"npm run dev\" \"npm run backend:dev\"",
+    "dev:full": "concurrently \"npm run dev:front\" \"npm run backend:dev\"",
     "install:all": "npm install && npm run backend:install"
   },
   "dependencies": {

@@ -345,3 +345,7 @@ SELECT '✅ Coluna id_blacklabs alterada para UUID e função atualizada!' AS st
 
 
 
+
+
+
+

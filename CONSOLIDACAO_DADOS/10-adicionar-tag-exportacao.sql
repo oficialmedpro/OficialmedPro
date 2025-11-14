@@ -15,3 +15,7 @@ COMMENT ON COLUMN api.historico_exportacoes.tag_exportacao IS
 
 
 
+
+
+
+

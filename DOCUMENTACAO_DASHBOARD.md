@@ -1,5 +1,7 @@
 # Documentação do Dashboard
 
+> 🔗 Integrações SprintHub: veja [`SERVICOS_SPRINT.md`](./SERVICOS_SPRINT.md) antes de trabalhar com dados do Sprinthub.
+
 ## Arquivos Criados
 
 ### 1. DashboardPage.jsx
