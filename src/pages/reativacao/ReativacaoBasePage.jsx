@@ -374,7 +374,7 @@ const ReativacaoBasePage = ({ tipo }) => {
       loadAvailableExportTags();
       loadAvailableDDDs();
     }
-  }, [tipo, currentPage, itemsPerPage, sortField, sortDirection, filters, exportFilter, exportTagFilter, userData, isVendedor, isSupervisor, searchTerm]);
+  }, [tipo, currentPage, itemsPerPage, sortField, sortDirection, filters, exportFilter, exportTagFilter, userData, isVendedor, isSupervisor, searchTerm, sprinthubStatusFilter, sprinthubLeadTagFilter]);
 
   // Carregar tags de exportação disponíveis
   const loadAvailableExportTags = async () => {
@@ -387,6 +387,11 @@ const ReativacaoBasePage = ({ tipo }) => {
       
       const uniqueTags = [...new Set(data?.map(d => d.tag_exportacao).filter(Boolean) || [])];
       setAvailableExportTags(uniqueTags.sort());
+      
+      const sprinthubLeadTags = uniqueTags
+        .map(extractSprinthubLeadTag)
+        .filter(tag => tag && tag !== 'default');
+      setAvailableSprinthubLeadTags([...new Set(sprinthubLeadTags)].sort());
     } catch (error) {
       console.error('Erro ao carregar tags de exportação:', error);
     }
@@ -654,8 +659,40 @@ const collectLeadIdsFromRows = (rows) => {
       // Aplicar filtros
       query = applyFiltersToQuery(query);
       
+      let sprinthubSentIds = [];
+      let sprinthubSentIdSet = new Set();
+      const supervisorSprinthubSentFilter = currentIsSupervisor && (sprinthubStatusFilter === 'sent' || sprinthubLeadTagFilter !== 'all');
+      const supervisorSprinthubNotSentFilter = currentIsSupervisor && sprinthubStatusFilter === 'not-sent';
+      
       // Modo supervisor: aplicar filtro por exportação ANTES da paginação
       if (currentIsSupervisor) {
+        if (supervisorSprinthubSentFilter || supervisorSprinthubNotSentFilter) {
+          let sprinthubHistoryQuery = supabase
+            .schema('api')
+            .from('historico_exportacoes')
+            .select('id_lead');
+          
+          if (sprinthubLeadTagFilter !== 'all') {
+            sprinthubHistoryQuery = sprinthubHistoryQuery.eq('tag_exportacao', buildSprinthubHistoryTagValue(sprinthubLeadTagFilter));
+          } else {
+            sprinthubHistoryQuery = sprinthubHistoryQuery.ilike('tag_exportacao', 'SPRINTHUB%');
+          }
+          
+          const { data: sprinthubHistoryData } = await sprinthubHistoryQuery;
+          sprinthubSentIds = sprinthubHistoryData?.map(item => item.id_lead).filter(Boolean) || [];
+          sprinthubSentIdSet = new Set(sprinthubSentIds.map(id => String(id)));
+        }
+        
+        if (supervisorSprinthubSentFilter) {
+          if (sprinthubSentIds.length === 0) {
+            setData([]);
+            setTotalCount(0);
+            setIsLoading(false);
+            return;
+          }
+          query = query.in('id', sprinthubSentIds);
+        }
+        
         // Se filtro por tag, aplicar filtro de tag
         if (exportTagFilter && exportTagFilter !== 'all') {
           // Buscar TODOS os IDs exportados com aquela tag
@@ -961,6 +998,14 @@ const collectLeadIdsFromRows = (rows) => {
       // Aplicar pesquisa (busca textual)
       if (searchTerm && searchTerm.trim() !== '') {
         filteredData = filterRowsBySearch(filteredData);
+      }
+      
+      if (supervisorSprinthubNotSentFilter && sprinthubSentIdSet.size > 0) {
+        filteredData = filteredData.filter(row => {
+          const leadId = getLeadIdentifier(row);
+          if (!leadId) return true;
+          return !sprinthubSentIdSet.has(String(leadId));
+        });
       }
       
       // Aplicar ordenação adicional se necessário
@@ -1600,12 +1645,13 @@ const collectLeadIdsFromRows = (rows) => {
 
           const observacaoSprintHub = `${resumoConfiguracao} | Enviados: ${successCount} | Erros: ${errorCount}`;
           const motivoSprintHub = 'WHATSAPI'; // manter motivo permitido pela tabela; detalhes ficam na observação
+          const tagHistoricoSprintHub = buildSprinthubHistoryTagValue(sprinthubTagId);
           
           await registerExport(
             leadIds,
             motivoSprintHub,
             observacaoSprintHub,
-            'SPRINTHUB'
+            tagHistoricoSprintHub
           );
 
           const newFlags = {};
@@ -3371,6 +3417,25 @@ const collectLeadIdsFromRows = (rows) => {
                 </select>
               </div>
               <div className="cc-filter-item">
+                <span>Status SprintHub:</span>
+                <select
+                  value={sprinthubStatusFilter}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSprinthubStatusFilter(value);
+                    if (value === 'not-sent') {
+                      setSprinthubLeadTagFilter('all');
+                    }
+                    setCurrentPage(1);
+                  }}
+                  className="cc-select cc-select-small"
+                >
+                  <option value="all">Todos</option>
+                  <option value="sent">Enviados SprintHub</option>
+                  <option value="not-sent">Não enviados SprintHub</option>
+                </select>
+              </div>
+              <div className="cc-filter-item">
                 <span>Duplicatas:</span>
                 <select
                   value={duplicatesFilter}
@@ -3419,6 +3484,28 @@ const collectLeadIdsFromRows = (rows) => {
                   <option value="all">Todas as Tags</option>
                   {availableExportTags.map((tag) => (
                     <option key={tag} value={tag}>{tag}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="cc-filter-item">
+                <span>Tag Lead SprintHub:</span>
+                <select 
+                  value={sprinthubLeadTagFilter}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSprinthubLeadTagFilter(value);
+                    if (value !== 'all') {
+                      setSprinthubStatusFilter('sent');
+                    }
+                    setCurrentPage(1);
+                  }}
+                  className="cc-select cc-select-small"
+                >
+                  <option value="all">Todas</option>
+                  {availableSprinthubLeadTags.map((tagId) => (
+                    <option key={tagId} value={tagId}>
+                      SprintHub Tag {tagId}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -4826,7 +4913,7 @@ const collectLeadIdsFromRows = (rows) => {
                                   fontSize: '11px',
                                   fontWeight: 'bold'
                                 }}>
-                                  {exp.tag_exportacao}
+                                  {formatSprinthubTagLabel(exp.tag_exportacao)}
                                 </span>
                               ) : '-'}
                             </td>
@@ -4899,7 +4986,7 @@ const collectLeadIdsFromRows = (rows) => {
                         <td>{hist.motivo || '-'}</td>
                         <td>
                           <span style={{ padding: '4px 8px', backgroundColor: '#7c3aed26', color: '#c084fc', borderRadius: '999px', fontWeight: '600', fontSize: '11px' }}>
-                            {hist.tag_exportacao || 'SPRINTHUB'}
+                            {formatSprinthubTagLabel(hist.tag_exportacao) || 'SPRINTHUB'}
                           </span>
                         </td>
                         <td>{hist.observacao || '-'}</td>
