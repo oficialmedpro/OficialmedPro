@@ -16,7 +16,20 @@ const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+// Body parser apenas para POST/PUT/PATCH, ignorar erros de JSON inválido
+app.use((req, res, next) => {
+    if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
+        express.json()(req, res, (err) => {
+            if (err) {
+                console.warn('⚠️ Erro ao fazer parse do JSON:', err.message);
+                req.body = {};
+            }
+            next();
+        });
+    } else {
+        next();
+    }
+});
 
 // Controle simples de lock e métricas em memória (réplica única)
 let isSyncRunning = false;
@@ -928,7 +941,8 @@ async function runFullSync(trigger = 'manual_api') {
 
 const handleFullSync = async (req, res) => {
     try {
-        const trigger = req.body?.trigger || 'manual_api';
+        // Para GET, não há body, então usar query params ou default
+        const trigger = (req.method === 'GET' ? req.query?.trigger : req.body?.trigger) || 'manual_api';
         const result = await runFullSync(trigger);
         if (result.alreadyRunning) {
             return res.json({
