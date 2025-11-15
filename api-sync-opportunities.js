@@ -335,6 +335,7 @@ async function upsertLeadsBatch(rows) {
 }
 
 async function syncLeads() {
+    console.log('\n📊 Iniciando sincronização de LEADS...\n');
     const runId = await logRunStart('leads');
     let page = 0;
     let processed = 0, errors = 0;
@@ -343,7 +344,10 @@ async function syncLeads() {
 
     while (true) {
         const batch = await fetchLeadsFromSprintHub(page);
-        if (!batch || batch.length === 0) break;
+        if (!batch || batch.length === 0) {
+            console.log('✅ Sincronização de leads concluída');
+            break;
+        }
 
         const mapped = batch.map((lead) =>
             mapLeadToSupabase(lead, (field, sample) => {
@@ -360,8 +364,10 @@ async function syncLeads() {
         const r = await upsertLeadsBatch(mapped);
         if (!r.success) {
             errors += mapped.length;
+            console.error(`❌ Erro na página ${page + 1} de leads: ${r.error}`);
             LEADS_DELAY_BETWEEN_PAGES = Math.min(LEADS_DELAY_BETWEEN_PAGES * 2, 8000);
         } else {
+            console.log(`✅ Página ${page + 1} de leads: ${mapped.length} processados (Total: ${processed})`);
             LEADS_DELAY_BETWEEN_PAGES = Math.max(Math.floor(LEADS_DELAY_BETWEEN_PAGES / 2), 400);
         }
         page++;
@@ -425,11 +431,15 @@ async function upsertSegments(rows) {
 }
 
 async function syncSegments() {
+    console.log('\n📊 Iniciando sincronização de SEGMENTOS...\n');
     const runId = await logRunStart('segmentos');
     let page = 0, processed = 0, errors = 0;
     while (true) {
         const batch = await fetchSegments(page);
-        if (!batch || batch.length === 0) break;
+        if (!batch || batch.length === 0) {
+            console.log('✅ Sincronização de segmentos concluída');
+            break;
+        }
         // Mapear para campos corretos da tabela 'segmento' (sem synced_at, usa create_date)
         const mapped = batch.map((s) => ({ 
             id: s.id, 
@@ -444,7 +454,12 @@ async function syncSegments() {
         }));
         processed += mapped.length;
         const r = await upsertSegments(mapped);
-        if (!r.success) errors += mapped.length;
+        if (!r.success) {
+            errors += mapped.length;
+            console.error(`❌ Erro na página ${page + 1} de segmentos: ${r.error}`);
+        } else {
+            console.log(`✅ Página ${page + 1} de segmentos: ${mapped.length} processados (Total: ${processed})`);
+        }
         page++;
         await sleep(500);
     }
@@ -509,15 +524,24 @@ async function upsertVendedores(rows) {
 }
 
 async function syncVendedores() {
+    console.log('\n📊 Iniciando sincronização de VENDEDORES...\n');
     const runId = await logRunStart('vendedores');
     let page = 0, processed = 0, errors = 0;
     while (true) {
         const batch = await fetchUsersFromSprintHub(page);
-        if (!batch || batch.length === 0) break;
+        if (!batch || batch.length === 0) {
+            console.log('✅ Sincronização de vendedores concluída');
+            break;
+        }
         const mapped = batch.map(mapUserToVendedor);
         processed += mapped.length;
         const r = await upsertVendedores(mapped);
-        if (!r.success) errors += mapped.length;
+        if (!r.success) {
+            errors += mapped.length;
+            console.error(`❌ Erro na página ${page + 1} de vendedores: ${r.error}`);
+        } else {
+            console.log(`✅ Página ${page + 1} de vendedores: ${mapped.length} processados (Total: ${processed})`);
+        }
         page++;
         await sleep(500);
     }
@@ -884,11 +908,18 @@ app.get('/metrics', (_req, res) => {
 // Orquestrador sequencial com lock
 async function runFullSync(trigger = 'manual_api') {
     if (isSyncRunning) {
+        console.log('⚠️ Sincronização já está em andamento');
         return {
             alreadyRunning: true,
             lastRun
         };
     }
+
+    console.log('\n🚀 ============================================================');
+    console.log('🚀 INICIANDO SINCRONIZAÇÃO COMPLETA');
+    console.log('🚀 ============================================================');
+    console.log(`📅 Trigger: ${trigger}`);
+    console.log(`⏰ Início: ${new Date().toISOString()}\n`);
 
     isSyncRunning = true;
     const startedAt = new Date();
@@ -898,7 +929,9 @@ async function runFullSync(trigger = 'manual_api') {
         summary.oportunidades = await syncOpportunities();
         summary.leads = await syncLeads();
         summary.segmentos = await syncSegments();
-        summary.vendedores = await syncVendedores();
+        // Vendedores: não há endpoint /users na API do SprintHub
+        // Os vendedores são gerenciados diretamente no Supabase
+        summary.vendedores = { totalProcessed: 0, totalErrors: 0, message: 'Vendedores não sincronizados - não há endpoint na API SprintHub' };
 
         const totals = Object.values(summary).reduce((acc, curr = {}) => {
             acc.totalProcessed += curr.totalProcessed || 0;
@@ -909,6 +942,21 @@ async function runFullSync(trigger = 'manual_api') {
         }, { totalProcessed: 0, totalInserted: 0, totalUpdated: 0, totalErrors: 0 });
 
         const completedAt = new Date();
+        const durationSeconds = (completedAt - startedAt) / 1000;
+        
+        console.log('\n✅ ============================================================');
+        console.log('✅ SINCRONIZAÇÃO COMPLETA FINALIZADA');
+        console.log('✅ ============================================================');
+        console.log(`📊 Resumo:`);
+        console.log(`   Oportunidades: ${summary.oportunidades?.totalProcessed || 0} processadas`);
+        console.log(`   Leads: ${summary.leads?.totalProcessed || 0} processados`);
+        console.log(`   Segmentos: ${summary.segmentos?.totalProcessed || 0} processados`);
+        console.log(`   Vendedores: ${summary.vendedores?.message || 'N/A'}`);
+        console.log(`   Total: ${totals.totalProcessed} processados`);
+        console.log(`   Erros: ${totals.totalErrors}`);
+        console.log(`⏰ Duração: ${Math.round(durationSeconds)}s`);
+        console.log(`📅 Fim: ${completedAt.toISOString()}\n`);
+
         await registerSyncControl({
             startedAt,
             completedAt,
