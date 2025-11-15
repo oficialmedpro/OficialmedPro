@@ -255,9 +255,21 @@ async function fetchLeadsFromSprintHub(page = 0, limit = LEADS_PAGE_LIMIT) {
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        if (Array.isArray(data)) return data;
-        if (data?.data?.leads) return data.data.leads;
-        return [];
+        let leads = [];
+        if (Array.isArray(data)) {
+            leads = data;
+        } else if (data?.data?.leads) {
+            leads = data.data.leads;
+        } else if (data?.leads) {
+            leads = data.leads;
+        }
+        
+        // Debug: log primeiro lead da primeira página para ver estrutura
+        if (page === 0 && leads.length > 0) {
+            console.log('🔍 DEBUG - Estrutura do primeiro lead recebido:', JSON.stringify(leads[0], null, 2));
+        }
+        
+        return leads;
     } catch (e) {
         console.error(`❌ Erro ao buscar leads página ${page + 1}:`, e.message);
         return [];
@@ -265,25 +277,50 @@ async function fetchLeadsFromSprintHub(page = 0, limit = LEADS_PAGE_LIMIT) {
 }
 
 function mapLeadToSupabase(lead, onMissingField = () => {}) {
+    // Função helper para buscar campo com variações de nome
+    const getField = (field, variations = []) => {
+        const allVariations = [field, ...variations];
+        for (const variant of allVariations) {
+            const value = lead[variant];
+            if (value !== null && value !== undefined && value !== '') {
+                return value;
+            }
+        }
+        return null;
+    };
+
+    // Mapear campos com variações possíveis
+    const firstname = getField('firstname', ['firstName', 'first_name', 'name']);
+    const lastname = getField('lastname', ['lastName', 'last_name', 'surname', 'sobrenome']);
+    const whatsapp = getField('whatsapp', ['whatsApp', 'whats_app', 'mobile', 'phone']);
+    const email = getField('email', ['e_mail', 'e-mail']);
+    const phone = getField('phone', ['telephone', 'tel']);
+    const mobile = getField('mobile', ['cellphone', 'cell']);
+
+    // Verificar campos críticos
     CRITICAL_LEAD_FIELDS.forEach((field) => {
-        const value = (lead[field] ?? '').toString().trim();
-        if (!value) {
+        let value = null;
+        if (field === 'firstname') value = firstname;
+        else if (field === 'lastname') value = lastname;
+        else if (field === 'whatsapp') value = whatsapp;
+        
+        if (!value || (typeof value === 'string' && !value.trim())) {
             onMissingField(field, {
                 id: lead.id,
-                email: lead.email || null,
-                whatsapp: lead.whatsapp || null
+                email: email || null,
+                whatsapp: whatsapp || null
             });
         }
     });
 
     return {
         id: toBigIntField(lead.id),
-        firstname: lead.firstname ?? null,
-        lastname: lead.lastname ?? null,
-        email: lead.email ?? null,
-        phone: lead.phone ?? null,
-        mobile: lead.mobile ?? null,
-        whatsapp: lead.whatsapp ?? null,
+        firstname: firstname ? String(firstname).trim() : null,
+        lastname: lastname ? String(lastname).trim() : null,
+        email: email ? String(email).trim() : null,
+        phone: phone ? String(phone).trim() : null,
+        mobile: mobile ? String(mobile).trim() : null,
+        whatsapp: whatsapp ? String(whatsapp).trim() : null,
         photo_url: lead.photoUrl ?? null,
         address: lead.address ?? null,
         city: lead.city ?? null,
@@ -324,6 +361,26 @@ function mapLeadToSupabase(lead, onMissingField = () => {}) {
     };
 }
 
+// Função para buscar detalhes completos de um lead individual
+async function fetchLeadDetails(leadId) {
+    const url = `https://${SPRINTHUB_CONFIG.baseUrl}/leads/${leadId}?i=${SPRINTHUB_CONFIG.instance}&allFields=1&apitoken=${SPRINTHUB_CONFIG.apiToken}`;
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${SPRINTHUB_CONFIG.apiToken}`,
+                'apitoken': SPRINTHUB_CONFIG.apiToken
+            }
+        });
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data?.data || data || null;
+    } catch (e) {
+        console.warn(`⚠️ Erro ao buscar detalhes do lead ${leadId}:`, e.message);
+        return null;
+    }
+}
+
 async function upsertLeadsBatch(rows) {
     try {
         const { error } = await supabase.from('leads').upsert(rows, { onConflict: 'id', ignoreDuplicates: false });
@@ -349,6 +406,7 @@ async function syncLeads() {
             break;
         }
 
+        // Primeiro mapear todos os leads
         const mapped = batch.map((lead) =>
             mapLeadToSupabase(lead, (field, sample) => {
                 missingFieldCounts[field] = (missingFieldCounts[field] || 0) + 1;
@@ -359,6 +417,29 @@ async function syncLeads() {
                 });
             })
         );
+
+        // Buscar detalhes individuais para leads sem campos críticos (amostra limitada)
+        const leadsWithoutFields = mapped.filter(lead => 
+            !lead.firstname && !lead.lastname && !lead.whatsapp
+        ).slice(0, 5); // Apenas primeiros 5 para não ficar lento
+
+        if (leadsWithoutFields.length > 0 && page < 3) { // Apenas nas primeiras 3 páginas para debug
+            console.log(`🔍 Buscando detalhes individuais de ${leadsWithoutFields.length} leads sem campos críticos...`);
+            for (const lead of leadsWithoutFields) {
+                const details = await fetchLeadDetails(lead.id);
+                if (details) {
+                    // Tentar mapear novamente com os detalhes completos
+                    const remapped = mapLeadToSupabase(details, () => {});
+                    // Atualizar o lead no array mapped
+                    const index = mapped.findIndex(l => l.id === lead.id);
+                    if (index >= 0) {
+                        mapped[index] = { ...mapped[index], ...remapped };
+                        console.log(`✅ Lead ${lead.id} atualizado com detalhes: firstname=${remapped.firstname}, lastname=${remapped.lastname}, whatsapp=${remapped.whatsapp}`);
+                    }
+                }
+                await sleep(200); // Delay entre buscas individuais
+            }
+        }
 
         processed += mapped.length;
         const r = await upsertLeadsBatch(mapped);
