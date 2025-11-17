@@ -1,0 +1,160 @@
+/* Estilos exclusivos para CrmSidebar - Menu lateral esquerdo - Tema dark */
+.CrmSidebar {
+  position: fixed;
+  left: 0;
+  top: 60px;
+  width: 72px;
+  height: calc(100vh - 60px);
+  background-color: var(--bg-secondary, #171e31);
+  border-right: 1px solid var(--border-color, #334155);
+  display: flex;
+  flex-direction: column;
+  z-index: 999;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+  overflow-y: auto;
+}
+
+.CrmSidebar-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+  padding: 16px 0;
+}
+
+.CrmSidebar-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+}
+
+.CrmSidebar-nav-bottom {
+  margin-top: auto;
+  padding-bottom: 0;
+}
+
+.CrmSidebar-item {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.CrmSidebar-item:hover {
+  background-color: var(--bg-tertiary, #334155);
+  color: var(--text-primary, #ffffff);
+}
+
+.CrmSidebar-item.active {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.CrmSidebar-item.active:hover {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+}
+
+.CrmSidebar-icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.CrmSidebar-icon {
+  transition: transform 0.2s ease;
+}
+
+.CrmSidebar-item:hover .CrmSidebar-icon {
+  transform: scale(1.1);
+}
+
+.CrmSidebar-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Tooltip */
+.CrmSidebar-tooltip {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--bg-primary, #0f172a);
+  color: var(--text-primary, #ffffff);
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 1001;
+  pointer-events: none;
+  animation: tooltipFadeIn 0.2s ease;
+  border: 1px solid var(--border-color, #334155);
+}
+
+.CrmSidebar-tooltip::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right-color: var(--bg-primary, #0f172a);
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .CrmSidebar {
+    width: 64px;
+  }
+
+  .CrmSidebar-item {
+    width: 44px;
+    height: 44px;
+  }
+
+  .CrmSidebar-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+

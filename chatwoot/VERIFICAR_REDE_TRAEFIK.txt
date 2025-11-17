@@ -1,0 +1,20 @@
+# Execute estes comandos para verificar a rede do Traefik
+
+# 1. Verificar em qual rede o Traefik está
+docker inspect 42f4fd9845cb | grep -A 20 '"Networks"'
+
+# 2. Verificar todas as redes Docker
+docker network ls
+
+# 3. Verificar se o Traefik consegue ver o chatwoot-web
+docker network inspect chatwoot_chatwoot_default | grep -A 5 traefik
+
+# 4. Verificar logs do Traefik procurando por erros relacionados ao chatwoot
+docker logs 42f4fd9845cb --tail 100 | grep -i chatwoot
+
+# 5. Verificar configuração do Traefik (se possível)
+docker exec 42f4fd9845cb cat /etc/traefik/traefik.yml 2>/dev/null || echo "Arquivo não encontrado"
+
+# 6. Verificar se o Traefik está detectando o serviço chatwoot-web
+docker logs 42f4fd9845cb --tail 200 | grep -i "chatwoot\|chat.oficialmed"
+

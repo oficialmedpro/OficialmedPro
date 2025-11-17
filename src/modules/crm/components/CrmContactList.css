@@ -1,0 +1,88 @@
+/* Estilos exclusivos para CrmContactList - Seguindo padrão do BI */
+.CrmContactList {
+  width: 100%;
+}
+
+.CrmContactList-loading,
+.CrmContactList-empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 16px;
+}
+
+.CrmContactList-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.CrmContactList-item {
+  background-color: var(--bg-secondary, #171e31);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 8px;
+  padding: 24px;
+  transition: all 0.3s ease;
+}
+
+.CrmContactList-item:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+  border-color: var(--accent-blue, #3b82f6);
+}
+
+.CrmContactList-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.CrmContactList-item-name {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+  margin: 0;
+  flex: 1;
+}
+
+.CrmContactList-item-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.CrmContactList-action-btn {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.CrmContactList-action-btn:hover {
+  transform: scale(1.2);
+  background-color: var(--bg-tertiary, #334155);
+}
+
+.CrmContactList-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.CrmContactList-item-email,
+.CrmContactList-item-phone {
+  margin: 0;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 14px;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .CrmContactList-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

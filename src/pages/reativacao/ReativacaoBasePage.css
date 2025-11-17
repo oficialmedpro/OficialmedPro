@@ -1,3 +1,13 @@
+/* Animação de rotação para ícone de loading */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Layout Base para Páginas de Reativação */
 .reativacao-dashboard-fullscreen {
   position: relative;
@@ -100,133 +110,27 @@
 
 /* Garantir que a tabela tenha largura mínima para não cortar colunas */
 .reativacao-dashboard-content .cc-table-list {
-  width: 100%;
   font-size: 12px; /* Fonte menor */
-  table-layout: auto; /* Permite que as colunas se ajustem */
-  /* min-width será aplicado dinamicamente via inline style */
+  border-collapse: collapse;
+  width: 100%; /* Por padrão, usar 100% da largura */
+  /* table-layout e width serão aplicados dinamicamente via inline style quando mostrar todas */
 }
 
 /* Compactar colunas da tabela */
 .reativacao-dashboard-content .cc-table-list th,
 .reativacao-dashboard-content .cc-table-list td {
-  padding: 6px 8px; /* Padding reduzido */
+  padding: 8px 10px; /* Padding adequado */
   font-size: 12px; /* Fonte menor */
   white-space: nowrap; /* Não quebrar linhas */
   overflow: hidden;
   text-overflow: ellipsis;
-  min-width: 80px; /* Largura mínima para colunas */
-  max-width: none; /* Remover max-width para não cortar */
+  vertical-align: middle;
+  /* Larguras serão aplicadas via inline style */
 }
 
-/* Colunas específicas com larguras adequadas para não cortar */
-.reativacao-dashboard-content .cc-table-list th:nth-child(1),
-.reativacao-dashboard-content .cc-table-list td:nth-child(1) {
-  width: 24px; /* Checkbox */
-  min-width: 24px;
-  max-width: 24px;
-}
-
-.reativacao-dashboard-content .cc-table-list th:nth-child(2),
-.reativacao-dashboard-content .cc-table-list td:nth-child(2) {
-  width: 20px; /* Exportado */
-  min-width: 20px;
-  max-width: 20px;
-  text-align: center;
-  padding: 4px 2px !important;
-}
-
-.reativacao-dashboard-content .cc-table-list th:nth-child(3),
-.reativacao-dashboard-content .cc-table-list td:nth-child(3) {
-  width: 25px; /* Duplicatas */
-  min-width: 25px;
-  max-width: 25px;
-  text-align: center;
-  padding: 4px 2px !important;
-}
-
-.reativacao-dashboard-content .cc-table-list th:nth-child(4),
-.reativacao-dashboard-content .cc-table-list td:nth-child(4) {
-  width: 120px; /* Nome */
-  min-width: 120px;
-  max-width: 120px;
-}
-
-.reativacao-dashboard-content .cc-table-list th:nth-child(5),
-.reativacao-dashboard-content .cc-table-list td:nth-child(5) {
-  width: 40px; /* Email */
-  min-width: 40px;
-  max-width: 40px;
-}
-
-.reativacao-dashboard-content .cc-table-list th:nth-child(6),
-.reativacao-dashboard-content .cc-table-list td:nth-child(6) {
-  width: 50px; /* WhatsApp */
-  min-width: 50px;
-  max-width: 50px;
-}
-
-.reativacao-dashboard-content .cc-table-list th:nth-child(7),
-.reativacao-dashboard-content .cc-table-list td:nth-child(7) {
-  width: 30px; /* CPF */
-  min-width: 30px;
-  max-width: 30px;
-}
-
-.reativacao-dashboard-content .cc-table-list th:nth-child(8),
-.reativacao-dashboard-content .cc-table-list td:nth-child(8) {
-  width: 50px; /* Total Compras */
-  min-width: 50px;
-  max-width: 50px;
-}
-
-.reativacao-dashboard-content .cc-table-list th:nth-child(9),
-.reativacao-dashboard-content .cc-table-list td:nth-child(9) {
-  width: 50px; /* Dias Última Compra */
-  min-width: 50px;
-  max-width: 50px;
-}
-
-.reativacao-dashboard-content .cc-table-list th:nth-child(10),
-.reativacao-dashboard-content .cc-table-list td:nth-child(10) {
-  width: 40px; /* Origens */
-  min-width: 40px;
-  max-width: 40px;
-}
-
-.reativacao-dashboard-content .cc-table-list th:nth-child(11),
-.reativacao-dashboard-content .cc-table-list td:nth-child(11) {
-  width: 50px; /* Cidade */
-  min-width: 50px;
-  max-width: 50px;
-}
-
-.reativacao-dashboard-content .cc-table-list th:nth-child(12),
-.reativacao-dashboard-content .cc-table-list td:nth-child(12) {
-  width: 50px; /* Estado */
-  min-width: 50px;
-  max-width: 50px;
-}
-
-.reativacao-dashboard-content .cc-table-list th:nth-child(13),
-.reativacao-dashboard-content .cc-table-list td:nth-child(13) {
-  width: 50px; /* Sexo */
-  min-width: 50px;
-  max-width: 50px;
-}
-
-.reativacao-dashboard-content .cc-table-list th:nth-child(14),
-.reativacao-dashboard-content .cc-table-list td:nth-child(14) {
-  width: 50px; /* Data Nascimento */
-  min-width: 50px;
-  max-width: 50px;
-}
-
-.reativacao-dashboard-content .cc-table-list th:nth-child(15),
-.reativacao-dashboard-content .cc-table-list td:nth-child(15) {
-  width: 50px; /* Qualidade */
-  min-width: 50px;
-  max-width: 50px;
-}
+/* Colunas específicas com larguras adequadas para não cortar - apenas quando necessário */
+/* Removidas as regras fixas de nth-child para permitir que a tabela se ajuste dinamicamente */
+/* As larguras serão controladas pelo minTableWidth calculado dinamicamente */
 
 /* Garantir que o container da tabela não limite a largura */
 .reativacao-dashboard-content .cc-list-container {
@@ -239,6 +143,11 @@
 .reativacao-dashboard-content .cc-table-wrapper {
   width: 100%;
   max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  position: relative;
+  display: block;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Garantir que a paginação seja visível */

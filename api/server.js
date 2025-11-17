@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { GoogleAdsApi } from 'google-ads-api';
+import { runReativacaoAutoSync } from './services/reativacaoAutoSync.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -27,6 +28,7 @@ const rawSprintBase = process.env.VITE_SPRINTHUB_BASE_URL || 'https://sprinthub-
 const SPRINTHUB_BASE_URL = (rawSprintBase.startsWith('http') ? rawSprintBase : `https://${rawSprintBase}`).replace(/\/$/, '');
 const SPRINTHUB_API_TOKEN = process.env.VITE_SPRINTHUB_API_TOKEN || '';
 const SPRINTHUB_INSTANCE = process.env.VITE_SPRINTHUB_INSTANCE || '';
+const REATIVACAO_SYNC_TOKEN = process.env.REATIVACAO_SYNC_TOKEN || process.env.API_TOKEN;
 
 // Mapeamento de status do Google Ads
 const statusMap = {
@@ -320,6 +322,42 @@ app.post('/api/sprinthub/proxy', async (req, res) => {
   } catch (error) {
     console.error('❌ Erro no proxy SprintHub:', error);
     return res.status(500).json({ error: error.message || 'Erro interno no proxy SprintHub' });
+  }
+});
+
+/**
+ * Endpoint para sincronização automática da reativação (usado pelo cron do Supabase)
+ */
+app.post('/api/reativacao/cron-sync', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(' ')[1] || req.query.token;
+    if (!REATIVACAO_SYNC_TOKEN || !token || token !== REATIVACAO_SYNC_TOKEN) {
+      return res.status(401).json({
+        success: false,
+        error: 'Token inválido para sincronização automática.',
+      });
+    }
+
+    const payload = req.body || {};
+    console.log('🔄 Iniciando sincronização automática de reativação...', {
+      totalSelecionado: payload?.limit,
+      batchSize: payload?.batchSize,
+    });
+
+    const result = await runReativacaoAutoSync(payload);
+
+    res.json({
+      success: true,
+      message: 'Sincronização automática concluída',
+      data: result,
+    });
+  } catch (error) {
+    console.error('❌ Erro na sincronização automática de reativação:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message || 'Erro interno na sincronização automática',
+    });
   }
 });
 

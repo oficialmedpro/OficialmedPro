@@ -1,0 +1,121 @@
+/* Estilos exclusivos para CrmContactForm - Seguindo padrão do BI */
+.CrmContactForm {
+  background-color: var(--bg-secondary, #171e31);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.CrmContactForm-errors {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.CrmContactForm-error {
+  color: var(--accent-red, #ef4444);
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.CrmContactForm-field {
+  margin-bottom: 20px;
+}
+
+.CrmContactForm-label {
+  display: block;
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.CrmContactForm-required {
+  color: var(--accent-red, #ef4444);
+}
+
+.CrmContactForm-input,
+.CrmContactForm-textarea {
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: var(--bg-primary, #0f172a);
+  color: var(--text-primary, #ffffff);
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.CrmContactForm-input:focus,
+.CrmContactForm-textarea:focus {
+  outline: none;
+  border-color: var(--accent-blue, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.CrmContactForm-textarea {
+  resize: vertical;
+}
+
+.CrmContactForm-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.CrmContactForm-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.CrmContactForm-submit-btn {
+  background: linear-gradient(135deg, var(--accent-blue, #3b82f6), var(--accent-blue-dark, #1d4ed8));
+  color: white;
+}
+
+.CrmContactForm-submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.CrmContactForm-cancel-btn {
+  background-color: var(--bg-tertiary, #334155);
+  color: var(--text-secondary, #94a3b8);
+  border: 1px solid var(--border-color, #334155);
+}
+
+.CrmContactForm-cancel-btn:hover:not(:disabled) {
+  background-color: var(--border-color, #334155);
+  color: var(--text-primary, #ffffff);
+}
+
+.CrmContactForm-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .CrmContactForm {
+    padding: 1.5rem;
+  }
+
+  .CrmContactForm-actions {
+    flex-direction: column;
+  }
+
+  .CrmContactForm-btn {
+    width: 100%;
+  }
+}
+

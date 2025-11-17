@@ -1,0 +1,272 @@
+/* Estilos exclusivos para CrmHeader - Tema dark do projeto */
+.CrmHeader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 1000;
+  background-color: var(--bg-primary, #0f172a);
+  border-bottom: 2px solid var(--border-color, #475569);
+  height: 60px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Banner superior - mesma cor do header */
+.CrmHeader-banner {
+  height: 4px;
+  background-color: var(--bg-secondary, #171e31);
+  width: 100%;
+}
+
+/* Header principal */
+.CrmHeader-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background-color: var(--bg-secondary, #171e31);
+  gap: 24px;
+  height: 56px;
+  box-sizing: border-box;
+}
+
+/* Seção esquerda - Logo e busca */
+.CrmHeader-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.CrmHeader-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.CrmHeader-logo:hover {
+  opacity: 0.8;
+}
+
+.CrmHeader-logo-img {
+  height: 12px;
+  width: auto;
+}
+
+/* Barra de busca */
+.CrmHeader-search {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-primary, #0f172a);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 8px;
+  padding: 8px 12px;
+  gap: 10px;
+  min-width: 300px;
+  transition: all 0.2s ease;
+}
+
+.CrmHeader-search:focus-within {
+  border-color: var(--accent-blue, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.CrmHeader-search-icon {
+  color: var(--text-secondary, #94a3b8);
+  flex-shrink: 0;
+}
+
+.CrmHeader-search-input {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-primary, #ffffff);
+  font-size: 14px;
+  outline: none;
+}
+
+.CrmHeader-search-input::placeholder {
+  color: var(--text-muted, #64748b);
+}
+
+.CrmHeader-search-grid {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.CrmHeader-search-grid:hover {
+  background-color: var(--bg-tertiary, #334155);
+  color: var(--text-primary, #ffffff);
+}
+
+/* Navegação central */
+.CrmHeader-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  justify-content: center;
+}
+
+.CrmHeader-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.CrmHeader-nav-item:hover {
+  background-color: var(--bg-tertiary, #334155);
+  color: var(--text-primary, #ffffff);
+}
+
+.CrmHeader-nav-item svg {
+  flex-shrink: 0;
+}
+
+.CrmHeader-nav-label {
+  white-space: nowrap;
+}
+
+/* Seção direita - Ações e perfil */
+.CrmHeader-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.CrmHeader-action-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.CrmHeader-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.CrmHeader-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: var(--accent-red, #ef4444);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-secondary, #171e31);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Perfil do usuário */
+.CrmHeader-profile {
+  position: relative;
+  margin-left: 8px;
+}
+
+.CrmHeader-profile-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-green, #10b981), var(--accent-green-dark, #059669));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid var(--bg-secondary, #171e31);
+}
+
+.CrmHeader-profile-avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.CrmHeader-profile-avatar svg {
+  color: white;
+}
+
+.CrmHeader-profile-shield {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-secondary, #171e31);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.CrmHeader-profile-shield svg {
+  color: white;
+}
+
+/* Responsividade */
+@media (max-width: 1200px) {
+  .CrmHeader-nav-label {
+    display: none;
+  }
+
+  .CrmHeader-nav-item {
+    padding: 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .CrmHeader-main {
+    padding: 8px 16px;
+    gap: 12px;
+  }
+
+  .CrmHeader-search {
+    min-width: 200px;
+  }
+
+  .CrmHeader-logo-text {
+    display: none;
+  }
+
+  .CrmHeader-nav {
+    display: none;
+  }
+}
+

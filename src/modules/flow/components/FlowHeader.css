@@ -1,0 +1,401 @@
+/* Variáveis de cores do tema - Light Mode (padrão) */
+:root {
+  --flow-bg: #ffffff;
+  --flow-surface: #f8fafc;
+  --flow-text: #1e293b;
+  --flow-text-muted: #64748b;
+  --flow-border: #e2e8f0;
+  --flow-primary: #3b82f6;
+  --flow-primary-hover: #2563eb;
+  --flow-accent: #8b5cf6;
+  --flow-sidebar-bg: #ffffff;
+  --flow-card-bg: #f8fafc;
+}
+
+/* Variáveis de cores do tema - Dark Mode */
+.flow-dark-mode {
+  --flow-bg: #0f172a;
+  --flow-surface: #1e293b;
+  --flow-text: #e0e7ff;
+  --flow-text-muted: #94a3b8;
+  --flow-border: #334155;
+  --flow-primary: #60a5fa;
+  --flow-primary-hover: #3b82f6;
+  --flow-accent: #8b5cf6;
+  --flow-sidebar-bg: #0f172a;
+  --flow-card-bg: #1e293b;
+}
+
+.FlowHeader {
+  background: var(--flow-bg);
+  border-bottom: 1px solid var(--flow-border);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.FlowHeader-main {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+}
+
+.FlowHeader-left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.FlowHeader-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.2s;
+}
+
+.FlowHeader-logo:hover {
+  transform: scale(1.02);
+}
+
+.FlowHeader-logo-img {
+  height: 16px;
+  width: auto;
+  transition: filter 0.3s ease;
+}
+
+/* No modo dark, transformar SVG inteiro em branco usando filter */
+.flow-dark-mode .FlowHeader-logo-img {
+  filter: brightness(0) invert(1);
+}
+
+.FlowHeader-unidade-selector {
+  position: relative;
+}
+
+.FlowHeader-unidade-select {
+  padding: 0.5rem 2rem 0.5rem 1rem;
+  background: var(--flow-surface);
+  border: 1px solid var(--flow-border);
+  border-radius: 8px;
+  color: var(--flow-text);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  transition: all 0.2s ease;
+}
+
+.FlowHeader-unidade-select:hover {
+  border-color: var(--flow-primary);
+}
+
+.FlowHeader-unidade-select:focus {
+  outline: none;
+  border-color: var(--flow-primary);
+  box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+}
+
+.FlowHeader-search {
+  position: relative;
+  flex: 1;
+  max-width: 500px;
+  display: flex;
+  align-items: center;
+}
+
+.FlowHeader-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--flow-text-muted);
+  pointer-events: none;
+  width: 18px;
+  height: 18px;
+  transition: color 0.3s ease;
+}
+
+.FlowHeader-search-input {
+  width: 100%;
+  padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+  background: var(--flow-surface);
+  border: 1px solid var(--flow-border);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--flow-text);
+  transition: all 0.2s ease;
+}
+
+.FlowHeader-search-input::placeholder {
+  color: var(--flow-text-muted);
+}
+
+.FlowHeader-search-input:focus {
+  outline: none;
+  border-color: var(--flow-primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.FlowHeader-nav {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.FlowHeader-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  color: var(--flow-text-muted);
+}
+
+.FlowHeader-nav-item:hover {
+  background: var(--flow-surface);
+  color: var(--flow-text);
+}
+
+.FlowHeader-nav-item.active {
+  background: var(--flow-primary);
+  color: white;
+}
+
+.FlowHeader-nav-item.active:hover {
+  background: var(--flow-primary-hover);
+}
+
+.FlowHeader-nav-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.FlowHeader-nav-chevron {
+  width: 14px;
+  height: 14px;
+  margin-left: 0.25rem;
+  transition: transform 0.2s ease;
+  color: currentColor;
+}
+
+.FlowHeader-nav-chevron.open {
+  transform: rotate(180deg);
+}
+
+.FlowHeader-esteiras-menu {
+  position: relative;
+}
+
+.FlowHeader-esteiras-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  background: var(--flow-card-bg);
+  border: 1px solid var(--flow-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 280px;
+  max-width: 400px;
+  max-height: 600px;
+  overflow-y: auto;
+  z-index: 1000;
+  padding: 0.5rem 0;
+}
+
+.FlowHeader-esteiras-group {
+  margin-bottom: 0.5rem;
+}
+
+.FlowHeader-esteiras-group:last-child {
+  margin-bottom: 0;
+}
+
+.FlowHeader-esteiras-group-title {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--flow-primary);
+  background: var(--flow-surface);
+  border-bottom: 1px solid var(--flow-border);
+  margin-bottom: 0.25rem;
+}
+
+.FlowHeader-esteiras-item {
+  display: block;
+  width: 100%;
+  padding: 0.625rem 1rem;
+  background: transparent;
+  border: none;
+  color: var(--flow-text);
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.FlowHeader-esteiras-item:hover {
+  background: var(--flow-surface);
+  border-left-color: var(--flow-primary);
+  color: var(--flow-primary);
+}
+
+.FlowHeader-esteiras-item:active {
+  background: var(--flow-card-bg);
+}
+
+.FlowHeader-theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: var(--flow-surface);
+  border: 1px solid var(--flow-border);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--flow-text-muted);
+  transition: all 0.2s ease;
+}
+
+.FlowHeader-theme-toggle:hover {
+  background: var(--flow-card-bg);
+  color: var(--flow-text);
+  border-color: var(--flow-primary);
+}
+
+.FlowHeader-theme-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.FlowHeader-user-menu {
+  position: relative;
+}
+
+.FlowHeader-user-button {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  background: var(--flow-surface);
+  border: 1px solid var(--flow-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--flow-text);
+}
+
+.FlowHeader-user-button:hover {
+  background: var(--flow-card-bg);
+  border-color: var(--flow-primary);
+}
+
+.FlowHeader-user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--flow-primary);
+  border-radius: 50%;
+  color: white;
+}
+
+.FlowHeader-user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+}
+
+.FlowHeader-user-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--flow-text);
+  line-height: 1.2;
+}
+
+.FlowHeader-user-type {
+  font-size: 0.75rem;
+  color: var(--flow-text-muted);
+  line-height: 1.2;
+}
+
+.FlowHeader-user-chevron {
+  width: 16px;
+  height: 16px;
+  color: var(--flow-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.FlowHeader-user-chevron.open {
+  transform: rotate(180deg);
+}
+
+.FlowHeader-user-dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background: var(--flow-card-bg);
+  border: 1px solid var(--flow-border);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  min-width: 180px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.FlowHeader-user-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  color: var(--flow-text);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.FlowHeader-user-dropdown-item:hover {
+  background: var(--flow-surface);
+}
+
+.FlowHeader-user-dropdown-item svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Espaçamento para compensar header fixo */
+.FlowContainer {
+  padding-top: 70px;
+  min-height: 100vh;
+  background: var(--flow-bg);
+  color: var(--flow-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+

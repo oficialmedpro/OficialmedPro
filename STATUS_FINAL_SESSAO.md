@@ -1,120 +1,59 @@
-# ✅ Status Final da Sessão
+# ✅ Status Final da Sessão (14/11/2025)
 
-## 🎯 Objetivo Alcançado
+## 🎯 Objetivo do dia
+1. Ajustar o envio manual para o SprintHub com processamento em lotes e feedback visual.
+2. Criar uma rota/serviço de sincronização automática (para o cron do Supabase) capaz de enviar diariamente os leads da view de reativação diretamente para o funil definido, reaproveitando a mesma lógica do envio manual.
 
-**Restaurar build principal** ✅ **CONCLUÍDO**
+## ✅ Entregas de hoje
 
-## 📊 Resumo
+### 1. Envio manual em lotes (frontend)
+- Campo novo “Tamanho do lote” no modal + painel de progresso (lote atual, lead atual, barra percentual).
+- Processamento sequencial por lote + registro de histórico ao fim de cada bloco.
+- Mantém filtros e rastreia a tag específica da SprintHub para permitir filtragem posterior.
+- Arquivo: `src/pages/reativacao/ReativacaoBasePage.jsx`
 
-### ✅ Sucessos
+### 2. Serviço automático para o cron
+- Arquivo novo `api/services/reativacaoAutoSync.js` com:
+  - Busca dos leads em `vw_reativacao_1x`, filtro de contato válido e deduplicação pelo histórico SprintHub.
+  - Enriquecimento com pedidos e fórmulas (`prime_pedidos`, `prime_formulas`) para preencher os campos customizados (`idprime`, `ultimopedido`, `ultimoorcamento`, `Descricao da Formula`).
+  - Função `runReativacaoAutoSync` que processa lotes (default 50) e retorna resumo por lote.
+- Endpoint protegido `POST /api/reativacao/cron-sync` no `api/server.js`:
+  - Autentica via `Authoriz​ation: Bearer REATIVACAO_SYNC_TOKEN`.
+  - Aceita overrides (limit, batchSize, funnelId, columnId, sequence, userId, sprinthubTagId, origem, tipoCompra).
+  - Retorna total selecionado, pendentes, resumo dos lotes e tempo de execução.
 
-1. **Database Setup Completo**:
-   - Views SQL criadas (`view_acolhimento_kpis`, `view_orcamento_kpis`, `view_vendas_kpis`, `view_perdas_top_motivos`)
-   - Usuários criados (Gabrielli, Atendente)
-   - Tabela `responsaveis_atendimento` criada
-   - Módulo `vendas_pwa` registrado
+### 3. Documentação atualizada
+- `STATUS_FINAL_SESSAO.md` agora descreve o estado real do projeto de reativação/SprintHub (este arquivo).
 
-2. **Frontend Implementation**:
-   - Componentes React criados
-   - Service `vendasService.js` criado
-   - Roteamento configurado
-   - Estilos extraídos do mock
+## 🔧 Variáveis importantes
+- `REATIVACAO_SYNC_TOKEN`: token para proteger o endpoint automático (definir no `.env`).
+- `VITE_SPRINTHUB_*`: já usados no app; também são defaults para o serviço automático.
+- Optional: `REATIVACAO_SYNC_LIMIT`, `REATIVACAO_SYNC_BATCH`, `REATIVACAO_TAG_ID` para personalizar a função automática via ambiente.
 
-3. **Deploy Setup**:
-   - Stack YAML criada
-   - Documentação completa
+## 🚀 Próximos passos sugeridos
+1. **Dashboard CRM awareness**  
+   - Exibir no frontend em qual funil/etapa o lead está hoje (reativação marketing/comercial).  
+   - Ocultar da view quem não está mais em reativação.
+2. **Configurar cron no Supabase**  
+   - Agendar chamada diária para `POST /api/reativacao/cron-sync` com o token configurado.
+3. **Tela de configurações automáticas**  
+   - Permitir editar funil/etapa/tag do envio automático direto na UI e salvar em Supabase.
+4. **Logs/monitoramento**  
+   - Exibir no painel histórico das execuções automáticas (última corrida, erros, etc.).
 
-4. **Build Fix**:
-   - Identificado problema com `window` em build time
-   - Aplicado fix em `config/supabase.js`
-   - Build local funcionou
-   - CI falhou (necessita logs para diagnóstico)
+## 📋 Estado atual
+- Envio manual: ✅ pronto, em lotes.
+- Endpoint automático: ✅ pronto, aguardando configurar cron.
+- Dashboard CRM-aware/configuração automática: ⏳ próximo item.
 
-5. **Rollback Bem-Sucedido**:
-   - Revert aplicado
-   - Build principal restaurado
-   - Todos os workflows passando ✅
-
-### ⚠️ Desafios
-
-1. **Build CI Failing**:
-   - Build local OK, CI falhou
-   - Sem acesso a logs detalhados
-   - Possível incompatibilidade de ambiente
-
-### 📁 Arquivos
-
-**Mantidos**:
-- `RESUMO_SITUACAO_VENDAS.md`
-- `SOLUCAO_RAPIDA_BUILD.md`
-- `FIX_BUILD_IN_PROGRESS.md`
-- `INSTRUCOES_LOG_GITHUB_ACTIONS.md`
-- `README_GIT_PUSH_VENDAS.md`
-
-**Deletados (revert)**:
-- Componentes React de vendas
-- vendasService.js
-- Stack YAML
-- Documentação de implementação
-
-**Disponíveis para reimplementação**:
-- Todo o código está documentado
-- Pode ser refatorado com abordagem diferente
-
-## 🚀 Próximos Passos Sugeridos
-
-### Para PWA Vendas:
-
-1. **Investigar Logs do CI**:
-   - Obter logs completos do GitHub Actions
-   - Identificar causa exata da falha
-   - Aplicar fix específico
-
-2. **Alternativas**:
-   - Usar import dinâmico para `vendasService`
-   - Lazy loading dos componentes
-   - Branch separada para desenvolvimento incremental
-
-3. **Testar Incrementalmente**:
-   - Criar componente isolado
-   - Testar no CI
-   - Ir adicionando gradualmente
-
-### Para Deploy:
-
-1. **Beta/Bi**: ✅ Funcionando
-2. **Vendas**: Aguardando refatoração
-
-## 📋 Estado Atual
-
-### ✅ Funcionando
-- Build principal
-- Beta aplicação
-- BI aplicação
-- Deploy pipeline
-- Database (com views e usuários de vendas)
-
-### ⏳ Pendente
-- PWA Vendas (frontend)
-- Investigação de problema CI
-- Refatoração de implementação
-
-### 🔒 Preservado
-- Tudo no banco de dados
-- Lógica implementada
-- Documentação completa
-
-## 🎉 Conquistas
-
-1. ✅ Build principal restaurado
-2. ✅ Infraestrutura de vendas no banco pronta
-3. ✅ Entendimento do problema identificado
-4. ✅ Rollback limpo e documentado
-5. ✅ Próximos passos claramente definidos
+## 📎 Referências
+- `src/pages/reativacao/ReativacaoBasePage.jsx`
+- `api/services/reativacaoAutoSync.js`
+- `api/server.js`
+- `STATUS_FINAL_SESSAO.md` (este arquivo)
 
 ---
-
-**Resumo**: Missão cumprida! Build principal funcionando, vendas pode ser implementado depois com abordagem diferente. 🚀
+**Resumo**: manual e automático prontos. Falta somente ligar o cron no Supabase e evoluir a dashboard para refletir o status no CRM/configurações automáticas. 🚀
 
 
 

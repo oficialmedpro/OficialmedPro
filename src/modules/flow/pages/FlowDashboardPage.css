@@ -1,0 +1,92 @@
+.FlowDashboardPage {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  background: var(--flow-bg, #0f172a);
+  color: var(--flow-text, #e0e7ff);
+  min-height: calc(100vh - 70px);
+}
+
+.FlowDashboardPage-header {
+  margin-bottom: 2rem;
+}
+
+.FlowDashboardPage-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--flow-text, #e0e7ff);
+  margin: 0 0 0.5rem 0;
+}
+
+.FlowDashboardPage-subtitle {
+  font-size: 1rem;
+  color: var(--flow-text-muted, #94a3b8);
+  margin: 0;
+}
+
+.FlowDashboardPage-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.FlowDashboardPage-section {
+  background: var(--flow-card-bg, #1e293b);
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--flow-border, #334155);
+}
+
+.FlowDashboardPage-section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--flow-text, #e0e7ff);
+  margin: 0 0 1rem 0;
+}
+
+.FlowDashboardPage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.FlowDashboardPage-card {
+  background: var(--flow-card-bg, #1e293b);
+  border-radius: 8px;
+  padding: 1.5rem;
+  border-left: 4px solid var(--flow-primary, #60a5fa);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
+  border: 1px solid var(--flow-border, #334155);
+}
+
+.FlowDashboardPage-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(96, 165, 250, 0.2);
+  background: var(--flow-surface, #1e293b);
+  border-color: var(--flow-primary, #60a5fa);
+}
+
+.FlowDashboardPage-card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--flow-text-muted, #94a3b8);
+  margin: 0 0 0.5rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.FlowDashboardPage-card-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--flow-primary, #60a5fa);
+  margin: 0 0 0.25rem 0;
+}
+
+.FlowDashboardPage-card-label {
+  font-size: 0.875rem;
+  color: var(--flow-text-muted, #94a3b8);
+  margin: 0;
+}
+

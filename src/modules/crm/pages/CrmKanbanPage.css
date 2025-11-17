@@ -1,0 +1,449 @@
+/* Estilos exclusivos para CrmKanbanPage - Padrão SprintHub */
+.CrmKanbanPage {
+  min-height: 100vh;
+  background-color: var(--bg-primary, #0f172a);
+  color: var(--text-primary, #ffffff);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+/* Top Navigation Bar */
+.CrmKanbanPage-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background-color: var(--bg-secondary, #171e31);
+  border-bottom: 1px solid var(--border-color, #334155);
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.CrmKanbanPage-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.CrmKanbanPage-funil-dropdown {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: var(--bg-primary, #0f172a);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.CrmKanbanPage-funil-dropdown:hover {
+  background-color: var(--bg-tertiary, #334155);
+}
+
+.CrmKanbanPage-dropdown-select {
+  background: none;
+  border: none;
+  color: var(--text-primary, #ffffff);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding: 0;
+  padding-right: 24px;
+  min-width: 180px;
+  flex: 1;
+}
+
+.CrmKanbanPage-dropdown-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.CrmKanbanPage-dropdown-select option {
+  background-color: var(--bg-secondary, #171e31);
+  color: var(--text-primary, #ffffff);
+  padding: 8px;
+}
+
+.CrmKanbanPage-dropdown-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: var(--text-secondary, #94a3b8);
+  flex-shrink: 0;
+}
+
+.CrmKanbanPage-funil-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+}
+
+.CrmKanbanPage-user-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: var(--bg-primary, #0f172a);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.CrmKanbanPage-user-info:hover {
+  background-color: var(--bg-tertiary, #334155);
+}
+
+.CrmKanbanPage-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-blue, #3b82f6), var(--accent-blue-dark, #1d4ed8));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+}
+
+.CrmKanbanPage-user-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary, #ffffff);
+}
+
+.CrmKanbanPage-dropdown-arrow {
+  font-size: 10px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.CrmKanbanPage-dropdown-icon {
+  color: var(--text-secondary, #94a3b8);
+  flex-shrink: 0;
+}
+
+.CrmKanbanPage-topbar-center {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  max-width: 600px;
+}
+
+.CrmKanbanPage-search-container {
+  flex: 1;
+}
+
+.CrmKanbanPage-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: var(--bg-primary, #0f172a);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 6px;
+  color: var(--text-primary, #ffffff);
+  font-size: 14px;
+}
+
+.CrmKanbanPage-search-input::placeholder {
+  color: var(--text-muted, #64748b);
+}
+
+.CrmKanbanPage-checkboxes {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.CrmKanbanPage-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+}
+
+.CrmKanbanPage-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.CrmKanbanPage-sort-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.CrmKanbanPage-sort-btn:hover {
+  background-color: var(--bg-tertiary, #334155);
+  color: var(--text-primary, #ffffff);
+}
+
+.CrmKanbanPage-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.CrmKanbanPage-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.CrmKanbanPage-icon-btn:hover {
+  background-color: var(--bg-tertiary, #334155);
+  color: var(--text-primary, #ffffff);
+}
+
+.CrmKanbanPage-icon-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.CrmKanbanPage-new-btn {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.CrmKanbanPage-new-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+}
+
+.CrmKanbanPage-new-btn svg {
+  flex-shrink: 0;
+}
+
+.CrmKanbanPage-view-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.CrmKanbanPage-view-btn.active {
+  background-color: var(--accent-blue, #3b82f6);
+  color: white;
+}
+
+.CrmKanbanPage-view-btn:hover {
+  background-color: var(--bg-tertiary, #334155);
+  color: var(--text-primary, #ffffff);
+}
+
+.CrmKanbanPage-view-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Status Filter Bar */
+.CrmKanbanPage-filterbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background-color: var(--bg-secondary, #171e31);
+  border-bottom: 1px solid var(--border-color, #334155);
+  overflow-x: auto;
+}
+
+.CrmKanbanPage-status-btn {
+  padding: 8px 16px;
+  background-color: var(--bg-primary, #0f172a);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 6px;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.CrmKanbanPage-status-btn:hover {
+  background-color: var(--bg-tertiary, #334155);
+  color: var(--text-primary, #ffffff);
+}
+
+.CrmKanbanPage-status-btn.active {
+  background: linear-gradient(135deg, var(--accent-blue, #3b82f6), var(--accent-blue-dark, #1d4ed8));
+  color: white;
+  border-color: transparent;
+}
+
+.CrmKanbanPage-filter-btn {
+  padding: 8px 16px;
+  background-color: var(--bg-primary, #0f172a);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 6px;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.CrmKanbanPage-filter-btn:hover {
+  background-color: var(--bg-tertiary, #334155);
+  color: var(--text-primary, #ffffff);
+}
+
+.CrmKanbanPage-filter-btn svg {
+  flex-shrink: 0;
+}
+
+/* Selection Area (quando não há funil selecionado) */
+.CrmKanbanPage-selection {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  flex-wrap: wrap;
+}
+
+.CrmKanbanPage-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 250px;
+}
+
+.CrmKanbanPage-label {
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 14px;
+}
+
+.CrmKanbanPage-select {
+  padding: 10px 16px;
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 8px;
+  font-size: 14px;
+  background-color: var(--bg-secondary, #171e31);
+  color: var(--text-primary, #ffffff);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.CrmKanbanPage-select:focus {
+  outline: none;
+  border-color: var(--accent-blue, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.CrmKanbanPage-select:disabled {
+  background-color: var(--bg-tertiary, #334155);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Board Wrapper */
+.CrmKanbanPage-board-wrapper {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.CrmKanbanPage-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 20px;
+  color: var(--accent-red, #ef4444);
+}
+
+.CrmKanbanPage-loading,
+.CrmKanbanPage-empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 16px;
+  background-color: var(--bg-secondary, #171e31);
+  border-radius: 12px;
+  border: 1px solid var(--border-color, #334155);
+  margin: 20px;
+}
+
+/* Responsividade */
+@media (max-width: 1024px) {
+  .CrmKanbanPage-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .CrmKanbanPage-topbar-center {
+    max-width: 100%;
+  }
+
+  .CrmKanbanPage-filterbar {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 768px) {
+  .CrmKanbanPage-topbar-left,
+  .CrmKanbanPage-topbar-center,
+  .CrmKanbanPage-topbar-right {
+    width: 100%;
+  }
+
+  .CrmKanbanPage-selection {
+    flex-direction: column;
+  }
+
+  .CrmKanbanPage-filter {
+    min-width: 100%;
+  }
+}

@@ -663,10 +663,16 @@
   min-width: 360px;
   width: 90vw;
   max-width: 920px;
-  max-height: 90vh;
+  max-height: 95vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+}
+
+/* Modal sem padding quando usa estrutura com header/footer separados */
+.cc-modal:has(.cc-modal-header) {
+  padding: 0;
+  overflow: hidden;
 }
 
 .cc-modal::-webkit-scrollbar {
@@ -687,8 +693,17 @@
   background: var(--text-secondary);
 }
 
+.cc-modal-header {
+  flex-shrink: 0;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .cc-modal h3 {
-  margin: 0 0 20px 0;
+  margin: 0;
   color: var(--text-primary);
   font-size: 20px;
   flex-shrink: 0;
@@ -700,8 +715,10 @@
   gap: 16px;
   margin-bottom: 0;
   overflow-y: auto;
-  flex: 1;
+  overflow-x: hidden;
+  flex: 1 1 0;
   min-height: 0;
+  -webkit-overflow-scrolling: touch;
 }
 
 .cc-modal-content::-webkit-scrollbar {

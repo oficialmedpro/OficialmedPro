@@ -1,0 +1,136 @@
+/* Estilos exclusivos para CrmDashboardPage - Seguindo padrão do BI */
+.CrmDashboardPage {
+  padding: 20px;
+  min-height: 100vh;
+  background-color: var(--bg-primary, #0f172a);
+  color: var(--text-primary, #ffffff);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.CrmDashboardPage-header {
+  margin-bottom: 24px;
+}
+
+.CrmDashboardPage-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+  margin-bottom: 8px;
+}
+
+.CrmDashboardPage-subtitle {
+  font-size: 16px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.CrmDashboardPage-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.CrmDashboardPage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.CrmDashboardPage-card {
+  background-color: var(--bg-secondary, #171e31);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.CrmDashboardPage-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.CrmDashboardPage-card-title {
+  font-size: 14px;
+  color: var(--text-secondary, #94a3b8);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 500;
+}
+
+.CrmDashboardPage-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+  margin: 0;
+}
+
+.CrmDashboardPage-sections {
+  margin-top: 24px;
+}
+
+.CrmDashboardPage-section {
+  background-color: var(--bg-secondary, #171e31);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.CrmDashboardPage-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text-primary, #ffffff);
+}
+
+.CrmDashboardPage-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.CrmDashboardPage-action-btn {
+  padding: 10px 16px;
+  background: linear-gradient(135deg, var(--accent-blue, #3b82f6), var(--accent-blue-dark, #1d4ed8));
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.CrmDashboardPage-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.CrmDashboardPage-action-btn:active {
+  transform: translateY(0);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .CrmDashboardPage {
+    padding: 1rem;
+  }
+
+  .CrmDashboardPage-title {
+    font-size: 2rem;
+  }
+
+  .CrmDashboardPage-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .CrmDashboardPage-actions {
+    flex-direction: column;
+  }
+
+  .CrmDashboardPage-action-btn {
+    width: 100%;
+  }
+}
+

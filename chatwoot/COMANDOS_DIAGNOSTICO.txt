@@ -1,0 +1,45 @@
+# Comandos de Diagnóstico - Chatwoot EasyPanel
+# Execute estes comandos no servidor via SSH
+
+# 1. Verificar se o container está rodando
+docker ps | grep chatwoot-web
+
+# 2. Verificar qual rede o container está usando
+docker inspect chatwoot_chatwoot-chatwoot-web-1 | grep -A 20 '"Networks"'
+
+# 3. Testar acesso de fora do container (no host)
+curl -I http://localhost:3000
+# ou
+curl -I http://127.0.0.1:3000
+
+# 4. Verificar se a porta 3000 está escutando
+netstat -tulpn | grep 3000
+# ou
+ss -tulpn | grep 3000
+
+# 5. Verificar logs do chatwoot-web (últimas 50 linhas)
+docker logs chatwoot_chatwoot-chatwoot-web-1 --tail 50
+
+# 6. Verificar todos os containers do projeto chatwoot
+docker ps -a | grep chatwoot
+
+# 7. Verificar qual rede o EasyPanel/Traefik está usando
+docker ps | grep -E "traefik|easypanel|proxy"
+docker inspect <container-id-traefik> | grep -A 20 '"Networks"'
+
+# 8. Verificar se o chatwoot-web está na mesma rede do Traefik
+# (Primeiro encontre o nome da rede do Traefik, depois execute:)
+docker network inspect <nome-da-rede> | grep -A 5 chatwoot
+
+# 9. Testar conectividade entre containers (se estiverem na mesma rede)
+docker run --rm --network <nome-da-rede> alpine/curl:latest curl -I http://chatwoot-web:3000
+
+# 10. Verificar configuração do docker-compose usado pelo EasyPanel
+cat /etc/easypanel/projects/chatwoot/chatwoot/code/docker-compose.yml | grep -A 10 chatwoot-web
+
+# 11. Verificar variáveis de ambiente do container
+docker exec chatwoot_chatwoot-chatwoot-web-1 env | grep -E "POSTGRES|REDIS|FRONTEND"
+
+# 12. Verificar se há algum erro de conexão nos logs
+docker logs chatwoot_chatwoot-chatwoot-web-1 2>&1 | grep -i error | tail -20
+

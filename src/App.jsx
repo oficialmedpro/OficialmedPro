@@ -41,6 +41,11 @@ import Monitoramento30_59 from './pages/monitoramento/Monitoramento30_59'
 import Monitoramento60_90 from './pages/monitoramento/Monitoramento60_90'
 import MonitoramentoProtectedRoute from './pages/monitoramento/MonitoramentoProtectedRoute'
 import MonitoramentoLogin from './pages/monitoramento/MonitoramentoLogin'
+// Importar rotas do CRM
+import { crmRoutes } from './modules/crm/routes/crmRoutes'
+import CrmLayout from './modules/crm/components/CrmLayout'
+// Importar rotas do FLOW
+import { flowRoutes } from './modules/flow/routes/flowRoutes'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -205,6 +210,43 @@ function App() {
         <Route path="/clientes-consolidados" element={<ClientesConsolidados onLogout={handleLogout} />} />
         {/* /historico-compras agora está protegida pelo sistema de reativação acima */}
         <Route path="/vendas" element={<VendasPage onLogout={handleLogout} />} />
+        
+        {/* Rotas do CRM com Layout e Sidebar */}
+        <Route path="/crm" element={<CrmLayout />}>
+          {crmRoutes.map(route => {
+            const Component = route.component;
+            const isIndex = route.path === '/crm';
+            const routePath = isIndex ? undefined : route.path.replace('/crm/', '');
+            
+            return (
+              <Route
+                key={route.path}
+                {...(isIndex ? { index: true } : { path: routePath })}
+                element={
+                  <Suspense fallback={<div style={{ textAlign: 'center', padding: 40 }}>Carregando...</div>}>
+                    <Component />
+                  </Suspense>
+                }
+              />
+            );
+          })}
+        </Route>
+        
+        {/* Rotas do FLOW */}
+        {flowRoutes.map(route => {
+          const Component = route.component;
+          return (
+            <Route
+              key={route.path}
+              path={route.path}
+              element={
+                <Suspense fallback={<div style={{ textAlign: 'center', padding: 40 }}>Carregando...</div>}>
+                  <Component />
+                </Suspense>
+              }
+            />
+          );
+        })}
           </>
         )}
       </Routes>

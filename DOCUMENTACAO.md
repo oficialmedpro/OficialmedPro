@@ -157,6 +157,21 @@ const OPTIMIZATION_CONFIG = {
     PARALLEL_STAGES: 3,        // 🆕 3 etapas em paralelo
     CACHE_DURATION: 60000      // 🆕 Cache de 1 minuto
 };
+
+### Redeploy manual (EasyPanel)
+
+Quando o botão **Deploy** do EasyPanel não aplicar o último commit, use o redeploy manual via Docker Swarm:
+
+```bash
+ssh root@<servidor>
+cd /etc/easypanel/projects/sprint-sync
+docker service scale sprint-sync_sincronizacao=0 && \
+sleep 5 && \
+docker service update --image easypanel/sprint-sync/sincronizacao:latest sprint-sync_sincronizacao --force && \
+docker service scale sprint-sync_sincronizacao=1
+```
+
+Depois monitore com `docker service logs -f sprint-sync_sincronizacao`.
 ```
 
 ### Como Usar

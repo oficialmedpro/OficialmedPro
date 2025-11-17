@@ -1,0 +1,234 @@
+/* Estilos exclusivos para CrmKanbanBoard - Padrão SprintHub */
+.CrmKanbanBoard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+/* Botões de scroll horizontal - Mais visíveis e destacados */
+.CrmKanbanBoard-scroll-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 100;
+  background: linear-gradient(135deg, var(--bg-secondary, #171e31), var(--bg-tertiary, #334155));
+  border: 2px solid var(--border-color, #475569);
+  color: var(--text-primary, #ffffff);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.5),
+    0 0 0 4px rgba(59, 130, 246, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.CrmKanbanBoard-scroll-btn:hover {
+  background: linear-gradient(135deg, var(--accent-blue, #3b82f6), var(--accent-blue-dark, #1d4ed8));
+  border-color: var(--accent-blue, #3b82f6);
+  transform: translateY(-50%) scale(1.15);
+  box-shadow: 
+    0 6px 24px rgba(59, 130, 246, 0.4),
+    0 0 0 6px rgba(59, 130, 246, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.CrmKanbanBoard-scroll-btn:active {
+  transform: translateY(-50%) scale(1.05);
+  box-shadow: 
+    0 2px 8px rgba(59, 130, 246, 0.3),
+    0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.CrmKanbanBoard-scroll-btn svg {
+  width: 28px;
+  height: 28px;
+  stroke-width: 2.5;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.CrmKanbanBoard-scroll-btn:hover svg {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+.CrmKanbanBoard-scroll-left {
+  left: 16px;
+}
+
+.CrmKanbanBoard-scroll-right {
+  right: 16px;
+}
+
+/* Container principal - com scroll horizontal controlado por botões */
+.CrmKanbanBoard-container {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex: 1;
+  scroll-behavior: smooth;
+  /* Esconder scrollbar nativa mas manter funcionalidade */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.CrmKanbanBoard-container::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
+/* Coluna do Kanban */
+.CrmKanbanBoard-column {
+  min-width: 320px;
+  max-width: 320px;
+  background-color: var(--bg-primary, #0f172a);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 200px);
+  border: 1px solid var(--border-color, #334155);
+  flex-shrink: 0;
+}
+
+.CrmKanbanBoard-column-header {
+  padding: 16px;
+  background-color: var(--bg-secondary, #171e31);
+  border-top: 4px solid #64748b;
+  border-radius: 8px 8px 0 0;
+  border-bottom: 1px solid var(--border-color, #334155);
+}
+
+.CrmKanbanBoard-column-title-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.CrmKanbanBoard-column-title {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.CrmKanbanBoard-column-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.CrmKanbanBoard-column-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+}
+
+.CrmKanbanBoard-column-count {
+  font-size: 12px;
+  color: var(--text-secondary, #94a3b8);
+  font-weight: 500;
+}
+
+/* Corpo da coluna com scroll vertical independente */
+.CrmKanbanBoard-column-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+}
+
+.CrmKanbanBoard-column-body.CrmKanbanBoard-drag-over {
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 2px dashed var(--accent-blue, #3b82f6);
+}
+
+.CrmKanbanBoard-empty-column {
+  text-align: center;
+  color: var(--text-secondary, #94a3b8);
+  padding: 2rem;
+  font-size: 14px;
+  margin: 0;
+}
+
+.CrmKanbanBoard-end-marker {
+  text-align: center;
+  color: var(--text-muted, #64748b);
+  font-size: 11px;
+  padding: 8px;
+  font-style: italic;
+  margin-top: auto;
+}
+
+/* Scrollbar vertical personalizada para cada coluna */
+.CrmKanbanBoard-column-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.CrmKanbanBoard-column-body::-webkit-scrollbar-track {
+  background: var(--bg-primary, #0f172a);
+  border-radius: 3px;
+}
+
+.CrmKanbanBoard-column-body::-webkit-scrollbar-thumb {
+  background: var(--border-color, #334155);
+  border-radius: 3px;
+}
+
+.CrmKanbanBoard-column-body::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-blue, #3b82f6);
+}
+
+.CrmKanbanBoard-loading,
+.CrmKanbanBoard-error,
+.CrmKanbanBoard-empty {
+  text-align: center;
+  padding: 3rem;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 16px;
+}
+
+.CrmKanbanBoard-error {
+  color: var(--accent-red, #ef4444);
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .CrmKanbanBoard-column {
+    min-width: 280px;
+    max-width: 280px;
+  }
+
+  .CrmKanbanBoard-scroll-btn {
+    width: 48px;
+    height: 48px;
+  }
+
+  .CrmKanbanBoard-scroll-btn svg {
+    width: 24px;
+    height: 24px;
+  }
+
+  .CrmKanbanBoard-scroll-left {
+    left: 12px;
+  }
+
+  .CrmKanbanBoard-scroll-right {
+    right: 12px;
+  }
+}

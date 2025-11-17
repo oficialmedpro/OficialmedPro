@@ -1,0 +1,231 @@
+.FlowClientePage {
+  min-height: 100vh;
+  background: #f1f5f9;
+}
+
+.FlowClientePage-content {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.FlowClientePage-back-btn {
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.FlowClientePage-back-btn:hover {
+  background: #f8fafc;
+}
+
+.FlowClientePage-header {
+  margin-bottom: 2rem;
+}
+
+.FlowClientePage-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.5rem 0;
+}
+
+.FlowClientePage-subtitle {
+  font-size: 1rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.FlowClientePage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.FlowClientePage-card {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.FlowClientePage-card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 1rem 0;
+}
+
+.FlowClientePage-esteira-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.FlowClientePage-esteira-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+  width: fit-content;
+}
+
+.FlowClientePage-etapa,
+.FlowClientePage-tentativas,
+.FlowClientePage-date {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.FlowClientePage-no-opportunity {
+  color: #ef4444;
+  font-size: 0.875rem;
+}
+
+.FlowClientePage-info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.FlowClientePage-info-item {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.FlowClientePage-info-item:last-child {
+  border-bottom: none;
+}
+
+.FlowClientePage-info-label {
+  font-weight: 600;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.FlowClientePage-info-value {
+  color: #1e293b;
+  font-size: 0.875rem;
+}
+
+.FlowClientePage-actions,
+.FlowClientePage-history {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.FlowClientePage-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 1rem 0;
+}
+
+.FlowClientePage-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.FlowClientePage-action-btn {
+  padding: 0.75rem 1rem;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.FlowClientePage-action-btn:hover:not(:disabled) {
+  background: #f8fafc;
+}
+
+.FlowClientePage-action-btn.primary {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.FlowClientePage-action-btn.primary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.FlowClientePage-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.FlowClientePage-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.FlowClientePage-history-item {
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 6px;
+  border-left: 4px solid #cbd5e1;
+}
+
+.FlowClientePage-history-esteira {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.FlowClientePage-history-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  color: white;
+  font-weight: 600;
+  font-size: 0.75rem;
+}
+
+.FlowClientePage-history-etapa {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.FlowClientePage-history-dates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.FlowClientePage-history-active {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.FlowClientePage-loading,
+.FlowClientePage-error {
+  padding: 2rem;
+  text-align: center;
+  color: #64748b;
+}
+
+.FlowClientePage-error {
+  color: #ef4444;
+}
+

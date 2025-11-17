@@ -372,6 +372,26 @@ docker service update --force --image oficialmedpro/oportunidades-sync-api:lates
   oportunidades-sync_oportunidades-sync-api
 ```
 
+### Redeploy manual via EasyPanel (sprint-sync)
+
+Se o EasyPanel não puxar o commit mais recente automaticamente, use o comando abaixo para o serviço `sprint-sync_sincronizacao`:
+
+```bash
+ssh root@<seu-servidor>
+cd /etc/easypanel/projects/sprint-sync
+docker service scale sprint-sync_sincronizacao=0 && \
+sleep 5 && \
+docker service update --image easypanel/sprint-sync/sincronizacao:latest sprint-sync_sincronizacao --force && \
+docker service scale sprint-sync_sincronizacao=1
+```
+
+Depois acompanhe os logs:
+
+```bash
+docker service logs -f sprint-sync_sincronizacao
+```
+
+++ End Patch
 Ou pelo Portainer:
 - Ir em **Stacks > oportunidades-sync**
 - Clicar em **Update the stack**

@@ -1,0 +1,100 @@
+/* Estilos exclusivos para CrmPipeline - Seguindo padrão do BI */
+.CrmPipeline {
+  width: 100%;
+  overflow-x: auto;
+  padding: 1rem 0;
+}
+
+.CrmPipeline-container {
+  display: flex;
+  gap: 20px;
+  min-width: fit-content;
+  padding: 0 1rem;
+}
+
+.CrmPipeline-column {
+  min-width: 300px;
+  max-width: 300px;
+  background-color: var(--bg-primary, #0f172a);
+  border: 1px solid var(--border-color, #334155);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  height: fit-content;
+  max-height: calc(100vh - 200px);
+}
+
+.CrmPipeline-header {
+  padding: 16px;
+  background-color: var(--bg-secondary, #171e31);
+  border-top: 4px solid var(--accent-blue, #3b82f6);
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: 1px solid var(--border-color, #334155);
+}
+
+.CrmPipeline-stage-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+  margin: 0;
+}
+
+.CrmPipeline-count {
+  background: linear-gradient(135deg, var(--accent-blue, #3b82f6), var(--accent-blue-dark, #1d4ed8));
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.CrmPipeline-opportunities {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.CrmPipeline-empty {
+  text-align: center;
+  color: var(--text-secondary, #94a3b8);
+  padding: 2rem;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Scrollbar personalizada - Seguindo padrão do BI */
+.CrmPipeline-opportunities::-webkit-scrollbar {
+  width: 6px;
+}
+
+.CrmPipeline-opportunities::-webkit-scrollbar-track {
+  background: var(--bg-primary, #0f172a);
+  border-radius: 3px;
+}
+
+.CrmPipeline-opportunities::-webkit-scrollbar-thumb {
+  background: var(--border-color, #334155);
+  border-radius: 3px;
+}
+
+.CrmPipeline-opportunities::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-blue, #3b82f6);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .CrmPipeline-column {
+    min-width: 250px;
+    max-width: 250px;
+  }
+}
+

@@ -1,0 +1,63 @@
+/* Estilos exclusivos para CrmOpportunityCard - Seguindo padrão do BI */
+.CrmOpportunityCard {
+  background-color: var(--bg-secondary, #171e31);
+  border: 1px solid var(--border-color, #334155);
+  border-left: 4px solid var(--accent-blue, #3b82f6);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.CrmOpportunityCard:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+  border-color: var(--accent-blue, #3b82f6);
+}
+
+.CrmOpportunityCard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.CrmOpportunityCard-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+  margin: 0;
+  flex: 1;
+}
+
+.CrmOpportunityCard-stage {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, var(--accent-blue, #3b82f6), var(--accent-blue-dark, #1d4ed8));
+}
+
+.CrmOpportunityCard-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.CrmOpportunityCard-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent-green, #10b981);
+  margin: 0;
+}
+
+.CrmOpportunityCard-contact,
+.CrmOpportunityCard-date {
+  margin: 0;
+  color: var(--text-secondary, #94a3b8);
+  font-size: 12px;
+}
+

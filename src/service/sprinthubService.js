@@ -394,8 +394,133 @@ const sprinthubService = {
   },
 
   async listLeadOpportunities(leadId) {
-    const response = await executeRequest(`/listopportunitysleadcomplete/${leadId}`);
-    return Array.isArray(response) ? response : [];
+    if (!leadId) return [];
+    
+    try {
+      // Tentar o endpoint conforme documentação: GET /listopportunitysleadcomplete/{leadId}?i=<instancia>
+      // O apitoken também é adicionado automaticamente pelo executeRequest
+      const response = await executeRequest(`/listopportunitysleadcomplete/${leadId}`);
+      return Array.isArray(response) ? response : [];
+    } catch (error) {
+      // Erro 400 pode significar:
+      // 1. Lead não tem oportunidades (comportamento esperado)
+      // 2. Endpoint não disponível para esse lead específico
+      // 3. Formato incorreto (mas seguimos a documentação)
+      // Tratamos como "sem oportunidades" e retornamos array vazio
+      if (error.status === 400) {
+        console.warn(`[sprinthubService] Endpoint retornou 400 para lead ${leadId}. Tratando como "sem oportunidades".`);
+        return [];
+      }
+      
+      // Erro 404: lead não existe
+      if (error.status === 404) {
+        console.warn(`[sprinthubService] Lead ${leadId} não encontrado (404)`);
+        return [];
+      }
+      
+      // Para outros erros (500, etc), relançar para tratamento superior
+      console.error(`[sprinthubService] Erro inesperado ao buscar oportunidades do lead ${leadId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Busca o status CRM de um lead (funil e etapa onde está)
+   * Retorna informações sobre as oportunidades abertas do lead
+   */
+  async getLeadCrmStatus(leadId) {
+    if (!leadId) {
+      return {
+        hasOpportunities: false,
+        status: 'ID do lead não fornecido',
+        funis: []
+      };
+    }
+    
+    try {
+      let opportunities = await this.listLeadOpportunities(leadId);
+      
+      // Se não retornou array, tratar como erro
+      if (!Array.isArray(opportunities)) {
+        return {
+          hasOpportunities: false,
+          status: 'Erro ao buscar oportunidades',
+          funis: []
+        };
+      }
+      
+      // NOTA: A busca alternativa por etapas foi desabilitada porque:
+      // 1. O endpoint /listopportunitysleadcomplete deve ser suficiente
+      // 2. A busca por etapas gera muitos erros 400 quando as etapas não existem no funil
+      // 3. É muito lenta e ineficiente
+      // Se o endpoint direto falhar, retornamos vazio e deixamos o usuário saber que não foi possível buscar
+      if (opportunities.length === 0) {
+        console.warn(`[sprinthubService] ⚠️ Não foi possível buscar oportunidades para lead ${leadId} via endpoint direto. O lead pode não ter oportunidades abertas ou o endpoint pode estar temporariamente indisponível.`);
+      }
+      
+      const openOpportunities = opportunities.filter(opp => opp && opp.status === 'open');
+      
+      if (openOpportunities.length === 0) {
+        return {
+          hasOpportunities: false,
+          status: 'Sem oportunidades abertas',
+          funis: []
+        };
+      }
+
+      // Mapear funis conhecidos (incluindo funis de reativação)
+      const funisMap = {
+        6: '[1] COMERCIAL APUCARANA',
+        14: '[2] RECOMPRA',
+        34: '[1] REATIVAÇÃO MARKETING',
+        38: '[1] REATIVAÇÃO COMERCIAL',
+      };
+
+      // Agrupar por funil
+      const funis = {};
+      openOpportunities.forEach(opp => {
+        const funnelId = opp.funnel_id || opp.funnelId;
+        const columnId = opp.crm_column || opp.column_id;
+        if (!funnelId || !columnId) return;
+
+        if (!funis[funnelId]) {
+          funis[funnelId] = {
+            id: funnelId,
+            name: funisMap[funnelId] || `Funil ${funnelId}`,
+            stages: []
+          };
+        }
+
+        // Evitar duplicatas de etapa
+        if (!funis[funnelId].stages.find(s => s.id === columnId)) {
+          funis[funnelId].stages.push({
+            id: columnId,
+            opportunityId: opp.id,
+            title: opp.title || ''
+          });
+        }
+      });
+
+      const funisArray = Object.values(funis);
+      const statusText = funisArray.length > 0
+        ? funisArray.map(f => `${f.name} (${f.stages.length} etapa${f.stages.length > 1 ? 's' : ''})`).join(', ')
+        : 'Sem funis identificados';
+
+      return {
+        hasOpportunities: true,
+        status: statusText,
+        funis: funisArray,
+        totalOpen: openOpportunities.length
+      };
+    } catch (error) {
+      console.error('[sprinthubService] Erro ao buscar status CRM:', error);
+      return {
+        hasOpportunities: false,
+        status: 'Erro ao buscar status',
+        funis: [],
+        error: error.message
+      };
+    }
   },
 
   /**
@@ -814,9 +939,35 @@ const sprinthubService = {
       let leadId;
       if (existingLead?.id) {
         leadId = existingLead.id;
-        await this.updateLeadById(leadId, leadPayload);
-        summary.lead = { id: leadId, status: 'updated' };
+        console.log(`[sprinthubService] Lead existente encontrado: ${leadId}. Verificando status de arquivamento...`);
+        
+        // Verificar se o lead está arquivado e desarquivar automaticamente ANTES de atualizar
+        try {
+          const isArchived = await this.isLeadArchived(leadId);
+          console.log(`[sprinthubService] Lead ${leadId} - Status arquivado: ${isArchived}`);
+          
+          if (isArchived) {
+            console.log(`[sprinthubService] ⚠️ Lead ${leadId} está arquivado. Desarquivando automaticamente...`);
+            await this.unarchiveLead(leadId);
+            console.log(`[sprinthubService] ✅ Lead ${leadId} desarquivado com sucesso!`);
+            summary.lead = { id: leadId, status: 'updated_and_unarchived' };
+          } else {
+            console.log(`[sprinthubService] Lead ${leadId} não está arquivado. Prosseguindo com atualização.`);
+            summary.lead = { id: leadId, status: 'updated' };
+          }
+        } catch (error) {
+          console.error(`[sprinthubService] ❌ Erro ao verificar/desarquivar lead ${leadId}:`, error);
+          // Continuar mesmo se falhar a verificação de arquivamento
+          summary.lead = { id: leadId, status: 'updated' };
+        }
+        
+        // Atualizar dados do lead (incluindo archived: false no payload para garantir)
+        await this.updateLeadById(leadId, {
+          ...leadPayload,
+          archived: false // Garantir que está desarquivado
+        });
       } else {
+        console.log(`[sprinthubService] Lead não encontrado. Criando novo lead...`);
         const created = await this.createLead(leadPayload);
         leadId = created?.id || created?.data?.id;
         summary.lead = { id: leadId, status: 'created' };
@@ -1147,6 +1298,157 @@ const sprinthubService = {
     }
 
     return resumo;
+  },
+
+  /**
+   * Verifica se um lead está arquivado no SprintHub
+   * @param {number|string} leadId - ID do lead
+   * @returns {Promise<boolean>} - true se estiver arquivado, false caso contrário
+   */
+  async isLeadArchived(leadId) {
+    try {
+      console.log(`[sprinthubService] Verificando se lead ${leadId} está arquivado...`);
+      
+      // Buscar lead com campo archived - usar query específica para garantir que o campo archived venha
+      const lead = await this.getLeadById(leadId, {
+        query: '{lead{id,archived,fullname}}',
+        allFields: false
+      });
+      
+      console.log(`[sprinthubService] Resposta da API para lead ${leadId}:`, JSON.stringify(lead, null, 2));
+      
+      // Verificar diferentes estruturas de resposta da API
+      // A API pode retornar: {data: {lead: {...}}} ou {lead: {...}} ou diretamente o objeto
+      const archived = lead?.data?.lead?.archived ?? 
+                       lead?.data?.archived ??
+                       lead?.lead?.archived ?? 
+                       lead?.archived ?? 
+                       false;
+      
+      const isArchived = Boolean(archived);
+      console.log(`[sprinthubService] Lead ${leadId} - Campo archived: ${archived}, Resultado: ${isArchived}`);
+      
+      return isArchived;
+    } catch (error) {
+      // Se o lead não for encontrado (404), considerar como não arquivado
+      if (error.status === 404) {
+        console.warn(`[sprinthubService] Lead ${leadId} não encontrado (404). Considerando como não arquivado.`);
+        return false;
+      }
+      console.error(`[sprinthubService] Erro ao verificar se lead ${leadId} está arquivado:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Desarquiva um lead no SprintHub
+   * @param {number|string} leadId - ID do lead
+   * @returns {Promise<object>} - Resposta da API
+   */
+  async unarchiveLead(leadId) {
+    try {
+      const response = await this.updateLeadById(leadId, {
+        archived: false
+      });
+      
+      await logSyncEvent({
+        entityType: 'lead',
+        entityId: leadId,
+        action: 'unarchive',
+        payload: { archived: false },
+        response,
+        status: 'success',
+      });
+      
+      return response;
+    } catch (error) {
+      console.error(`[sprinthubService] Erro ao desarquivar lead ${leadId}:`, error);
+      await logSyncEvent({
+        entityType: 'lead',
+        entityId: leadId,
+        action: 'unarchive',
+        payload: { archived: false },
+        response: null,
+        status: 'error',
+        errorMessage: error.message,
+      });
+      throw error;
+    }
+  },
+
+  /**
+   * Arquivar um lead no SprintHub
+   * @param {number|string} leadId - ID do lead
+   * @returns {Promise<object>} - Resposta da API
+   */
+  async archiveLead(leadId) {
+    try {
+      const response = await this.updateLeadById(leadId, {
+        archived: true
+      });
+      
+      await logSyncEvent({
+        entityType: 'lead',
+        entityId: leadId,
+        action: 'archive',
+        payload: { archived: true },
+        response,
+        status: 'success',
+      });
+      
+      return response;
+    } catch (error) {
+      console.error(`[sprinthubService] Erro ao arquivar lead ${leadId}:`, error);
+      await logSyncEvent({
+        entityType: 'lead',
+        entityId: leadId,
+        action: 'archive',
+        payload: { archived: true },
+        response: null,
+        status: 'error',
+        errorMessage: error.message,
+      });
+      throw error;
+    }
+  },
+
+  /**
+   * Desarquiva múltiplos leads em lote
+   * @param {Array<number|string>} leadIds - Array de IDs dos leads
+   * @param {Object} options - Opções de processamento
+   * @param {number} options.batchSize - Tamanho do lote (padrão: 10)
+   * @param {number} options.delay - Delay entre lotes em ms (padrão: 500)
+   * @returns {Promise<{success: number, errors: number, results: Array}>}
+   */
+  async unarchiveLeadsBatch(leadIds, { batchSize = 10, delay = 500 } = {}) {
+    const results = [];
+    let success = 0;
+    let errors = 0;
+
+    for (let i = 0; i < leadIds.length; i += batchSize) {
+      const batch = leadIds.slice(i, i + batchSize);
+      
+      const batchPromises = batch.map(async (leadId) => {
+        try {
+          const result = await this.unarchiveLead(leadId);
+          success++;
+          return { leadId, success: true, result };
+        } catch (error) {
+          errors++;
+          return { leadId, success: false, error: error.message };
+        }
+      });
+
+      const batchResults = await Promise.all(batchPromises);
+      results.push(...batchResults);
+
+      // Delay entre lotes para evitar rate limiting
+      if (i + batchSize < leadIds.length && delay > 0) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    return { success, errors, results, total: leadIds.length };
   },
 };
 

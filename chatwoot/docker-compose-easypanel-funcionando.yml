@@ -1,0 +1,158 @@
+services:
+  ## --------------------------- POSTGRESQL CHATWOOT --------------------------- ##
+  postgres-chatwoot:
+    image: pgvector/pgvector:pg14
+    restart: unless-stopped
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+    volumes:
+      - postgres_chatwoot_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-a5895d0e44e68fc82c13e7d6a92313dd}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-chatwoot}
+      TZ: ${TZ:-America/Sao_Paulo}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ## --------------------------- REDIS CHATWOOT --------------------------- ##
+  redis-chatwoot:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-a5895d0e44e68fc82c13e7d6a92313dd}
+    volumes:
+      - redis_chatwoot_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  ## --------------------------- CHATWOOT WEB --------------------------- ##
+  chatwoot-web:
+    # Usando imagem oficial - mais fácil e funciona imediatamente
+    # Para usar código-fonte depois, ajuste o caminho do build conforme necessário
+    image: chatwoot/chatwoot:latest
+    restart: unless-stopped
+    volumes:
+      - chatwoot_data:/app/storage
+      - chatwoot_logs:/app/log
+    environment:
+      - POSTGRES_HOST=postgres-chatwoot
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=${POSTGRES_DB:-chatwoot}
+      - POSTGRES_USERNAME=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-a5895d0e44e68fc82c13e7d6a92313dd}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-a5895d0e44e68fc82c13e7d6a92313dd}@redis-chatwoot:6379
+      - RAILS_ENV=${RAILS_ENV:-production}
+      - SECRET_KEY_BASE=4006cd5ab156db333646724a2ae2b8467c521103d356ad1fe773ae09c70b6beb7949fab33f77176566fe0a64eb6c35e879b67d2979e47181342f2db3ce20c3a8333de18a7bf4680b83c211637287999ee53526492af773cc496983ba81f7ca7a567f60c5e7e9b52bbffbf686d4011d7228a19b4f4ed30a323cc8c22cf632d018
+      - FRONTEND_URL=${FRONTEND_URL:-https://chat.oficialmed.com.br}
+      - INSTALLATION_NAME=${INSTALLATION_NAME:-OficialMed Chat}
+      - INSTALLATION_VERSION=${INSTALLATION_VERSION:-2.0.0}
+      - MAILER_SENDER_EMAIL=${MAILER_SENDER_EMAIL:-}
+      - SMTP_ADDRESS=${SMTP_ADDRESS:-smtp.gmail.com}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_AUTHENTICATION=${SMTP_AUTHENTICATION:-login}
+      - SMTP_ENABLE_STARTTLS_AUTO=${SMTP_ENABLE_STARTTLS_AUTO:-true}
+      - ENABLE_ACCOUNT_SIGNUP=${ENABLE_ACCOUNT_SIGNUP:-true}
+      - ENABLE_GOOGLE_OAUTH=${ENABLE_GOOGLE_OAUTH:-false}
+      - ENABLE_FACEBOOK_OAUTH=${ENABLE_FACEBOOK_OAUTH:-false}
+      - ENABLE_TWITTER_OAUTH=${ENABLE_TWITTER_OAUTH:-false}
+      - TZ=${TZ:-America/Sao_Paulo}
+    depends_on:
+      postgres-chatwoot:
+        condition: service_healthy
+      redis-chatwoot:
+        condition: service_healthy
+    networks:
+      - default
+      - easypanel
+    command: >
+      sh -c "
+      bundle exec rails db:chatwoot_prepare &&
+      bundle exec rails s -p 3000 -b 0.0.0.0
+      "
+
+  ## --------------------------- CHATWOOT WORKER --------------------------- ##
+  chatwoot-worker:
+    # Usando imagem oficial
+    image: chatwoot/chatwoot:latest
+    restart: unless-stopped
+    volumes:
+      - chatwoot_data:/app/storage
+      - chatwoot_logs:/app/log
+    environment:
+      - POSTGRES_HOST=postgres-chatwoot
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=${POSTGRES_DB:-chatwoot}
+      - POSTGRES_USERNAME=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-a5895d0e44e68fc82c13e7d6a92313dd}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-a5895d0e44e68fc82c13e7d6a92313dd}@redis-chatwoot:6379
+      - RAILS_ENV=${RAILS_ENV:-production}
+      - SECRET_KEY_BASE=4006cd5ab156db333646724a2ae2b8467c521103d356ad1fe773ae09c70b6beb7949fab33f77176566fe0a64eb6c35e879b67d2979e47181342f2db3ce20c3a8333de18a7bf4680b83c211637287999ee53526492af773cc496983ba81f7ca7a567f60c5e7e9b52bbffbf686d4011d7228a19b4f4ed30a323cc8c22cf632d018
+      - FRONTEND_URL=${FRONTEND_URL:-https://chat.oficialmed.com.br}
+      - TZ=${TZ:-America/Sao_Paulo}
+    depends_on:
+      postgres-chatwoot:
+        condition: service_healthy
+      redis-chatwoot:
+        condition: service_healthy
+    command: bundle exec sidekiq -C config/sidekiq.yml
+
+  ## --------------------------- CHATWOOT SIDEKIQ CRON --------------------------- ##
+  chatwoot-cron:
+    # Usando imagem oficial
+    image: chatwoot/chatwoot:latest
+    restart: unless-stopped
+    volumes:
+      - chatwoot_data:/app/storage
+      - chatwoot_logs:/app/log
+    environment:
+      - POSTGRES_HOST=postgres-chatwoot
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=${POSTGRES_DB:-chatwoot}
+      - POSTGRES_USERNAME=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-a5895d0e44e68fc82c13e7d6a92313dd}
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-a5895d0e44e68fc82c13e7d6a92313dd}@redis-chatwoot:6379
+      - RAILS_ENV=${RAILS_ENV:-production}
+      - SECRET_KEY_BASE=4006cd5ab156db333646724a2ae2b8467c521103d356ad1fe773ae09c70b6beb7949fab33f77176566fe0a64eb6c35e879b67d2979e47181342f2db3ce20c3a8333de18a7bf4680b83c211637287999ee53526492af773cc496983ba81f7ca7a567f60c5e7e9b52bbffbf686d4011d7228a19b4f4ed30a323cc8c22cf632d018
+      - FRONTEND_URL=${FRONTEND_URL:-https://chat.oficialmed.com.br}
+      - TZ=${TZ:-America/Sao_Paulo}
+    depends_on:
+      postgres-chatwoot:
+        condition: service_healthy
+      redis-chatwoot:
+        condition: service_healthy
+    command: bundle exec sidekiq -C config/sidekiq.yml -q default -q mailers -q cron_job
+
+## --------------------------- VOLUMES --------------------------- ##
+volumes:
+  postgres_chatwoot_data:
+    driver: local
+  redis_chatwoot_data:
+    driver: local
+  chatwoot_data:
+    driver: local
+  chatwoot_logs:
+    driver: local
+
+## --------------------------- NETWORKS --------------------------- ##
+networks:
+  easypanel:
+    external: true
+    name: easypanel
+
+
+

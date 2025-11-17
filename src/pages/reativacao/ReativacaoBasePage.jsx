@@ -7,6 +7,8 @@ import ReativacaoMenu from './ReativacaoMenu';
 import './ReativacaoBasePage.css';
 import * as XLSX from 'xlsx';
 import { Mail, Copy, FileText, MessageCircle, Phone } from 'lucide-react';
+import { HiFunnel, HiOutlineFunnel } from 'react-icons/hi2';
+import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 import sprinthubService from '../../service/sprinthubService';
 
 // Mapeamento de rotas para views do banco
@@ -63,6 +65,12 @@ const ReativacaoBasePage = ({ tipo }) => {
   const [sprinthubStatusFilter, setSprinthubStatusFilter] = useState('all'); // 'all' | 'sent' | 'not-sent'
   const [sprinthubLeadTagFilter, setSprinthubLeadTagFilter] = useState('all');
   const [availableSprinthubLeadTags, setAvailableSprinthubLeadTags] = useState([]);
+  const [crmStatusMap, setCrmStatusMap] = useState({}); // {leadId: {status, funis, opportunities}}
+  const [loadingCrmStatus, setLoadingCrmStatus] = useState({}); // {leadId: true/false}
+  const [showCrmStatusModal, setShowCrmStatusModal] = useState(false);
+  const [selectedLeadForCrmStatus, setSelectedLeadForCrmStatus] = useState(null); // {leadId, nome}
+  const [showAutoSyncConfig, setShowAutoSyncConfig] = useState(false);
+  const [autoSyncLimit, setAutoSyncLimit] = useState('200'); // Limite de leads por execução do cron
   
   // Estados específicos para exportação Sprinthub
   const [sprinthubEtapa, setSprinthubEtapa] = useState(() => {
@@ -99,6 +107,8 @@ const ReativacaoBasePage = ({ tipo }) => {
   const [sprinthubError, setSprinthubError] = useState(null);
   const [sprinthubAvailableTags, setSprinthubAvailableTags] = useState([]);
   const [isLoadingSprinthubTags, setIsLoadingSprinthubTags] = useState(false);
+  const [sprinthubBatchSize, setSprinthubBatchSize] = useState('50');
+  const [sprinthubProgress, setSprinthubProgress] = useState(null);
   
   // Opções para dropdowns
   const ORIGENS_OPORTUNIDADE = [
@@ -188,7 +198,8 @@ const ReativacaoBasePage = ({ tipo }) => {
       estado: false, // Coluna separada (só quando mostra todas)
       sexo: showAllColumns, // Só mostra quando clicar em "Mostrar Todas"
       data_nascimento: showAllColumns, // Só mostra quando clicar em "Mostrar Todas"
-      qualidade: isMobile ? false : true // Desktop mostra, mobile não (padrão)
+      qualidade: isMobile ? false : true, // Desktop mostra, mobile não (padrão)
+      crm_status: isMobile ? false : true // Desktop mostra, mobile não (padrão)
     };
   });
   
@@ -218,7 +229,8 @@ const ReativacaoBasePage = ({ tipo }) => {
           estado: true, // Mostrar coluna separada
           sexo: true,
           data_nascimento: true,
-          qualidade: true
+          qualidade: true,
+          crm_status: true
         });
       } else {
         // Mostrar apenas colunas padrão
@@ -237,7 +249,8 @@ const ReativacaoBasePage = ({ tipo }) => {
           estado: false,
           sexo: false,
           data_nascimento: false,
-          qualidade: isMobile ? false : true
+          qualidade: isMobile ? false : true,
+          crm_status: isMobile ? false : true
         });
       }
     };
@@ -475,26 +488,268 @@ const collectLeadIdsFromRows = (rows) => {
   return Array.from(idSet);
 };
 
-  // Carregar histórico de exportações
+const chunkArray = (array, size) => {
+  if (!Array.isArray(array) || size <= 0) return [array];
+  const chunks = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+};
+
+  // Buscar status CRM diretamente do Supabase (muito mais rápido e confiável)
+  const fetchCrmStatus = async (leadId) => {
+    if (!leadId) return;
+    
+    setLoadingCrmStatus(prev => ({ ...prev, [leadId]: true }));
+    try {
+      // Buscar oportunidades do lead na tabela oportunidade_sprint
+      // Ordenar: primeiro open, depois gain, depois lost (e dentro de cada status, mais recentes primeiro)
+      const { data: opportunities, error } = await supabase
+        .schema('api')
+        .from('oportunidade_sprint')
+        .select('id, title, status, funil_id, funil_nome, crm_column, create_date, update_date')
+        .eq('lead_id', leadId);
+      
+      if (error) throw error;
+      
+      // Ordenar manualmente: open primeiro, depois gain, depois lost
+      // Dentro de cada status, ordenar por data (mais recentes primeiro)
+      const sortedOpportunities = (opportunities || []).sort((a, b) => {
+        // Primeiro ordenar por status (open=1, gain=2, lost=3)
+        const statusOrder = { 'open': 1, 'gain': 2, 'lost': 3 };
+        const aOrder = statusOrder[a.status] || 99;
+        const bOrder = statusOrder[b.status] || 99;
+        
+        if (aOrder !== bOrder) {
+          return aOrder - bOrder;
+        }
+        
+        // Se mesmo status, ordenar por data (mais recentes primeiro)
+        const aDate = new Date(a.create_date || 0).getTime();
+        const bDate = new Date(b.create_date || 0).getTime();
+        return bDate - aDate;
+      });
+      
+      if (!sortedOpportunities || sortedOpportunities.length === 0) {
+        setCrmStatusMap(prev => ({
+          ...prev,
+          [leadId]: {
+            hasOpportunities: false,
+            status: 'Sem oportunidades',
+            funis: [],
+            opportunities: [],
+            totalOpen: 0,
+            totalGain: 0,
+            totalLost: 0
+          }
+        }));
+        return;
+      }
+      
+      // Agrupar por status (open, gain, lost)
+      const openOpps = sortedOpportunities.filter(opp => opp.status === 'open');
+      const gainOpps = sortedOpportunities.filter(opp => opp.status === 'gain');
+      const lostOpps = sortedOpportunities.filter(opp => opp.status === 'lost');
+      
+      // Buscar IDs únicos de funis
+      const uniqueFunnelIds = [...new Set(sortedOpportunities.map(opp => opp.funil_id).filter(id => id))];
+      
+      // Buscar nomes dos funis da tabela api.funis
+      const funisNamesMap = {};
+      if (uniqueFunnelIds.length > 0) {
+        const { data: funisData } = await supabase
+          .schema('api')
+          .from('funis')
+          .select('id_funil_sprint, nome_funil')
+          .in('id_funil_sprint', uniqueFunnelIds);
+        
+        if (funisData) {
+          funisData.forEach(funil => {
+            funisNamesMap[funil.id_funil_sprint] = funil.nome_funil;
+          });
+        }
+      }
+      
+      // Agrupar por funil
+      const funisMap = {};
+      sortedOpportunities.forEach(opp => {
+        const funnelId = opp.funil_id;
+        // Priorizar nome da tabela funis, depois funil_nome da oportunidade, depois fallback
+        const funnelName = funisNamesMap[funnelId] || opp.funil_nome || `Funil ${funnelId}`;
+        
+        if (!funnelId) return;
+        
+        if (!funisMap[funnelId]) {
+          funisMap[funnelId] = {
+            id: funnelId,
+            name: funnelName,
+            open: [],
+            gain: [],
+            lost: []
+          };
+        }
+        
+        // Adicionar à lista correspondente ao status
+        if (opp.status === 'open') {
+          funisMap[funnelId].open.push({
+            id: opp.id,
+            title: opp.title,
+            crm_column: opp.crm_column,
+            create_date: opp.create_date
+          });
+        } else if (opp.status === 'gain') {
+          funisMap[funnelId].gain.push({
+            id: opp.id,
+            title: opp.title,
+            crm_column: opp.crm_column,
+            create_date: opp.create_date
+          });
+        } else if (opp.status === 'lost') {
+          funisMap[funnelId].lost.push({
+            id: opp.id,
+            title: opp.title,
+            crm_column: opp.crm_column,
+            create_date: opp.create_date
+          });
+        }
+      });
+      
+      const funisArray = Object.values(funisMap);
+      const statusText = openOpps.length > 0 
+        ? `${openOpps.length} aberta(s), ${gainOpps.length} ganha(s), ${lostOpps.length} perdida(s)`
+        : gainOpps.length > 0 || lostOpps.length > 0
+        ? `${gainOpps.length} ganha(s), ${lostOpps.length} perdida(s)`
+        : 'Sem oportunidades';
+      
+      setCrmStatusMap(prev => ({
+        ...prev,
+        [leadId]: {
+          hasOpportunities: sortedOpportunities.length > 0,
+          status: statusText,
+          funis: funisArray,
+          opportunities: sortedOpportunities,
+          totalOpen: openOpps.length,
+          totalGain: gainOpps.length,
+          totalLost: lostOpps.length
+        }
+      }));
+    } catch (error) {
+      console.error('Erro ao buscar status CRM:', error);
+      setCrmStatusMap(prev => ({
+        ...prev,
+        [leadId]: {
+          hasOpportunities: false,
+          status: 'Erro ao buscar',
+          funis: [],
+          opportunities: [],
+          error: error.message
+        }
+      }));
+    } finally {
+      setLoadingCrmStatus(prev => {
+        const next = { ...prev };
+        delete next[leadId];
+        return next;
+      });
+    }
+  };
+
+  const loadAutoSyncConfig = async () => {
+    try {
+      const { data, error } = await supabase
+        .schema('api')
+        .rpc('get_reativacao_config', { p_view_name: viewName });
+      
+      if (error) throw error;
+      
+      if (data) {
+        setSprinthubFunnelId(data.funnel_id ? String(data.funnel_id) : '');
+        setSprinthubEtapa(data.column_id ? String(data.column_id) : '');
+        setSprinthubSequence(data.sequence_id ? String(data.sequence_id) : '0');
+        setSprinthubVendedor(data.user_id ? String(data.user_id) : '');
+        setSprinthubTagId(data.sprinthub_tag_id ? String(data.sprinthub_tag_id) : '221');
+        setSprinthubOrigemOportunidade(data.origem_opportunity || 'Reativação');
+        setSprinthubTipoCompra(data.tipo_compra || 'reativação');
+        setAutoSyncLimit(data.limit_leads ? String(data.limit_leads) : '200');
+        setSprinthubBatchSize(data.batch_size ? String(data.batch_size) : '50');
+        setSprinthubTituloPrefix(data.titulo_prefix || 'Reativação');
+      }
+    } catch (error) {
+      console.error('Erro ao carregar configuração automática:', error);
+    }
+  };
+
+  const saveAutoSyncConfig = async () => {
+    try {
+      const userId = userData?.id ? Number(userData.id) : null;
+      if (!userId) {
+        alert('Erro: Usuário não identificado. Faça login novamente.');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .schema('api')
+        .rpc('upsert_reativacao_config', {
+          p_view_name: viewName,
+          p_funnel_id: sprinthubFunnelId ? Number(sprinthubFunnelId) : null,
+          p_column_id: sprinthubEtapa ? Number(sprinthubEtapa) : null,
+          p_user_id: sprinthubVendedor ? Number(sprinthubVendedor) : null,
+          p_user_id_creator: userId,
+          p_sequence_id: sprinthubSequence ? Number(sprinthubSequence) : 0,
+          p_sprinthub_tag_id: sprinthubTagId ? Number(sprinthubTagId) : 221,
+          p_origem_opportunity: sprinthubOrigemOportunidade || 'Reativação',
+          p_tipo_compra: sprinthubTipoCompra || 'reativação',
+          p_limit_leads: autoSyncLimit ? Number(autoSyncLimit) : 200,
+          p_batch_size: sprinthubBatchSize ? Number(sprinthubBatchSize) : 50,
+          p_titulo_prefix: sprinthubTituloPrefix || 'Reativação'
+        });
+      
+      if (error) throw error;
+      
+      alert('✅ Configuração salva com sucesso!');
+      setShowAutoSyncConfig(false);
+    } catch (error) {
+      console.error('Erro ao salvar configuração:', error);
+      alert(`❌ Erro ao salvar configuração: ${error.message}`);
+    }
+  };
+
   const loadExportHistory = async (leadIds) => {
     if (!leadIds || leadIds.length === 0) return {};
     
     try {
-      const { data } = await supabase
-        .schema('api')
-        .from('historico_exportacoes')
-        .select('*')
-        .in('id_lead', leadIds)
-        .order('data_exportacao', { ascending: false });
+      // Processar em lotes de 500 para evitar limite do Supabase .in()
+      const batchSize = 500;
+      const batches = chunkArray(leadIds, batchSize);
+      const allData = [];
       
-      if (!data) return {};
+      for (const batch of batches) {
+        const { data, error } = await supabase
+          .schema('api')
+          .from('historico_exportacoes')
+          .select('*')
+          .in('id_lead', batch)
+          .order('data_exportacao', { ascending: false });
+        
+        if (error) {
+          console.warn('Erro ao buscar lote de histórico:', error);
+          continue;
+        }
+        
+        if (data && data.length > 0) {
+          allData.push(...data);
+        }
+      }
+      
+      if (allData.length === 0) return {};
       
       const history = {};
       const sprinthubFlags = {};
       leadIds.forEach(id => {
         const idStr = String(id);
         // Buscar por id_lead ou id_cliente (caso o campo seja diferente)
-        const exports = data.filter(e => {
+        const exports = allData.filter(e => {
           const eId = e.id_lead || e.id_cliente || e.id_cliente_mestre;
           return String(eId) === idStr;
         });
@@ -852,13 +1107,6 @@ const collectLeadIdsFromRows = (rows) => {
             console.log(`🔎 Após pesquisa: ${beforeSearch} → ${filteredAllData.length} registros`);
           }
           
-      // Carregar histórico de exportações para os dados filtrados (após todos os filtros)
-      const leadIds = collectLeadIdsFromRows(filteredAllData);
-      if (leadIds.length > 0) {
-        const history = await loadExportHistory(leadIds);
-        setExportHistory(prev => ({ ...prev, ...history }));
-      }
-          
           console.log(`✅ Total final após todos os filtros: ${filteredAllData.length} registros`);
           
           // Aplicar ordenação adicional se necessário
@@ -874,6 +1122,19 @@ const collectLeadIdsFromRows = (rows) => {
           // Aplicar paginação no cliente
           const totalFiltered = sorted.length;
           const paginatedData = sorted.slice(start, end + 1);
+          
+          // Carregar histórico de exportações APENAS para os dados da página atual (não todos os filtrados)
+          // Isso evita buscar histórico para 1000+ registros de uma vez
+          const leadIds = collectLeadIdsFromRows(paginatedData);
+          if (leadIds.length > 0) {
+            try {
+              const history = await loadExportHistory(leadIds);
+              setExportHistory(prev => ({ ...prev, ...history }));
+            } catch (error) {
+              console.error('Erro ao carregar histórico (não crítico):', error);
+              // Não bloquear a exibição dos dados se o histórico falhar
+            }
+          }
           
           setData(paginatedData);
           setTotalCount(totalFiltered);
@@ -1450,222 +1711,196 @@ const collectLeadIdsFromRows = (rows) => {
       return;
     }
 
-    // Validar campos obrigatórios do modal ANTES de processar
     const funnelIdValue = sprinthubFunnelId?.trim();
-    if (!funnelIdValue || funnelIdValue === '') {
+    if (!funnelIdValue) {
       setSprinthubError('Por favor, preencha o campo "Funil (ID)" no modal.');
-      setIsSendingToSprinthub(false);
       return;
     }
 
-    console.log('[ReativacaoBasePage] Valores do modal:', {
-      sprinthubFunnelId: sprinthubFunnelId,
-      sprinthubFunnelIdTrimmed: funnelIdValue,
-      sprinthubEtapa,
-      sprinthubVendedor,
-      sprinthubTagId
-    });
+    const batchSizeValue = Math.max(1, parseInt(sprinthubBatchSize, 10) || 50);
+    const batches = chunkArray(selected, batchSizeValue);
 
     setIsSendingToSprinthub(true);
     setSprinthubError(null);
+    setSprinthubProgress({
+      totalLeads: selected.length,
+      processed: 0,
+      currentBatch: 0,
+      totalBatches: batches.length,
+      batchSize: batchSizeValue,
+      batchProcessed: 0,
+      currentLeadName: ''
+    });
 
     try {
       const pedidosData = await fetchPedidosDataForRows(selected);
       const normalizedOrders = sprinthubService.normalizeOrdersFromPrime(pedidosData);
-      const results = [];
+      const allResults = [];
+      let processedCount = 0;
 
-      for (const row of selected) {
-        const clientId = row.id_prime || row.prime_id || row.id_cliente || row.id_cliente_mestre || null;
-        const leadPayload = sprinthubService.normalizeLeadFromRow(row);
-        const tagsForLead = resolveTagsForRow(row);
-        const ordersForLead = normalizedOrders.filter(order => String(order.leadPrimeId) === String(clientId));
+      const resumoConfiguracaoBase = [
+        `Funil: ${sprinthubFunnelId || SPRINTHUB_CONFIG.defaultFunnelId || '-'}`,
+        `Coluna: ${sprinthubEtapa || SPRINTHUB_CONFIG.defaultColumnId || '-'}`,
+        `Sequência: ${sprinthubSequence || SPRINTHUB_CONFIG.defaultSequenceId || '0'}`,
+        `Vendedor: ${sprinthubVendedor || SPRINTHUB_CONFIG.defaultUserId || '-'}`,
+        `Prefixo: ${sprinthubTituloPrefix || '-'}`,
+        `Tag Lead: ${sprinthubTagId || '221'}`,
+        `Origem: ${sprinthubOrigemOportunidade || '-'}`,
+        `Tipo de Compra: ${sprinthubTipoCompra || '-'}`
+      ].join(' | ');
 
-        let referencia = null;
-        if (clientId && pedidosData[clientId]) {
-          referencia = pedidosData[clientId].ultimoPedido || pedidosData[clientId].ultimoOrcamento || pedidosData[clientId].referencia || null;
-        }
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batchRows = batches[batchIndex];
+        const batchResults = [];
+        const batchLeadIds = [];
 
-        const ultimoPedidoResumo = clientId && pedidosData[clientId]?.ultimoPedido
-          ? sprinthubService.buildResumoPedido(pedidosData[clientId].ultimoPedido)
-          : '';
-        const ultimoOrcamentoResumo = clientId && pedidosData[clientId]?.ultimoOrcamento
-          ? sprinthubService.buildResumoPedido(pedidosData[clientId].ultimoOrcamento, { isOrcamento: true })
-          : '';
-        
-        // Extrair datas dos pedidos para os campos personalizados do SprintHub
-        const ultimoPedidoData = clientId && pedidosData[clientId]?.ultimoPedido?.data_criacao
-          ? pedidosData[clientId].ultimoPedido.data_criacao
-          : null;
-        const ultimoOrcamentoData = clientId && pedidosData[clientId]?.ultimoOrcamento?.data_criacao
-          ? pedidosData[clientId].ultimoOrcamento.data_criacao
-          : null;
+        setSprinthubProgress(prev => prev ? { ...prev, currentBatch: batchIndex + 1, batchProcessed: 0 } : prev);
 
-        const referenceValueRaw = referencia?.valor_total ?? ordersForLead?.[0]?.valor ?? 0;
-        const referenceValue = Number(referenceValueRaw);
+        for (const row of batchRows) {
+          const clientId = row.id_prime || row.prime_id || row.id_cliente || row.id_cliente_mestre || null;
+          const leadPayload = sprinthubService.normalizeLeadFromRow(row);
+          const tagsForLead = resolveTagsForRow(row);
+          const ordersForLead = normalizedOrders.filter(order => String(order.leadPrimeId) === String(clientId));
+          const leadName = row.nome_completo || row.nome || 'Cliente';
 
-        // Validar funnelId do modal (prioridade sobre config)
-        const funnelIdFromModal = toNumberOrUndefined(sprinthubFunnelId);
-        const funnelIdFinal = funnelIdFromModal ?? SPRINTHUB_CONFIG.defaultFunnelId;
-        
-        if (!funnelIdFinal || funnelIdFinal === null || funnelIdFinal === undefined) {
-          console.error('[ReativacaoBasePage] funnelId não configurado:', {
-            sprinthubFunnelId,
-            funnelIdFromModal,
-            defaultFunnelId: SPRINTHUB_CONFIG.defaultFunnelId,
-            envVar: import.meta.env.VITE_SPRINTHUB_FUNNEL_ID
+          setSprinthubProgress(prev => prev ? { ...prev, currentLeadName: leadName } : prev);
+
+          let referencia = null;
+          if (clientId && pedidosData[clientId]) {
+            referencia = pedidosData[clientId].ultimoPedido || pedidosData[clientId].ultimoOrcamento || pedidosData[clientId].referencia || null;
+          }
+
+          const ultimoPedidoResumo = clientId && pedidosData[clientId]?.ultimoPedido
+            ? sprinthubService.buildResumoPedido(pedidosData[clientId].ultimoPedido)
+            : '';
+          const ultimoOrcamentoResumo = clientId && pedidosData[clientId]?.ultimoOrcamento
+            ? sprinthubService.buildResumoPedido(pedidosData[clientId].ultimoOrcamento, { isOrcamento: true })
+            : '';
+
+          const ultimoPedidoData = clientId && pedidosData[clientId]?.ultimoPedido?.data_criacao
+            ? pedidosData[clientId].ultimoPedido.data_criacao
+            : null;
+          const ultimoOrcamentoData = clientId && pedidosData[clientId]?.ultimoOrcamento?.data_criacao
+            ? pedidosData[clientId].ultimoOrcamento.data_criacao
+            : null;
+
+          const referenceValueRaw = referencia?.valor_total ?? ordersForLead?.[0]?.valor ?? 0;
+          const referenceValue = Number(referenceValueRaw);
+
+          const funnelIdFromModal = toNumberOrUndefined(sprinthubFunnelId);
+          const funnelIdFinal = funnelIdFromModal ?? SPRINTHUB_CONFIG.defaultFunnelId;
+
+          if (!funnelIdFinal) {
+            throw new Error('Funil (ID) não configurado. Por favor, preencha o campo "Funil (ID)" no modal ou configure VITE_SPRINTHUB_FUNNEL_ID no .env');
+          }
+
+          const valueAsString = Number.isNaN(referenceValue) ? '0' : String(referenceValue);
+          const sequenceValue = toNumberOrUndefined(sprinthubSequence) ?? SPRINTHUB_CONFIG.defaultSequenceId;
+          const sequenceAsString = sequenceValue !== undefined && sequenceValue !== null ? String(sequenceValue) : '0';
+
+          const opportunityPayload = {
+            funnelId: funnelIdFinal,
+            title: `${sprinthubTituloPrefix || 'Reativação'} | ${leadPayload.firstname || row.nome_completo || row.nome || ''}`.trim(),
+            value: valueAsString,
+            crm_column: toNumberOrUndefined(sprinthubEtapa) ?? SPRINTHUB_CONFIG.defaultColumnId,
+            sequence: sequenceAsString,
+            status: 'open',
+            user: toNumberOrUndefined(sprinthubVendedor) ?? SPRINTHUB_CONFIG.defaultUserId,
+            fields: {},
+          };
+
+          if (clientId) {
+            opportunityPayload.fields["idprime"] = String(clientId);
+          }
+
+          if (ultimoPedidoData) {
+            try {
+              const dataPedido = ultimoPedidoData instanceof Date ? ultimoPedidoData : new Date(ultimoPedidoData);
+              if (!isNaN(dataPedido.getTime())) {
+                opportunityPayload.fields["ultimopedido"] = dataPedido.toISOString().split('T')[0];
+              }
+            } catch (e) {
+              console.warn('[ReativacaoBasePage] Erro ao converter data do pedido:', e);
+            }
+          }
+
+          if (ultimoOrcamentoData) {
+            try {
+              const dataOrcamento = ultimoOrcamentoData instanceof Date ? ultimoOrcamentoData : new Date(ultimoOrcamentoData);
+              if (!isNaN(dataOrcamento.getTime())) {
+                opportunityPayload.fields["ultimoorcamento"] = dataOrcamento.toISOString().split('T')[0];
+              }
+            } catch (e) {
+              console.warn('[ReativacaoBasePage] Erro ao converter data do orçamento:', e);
+            }
+          }
+
+          if (ultimoPedidoResumo) {
+            opportunityPayload.fields["Descricao da Formula"] = ultimoPedidoResumo;
+          }
+
+          opportunityPayload.fields["ORIGEM OPORTUNIDADE"] = sprinthubOrigemOportunidade || "Reativação";
+          opportunityPayload.fields["Tipo de Compra"] = sprinthubTipoCompra || "reativação";
+
+          let ensureResult;
+          try {
+            ensureResult = await sprinthubService.ensureLeadAndOpportunity({
+              lead: leadPayload,
+              opportunity: opportunityPayload,
+              tags: tagsForLead,
+              orders: ordersForLead,
+              reativacaoTagId: toNumberOrUndefined(sprinthubTagId) || 221,
+              rowData: row,
+            });
+          } catch (error) {
+            console.error('[ReativacaoBasePage] Erro ao enviar lead individual para SprintHub:', error);
+            ensureResult = { errors: [{ message: error?.message || 'Erro ao enviar lead' }] };
+          }
+
+          const leadIdentifier = getLeadIdentifier(row);
+          batchResults.push({
+            id: leadIdentifier,
+            nome: leadName,
+            ensureResult,
           });
-          throw new Error('Funil (ID) não configurado. Por favor, preencha o campo "Funil (ID)" no modal ou configure VITE_SPRINTHUB_FUNNEL_ID no .env');
-        }
-
-        // Converter value para string (como a SprintHub espera, baseado nas oportunidades existentes)
-        const valueAsString = Number.isNaN(referenceValue) ? '0' : String(referenceValue);
-        
-        // A SprintHub espera sequence como STRING, não número (testado e confirmado)
-        const sequenceValue = toNumberOrUndefined(sprinthubSequence) ?? SPRINTHUB_CONFIG.defaultSequenceId;
-        const sequenceAsString = sequenceValue !== undefined && sequenceValue !== null 
-          ? String(sequenceValue) 
-          : '0';
-        
-        const opportunityPayload = {
-          funnelId: funnelIdFinal,
-          title: `${sprinthubTituloPrefix || 'Reativação'} | ${leadPayload.firstname || row.nome_completo || row.nome || ''}`.trim(),
-          value: valueAsString, // SprintHub espera string, não número
-          crm_column: toNumberOrUndefined(sprinthubEtapa) ?? SPRINTHUB_CONFIG.defaultColumnId,
-          sequence: sequenceAsString, // SprintHub espera STRING, não número
-          status: 'open',
-          user: toNumberOrUndefined(sprinthubVendedor) ?? SPRINTHUB_CONFIG.defaultUserId,
-          fields: {},
-        };
-
-        // Campos personalizados do SprintHub (nomes exatos conforme a configuração):
-        // - "idprime" (Texto) - ID do cliente no Prime
-        // - "ultimopedido" (Data) - Data do último pedido
-        // - "ultimoorcamento" (Data) - Data do último orçamento
-        // - "Descricao da Formula" (Texto) - Descrição/resumo do pedido
-        
-        if (clientId) {
-          opportunityPayload.fields["idprime"] = String(clientId);
-        }
-        
-        // Se tiver data do último pedido, enviar como data (formato ISO)
-        if (ultimoPedidoData) {
-          // Se for string, tentar converter para Date e depois para ISO
-          try {
-            const dataPedido = ultimoPedidoData instanceof Date 
-              ? ultimoPedidoData 
-              : new Date(ultimoPedidoData);
-            if (!isNaN(dataPedido.getTime())) {
-              opportunityPayload.fields["ultimopedido"] = dataPedido.toISOString().split('T')[0]; // YYYY-MM-DD
-            }
-          } catch (e) {
-            console.warn('[ReativacaoBasePage] Erro ao converter data do pedido:', e);
+          if (leadIdentifier) {
+            batchLeadIds.push(leadIdentifier);
           }
+
+          processedCount += 1;
+          setSprinthubProgress(prev => prev ? {
+            ...prev,
+            processed: processedCount,
+            batchProcessed: (prev.batchProcessed || 0) + 1,
+          } : prev);
         }
-        
-        // Se tiver data do último orçamento, enviar como data (formato ISO)
-        if (ultimoOrcamentoData) {
-          try {
-            const dataOrcamento = ultimoOrcamentoData instanceof Date 
-              ? ultimoOrcamentoData 
-              : new Date(ultimoOrcamentoData);
-            if (!isNaN(dataOrcamento.getTime())) {
-              opportunityPayload.fields["ultimoorcamento"] = dataOrcamento.toISOString().split('T')[0]; // YYYY-MM-DD
-            }
-          } catch (e) {
-            console.warn('[ReativacaoBasePage] Erro ao converter data do orçamento:', e);
-          }
-        }
-        
-        // Usar "Descricao da Formula" para o resumo do pedido (se disponível)
-        if (ultimoPedidoResumo) {
-          opportunityPayload.fields["Descricao da Formula"] = ultimoPedidoResumo;
-        }
-        
-        // Campos padrão da SprintHub (usar valores do modal)
-        opportunityPayload.fields["ORIGEM OPORTUNIDADE"] = sprinthubOrigemOportunidade || "Reativação";
-        opportunityPayload.fields["Tipo de Compra"] = sprinthubTipoCompra || "reativação";
-        // QUALIFICACAO removido conforme solicitado
-        
-        // Log para debug
-        console.log('[ReativacaoBasePage] Payload da oportunidade:', {
-          funnelId: opportunityPayload.funnelId,
-          title: opportunityPayload.title,
-          value: opportunityPayload.value,
-          crm_column: opportunityPayload.crm_column,
-          sequence: opportunityPayload.sequence,
-          sequenceType: typeof opportunityPayload.sequence,
-          user: opportunityPayload.user,
-          fields: opportunityPayload.fields,
-          totalFields: Object.keys(opportunityPayload.fields).length,
-          todosOsFields: Object.keys(opportunityPayload.fields)
-        });
 
-        const ensureResult = await sprinthubService.ensureLeadAndOpportunity({
-          lead: leadPayload,
-          opportunity: opportunityPayload,
-          tags: tagsForLead,
-          orders: ordersForLead,
-          reativacaoTagId: toNumberOrUndefined(sprinthubTagId) || 221,
-          rowData: row, // Passar dados da linha para salvar id_sprinthub
-        });
+        allResults.push(...batchResults);
 
-        const leadIdentifier = getLeadIdentifier(row);
-        results.push({
-          id: leadIdentifier,
-          nome: row.nome_completo || row.nome || 'Cliente',
-          ensureResult,
-        });
-      }
-
-      setSprinthubResults(results);
-
-      // Registrar no histórico de exportações
-      try {
-        const leadIds = Array.from(
-          new Set(
-            results
-              .map(r => r?.id)
-              .filter(id => id !== null && id !== undefined)
-          )
-        );
-        if (leadIds.length > 0) {
-          const successCount = results.filter(r => r.ensureResult?.lead?.id && !r.ensureResult?.errors?.length).length;
-          const errorCount = results.length - successCount;
-
-          const resumoConfiguracao = [
-            `Funil: ${sprinthubFunnelId || SPRINTHUB_CONFIG.defaultFunnelId || '-'}`,
-            `Coluna: ${sprinthubEtapa || SPRINTHUB_CONFIG.defaultColumnId || '-'}`,
-            `Sequência: ${sprinthubSequence || SPRINTHUB_CONFIG.defaultSequenceId || '0'}`,
-            `Vendedor: ${sprinthubVendedor || SPRINTHUB_CONFIG.defaultUserId || '-'}`,
-            `Prefixo: ${sprinthubTituloPrefix || '-'}`,
-            `Tag Lead: ${sprinthubTagId || '221'}`,
-            `Origem: ${sprinthubOrigemOportunidade || '-'}`,
-            `Tipo de Compra: ${sprinthubTipoCompra || '-'}`
-          ].join(' | ');
-
-          const observacaoSprintHub = `${resumoConfiguracao} | Enviados: ${successCount} | Erros: ${errorCount}`;
-          const motivoSprintHub = 'WHATSAPI'; // manter motivo permitido pela tabela; detalhes ficam na observação
+        if (batchLeadIds.length > 0) {
+          const successCountBatch = batchResults.filter(r => r.ensureResult?.lead?.id && !r.ensureResult?.errors?.length).length;
+          const errorCountBatch = batchResults.length - successCountBatch;
+          const observacaoSprintHub = `${resumoConfiguracaoBase} | Lote ${batchIndex + 1}/${batches.length} | Enviados: ${successCountBatch} | Erros: ${errorCountBatch}`;
+          const motivoSprintHub = 'WHATSAPI';
           const tagHistoricoSprintHub = buildSprinthubHistoryTagValue(sprinthubTagId);
-          
-          await registerExport(
-            leadIds,
-            motivoSprintHub,
-            observacaoSprintHub,
-            tagHistoricoSprintHub
-          );
 
-          const newFlags = {};
-          leadIds.forEach(id => {
-            if (id) newFlags[String(id)] = true;
-          });
-          if (Object.keys(newFlags).length > 0) {
-            setSprinthubExportFlags(prev => ({ ...prev, ...newFlags }));
+          try {
+            await registerExport(batchLeadIds, motivoSprintHub, observacaoSprintHub, tagHistoricoSprintHub);
+            loadAvailableExportTags();
+            const newFlags = {};
+            batchLeadIds.forEach(id => {
+              if (id) newFlags[String(id)] = true;
+            });
+            if (Object.keys(newFlags).length > 0) {
+              setSprinthubExportFlags(prev => ({ ...prev, ...newFlags }));
+            }
+          } catch (histError) {
+            console.warn('Erro ao registrar histórico do lote SprintHub:', histError);
           }
         }
-      } catch (histError) {
-        console.warn('Erro ao registrar histórico de envio para SprintHub:', histError);
       }
 
+      setSprinthubResults(allResults);
       setSelectedRows([]);
       await loadData();
     } catch (error) {
@@ -1673,6 +1908,7 @@ const collectLeadIdsFromRows = (rows) => {
       setSprinthubError(error.message || 'Erro ao enviar dados para a SprintHub.');
     } finally {
       setIsSendingToSprinthub(false);
+      setSprinthubProgress(null);
     }
   };
 
@@ -3256,6 +3492,15 @@ const collectLeadIdsFromRows = (rows) => {
               />
               <span>Nota</span>
             </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: '#e0e7ff', fontSize: '14px' }}>
+              <input
+                type="checkbox"
+                checked={visibleColumns.crm_status}
+                onChange={(e) => setVisibleColumns(v => ({ ...v, crm_status: e.target.checked }))}
+                style={{ cursor: 'pointer' }}
+              />
+              <span>Status CRM</span>
+            </label>
           </div>
         )}
       </div>
@@ -3891,6 +4136,89 @@ const collectLeadIdsFromRows = (rows) => {
       },
       { header: 'Origens', key: 'origens', render: (row) => renderOriginsBadges(row) },
       { 
+        header: 'Status CRM', 
+        key: 'crm_status', 
+        render: (row) => {
+          const leadId = row.id_sprinthub || row.id_sprint || null;
+          if (!leadId) return <span style={{ color: '#9ca3af' }}>-</span>;
+          
+          const status = crmStatusMap[leadId];
+          const isLoading = loadingCrmStatus[leadId];
+          
+          // Sempre mostrar ícone de funil - ao clicar, busca e abre modal
+          return (
+            <button
+              onClick={async (e) => {
+                e.stopPropagation();
+                
+                // Se já tem status carregado, apenas abre o modal
+                if (status) {
+                  setSelectedLeadForCrmStatus({
+                    leadId,
+                    nome: row.nome_completo || 'Cliente'
+                  });
+                  setShowCrmStatusModal(true);
+                } else {
+                  // Se não tem, busca primeiro e depois abre
+                  setSelectedLeadForCrmStatus({
+                    leadId,
+                    nome: row.nome_completo || 'Cliente'
+                  });
+                  await fetchCrmStatus(leadId);
+                  // Aguardar um pouco para o estado atualizar e abrir modal
+                  setTimeout(() => {
+                    setShowCrmStatusModal(true);
+                  }, 300);
+                }
+              }}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: isLoading ? 'wait' : 'pointer',
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                opacity: isLoading ? 0.5 : 1,
+                transition: 'opacity 0.2s'
+              }}
+              title={isLoading 
+                ? 'Carregando...' 
+                : status 
+                  ? `Clique para ver funis: ${status.status}`
+                  : 'Clique para buscar status CRM'}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <AiOutlineLoading3Quarters 
+                  style={{ 
+                    color: '#9ca3af', 
+                    fontSize: '18px',
+                    animation: 'spin 1s linear infinite'
+                  }} 
+                />
+              ) : status?.hasOpportunities ? (
+                <HiFunnel 
+                  style={{ 
+                    color: '#10b981', 
+                    fontSize: '20px',
+                    transition: 'color 0.2s'
+                  }} 
+                />
+              ) : (
+                <HiOutlineFunnel 
+                  style={{ 
+                    color: '#9ca3af', 
+                    fontSize: '20px',
+                    transition: 'color 0.2s'
+                  }} 
+                />
+              )}
+            </button>
+          );
+        }
+      },
+      { 
         header: 'Cidade/Estado', 
         key: 'cidade_estado', 
         render: (row) => {
@@ -3918,22 +4246,23 @@ const collectLeadIdsFromRows = (rows) => {
     // Calcular largura mínima baseada nas colunas visíveis
     const calculateMinWidth = () => {
       const columnWidths = {
-        checkbox: 24,
-        exportado: 20,
-        duplicatas: 25,
-        nome: 120,
-        email: 40,
-        whatsapp: 50,
-        cpf: 30,
-        total_compras: 50,
-        dias_ultima_compra: 50,
-        origens: 40,
-        cidade_estado: 80, // Coluna combinada
-        cidade: 50,
-        estado: 50,
-        sexo: 50,
-        data_nascimento: 50,
-        qualidade: 50
+        checkbox: 50,
+        exportado: 60,
+        duplicatas: 60,
+        nome: 200,
+        email: 80, // Reduzido
+        whatsapp: 120,
+        cpf: 80, // Reduzido
+        total_compras: 70, // Reduzido
+        dias_ultima_compra: 90, // Reduzido
+        origens: 100,
+        cidade_estado: 140, // Coluna combinada
+        cidade: 110,
+        estado: 60, // Reduzido
+        sexo: 50, // Reduzido
+        data_nascimento: 100,
+        qualidade: 80,
+        crm_status: 70 // Status CRM - Reduzido
       };
 
       let totalWidth = 0;
@@ -3951,7 +4280,13 @@ const collectLeadIdsFromRows = (rows) => {
         }
       });
       
-      return totalWidth || 1600; // Mínimo de 1600px se não houver colunas
+      // Padding reduzido para evitar scroll desnecessário
+      const padding = 50;
+      const calculatedWidth = totalWidth > 0 ? totalWidth + padding : 1600;
+      
+      // Sempre retornar a largura calculada, mas usar 100% no estilo quando mostrar todas
+      // A largura mínima será usada apenas para garantir que não fique muito espremido
+      return calculatedWidth;
     };
 
     const minTableWidth = calculateMinWidth();
@@ -3988,7 +4323,7 @@ const collectLeadIdsFromRows = (rows) => {
     return (
       <div style={{ position: 'relative', width: '100%' }}>
         {/* Barra de rolagem horizontal no topo - mesma cor da de baixo */}
-        {needsHorizontalScroll && (
+        {needsHorizontalScroll && showAllColumns && minTableWidth && (
           <div
             ref={topScrollRef}
             className="cc-top-scrollbar"
@@ -4010,15 +4345,24 @@ const collectLeadIdsFromRows = (rows) => {
             <div style={{ height: '1px', minWidth: `${minTableWidth}px` }}></div>
           </div>
         )}
-        <div className="cc-table-wrapper" ref={tableWrapperRef} style={{ width: '100%', overflowX: 'auto' }}>
-          <table className="cc-table cc-table-list" style={{ minWidth: `${minTableWidth}px` }}>
+        <div className="cc-table-wrapper" ref={tableWrapperRef} style={{ width: '100%', overflowX: showAllColumns && minTableWidth ? 'auto' : 'hidden', overflowY: 'visible', display: 'block' }}>
+          <table 
+            className="cc-table cc-table-list" 
+            style={showAllColumns && minTableWidth
+              ? { minWidth: `${minTableWidth}px`, width: '100%', maxWidth: '100%', tableLayout: 'fixed' }
+              : { width: '100%', tableLayout: 'auto' }
+            }
+          >
           <thead>
             <tr>
               {columns.map((col, idx) => {
                 // Se for checkbox, renderizar checkbox de seleção no header
                 if (col.isCheckbox && isSupervisor) {
+                  const checkboxStyle = showAllColumns 
+                    ? { minWidth: '50px', width: '50px', textAlign: 'center' }
+                    : { width: '50px', textAlign: 'center' }; // Largura fixa pequena sempre
                   return (
-                    <th key={idx}>
+                    <th key={idx} style={checkboxStyle}>
                       <input
                         type="checkbox"
                         checked={data.length > 0 && selectedRows.length === data.length}
@@ -4033,8 +4377,34 @@ const collectLeadIdsFromRows = (rows) => {
                   );
                 }
                 // Se não for checkbox, renderizar header normal
+                const columnWidths = {
+                  checkbox: 50,
+                  exportado: 60,
+                  duplicatas: 60,
+                  nome: 200,
+                  email: 80,
+                  whatsapp: 120,
+                  cpf: 80,
+                  total_compras: 70,
+                  dias_ultima_compra: 90,
+                  origens: 100,
+                  cidade_estado: 140,
+                  cidade: 110,
+                  estado: 60,
+                  sexo: 50,
+                  data_nascimento: 100,
+                  qualidade: 80,
+                  crm_status: 70
+                };
+                const colWidth = col.key ? (columnWidths[col.key] || 100) : 100;
+                
+                // Se não estiver mostrando todas as colunas, não fixar largura (usar auto)
+                const thStyle = showAllColumns 
+                  ? { minWidth: `${colWidth}px`, width: `${colWidth}px` }
+                  : {}; // Deixar CSS controlar quando não está mostrando todas
+                
                 return (
-                  <th key={idx}>
+                  <th key={idx} style={thStyle}>
                     {col.sortField || col.field ? (
                       <button
                         className="cc-table-sortable"
@@ -4098,10 +4468,36 @@ const collectLeadIdsFromRows = (rows) => {
                     } : {}}
                   >
                     {columns.map((col, colIdx) => {
+                      // Calcular largura da coluna
+                      const columnWidths = {
+                        checkbox: 50,
+                        exportado: 60,
+                        duplicatas: 60,
+                        nome: 200,
+                        email: 80,
+                        whatsapp: 120,
+                        cpf: 80,
+                        total_compras: 70,
+                        dias_ultima_compra: 90,
+                        origens: 100,
+                        cidade_estado: 140,
+                        cidade: 110,
+                        estado: 60,
+                        sexo: 50,
+                        data_nascimento: 100,
+                        qualidade: 80,
+                        crm_status: 70
+                      };
+                      const colWidth = col.key ? (columnWidths[col.key] || 100) : 100;
+                      // Se não estiver mostrando todas as colunas, não fixar largura (usar auto)
+                      const cellStyle = showAllColumns 
+                        ? { minWidth: `${colWidth}px`, width: `${colWidth}px` }
+                        : {}; // Deixar CSS controlar quando não está mostrando todas
+                      
                       // Se for checkbox, renderizar checkbox de seleção
                       if (col.isCheckbox && isSupervisor) {
                         return (
-                          <td key={colIdx}>
+                          <td key={colIdx} style={{ ...cellStyle, textAlign: 'center' }}>
                             <input
                               type="checkbox"
                               checked={selectedRows.includes(idx)}
@@ -4151,7 +4547,7 @@ const collectLeadIdsFromRows = (rows) => {
                       }
                       // Se não for checkbox, renderizar célula normal
                       return (
-                        <td key={colIdx} onClick={(e) => {
+                        <td key={colIdx} style={cellStyle} onClick={(e) => {
                           if (e.target.tagName === 'BUTTON' || e.target.tagName === 'A' || e.target.closest('button') || e.target.closest('a')) {
                             e.stopPropagation();
                           }
@@ -4255,6 +4651,19 @@ const collectLeadIdsFromRows = (rows) => {
                 >
                   🚀 Enviar SprintHub
                 </button>
+                {isSupervisor && (
+                  <button
+                    className="cc-btn cc-btn-small"
+                    onClick={async () => {
+                      await loadAutoSyncConfig();
+                      setShowAutoSyncConfig(true);
+                    }}
+                    style={{ backgroundColor: '#7c3aed', color: 'white' }}
+                    title="Configurar envio automático"
+                  >
+                    ⚙️ Config. Automático
+                  </button>
+                )}
                 <button 
                   className="cc-btn cc-btn-export" 
                   onClick={() => {
@@ -4496,6 +4905,17 @@ const collectLeadIdsFromRows = (rows) => {
                       />
                     </label>
                     <label className="cc-field">
+                      <span>Tamanho do lote</span>
+                      <input
+                        type="number"
+                        min={1}
+                        className="cc-input"
+                        value={sprinthubBatchSize}
+                        onChange={(e) => setSprinthubBatchSize(e.target.value)}
+                      />
+                      <small style={{ color: '#94a3b8' }}>Quantidade de leads enviados por vez (padrão 50)</small>
+                    </label>
+                    <label className="cc-field">
                       <span>ID do Vendedor</span>
                       <input
                         type="number"
@@ -4572,6 +4992,33 @@ const collectLeadIdsFromRows = (rows) => {
                   {isSendingToSprinthub && (
                     <div style={{ marginBottom: '12px', color: '#2563eb' }}>
                       Enviando dados para a SprintHub. Aguarde...
+                    </div>
+                  )}
+                  {sprinthubProgress && (
+                    <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', backgroundColor: '#0f172a', border: '1px solid rgba(37, 99, 235, 0.4)' }}>
+                      <div style={{ fontWeight: 600, color: '#60a5fa', marginBottom: '8px' }}>
+                        Processando lote {sprinthubProgress.currentBatch}/{sprinthubProgress.totalBatches}
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#cbd5f5', marginBottom: '6px' }}>
+                        Leads processados: {sprinthubProgress.processed} / {sprinthubProgress.totalLeads}
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#cbd5f5', marginBottom: '6px' }}>
+                        Lote atual: {sprinthubProgress.batchProcessed || 0} / {sprinthubProgress.batchSize}
+                      </div>
+                      {sprinthubProgress.currentLeadName && (
+                        <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '6px' }}>
+                          Lead atual: {sprinthubProgress.currentLeadName}
+                        </div>
+                      )}
+                      <div style={{ width: '100%', height: '10px', backgroundColor: '#1e293b', borderRadius: '999px', overflow: 'hidden' }}>
+                        <div
+                          style={{
+                            width: `${Math.min(100, Math.round((sprinthubProgress.processed / sprinthubProgress.totalLeads) * 100))}%`,
+                            height: '100%',
+                            background: 'linear-gradient(90deg, #3b82f6, #a855f7)',
+                          }}
+                        />
+                      </div>
                     </div>
                   )}
                 </>
@@ -4681,6 +5128,122 @@ const collectLeadIdsFromRows = (rows) => {
                     Fechar
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Configuração de Envio Automático */}
+        {showAutoSyncConfig && isSupervisor && (
+          <div className="cc-modal-overlay" onClick={() => setShowAutoSyncConfig(false)}>
+            <div className="cc-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+              <h3>⚙️ Configuração de Envio Automático</h3>
+              <p style={{ marginBottom: '16px', color: '#94a3b8', fontSize: '13px' }}>
+                Configure os parâmetros para o envio automático diário de leads para o SprintHub.
+                O cron job do Supabase chamará o endpoint <code>/api/reativacao/cron-sync</code> uma vez por dia.
+                As configurações são salvas por view ({viewName}).
+              </p>
+
+              <div style={{ display: 'grid', gap: '12px', marginBottom: '16px' }}>
+                <label className="cc-field">
+                  <span>Funil (ID)</span>
+                  <input
+                    type="number"
+                    className="cc-input"
+                    value={sprinthubFunnelId}
+                    onChange={(e) => setSprinthubFunnelId(e.target.value)}
+                    placeholder={SPRINTHUB_CONFIG.defaultFunnelId || 'Ex: 14'}
+                  />
+                </label>
+                <label className="cc-field">
+                  <span>Coluna/Etapa (ID)</span>
+                  <input
+                    type="number"
+                    className="cc-input"
+                    value={sprinthubEtapa}
+                    onChange={(e) => setSprinthubEtapa(e.target.value)}
+                    placeholder={SPRINTHUB_CONFIG.defaultColumnId || 'Ex: 167'}
+                  />
+                </label>
+                <label className="cc-field">
+                  <span>ID da Tag de Reativação</span>
+                  <input
+                    type="number"
+                    className="cc-input"
+                    value={sprinthubTagId}
+                    onChange={(e) => setSprinthubTagId(e.target.value)}
+                    placeholder="Ex: 221"
+                  />
+                </label>
+                <label className="cc-field">
+                  <span>ID do Vendedor</span>
+                  <input
+                    type="number"
+                    className="cc-input"
+                    value={sprinthubVendedor}
+                    onChange={(e) => setSprinthubVendedor(e.target.value)}
+                    placeholder={SPRINTHUB_CONFIG.defaultUserId || 'Ex: 229'}
+                  />
+                </label>
+                <label className="cc-field">
+                  <span>Limite de Leads por Execução</span>
+                  <input
+                    type="number"
+                    className="cc-input"
+                    value={autoSyncLimit}
+                    onChange={(e) => setAutoSyncLimit(e.target.value)}
+                    placeholder="200"
+                  />
+                  <small style={{ color: '#94a3b8' }}>Quantidade máxima de leads processados por execução do cron</small>
+                </label>
+                <label className="cc-field">
+                  <span>Tamanho do Lote</span>
+                  <input
+                    type="number"
+                    className="cc-input"
+                    value={sprinthubBatchSize}
+                    onChange={(e) => setSprinthubBatchSize(e.target.value)}
+                    placeholder="50"
+                  />
+                  <small style={{ color: '#94a3b8' }}>Quantidade de leads enviados por vez (evita timeouts)</small>
+                </label>
+              </div>
+
+              <div style={{ 
+                backgroundColor: '#0f172a', 
+                padding: '12px', 
+                borderRadius: '8px', 
+                marginBottom: '16px',
+                border: '1px solid rgba(59, 130, 246, 0.3)'
+              }}>
+                <div style={{ fontWeight: 600, marginBottom: '8px', color: '#60a5fa' }}>
+                  📋 Como Configurar o Cron no Supabase
+                </div>
+                <div style={{ fontSize: '12px', color: '#cbd5f5', lineHeight: '1.6' }}>
+                  <ol style={{ marginLeft: '20px', marginTop: '8px' }}>
+                    <li>Acesse o Supabase Dashboard</li>
+                    <li>Vá em Database → Cron Jobs</li>
+                    <li>Crie um novo cron job com:</li>
+                    <ul style={{ marginLeft: '20px', marginTop: '4px' }}>
+                      <li><strong>Schedule:</strong> <code>0 8 * * *</code> (executa diariamente às 8h)</li>
+                      <li><strong>Command:</strong> <code>curl -X POST https://seu-dominio.com/api/reativacao/cron-sync -H "Authorization: Bearer SEU_TOKEN" -H "Content-Type: application/json"</code></li>
+                    </ul>
+                    <li>Configure a variável <code>REATIVACAO_SYNC_TOKEN</code> no seu servidor</li>
+                  </ol>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button className="cc-btn" onClick={() => setShowAutoSyncConfig(false)}>
+                  Cancelar
+                </button>
+                <button 
+                  className="cc-btn cc-btn-primary" 
+                  onClick={saveAutoSyncConfig}
+                  style={{ backgroundColor: '#10b981' }}
+                >
+                  💾 Salvar Configuração
+                </button>
               </div>
             </div>
           </div>
@@ -5012,6 +5575,258 @@ const collectLeadIdsFromRows = (rows) => {
             </div>
           </div>
         )}
+
+        {/* Modal de Status CRM - Funis e Oportunidades */}
+        {showCrmStatusModal && selectedLeadForCrmStatus && (() => {
+          const leadId = selectedLeadForCrmStatus.leadId;
+          const status = crmStatusMap[leadId];
+          
+          if (!status || !status.hasOpportunities) {
+            return (
+              <div className="cc-modal-overlay" onClick={() => setShowCrmStatusModal(false)}>
+                <div className="cc-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+                  <div className="cc-modal-header" style={{ flexShrink: 0 }}>
+                    <h3>Status CRM - {selectedLeadForCrmStatus.nome}</h3>
+                    <button
+                      className="cc-btn-close"
+                      onClick={() => setShowCrmStatusModal(false)}
+                      style={{ background: 'transparent', border: 'none', color: '#e0e7ff', cursor: 'pointer', fontSize: '24px', padding: '0', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="cc-modal-content" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+                    <p style={{ color: '#94a3b8', textAlign: 'center', padding: '20px' }}>
+                      {status ? status.status : 'Carregando...'}
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px', borderTop: '1px solid #334155', flexShrink: 0 }}>
+                    <button className="cc-btn" onClick={() => setShowCrmStatusModal(false)}>
+                      Fechar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+          
+          return (
+            <div className="cc-modal-overlay" onClick={() => setShowCrmStatusModal(false)}>
+              <div className="cc-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', width: '95%', height: '95vh', maxHeight: '95vh', display: 'flex', flexDirection: 'column', padding: '0' }}>
+                <div className="cc-modal-header" style={{ flexShrink: 0, padding: '16px 20px' }}>
+                  <h3>🎯 Status CRM - {selectedLeadForCrmStatus.nome}</h3>
+                  <button
+                    className="cc-btn-close"
+                    onClick={() => setShowCrmStatusModal(false)}
+                    style={{ background: 'transparent', border: 'none', color: '#e0e7ff', cursor: 'pointer', fontSize: '24px', padding: '0', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    ×
+                  </button>
+                </div>
+                <div className="cc-modal-content" style={{ flex: '1 1 0', overflowY: 'auto', overflowX: 'hidden', minHeight: '0', padding: '16px 20px', WebkitOverflowScrolling: 'touch' }}>
+                  {/* Resumo */}
+                  <div style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+                    gap: '12px', 
+                    marginBottom: '20px' 
+                  }}>
+                    <div style={{ 
+                      backgroundColor: '#10b98120', 
+                      border: '1px solid #10b981', 
+                      borderRadius: '8px', 
+                      padding: '12px',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ color: '#10b981', fontSize: '24px', fontWeight: 'bold' }}>
+                        {status.totalOpen || 0}
+                      </div>
+                      <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>
+                        Aberta(s)
+                      </div>
+                    </div>
+                    <div style={{ 
+                      backgroundColor: '#3b82f620', 
+                      border: '1px solid #3b82f6', 
+                      borderRadius: '8px', 
+                      padding: '12px',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ color: '#3b82f6', fontSize: '24px', fontWeight: 'bold' }}>
+                        {status.totalGain || 0}
+                      </div>
+                      <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>
+                        Ganha(s)
+                      </div>
+                    </div>
+                    <div style={{ 
+                      backgroundColor: '#ef444420', 
+                      border: '1px solid #ef4444', 
+                      borderRadius: '8px', 
+                      padding: '12px',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ color: '#ef4444', fontSize: '24px', fontWeight: 'bold' }}>
+                        {status.totalLost || 0}
+                      </div>
+                      <div style={{ color: '#94a3b8', fontSize: '12px', marginTop: '4px' }}>
+                        Perdida(s)
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Funis agrupados por status */}
+                  {status.funis && status.funis.length > 0 && status.funis.map((funil) => (
+                    <div key={funil.id} style={{ 
+                      marginBottom: '24px', 
+                      border: '1px solid #334155', 
+                      borderRadius: '8px', 
+                      overflow: 'visible'
+                    }}>
+                      <div style={{ 
+                        backgroundColor: '#1e293b', 
+                        padding: '12px 16px', 
+                        borderBottom: '1px solid #334155',
+                        fontWeight: '600',
+                        color: '#e0e7ff',
+                        borderRadius: '8px 8px 0 0'
+                      }}>
+                        {funil.name} (ID: {funil.id})
+                      </div>
+                      
+                      <div style={{ padding: '16px', overflow: 'visible' }}>
+                        {/* Oportunidades Abertas */}
+                        {funil.open && funil.open.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ 
+                              color: '#10b981', 
+                              fontWeight: '600', 
+                              marginBottom: '8px',
+                              fontSize: '14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px'
+                            }}>
+                              <span>🟢</span> <span>Abertas ({funil.open.length})</span>
+                            </div>
+                            <div style={{ 
+                              backgroundColor: '#0f172a', 
+                              borderRadius: '6px', 
+                              padding: '8px',
+                              border: '1px solid #10b98130'
+                            }}>
+                              {funil.open.map((opp, idx) => (
+                                <div key={opp.id || idx} style={{ 
+                                  padding: '8px', 
+                                  marginBottom: idx < funil.open.length - 1 ? '8px' : '0',
+                                  borderBottom: idx < funil.open.length - 1 ? '1px solid #1e293b' : 'none',
+                                  fontSize: '12px'
+                                }}>
+                                  <div style={{ color: '#cbd5e1', fontWeight: '500' }}>{opp.title}</div>
+                                  <div style={{ color: '#94a3b8', fontSize: '11px', marginTop: '4px' }}>
+                                    Etapa: {opp.crm_column} | Criada: {opp.create_date ? new Date(opp.create_date).toLocaleDateString('pt-BR') : '-'}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Oportunidades Ganhas */}
+                        {funil.gain && funil.gain.length > 0 && (
+                          <div style={{ marginBottom: '16px' }}>
+                            <div style={{ 
+                              color: '#3b82f6', 
+                              fontWeight: '600', 
+                              marginBottom: '8px',
+                              fontSize: '14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px'
+                            }}>
+                              <span>🔵</span> <span>Ganhas ({funil.gain.length})</span>
+                            </div>
+                            <div style={{ 
+                              backgroundColor: '#0f172a', 
+                              borderRadius: '6px', 
+                              padding: '8px',
+                              border: '1px solid #3b82f630'
+                            }}>
+                              {funil.gain.map((opp, idx) => (
+                                <div key={opp.id || idx} style={{ 
+                                  padding: '8px', 
+                                  marginBottom: idx < funil.gain.length - 1 ? '8px' : '0',
+                                  borderBottom: idx < funil.gain.length - 1 ? '1px solid #1e293b' : 'none',
+                                  fontSize: '12px'
+                                }}>
+                                  <div style={{ color: '#cbd5e1', fontWeight: '500' }}>{opp.title}</div>
+                                  <div style={{ color: '#94a3b8', fontSize: '11px', marginTop: '4px' }}>
+                                    Etapa: {opp.crm_column} | Criada: {opp.create_date ? new Date(opp.create_date).toLocaleDateString('pt-BR') : '-'}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Oportunidades Perdidas */}
+                        {funil.lost && funil.lost.length > 0 && (
+                          <div style={{ marginBottom: '0' }}>
+                            <div style={{ 
+                              color: '#ef4444', 
+                              fontWeight: '600', 
+                              marginBottom: '8px',
+                              fontSize: '14px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px'
+                            }}>
+                              <span>🔴</span> <span>Perdidas ({funil.lost.length})</span>
+                            </div>
+                            <div style={{ 
+                              backgroundColor: '#0f172a', 
+                              borderRadius: '6px', 
+                              padding: '8px',
+                              border: '1px solid #ef444430'
+                            }}>
+                              {funil.lost.map((opp, idx) => (
+                                <div key={opp.id || idx} style={{ 
+                                  padding: '8px', 
+                                  marginBottom: idx < funil.lost.length - 1 ? '8px' : '0',
+                                  borderBottom: idx < funil.lost.length - 1 ? '1px solid #1e293b' : 'none',
+                                  fontSize: '12px'
+                                }}>
+                                  <div style={{ color: '#cbd5e1', fontWeight: '500' }}>{opp.title}</div>
+                                  <div style={{ color: '#94a3b8', fontSize: '11px', marginTop: '4px' }}>
+                                    Etapa: {opp.crm_column} | Criada: {opp.create_date ? new Date(opp.create_date).toLocaleDateString('pt-BR') : '-'}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {(!status.funis || status.funis.length === 0) && (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                      Nenhum funil encontrado.
+                    </div>
+                  )}
+                  
+                  {/* Espaço extra no final para garantir que o último item não seja cortado */}
+                  <div style={{ height: '20px', flexShrink: 0 }}></div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 20px', borderTop: '1px solid #334155', flexShrink: 0, backgroundColor: '#0f172a' }}>
+                  <button className="cc-btn" onClick={() => setShowCrmStatusModal(false)}>
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

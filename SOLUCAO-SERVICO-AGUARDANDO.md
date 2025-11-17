@@ -124,6 +124,29 @@ Antes de considerar o problema resolvido, verifique:
 
 ---
 
+## 🔄 Redeploy manual via Docker Swarm (EasyPanel / sprint-sync)
+
+Se o botão **Deploy** do EasyPanel não trouxer a imagem mais recente, execute o redeploy manual via SSH na VPS:
+
+```bash
+ssh root@<seu-servidor>
+cd /etc/easypanel/projects/sprint-sync
+docker service scale sprint-sync_sincronizacao=0 && \
+sleep 5 && \
+docker service update --image easypanel/sprint-sync/sincronizacao:latest sprint-sync_sincronizacao --force && \
+docker service scale sprint-sync_sincronizacao=1
+```
+
+**O que cada passo faz:**
+1. Escala o serviço para 0 para derrubar a instância antiga.
+2. Aguarda 5s para liberar recursos.
+3. Atualiza o serviço usando a imagem `easypanel/sprint-sync/sincronizacao:latest` (gerada pelo EasyPanel) e força o redeploy.
+4. Escala novamente para 1, subindo a instância já com o build mais recente.
+
+> 💡 Após rodar o comando, valide com `docker service logs -f sprint-sync_sincronizacao` ou chamando `/health` para garantir que a nova versão está ativa.
+
+---
+
 ## 📞 Se Nada Funcionar
 
 Se após seguir todos os passos o serviço ainda não iniciar:
