@@ -18,11 +18,24 @@ const PORT = process.env.PORT || 5001;
 app.use(cors());
 // Body parser apenas para POST/PUT/PATCH, ignorar erros de JSON inválido
 app.use((req, res, next) => {
+    // Sempre inicializar req.body
+    req.body = {};
+    
     if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
-        express.json()(req, res, (err) => {
+        // Verificar se há Content-Type JSON
+        const contentType = req.get('Content-Type') || '';
+        if (!contentType.includes('application/json')) {
+            return next();
+        }
+        
+        // Tentar fazer parse do JSON, mas não quebrar se falhar
+        express.json({ 
+            strict: false,
+            limit: '10mb'
+        })(req, res, (err) => {
             if (err) {
-                console.warn('⚠️ Erro ao fazer parse do JSON:', err.message);
-                req.body = {};
+                console.warn(`⚠️ Erro ao fazer parse do JSON (${req.method} ${req.path}):`, err.message);
+                req.body = {}; // Garantir que req.body está vazio em caso de erro
             }
             next();
         });
