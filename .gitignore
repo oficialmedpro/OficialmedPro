@@ -26,3 +26,9 @@ dist-ssr
 # Custom directories
 temp
 tela
+logs
+scripts/*.log
+scripts/*-error.txt
+scripts/*-log.txt
+data/*.csv
+data/*.json

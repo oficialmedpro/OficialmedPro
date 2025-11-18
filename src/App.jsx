@@ -2,7 +2,7 @@ import React, { useState, useEffect, lazy, Suspense } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 // Debug para verificar se as variáveis de ambiente estão chegando
 import './debug/buildInfo.js'
-import '../test-build.js'
+// test-build.js movido para scripts/ - removido import pois é apenas para testes
 // Lazy loading das páginas principais para evitar carregar serviços desnecessários na página de vendas
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 import PerformanceDiariaPage from './pages/PerformanceDiariaPage'
