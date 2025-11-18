@@ -501,14 +501,41 @@ app.get('/leads/status', async (_req, res) => {
 async function fetchSegments(page = 0, limit = 100) {
     const url = `https://${SPRINTHUB_CONFIG.baseUrl}/segments?i=${SPRINTHUB_CONFIG.instance}&page=${page}&limit=${limit}&apitoken=${SPRINTHUB_CONFIG.apiToken}`;
     try {
-        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const response = await fetch(url, { 
+            headers: { 
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${SPRINTHUB_CONFIG.apiToken}`,
+                'apitoken': SPRINTHUB_CONFIG.apiToken
+            }
+        });
+        if (!response.ok) {
+            if (response.status === 502 || response.status === 503) {
+                console.warn(`⚠️ Segments endpoint temporariamente indisponível (HTTP ${response.status}), tentando novamente...`);
+                await sleep(2000); // Aguardar 2 segundos antes de retry
+                // Retry uma vez
+                const retryResponse = await fetch(url, { 
+                    headers: { 
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${SPRINTHUB_CONFIG.apiToken}`,
+                        'apitoken': SPRINTHUB_CONFIG.apiToken
+                    }
+                });
+                if (!retryResponse.ok) {
+                    throw new Error(`HTTP ${retryResponse.status} (após retry)`);
+                }
+                const retryData = await retryResponse.json();
+                if (Array.isArray(retryData)) return retryData;
+                if (retryData?.data?.segments) return retryData.data.segments;
+                return [];
+            }
+            throw new Error(`HTTP ${response.status}`);
+        }
         const data = await response.json();
         if (Array.isArray(data)) return data;
         if (data?.data?.segments) return data.data.segments;
         return [];
     } catch (e) {
-        console.warn('⚠️ Segments endpoint possivelmente indisponível:', e.message);
+        console.warn(`⚠️ Erro ao buscar segmentos página ${page + 1}:`, e.message);
         return [];
     }
 }
@@ -568,18 +595,10 @@ app.get('/segmentos', async (_req, res) => {
 
 // =============== VENDEDORES/USUÁRIOS ==================
 async function fetchUsersFromSprintHub(page = 0, limit = 100) {
-    const url = `https://${SPRINTHUB_CONFIG.baseUrl}/users?i=${SPRINTHUB_CONFIG.instance}&page=${page}&limit=${limit}&apitoken=${SPRINTHUB_CONFIG.apiToken}`;
-    try {
-        const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        if (Array.isArray(data)) return data;
-        if (data?.data?.users) return data.data.users;
-        return [];
-    } catch (e) {
-        console.error(`❌ Erro ao buscar usuários página ${page + 1}:`, e.message);
-        return [];
-    }
+    // NOTA: O endpoint /users não existe na API do SprintHub
+    // Esta função é mantida apenas para compatibilidade, mas sempre retorna vazio
+    console.warn(`⚠️ Endpoint /users não disponível na API SprintHub (página ${page + 1})`);
+    return [];
 }
 
 function mapUserToVendedor(user) {
@@ -813,60 +832,86 @@ async function syncOpportunities() {
     };
 
     // Processar cada funil
-    for (const [funnelId, funnelConfig] of Object.entries(FUNIS_CONFIG)) {
+    const funisIds = Object.keys(FUNIS_CONFIG).map(Number).sort((a, b) => a - b);
+    console.log(`\n📋 Total de funis a processar: ${funisIds.length} (${funisIds.join(', ')})`);
+    
+    for (const funnelId of funisIds) {
+        const funnelConfig = FUNIS_CONFIG[funnelId];
+        if (!funnelConfig) {
+            console.warn(`⚠️ Configuração não encontrada para Funil ${funnelId}, pulando...`);
+            continue;
+        }
+        
         console.log(`\n📊 Processando Funil ${funnelId}: ${funnelConfig.name}`);
-        console.log(`   Etapas: ${funnelConfig.stages.length}`);
+        console.log(`   Etapas: ${funnelConfig.stages.length} (${funnelConfig.stages.join(', ')})`);
+        
+        let funilProcessed = 0;
+        let funilErrors = 0;
         
         // Processar cada etapa do funil
         for (const stageId of funnelConfig.stages) {
             console.log(`\n   🔄 Etapa ${stageId}...`);
-            await stageLastUpdateCache(Number(funnelId), stageId);
-            let page = 0;
-            let hasMore = true;
-            
-            while (hasMore) {
-                try {
-                    const opportunities = await fetchOpportunitiesFromStage(funnelId, stageId, page);
-                    if (!opportunities || opportunities.length === 0) {
-                        hasMore = false;
-                        break;
-                    }
-                    console.log(`     📄 Página ${page + 1}: ${opportunities.length} oportunidades`);
+            try {
+                await stageLastUpdateCache(Number(funnelId), stageId);
+                let page = 0;
+                let hasMore = true;
+                let etapaProcessed = 0;
+                
+                while (hasMore) {
+                    try {
+                        const opportunities = await fetchOpportunitiesFromStage(funnelId, stageId, page);
+                        if (!opportunities || opportunities.length === 0) {
+                            hasMore = false;
+                            break;
+                        }
+                        console.log(`     📄 Página ${page + 1}: ${opportunities.length} oportunidades`);
 
-                    // Mapear e fazer upsert em lote
-                    const mapped = opportunities.map((o) => mapOpportunityFields(o, funnelId));
-                    totalProcessed += mapped.length;
+                        // Mapear e fazer upsert em lote
+                        const mapped = opportunities.map((o) => mapOpportunityFields(o, funnelId));
+                        totalProcessed += mapped.length;
+                        etapaProcessed += mapped.length;
+                        funilProcessed += mapped.length;
 
-                    const upsertRes = await upsertBatch(mapped);
-                    if (!upsertRes.success) {
-                        totalErrors += mapped.length;
-                        console.error(`❌ Erro upsert em lote (página ${page + 1}, etapa ${stageId}):`, upsertRes.error);
-                        // backoff simples
+                        const upsertRes = await upsertBatch(mapped);
+                        if (!upsertRes.success) {
+                            totalErrors += mapped.length;
+                            funilErrors += mapped.length;
+                            console.error(`❌ Erro upsert em lote (página ${page + 1}, etapa ${stageId}):`, upsertRes.error);
+                            // backoff simples
+                            DELAY_BETWEEN_PAGES = Math.min(DELAY_BETWEEN_PAGES * 2, MAX_BACKOFF_MS);
+                            await sleep(DELAY_BETWEEN_PAGES);
+                        } else {
+                            // ajuste heurístico: considerar tudo como atualizado
+                            totalUpdated += mapped.length;
+                            // reduzir delay se estava alto
+                            DELAY_BETWEEN_PAGES = Math.max(Math.floor(DELAY_BETWEEN_PAGES / 2), MIN_BACKOFF_MS);
+                            await sleep(DELAY_BETWEEN_PAGES);
+                        }
+
+                        page++;
+                    } catch (err) {
+                        console.error(`❌ Falha na página ${page + 1} da etapa ${stageId}:`, err.message);
+                        totalErrors += PAGE_LIMIT;
+                        funilErrors += PAGE_LIMIT;
                         DELAY_BETWEEN_PAGES = Math.min(DELAY_BETWEEN_PAGES * 2, MAX_BACKOFF_MS);
                         await sleep(DELAY_BETWEEN_PAGES);
-                    } else {
-                        // ajuste heurístico: considerar tudo como atualizado
-                        totalUpdated += mapped.length;
-                        // reduzir delay se estava alto
-                        DELAY_BETWEEN_PAGES = Math.max(Math.floor(DELAY_BETWEEN_PAGES / 2), MIN_BACKOFF_MS);
-                        await sleep(DELAY_BETWEEN_PAGES);
+                        page++;
                     }
-
-                    page++;
-                } catch (err) {
-                    console.error(`❌ Falha na página ${page + 1} da etapa ${stageId}:`, err.message);
-                    totalErrors += PAGE_LIMIT;
-                    DELAY_BETWEEN_PAGES = Math.min(DELAY_BETWEEN_PAGES * 2, MAX_BACKOFF_MS);
-                    await sleep(DELAY_BETWEEN_PAGES);
-                    page++;
                 }
+                
+                if (etapaProcessed === 0) {
+                    console.log(`     ℹ️ Etapa ${stageId} concluída (sem oportunidades)`);
+                } else {
+                    console.log(`     ✅ Etapa ${stageId} concluída (${etapaProcessed} oportunidades)`);
+                }
+                await sleep(DELAY_BETWEEN_STAGES);
+            } catch (err) {
+                console.error(`❌ Erro ao processar etapa ${stageId} do Funil ${funnelId}:`, err.message);
+                funilErrors++;
             }
-            
-            console.log(`     ✅ Etapa ${stageId} concluída`);
-            await sleep(DELAY_BETWEEN_STAGES);
         }
         
-        console.log(`✅ Funil ${funnelId} concluído`);
+        console.log(`✅ Funil ${funnelId} concluído (${funilProcessed} processadas, ${funilErrors} erros)`);
     }
     
     const result = {
@@ -1028,9 +1073,23 @@ async function runFullSync(trigger = 'manual_api') {
     const summary = {};
 
     try {
+        console.log('\n🔄 Fase 1/3: Sincronizando OPORTUNIDADES...');
         summary.oportunidades = await syncOpportunities();
+        console.log(`✅ Oportunidades: ${summary.oportunidades?.totalProcessed || 0} processadas`);
+        
+        console.log('\n🔄 Fase 2/3: Sincronizando LEADS...');
         summary.leads = await syncLeads();
-        summary.segmentos = await syncSegments();
+        console.log(`✅ Leads: ${summary.leads?.totalProcessed || 0} processados`);
+        
+        console.log('\n🔄 Fase 3/3: Sincronizando SEGMENTOS...');
+        try {
+            summary.segmentos = await syncSegments();
+            console.log(`✅ Segmentos: ${summary.segmentos?.totalProcessed || 0} processados`);
+        } catch (segmentError) {
+            console.error(`❌ Erro ao sincronizar segmentos (continuando...):`, segmentError.message);
+            summary.segmentos = { totalProcessed: 0, totalErrors: 1, error: segmentError.message };
+        }
+        
         // Vendedores: não há endpoint /users na API do SprintHub
         // Os vendedores são gerenciados diretamente no Supabase
         summary.vendedores = { totalProcessed: 0, totalErrors: 0, message: 'Vendedores não sincronizados - não há endpoint na API SprintHub' };
