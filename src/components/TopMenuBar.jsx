@@ -2201,18 +2201,18 @@ const TopMenuBar = ({
     }
   };
 
-  // ⚡ SINCRONIZAÇÃO IMEDIATA - ÚLTIMAS 48 HORAS
+  // ⚡ SINCRONIZAÇÃO IMEDIATA - COMPLETA (OPORTUNIDADES, LEADS, SEGMENTOS)
   const handleSyncNow = async () => {
     if (isSyncingNow) return;
     
     const confirmSync = confirm(
-      '⚡ SYNC AGORA - Últimas 48 Horas\n\n' +
+      '⚡ SYNC AGORA - Sincronização Completa\n\n' +
       '🎯 O que será executado:\n' +
-      '• Buscar oportunidades das últimas 48 horas\n' +
-      '• Ambos os funis: 6 (COMERCIAL) e 14 (RECOMPRA)\n' +
-      '• Unidade: [1] Apucarana\n' +
-      '• Processamento otimizado e rápido\n\n' +
-      '⏱️ Tempo estimado: 2-5 minutos\n' +
+      '• Sincronizar TODAS as oportunidades (todos os funis: 6, 9, 14, 34, 38)\n' +
+      '• Sincronizar TODOS os leads\n' +
+      '• Sincronizar TODOS os segmentos\n' +
+      '• Processamento otimizado e completo\n\n' +
+      '⏱️ Tempo estimado: 5-15 minutos\n' +
       '🔄 Atualiza dados em tempo real\n\n' +
       'Deseja continuar?'
     );
@@ -2220,310 +2220,110 @@ const TopMenuBar = ({
     if (!confirmSync) return;
     
     setIsSyncingNow(true);
-    updateSyncProgress('Sync Agora - 48h', 0, 100, 'Iniciando...');
+    updateSyncProgress('Sync Agora - Completo', 0, 100, 'Iniciando sincronização completa...');
     
     try {
-      logger.info('⚡ INICIANDO SYNC AGORA - ÚLTIMAS 48 HORAS');
+      logger.info('⚡ INICIANDO SYNC AGORA - SINCRONIZAÇÃO COMPLETA');
       logger.info('='.repeat(80));
       logger.info(`🕒 Início: ${new Date().toLocaleTimeString('pt-BR')}`);
       
-      // Simular chamada do script sync-hourly via API ou executar lógica similar
-      // Por simplicidade, vou reutilizar a lógica de sincronização horária, mas com 48h
+      // Determinar URL da API baseado no ambiente
+      const apiBaseUrl = window.location.origin.includes('localhost') 
+        ? 'http://localhost:3002' 
+        : window.location.origin;
+      const apiUrl = `${apiBaseUrl}/api/sync-now`;
       
-      const now = new Date();
-      const hoursAgo48 = new Date(now);
-      hoursAgo48.setHours(hoursAgo48.getHours() - 48);
+      logger.info(`📡 Chamando API: ${apiUrl}`);
+      updateSyncProgress('Sync Agora - Completo', 10, 100, 'Chamando serviço de sincronização...');
       
-      logger.info(`📅 Período: ${hoursAgo48.toLocaleString('pt-BR')} a ${now.toLocaleString('pt-BR')}`);
-      logger.info(`🎯 Funis: 6 (COMERCIAL) e 14 (RECOMPRA)`);
-      logger.info(`📍 Unidade: [1] Apucarana`);
-      
-      // Executar a lógica similar ao handleHourlySync, mas com período de 48h
-      // Para não duplicar código, vou usar o mesmo código base
-      
-      const SUPABASE_CONFIG = {
-        url: supabaseUrl,
-        key: supabaseAnonKey
-      };
-
-      const SPRINTHUB_CONFIG = {
-        baseUrl: 'sprinthub-api-master.sprinthub.app',
-        apiToken: '9ad36c85-5858-4960-9935-e73c3698dd0c',
-        instance: 'oficialmed'
-      };
-      
-      // Configuração dos funis (mesmo do hourly)
-      const FUNIS_CONFIG = {
-        6: {
-          name: '[1] COMERCIAL APUCARANA',
-          stages: [
-            { id: 130, name: '[0] ENTRADA' },
-            { id: 231, name: '[1] ACOLHIMENTO/TRIAGEM' },
-            { id: 82, name: '[2] QUALIFICADO' },
-            { id: 207, name: '[3] ORÇAMENTO REALIZADO' },
-            { id: 83, name: '[4] NEGOCIAÇÃO' },
-            { id: 85, name: '[5] FOLLOW UP' },
-            { id: 232, name: '[6] CADASTRO' }
-          ]
+      const startTime = Date.now();
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
         },
-        14: {
-          name: '[1] RECOMPRA APUCARANA',
-          stages: [
-            { id: 202, name: '[0] ENTRADA' },
-            { id: 228, name: '[1] ACOLHIMENTO/TRIAGEM' },
-            { id: 229, name: '[2] QUALIFICAÇÃO' },
-            { id: 206, name: '[3] ORÇAMENTOS' },
-            { id: 203, name: '[4] NEGOCIAÇÃO' },
-            { id: 204, name: '[5] FOLLOW UP' },
-            { id: 230, name: '[6] CADASTRO' },
-            { id: 205, name: '[X] PARCEIROS' },
-            { id: 241, name: '[0] MONITORAMENTO' },
-            { id: 146, name: '[0] REATIVAÇÃO' },
-            { id: 167, name: '[0] D-0' },
-            { id: 148, name: '[3] D-3' },
-            { id: 168, name: '[3] D-7' },
-            { id: 149, name: '[3] D-15' },
-            { id: 169, name: '[3] D-22' },
-            { id: 150, name: '[3] D-30' }
-          ]
-        }
-      };
-
-      const PAGE_LIMIT = 30; // Menor para ser mais rápido
-      let totalApiCalls = 0;
-      let totalProcessed = 0;
-      let totalInserted = 0;
-      let totalUpdated = 0;
-      let totalSkipped = 0;
-      let totalErrors = 0;
-      const allOpportunities = [];
+        body: JSON.stringify({
+          source: 'ui_button',
+          optimized: true
+        })
+      });
       
-      // Função para mapear oportunidade
-      const mapOpportunityFields = (opportunity, funnelId) => {
-        const fields = opportunity.fields || {};
-        const lead = opportunity.dataLead || {};
-        const utmTags = (lead.utmTags && lead.utmTags[0]) || {};
-
-        return {
-          id: opportunity.id,
-          title: opportunity.title,
-          value: parseFloat(opportunity.value) || 0.00,
-          crm_column: opportunity.crm_column,
-          lead_id: opportunity.lead_id,
-          status: opportunity.status,
-          loss_reason: opportunity.loss_reason || null,
-          gain_reason: opportunity.gain_reason || null,
-          user_id: opportunity.user || null,
-          
-          create_date: opportunity.createDate ? new Date(opportunity.createDate).toISOString() : null,
-          update_date: opportunity.updateDate ? new Date(opportunity.updateDate).toISOString() : null,
-          lost_date: opportunity.lost_date || null,
-          gain_date: opportunity.gain_date || null,
-          
-          origem_oportunidade: fields["ORIGEM OPORTUNIDADE"] || null,
-          qualificacao: fields["QUALIFICACAO"] || null,
-          status_orcamento: fields["Status Orcamento"] || null,
-          
-          utm_source: utmTags.utmSource || null,
-          utm_campaign: utmTags.utmCampaign || null,
-          utm_medium: utmTags.utmMedium || null,
-          
-          lead_firstname: lead.firstname || null,
-          lead_email: lead.email || null,
-          lead_whatsapp: lead.whatsapp || null,
-          
-          archived: opportunity.archived || 0,
-          synced_at: new Date().toISOString(),
-          
-          funil_id: funnelId,
-          unidade_id: '[1]'
-        };
-      };
-
-      // Processar cada funil
-      let funnelProgress = 0;
-      for (const [funnelId, funnelConfig] of Object.entries(FUNIS_CONFIG)) {
-        funnelProgress++;
-        updateSyncProgress('Sync Agora - 48h', (funnelProgress / 2) * 50, 100, `Funil ${funnelConfig.name}`);
-        
-        logger.info(`\n🎯 PROCESSANDO FUNIL ${funnelId}: ${funnelConfig.name}`);
-        
-        // Processar cada etapa
-        for (const stage of funnelConfig.stages) {
-          logger.debug(`📋 Etapa: ${stage.name} (ID: ${stage.id})`);
-          
-          let currentPage = 0;
-          let hasMorePages = true;
-          
-          while (hasMorePages) {
-            totalApiCalls++;
-            
-            try {
-              const postData = JSON.stringify({
-                page: currentPage,
-                limit: PAGE_LIMIT,
-                columnId: stage.id
-              });
-              
-              const response = await fetch(`https://${SPRINTHUB_CONFIG.baseUrl}/crm/opportunities/${funnelId}?apitoken=${SPRINTHUB_CONFIG.apiToken}&i=${SPRINTHUB_CONFIG.instance}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: postData
-              });
-              
-              const data = await response.json();
-              const opportunitiesArray = Array.isArray(data) ? data : [];
-              
-              if (opportunitiesArray.length === 0) {
-                hasMorePages = false;
-                continue;
-              }
-              
-              // Filtrar apenas das últimas 48h
-              const recentOpportunities = opportunitiesArray.filter(opp => {
-                if (!opp.updateDate) return false;
-                const updateDate = new Date(opp.updateDate);
-                return updateDate >= hoursAgo48;
-              });
-              
-              logger.debug(`📊 Página ${currentPage + 1}: ${recentOpportunities.length}/${opportunitiesArray.length} das últimas 48h`);
-              
-              // Processar oportunidades recentes
-              for (const opp of recentOpportunities) {
-                totalProcessed++;
-                allOpportunities.push(opp);
-                
-                const mappedData = mapOpportunityFields(opp, parseInt(funnelId));
-                
-                // Verificar se existe no Supabase
-                try {
-                  const checkResponse = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/oportunidade_sprint?id=eq.${opp.id}&select=id,synced_at`, {
-                    headers: {
-                      'Authorization': `Bearer ${SUPABASE_CONFIG.key}`,
-                      'apikey': SUPABASE_CONFIG.key,
-                      'Accept-Profile': 'api'
-                    }
-                  });
-                  
-                  const existingData = await checkResponse.json();
-                  const exists = Array.isArray(existingData) && existingData.length > 0;
-                  
-                  if (!exists) {
-                    // INSERT
-                    const insertResponse = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/oportunidade_sprint`, {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${SUPABASE_CONFIG.key}`,
-                        'apikey': SUPABASE_CONFIG.key,
-                        'Accept-Profile': 'api',
-                        'Content-Profile': 'api',
-                        'Prefer': 'return=representation'
-                      },
-                      body: JSON.stringify(mappedData)
-                    });
-                    
-                    if (insertResponse.ok) {
-                      totalInserted++;
-                      logger.debug(`✅ INSERIDO: ${opp.id} - ${opp.title}`);
-                    } else {
-                      totalErrors++;
-                      logger.debug(`❌ ERRO INSERT: ${opp.id}`);
-                    }
-                  } else {
-                    // UPDATE
-                    const updateResponse = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/oportunidade_sprint?id=eq.${opp.id}`, {
-                      method: 'PATCH',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${SUPABASE_CONFIG.key}`,
-                        'apikey': SUPABASE_CONFIG.key,
-                        'Accept-Profile': 'api',
-                        'Content-Profile': 'api'
-                      },
-                      body: JSON.stringify(mappedData)
-                    });
-                    
-                    if (updateResponse.ok) {
-                      totalUpdated++;
-                      logger.debug(`🔄 ATUALIZADO: ${opp.id} - ${opp.title}`);
-                    } else {
-                      totalErrors++;
-                      logger.debug(`❌ ERRO UPDATE: ${opp.id}`);
-                    }
-                  }
-                } catch (error) {
-                  totalErrors++;
-                  logger.error(`❌ Erro processando ID ${opp.id}:`, error);
-                }
-                
-                // Atualizar progresso
-                const progress = 50 + ((totalProcessed / Math.max(totalProcessed + 1, 100)) * 50);
-                updateSyncProgress('Sync Agora - 48h', progress, 100, `${totalProcessed} processadas`);
-              }
-              
-              currentPage++;
-              
-              if (opportunitiesArray.length < PAGE_LIMIT) {
-                hasMorePages = false;
-              }
-              
-            } catch (error) {
-              logger.error(`❌ Erro na página ${currentPage + 1} da etapa ${stage.id}:`, error);
-              hasMorePages = false;
-            }
-          }
-        }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
       }
       
-      // Relatório final
-      updateSyncProgress('Sync Agora - 48h', 100, 100, 'Concluído!');
-      
+      const data = await response.json();
       const endTime = Date.now();
-      const totalTime = (endTime - performance.now()) / 1000;
+      const durationSeconds = ((endTime - startTime) / 1000).toFixed(2);
+      
+      updateSyncProgress('Sync Agora - Completo', 90, 100, 'Processando resultados...');
       
       logger.info('\n' + '='.repeat(80));
-      logger.info('📊 RELATÓRIO FINAL - SYNC AGORA (48H)');
+      logger.info('📊 RESULTADO DA SINCRONIZAÇÃO COMPLETA');
       logger.info('='.repeat(80));
-      logger.info(`🕒 Tempo de execução: ${Math.abs(totalTime).toFixed(2)}s`);
-      logger.info(`🔄 Total de chamadas à API: ${totalApiCalls}`);
-      logger.info(`📊 Total registros processados: ${totalProcessed}`);
-      logger.info(`💾 ESTATÍSTICAS:`);
-      logger.info(`   ✅ Inseridos: ${totalInserted}`);
-      logger.info(`   🔄 Atualizados: ${totalUpdated}`);
-      logger.info(`   ❌ Erros: ${totalErrors}`);
       
-      // Atualizar tempo da última sincronização
-      setLastSyncTime(new Date());
-      
-      // Calcular próxima sincronização (próximo múltiplo de 15 minutos)
-      const nowTime = new Date();
-      const nextSync = new Date(nowTime);
-      nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 15) * 15);
-      if (nextSync <= nowTime) {
-        nextSync.setMinutes(nextSync.getMinutes() + 15);
+      if (data.success && data.data) {
+        const summary = data.data.summary || {};
+        const totals = {
+          oportunidades: summary.oportunidades?.totalProcessed || 0,
+          leads: summary.leads?.totalProcessed || 0,
+          segmentos: summary.segmentos?.totalProcessed || 0,
+          total: (summary.oportunidades?.totalProcessed || 0) + 
+                 (summary.leads?.totalProcessed || 0) + 
+                 (summary.segmentos?.totalProcessed || 0)
+        };
+        
+        logger.info(`✅ Oportunidades: ${totals.oportunidades} processadas`);
+        logger.info(`✅ Leads: ${totals.leads} processados`);
+        logger.info(`✅ Segmentos: ${totals.segmentos} processados`);
+        logger.info(`📊 Total geral: ${totals.total} processados`);
+        logger.info(`⏱️ Duração: ${data.data.durationSeconds || durationSeconds}s`);
+        
+        updateSyncProgress('Sync Agora - Completo', 100, 100, 'Concluído!');
+        
+        // Atualizar tempo da última sincronização
+        setLastSyncTime(new Date());
+        
+        // Calcular próxima sincronização (próximo múltiplo de 15 minutos)
+        const nowTime = new Date();
+        const nextSync = new Date(nowTime);
+        nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 15) * 15);
+        if (nextSync <= nowTime) {
+          nextSync.setMinutes(nextSync.getMinutes() + 15);
+        }
+        setNextScheduledSync(nextSync);
+        
+        alert(
+          `⚡ SYNC AGORA CONCLUÍDO!\n\n` +
+          `📊 RESULTADOS:\n` +
+          `• Oportunidades: ${totals.oportunidades} processadas\n` +
+          `• Leads: ${totals.leads} processados\n` +
+          `• Segmentos: ${totals.segmentos} processados\n` +
+          `• Total: ${totals.total} processados\n` +
+          `• ⏱️ Tempo: ${data.data.durationSeconds || durationSeconds}s\n\n` +
+          `✅ Dados atualizados em tempo real!`
+        );
+        
+        // Registrar na tabela api.sincronizacao (UI)
+        await insertSyncRecordBrowser(
+          `Sync agora (UI) concluído: ${totals.oportunidades} oportunidades | ${totals.leads} leads | ${totals.segmentos} segmentos`
+        );
+      } else if (data.alreadyRunning) {
+        logger.warn('⚠️ Sincronização já está em andamento');
+        updateSyncProgress('Sync Agora - Completo', 100, 100, 'Já em execução');
+        alert('⚠️ Sincronização já está em andamento. Aguarde a conclusão.');
+      } else {
+        logger.warn('⚠️ Resposta inesperada da API:', data);
+        updateSyncProgress('Sync Agora - Completo', 100, 100, 'Concluído (sem detalhes)');
+        alert('✅ Sincronização iniciada com sucesso!');
       }
-      setNextScheduledSync(nextSync);
       
-      alert(
-        `⚡ SYNC AGORA CONCLUÍDO!\n\n` +
-        `📊 RESULTADOS (últimas 48h):\n` +
-        `• Processadas: ${totalProcessed} oportunidades\n` +
-        `• ✅ Inseridas: ${totalInserted}\n` +
-        `• 🔄 Atualizadas: ${totalUpdated}\n` +
-        `• ❌ Erros: ${totalErrors}\n` +
-        `• ⏱️ Tempo: ${Math.abs(totalTime).toFixed(2)}s\n\n` +
-        `✅ Dados atualizados em tempo real!`
-      );
-      
-      // Registrar na tabela api.sincronizacao (UI)
-      await insertSyncRecordBrowser(
-        `Sync agora (UI) concluído: processadas ${totalProcessed} | inseridas ${totalInserted} | atualizadas ${totalUpdated} | erros ${totalErrors}`
-      );
       // Atualiza label buscando do banco
       await fetchLastSyncFromDB();
     } catch (error) {
       logger.error('❌ ERRO NO SYNC AGORA:', error);
+      updateSyncProgress('Sync Agora - Completo', 100, 100, 'Erro!');
       await insertSyncRecordBrowser(`Sync agora (UI) falhou: ${error.message}`);
       await fetchLastSyncFromDB();
       alert(`❌ Erro na sincronização: ${error.message}\n\nVerifique o console para mais detalhes.`);
@@ -2815,7 +2615,7 @@ const TopMenuBar = ({
               className={`tmb-sync-btn ${isSyncingNow ? 'syncing' : ''}`}
               onClick={handleSyncNow}
               disabled={isSyncingNow}
-              title="⚡ SYNC AGORA - Sincroniza imediatamente as últimas 48 horas de ambos os funis (6 e 14)"
+              title="⚡ SYNC AGORA - Sincronização completa: oportunidades (todos os funis), leads e segmentos"
               style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)' }}
             >
               {isSyncingNow ? (
