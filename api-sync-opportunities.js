@@ -432,9 +432,13 @@ async function fetchLeadDetails(leadId) {
                 'apitoken': SPRINTHUB_CONFIG.apiToken
             }
         });
-        if (!response.ok) return null;
+        if (!response.ok) {
+            if (response.status === 404) return null;
+            throw new Error(`HTTP ${response.status}`);
+        }
         const data = await response.json();
-        return data?.data || data || null;
+        // A resposta pode vir em diferentes estruturas
+        return data?.data?.lead || data?.data || data?.lead || data || null;
     } catch (e) {
         console.warn(`⚠️ Erro ao buscar detalhes do lead ${leadId}:`, e.message);
         return null;
@@ -478,26 +482,39 @@ async function syncLeads() {
             })
         );
 
-        // Buscar detalhes individuais para leads sem campos críticos (amostra limitada)
+        // Buscar detalhes individuais para TODOS os leads sem campos críticos
         const leadsWithoutFields = mapped.filter(lead => 
             !lead.firstname && !lead.lastname && !lead.whatsapp
-        ).slice(0, 5); // Apenas primeiros 5 para não ficar lento
+        );
 
-        if (leadsWithoutFields.length > 0 && page < 3) { // Apenas nas primeiras 3 páginas para debug
-            console.log(`🔍 Buscando detalhes individuais de ${leadsWithoutFields.length} leads sem campos críticos...`);
+        if (leadsWithoutFields.length > 0) {
+            console.log(`🔍 Buscando detalhes individuais de ${leadsWithoutFields.length} leads sem campos críticos (página ${page + 1})...`);
+            let updated = 0;
             for (const lead of leadsWithoutFields) {
-                const details = await fetchLeadDetails(lead.id);
-                if (details) {
-                    // Tentar mapear novamente com os detalhes completos
-                    const remapped = mapLeadToSupabase(details, () => {});
-                    // Atualizar o lead no array mapped
-                    const index = mapped.findIndex(l => l.id === lead.id);
-                    if (index >= 0) {
-                        mapped[index] = { ...mapped[index], ...remapped };
-                        console.log(`✅ Lead ${lead.id} atualizado com detalhes: firstname=${remapped.firstname}, lastname=${remapped.lastname}, whatsapp=${remapped.whatsapp}`);
+                try {
+                    const details = await fetchLeadDetails(lead.id);
+                    if (details) {
+                        // A resposta pode vir em data.lead ou diretamente
+                        const leadData = details.lead || details.data?.lead || details;
+                        // Tentar mapear novamente com os detalhes completos
+                        const remapped = mapLeadToSupabase(leadData, () => {});
+                        // Atualizar o lead no array mapped
+                        const index = mapped.findIndex(l => l.id === lead.id);
+                        if (index >= 0) {
+                            mapped[index] = { ...mapped[index], ...remapped };
+                            updated++;
+                            if (updated <= 3) { // Log apenas os primeiros 3 para não poluir
+                                console.log(`✅ Lead ${lead.id} atualizado: firstname=${remapped.firstname || 'null'}, lastname=${remapped.lastname || 'null'}, whatsapp=${remapped.whatsapp || 'null'}`);
+                            }
+                        }
                     }
+                } catch (err) {
+                    console.warn(`⚠️ Erro ao buscar detalhes do lead ${lead.id}:`, err.message);
                 }
-                await sleep(200); // Delay entre buscas individuais
+                await sleep(100); // Delay reduzido entre buscas individuais
+            }
+            if (updated > 0) {
+                console.log(`✅ ${updated} de ${leadsWithoutFields.length} leads atualizados com detalhes individuais`);
             }
         }
 
