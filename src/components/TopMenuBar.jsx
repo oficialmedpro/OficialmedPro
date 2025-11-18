@@ -343,10 +343,16 @@ const TopMenuBar = ({
 
       // Configurações
       const SPRINTHUB_CONFIG = {
-        baseUrl: 'sprinthub-api-master.sprinthub.app',
-        apiToken: '9ad36c85-5858-4960-9935-e73c3698dd0c',
-        instance: 'oficialmed'
+        baseUrl: import.meta.env.VITE_SPRINTHUB_BASE_URL || 'sprinthub-api-master.sprinthub.app',
+        apiToken: import.meta.env.VITE_SPRINTHUB_API_TOKEN || '',
+        instance: import.meta.env.VITE_SPRINTHUB_INSTANCE || 'oficialmed'
       };
+      
+      if (!SPRINTHUB_CONFIG.apiToken) {
+        logger.error('❌ VITE_SPRINTHUB_API_TOKEN não configurado');
+        alert('Erro: Token da API SprintHub não configurado. Verifique as variáveis de ambiente.');
+        return;
+      }
 
       const SUPABASE_URL = supabaseUrl;
       const SUPABASE_KEY = supabaseAnonKey;
@@ -881,9 +887,15 @@ const TopMenuBar = ({
       logger.debug('🔄 SINCRONIZANDO ETAPA CADASTRO - CRIADAS HOJE...');
       
       // Configurações
-      const SPRINTHUB_URL = 'https://sprinthub-api-master.sprinthub.app';
-      const API_TOKEN = '9ad36c85-5858-4960-9935-e73c3698dd0c';
-      const INSTANCE = 'oficialmed';
+      const SPRINTHUB_URL = `https://${import.meta.env.VITE_SPRINTHUB_BASE_URL || 'sprinthub-api-master.sprinthub.app'}`;
+      const API_TOKEN = import.meta.env.VITE_SPRINTHUB_API_TOKEN || '';
+      const INSTANCE = import.meta.env.VITE_SPRINTHUB_INSTANCE || 'oficialmed';
+      
+      if (!API_TOKEN) {
+        logger.error('❌ VITE_SPRINTHUB_API_TOKEN não configurado');
+        alert('Erro: Token da API SprintHub não configurado. Verifique as variáveis de ambiente.');
+        return;
+      }
       const SUPABASE_URL = supabaseUrl;
       const SUPABASE_KEY = supabaseAnonKey;
       
@@ -1207,10 +1219,16 @@ const TopMenuBar = ({
       
       // Configurações da API
       const SPRINTHUB_CONFIG = {
-        baseUrl: 'sprinthub-api-master.sprinthub.app',
-        apiToken: '9ad36c85-5858-4960-9935-e73c3698dd0c',
-        instance: 'oficialmed'
+        baseUrl: import.meta.env.VITE_SPRINTHUB_BASE_URL || 'sprinthub-api-master.sprinthub.app',
+        apiToken: import.meta.env.VITE_SPRINTHUB_API_TOKEN || '',
+        instance: import.meta.env.VITE_SPRINTHUB_INSTANCE || 'oficialmed'
       };
+      
+      if (!SPRINTHUB_CONFIG.apiToken) {
+        logger.error('❌ VITE_SPRINTHUB_API_TOKEN não configurado');
+        alert('Erro: Token da API SprintHub não configurado. Verifique as variáveis de ambiente.');
+        return;
+      }
       
       const SUPABASE_CONFIG = {
         url: supabaseUrl,
@@ -1711,10 +1729,16 @@ const TopMenuBar = ({
       
       // Configurações da API
       const SPRINTHUB_CONFIG = {
-        baseUrl: 'sprinthub-api-master.sprinthub.app',
-        apiToken: '9ad36c85-5858-4960-9935-e73c3698dd0c',
-        instance: 'oficialmed'
+        baseUrl: import.meta.env.VITE_SPRINTHUB_BASE_URL || 'sprinthub-api-master.sprinthub.app',
+        apiToken: import.meta.env.VITE_SPRINTHUB_API_TOKEN || '',
+        instance: import.meta.env.VITE_SPRINTHUB_INSTANCE || 'oficialmed'
       };
+      
+      if (!SPRINTHUB_CONFIG.apiToken) {
+        logger.error('❌ VITE_SPRINTHUB_API_TOKEN não configurado');
+        alert('Erro: Token da API SprintHub não configurado. Verifique as variáveis de ambiente.');
+        return;
+      }
       
       const SUPABASE_CONFIG = {
         url: supabaseUrl,
