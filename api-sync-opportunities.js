@@ -791,25 +791,50 @@ async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = 
         }
         const postData = JSON.stringify(payloadObject);
         
+        // Debug para funis 34 e 38
+        if (funnelId === 34 || funnelId === 38) {
+            console.log(`     🔍 DEBUG Funil ${funnelId} Etapa ${stageId}: URL=${url}`);
+            console.log(`     🔍 DEBUG Payload:`, JSON.stringify(payloadObject));
+        }
+        
         const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json; charset=utf-8',
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${SPRINTHUB_CONFIG.apiToken}`,
+                'apitoken': SPRINTHUB_CONFIG.apiToken
             },
             body: Buffer.from(postData)
         });
 
         if (!response.ok) {
             const errorBody = await response.text().catch(() => '');
-            throw new Error(`HTTP ${response.status}: ${response.statusText}${errorBody ? ` - ${errorBody}` : ''}`);
+            const errorMsg = `HTTP ${response.status}: ${response.statusText}${errorBody ? ` - ${errorBody}` : ''}`;
+            if (funnelId === 34 || funnelId === 38) {
+                console.error(`     ❌ DEBUG Funil ${funnelId} Etapa ${stageId} - Erro HTTP:`, errorMsg);
+            }
+            throw new Error(errorMsg);
         }
 
         const data = await response.json();
-        return Array.isArray(data) ? data : [];
+        const result = Array.isArray(data) ? data : [];
+        
+        // Debug para funis 34 e 38
+        if ((funnelId === 34 || funnelId === 38) && page === 0) {
+            console.log(`     🔍 DEBUG Funil ${funnelId} Etapa ${stageId}: Recebidas ${result.length} oportunidades`);
+            if (result.length > 0) {
+                console.log(`     🔍 DEBUG Primeira oportunidade:`, JSON.stringify(result[0], null, 2));
+            }
+        }
+        
+        return result;
         
     } catch (error) {
         console.error(`❌ Erro ao buscar etapa ${stageId} do funil ${funnelId}:`, error.message);
+        if (funnelId === 34 || funnelId === 38) {
+            console.error(`   Stack:`, error.stack);
+        }
         return [];
     }
 }
@@ -913,6 +938,7 @@ async function syncOpportunities() {
     // Processar cada funil
     const funisIds = Object.keys(FUNIS_CONFIG).map(Number).sort((a, b) => a - b);
     console.log(`\n📋 Total de funis a processar: ${funisIds.length} (${funisIds.join(', ')})`);
+    console.log(`📋 Funis configurados: ${JSON.stringify(FUNIS_CONFIG, null, 2)}`);
     
     for (const funnelId of funisIds) {
         const funnelConfig = FUNIS_CONFIG[funnelId];
@@ -921,25 +947,31 @@ async function syncOpportunities() {
             continue;
         }
         
-        console.log(`\n📊 Processando Funil ${funnelId}: ${funnelConfig.name}`);
-        console.log(`   Etapas: ${funnelConfig.stages.length} (${funnelConfig.stages.join(', ')})`);
+        console.log(`\n📊 ========================================`);
+        console.log(`📊 Processando Funil ${funnelId}: ${funnelConfig.name}`);
+        console.log(`📊 Etapas: ${funnelConfig.stages.length} (${funnelConfig.stages.join(', ')})`);
+        console.log(`📊 ========================================`);
         
         let funilProcessed = 0;
         let funilErrors = 0;
         
         // Processar cada etapa do funil
         for (const stageId of funnelConfig.stages) {
-            console.log(`\n   🔄 Etapa ${stageId}...`);
+            console.log(`\n   🔄 Etapa ${stageId} do Funil ${funnelId}...`);
             try {
                 await stageLastUpdateCache(Number(funnelId), stageId);
                 let page = 0;
                 let hasMore = true;
                 let etapaProcessed = 0;
+                let etapaErrors = 0;
                 
                 while (hasMore) {
                     try {
                         const opportunities = await fetchOpportunitiesFromStage(funnelId, stageId, page);
                         if (!opportunities || opportunities.length === 0) {
+                            if (page === 0) {
+                                console.log(`     ℹ️ Etapa ${stageId}: Nenhuma oportunidade encontrada (pode estar vazia)`);
+                            }
                             hasMore = false;
                             break;
                         }
@@ -955,7 +987,8 @@ async function syncOpportunities() {
                         if (!upsertRes.success) {
                             totalErrors += mapped.length;
                             funilErrors += mapped.length;
-                            console.error(`❌ Erro upsert em lote (página ${page + 1}, etapa ${stageId}):`, upsertRes.error);
+                            etapaErrors += mapped.length;
+                            console.error(`❌ Erro upsert em lote (página ${page + 1}, etapa ${stageId}, funil ${funnelId}):`, upsertRes.error);
                             // backoff simples
                             DELAY_BETWEEN_PAGES = Math.min(DELAY_BETWEEN_PAGES * 2, MAX_BACKOFF_MS);
                             await sleep(DELAY_BETWEEN_PAGES);
@@ -969,9 +1002,11 @@ async function syncOpportunities() {
 
                         page++;
                     } catch (err) {
-                        console.error(`❌ Falha na página ${page + 1} da etapa ${stageId}:`, err.message);
+                        console.error(`❌ Falha na página ${page + 1} da etapa ${stageId} do funil ${funnelId}:`, err.message);
+                        console.error(`   Stack:`, err.stack);
                         totalErrors += PAGE_LIMIT;
                         funilErrors += PAGE_LIMIT;
+                        etapaErrors += PAGE_LIMIT;
                         DELAY_BETWEEN_PAGES = Math.min(DELAY_BETWEEN_PAGES * 2, MAX_BACKOFF_MS);
                         await sleep(DELAY_BETWEEN_PAGES);
                         page++;
@@ -979,18 +1014,23 @@ async function syncOpportunities() {
                 }
                 
                 if (etapaProcessed === 0) {
-                    console.log(`     ℹ️ Etapa ${stageId} concluída (sem oportunidades)`);
+                    console.log(`     ℹ️ Etapa ${stageId} do Funil ${funnelId} concluída (sem oportunidades)`);
                 } else {
-                    console.log(`     ✅ Etapa ${stageId} concluída (${etapaProcessed} oportunidades)`);
+                    console.log(`     ✅ Etapa ${stageId} do Funil ${funnelId} concluída: ${etapaProcessed} oportunidades${etapaErrors > 0 ? `, ${etapaErrors} erros` : ''}`);
                 }
                 await sleep(DELAY_BETWEEN_STAGES);
             } catch (err) {
                 console.error(`❌ Erro ao processar etapa ${stageId} do Funil ${funnelId}:`, err.message);
+                console.error(`   Stack:`, err.stack);
                 funilErrors++;
             }
         }
         
-        console.log(`✅ Funil ${funnelId} concluído (${funilProcessed} processadas, ${funilErrors} erros)`);
+        console.log(`\n✅ ========================================`);
+        console.log(`✅ Funil ${funnelId} (${funnelConfig.name}) concluído:`);
+        console.log(`   📊 Processadas: ${funilProcessed}`);
+        console.log(`   ❌ Erros: ${funilErrors}`);
+        console.log(`✅ ========================================\n`);
     }
     
     const result = {
