@@ -341,12 +341,23 @@ const TopMenuBar = ({
       logger.info('🎯 Objetivo: Sincronizar TODAS as oportunidades do funil 14');
       logger.info('='.repeat(80));
 
-      // Configurações
-      const SPRINTHUB_CONFIG = {
-        baseUrl: import.meta.env.VITE_SPRINTHUB_BASE_URL || 'sprinthub-api-master.sprinthub.app',
-        apiToken: import.meta.env.VITE_SPRINTHUB_API_TOKEN || '',
-        instance: import.meta.env.VITE_SPRINTHUB_INSTANCE || 'oficialmed'
+      // Configurações - Ler de window.ENV (injetado pelo docker-entrypoint.sh) ou import.meta.env
+      const getSprinthubConfig = () => {
+        const isBrowser = typeof window !== 'undefined';
+        return {
+          baseUrl: (isBrowser && window.ENV?.VITE_SPRINTHUB_BASE_URL)
+            ? window.ENV.VITE_SPRINTHUB_BASE_URL
+            : (import.meta.env.VITE_SPRINTHUB_BASE_URL || 'sprinthub-api-master.sprinthub.app'),
+          apiToken: (isBrowser && window.ENV?.VITE_SPRINTHUB_API_TOKEN)
+            ? window.ENV.VITE_SPRINTHUB_API_TOKEN
+            : (import.meta.env.VITE_SPRINTHUB_API_TOKEN || ''),
+          instance: (isBrowser && window.ENV?.VITE_SPRINTHUB_INSTANCE)
+            ? window.ENV.VITE_SPRINTHUB_INSTANCE
+            : (import.meta.env.VITE_SPRINTHUB_INSTANCE || 'oficialmed')
+        };
       };
+      
+      const SPRINTHUB_CONFIG = getSprinthubConfig();
       
       if (!SPRINTHUB_CONFIG.apiToken) {
         logger.error('❌ VITE_SPRINTHUB_API_TOKEN não configurado');
@@ -886,10 +897,25 @@ const TopMenuBar = ({
     try {
       logger.debug('🔄 SINCRONIZANDO ETAPA CADASTRO - CRIADAS HOJE...');
       
-      // Configurações
-      const SPRINTHUB_URL = `https://${import.meta.env.VITE_SPRINTHUB_BASE_URL || 'sprinthub-api-master.sprinthub.app'}`;
-      const API_TOKEN = import.meta.env.VITE_SPRINTHUB_API_TOKEN || '';
-      const INSTANCE = import.meta.env.VITE_SPRINTHUB_INSTANCE || 'oficialmed';
+      // Configurações - Ler de window.ENV (injetado pelo docker-entrypoint.sh) ou import.meta.env
+      const getSprinthubConfig = () => {
+        const isBrowser = typeof window !== 'undefined';
+        const baseUrl = (isBrowser && window.ENV?.VITE_SPRINTHUB_BASE_URL)
+          ? window.ENV.VITE_SPRINTHUB_BASE_URL
+          : (import.meta.env.VITE_SPRINTHUB_BASE_URL || 'sprinthub-api-master.sprinthub.app');
+        const apiToken = (isBrowser && window.ENV?.VITE_SPRINTHUB_API_TOKEN)
+          ? window.ENV.VITE_SPRINTHUB_API_TOKEN
+          : (import.meta.env.VITE_SPRINTHUB_API_TOKEN || '');
+        const instance = (isBrowser && window.ENV?.VITE_SPRINTHUB_INSTANCE)
+          ? window.ENV.VITE_SPRINTHUB_INSTANCE
+          : (import.meta.env.VITE_SPRINTHUB_INSTANCE || 'oficialmed');
+        return { baseUrl, apiToken, instance };
+      };
+      
+      const config = getSprinthubConfig();
+      const SPRINTHUB_URL = `https://${config.baseUrl}`;
+      const API_TOKEN = config.apiToken;
+      const INSTANCE = config.instance;
       
       if (!API_TOKEN) {
         logger.error('❌ VITE_SPRINTHUB_API_TOKEN não configurado');
@@ -1217,12 +1243,23 @@ const TopMenuBar = ({
       logger.debug(`🕒 Início: ${new Date().toLocaleTimeString('pt-BR')}`);
       logger.debug(`📅 Período: ${sevenDaysAgo.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}`);
       
-      // Configurações da API
-      const SPRINTHUB_CONFIG = {
-        baseUrl: import.meta.env.VITE_SPRINTHUB_BASE_URL || 'sprinthub-api-master.sprinthub.app',
-        apiToken: import.meta.env.VITE_SPRINTHUB_API_TOKEN || '',
-        instance: import.meta.env.VITE_SPRINTHUB_INSTANCE || 'oficialmed'
+      // Configurações da API - Ler de window.ENV (injetado pelo docker-entrypoint.sh) ou import.meta.env
+      const getSprinthubConfig = () => {
+        const isBrowser = typeof window !== 'undefined';
+        return {
+          baseUrl: (isBrowser && window.ENV?.VITE_SPRINTHUB_BASE_URL)
+            ? window.ENV.VITE_SPRINTHUB_BASE_URL
+            : (import.meta.env.VITE_SPRINTHUB_BASE_URL || 'sprinthub-api-master.sprinthub.app'),
+          apiToken: (isBrowser && window.ENV?.VITE_SPRINTHUB_API_TOKEN)
+            ? window.ENV.VITE_SPRINTHUB_API_TOKEN
+            : (import.meta.env.VITE_SPRINTHUB_API_TOKEN || ''),
+          instance: (isBrowser && window.ENV?.VITE_SPRINTHUB_INSTANCE)
+            ? window.ENV.VITE_SPRINTHUB_INSTANCE
+            : (import.meta.env.VITE_SPRINTHUB_INSTANCE || 'oficialmed')
+        };
       };
+      
+      const SPRINTHUB_CONFIG = getSprinthubConfig();
       
       if (!SPRINTHUB_CONFIG.apiToken) {
         logger.error('❌ VITE_SPRINTHUB_API_TOKEN não configurado');
@@ -1727,12 +1764,23 @@ const TopMenuBar = ({
       logger.debug(`🕒 Início: ${new Date().toLocaleTimeString('pt-BR')}`);
       logger.debug(`📅 Período: ${today.toLocaleDateString('pt-BR')} (hoje)`);
       
-      // Configurações da API
-      const SPRINTHUB_CONFIG = {
-        baseUrl: import.meta.env.VITE_SPRINTHUB_BASE_URL || 'sprinthub-api-master.sprinthub.app',
-        apiToken: import.meta.env.VITE_SPRINTHUB_API_TOKEN || '',
-        instance: import.meta.env.VITE_SPRINTHUB_INSTANCE || 'oficialmed'
+      // Configurações da API - Ler de window.ENV (injetado pelo docker-entrypoint.sh) ou import.meta.env
+      const getSprinthubConfig = () => {
+        const isBrowser = typeof window !== 'undefined';
+        return {
+          baseUrl: (isBrowser && window.ENV?.VITE_SPRINTHUB_BASE_URL)
+            ? window.ENV.VITE_SPRINTHUB_BASE_URL
+            : (import.meta.env.VITE_SPRINTHUB_BASE_URL || 'sprinthub-api-master.sprinthub.app'),
+          apiToken: (isBrowser && window.ENV?.VITE_SPRINTHUB_API_TOKEN)
+            ? window.ENV.VITE_SPRINTHUB_API_TOKEN
+            : (import.meta.env.VITE_SPRINTHUB_API_TOKEN || ''),
+          instance: (isBrowser && window.ENV?.VITE_SPRINTHUB_INSTANCE)
+            ? window.ENV.VITE_SPRINTHUB_INSTANCE
+            : (import.meta.env.VITE_SPRINTHUB_INSTANCE || 'oficialmed')
+        };
       };
+      
+      const SPRINTHUB_CONFIG = getSprinthubConfig();
       
       if (!SPRINTHUB_CONFIG.apiToken) {
         logger.error('❌ VITE_SPRINTHUB_API_TOKEN não configurado');

@@ -62,6 +62,37 @@ else
     fi
 fi
 
+# Ler variáveis do SprintHub
+if [ -f "/run/secrets/VITE_SPRINTHUB_BASE_URL" ]; then
+    export VITE_SPRINTHUB_BASE_URL=$(cat /run/secrets/VITE_SPRINTHUB_BASE_URL)
+    echo "✅ VITE_SPRINTHUB_BASE_URL carregada do secret"
+elif [ -n "$VITE_SPRINTHUB_BASE_URL_FILE" ] && [ -f "$VITE_SPRINTHUB_BASE_URL_FILE" ]; then
+    export VITE_SPRINTHUB_BASE_URL=$(cat "$VITE_SPRINTHUB_BASE_URL_FILE")
+    echo "✅ VITE_SPRINTHUB_BASE_URL carregada de $VITE_SPRINTHUB_BASE_URL_FILE"
+elif [ -n "$VITE_SPRINTHUB_BASE_URL" ]; then
+    echo "✅ VITE_SPRINTHUB_BASE_URL definida via variável de ambiente"
+fi
+
+if [ -f "/run/secrets/VITE_SPRINTHUB_API_TOKEN" ]; then
+    export VITE_SPRINTHUB_API_TOKEN=$(cat /run/secrets/VITE_SPRINTHUB_API_TOKEN)
+    echo "✅ VITE_SPRINTHUB_API_TOKEN carregada do secret"
+elif [ -n "$VITE_SPRINTHUB_API_TOKEN_FILE" ] && [ -f "$VITE_SPRINTHUB_API_TOKEN_FILE" ]; then
+    export VITE_SPRINTHUB_API_TOKEN=$(cat "$VITE_SPRINTHUB_API_TOKEN_FILE")
+    echo "✅ VITE_SPRINTHUB_API_TOKEN carregada de $VITE_SPRINTHUB_API_TOKEN_FILE"
+elif [ -n "$VITE_SPRINTHUB_API_TOKEN" ]; then
+    echo "✅ VITE_SPRINTHUB_API_TOKEN definida via variável de ambiente"
+fi
+
+if [ -f "/run/secrets/VITE_SPRINTHUB_INSTANCE" ]; then
+    export VITE_SPRINTHUB_INSTANCE=$(cat /run/secrets/VITE_SPRINTHUB_INSTANCE)
+    echo "✅ VITE_SPRINTHUB_INSTANCE carregada do secret"
+elif [ -n "$VITE_SPRINTHUB_INSTANCE_FILE" ] && [ -f "$VITE_SPRINTHUB_INSTANCE_FILE" ]; then
+    export VITE_SPRINTHUB_INSTANCE=$(cat "$VITE_SPRINTHUB_INSTANCE_FILE")
+    echo "✅ VITE_SPRINTHUB_INSTANCE carregada de $VITE_SPRINTHUB_INSTANCE_FILE"
+elif [ -n "$VITE_SPRINTHUB_INSTANCE" ]; then
+    echo "✅ VITE_SPRINTHUB_INSTANCE definida via variável de ambiente"
+fi
+
 # Log das variáveis (sem mostrar valores sensíveis)
 echo "🔍 Variáveis carregadas:"
 echo "  VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:0:30}..."
@@ -96,6 +127,9 @@ else
     window.ENV.VITE_SUPABASE_ANON_KEY = 'ENV_KEY_PLACEHOLDER';
     window.ENV.VITE_SUPABASE_SCHEMA = 'ENV_SCHEMA_PLACEHOLDER';
     window.ENV.VITE_SYNC_API_URL = 'ENV_SYNC_API_PLACEHOLDER';
+    window.ENV.VITE_SPRINTHUB_BASE_URL = 'ENV_SPRINTHUB_BASE_URL_PLACEHOLDER';
+    window.ENV.VITE_SPRINTHUB_API_TOKEN = 'ENV_SPRINTHUB_API_TOKEN_PLACEHOLDER';
+    window.ENV.VITE_SPRINTHUB_INSTANCE = 'ENV_SPRINTHUB_INSTANCE_PLACEHOLDER';
   } catch (e) {
     console.error('Erro ao definir window.ENV:', e);
   }
@@ -108,6 +142,9 @@ ENVEOF
     sed -i "s|ENV_KEY_PLACEHOLDER|${VITE_SUPABASE_ANON_KEY//\//\\/}|g" "$ENV_SCRIPT_FILE"
     sed -i "s|ENV_SCHEMA_PLACEHOLDER|${VITE_SUPABASE_SCHEMA//\//\\/}|g" "$ENV_SCRIPT_FILE"
     sed -i "s|ENV_SYNC_API_PLACEHOLDER|${VITE_SYNC_API_URL//\//\\/}|g" "$ENV_SCRIPT_FILE"
+    sed -i "s|ENV_SPRINTHUB_BASE_URL_PLACEHOLDER|${VITE_SPRINTHUB_BASE_URL//\//\\/}|g" "$ENV_SCRIPT_FILE"
+    sed -i "s|ENV_SPRINTHUB_API_TOKEN_PLACEHOLDER|${VITE_SPRINTHUB_API_TOKEN//\//\\/}|g" "$ENV_SCRIPT_FILE"
+    sed -i "s|ENV_SPRINTHUB_INSTANCE_PLACEHOLDER|${VITE_SPRINTHUB_INSTANCE//\//\\/}|g" "$ENV_SCRIPT_FILE"
     
     # Injetar o script antes de </head>
     sed -i "/<\/head>/r $ENV_SCRIPT_FILE" /usr/share/nginx/html/index.html
