@@ -280,6 +280,12 @@ async function fetchLeadsFromSprintHub(page = 0, limit = LEADS_PAGE_LIMIT) {
         // Debug: log primeiro lead da primeira página para ver estrutura
         if (page === 0 && leads.length > 0) {
             console.log('🔍 DEBUG - Estrutura do primeiro lead recebido:', JSON.stringify(leads[0], null, 2));
+            console.log('🔍 DEBUG - Campos disponíveis:', Object.keys(leads[0]).join(', '));
+            console.log('🔍 DEBUG - Tem fullname?', !!leads[0].fullname);
+            console.log('🔍 DEBUG - Tem contacts?', !!leads[0].contacts);
+            if (leads[0].contacts) {
+                console.log('🔍 DEBUG - Tipo de contacts:', typeof leads[0].contacts, Array.isArray(leads[0].contacts) ? '(array)' : '(object)');
+            }
         }
         
         return leads;
@@ -302,13 +308,54 @@ function mapLeadToSupabase(lead, onMissingField = () => {}) {
         return null;
     };
 
-    // Mapear campos com variações possíveis
-    const firstname = getField('firstname', ['firstName', 'first_name', 'name']);
-    const lastname = getField('lastname', ['lastName', 'last_name', 'surname', 'sobrenome']);
-    const whatsapp = getField('whatsapp', ['whatsApp', 'whats_app', 'mobile', 'phone']);
+    // Tentar extrair de fullname se firstname/lastname não existirem
+    let firstname = getField('firstname', ['firstName', 'first_name', 'name']);
+    let lastname = getField('lastname', ['lastName', 'last_name', 'surname', 'sobrenome']);
+    
+    // Se não tem firstname/lastname, tentar separar fullname
+    if (!firstname && !lastname) {
+        const fullname = getField('fullname', ['fullName', 'full_name', 'name', 'nome']);
+        if (fullname && typeof fullname === 'string') {
+            const parts = fullname.trim().split(/\s+/);
+            if (parts.length > 0) {
+                firstname = parts[0];
+                if (parts.length > 1) {
+                    lastname = parts.slice(1).join(' ');
+                }
+            }
+        }
+    }
+
+    // Buscar telefones - verificar se está em objeto contacts
+    let whatsapp = getField('whatsapp', ['whatsApp', 'whats_app']);
+    let phone = getField('phone', ['telephone', 'tel']);
+    let mobile = getField('mobile', ['cellphone', 'cell']);
+    
+    // Se não encontrou, tentar em contacts (array ou objeto)
+    if (!whatsapp && !phone && !mobile && lead.contacts) {
+        if (Array.isArray(lead.contacts)) {
+            // Se contacts é array, buscar o primeiro com tipo whatsapp
+            const whatsappContact = lead.contacts.find(c => c.type === 'whatsapp' || c.type === 'WhatsApp');
+            const phoneContact = lead.contacts.find(c => c.type === 'phone' || c.type === 'Phone');
+            const mobileContact = lead.contacts.find(c => c.type === 'mobile' || c.type === 'Mobile');
+            
+            whatsapp = whatsappContact?.value || whatsappContact?.phone || whatsappContact?.number || null;
+            phone = phoneContact?.value || phoneContact?.phone || phoneContact?.number || null;
+            mobile = mobileContact?.value || mobileContact?.phone || mobileContact?.number || null;
+        } else if (typeof lead.contacts === 'object') {
+            // Se contacts é objeto
+            whatsapp = lead.contacts.whatsapp || lead.contacts.whatsApp || null;
+            phone = lead.contacts.phone || null;
+            mobile = lead.contacts.mobile || null;
+        }
+    }
+    
+    // Se ainda não encontrou whatsapp, tentar mobile ou phone como fallback
+    if (!whatsapp) {
+        whatsapp = mobile || phone || null;
+    }
+
     const email = getField('email', ['e_mail', 'e-mail']);
-    const phone = getField('phone', ['telephone', 'tel']);
-    const mobile = getField('mobile', ['cellphone', 'cell']);
 
     // Verificar campos críticos
     CRITICAL_LEAD_FIELDS.forEach((field) => {
