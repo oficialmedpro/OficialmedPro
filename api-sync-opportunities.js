@@ -760,6 +760,10 @@ const FUNIS_CONFIG = {
         name: '[2] RECOMPRA',
         stages: [202, 228, 229, 206, 203, 204, 230, 205, 269, 167, 148, 168, 149, 169, 150]
     },
+    32: {
+        name: '[1] MONITORAMENTO MARKETING',
+        stages: [280, 281, 282, 283, 284, 285, 346, 347, 348, 349, 350, 351]
+    },
     34: {
         name: '[1] REATIVAÇÃO COMERCIAL',
         stages: [286, 287, 288, 289, 296]
@@ -767,6 +771,10 @@ const FUNIS_CONFIG = {
     38: {
         name: '[1] REATIVAÇÃO COMERCIAL',
         stages: [333, 334, 335, 336, 337, 338, 339, 352]
+    },
+    41: {
+        name: '[1] MONITORAMENTO COMERCIAL',
+        stages: [353, 354, 355, 356, 357, 358, 359]
     }
 };
 
