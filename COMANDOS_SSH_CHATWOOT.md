@@ -73,3 +73,4 @@ find /root -name "*pwa*" -type d 2>/dev/null
 Depois me diga o que encontrou e eu te ajudo a continuar!
 
 
+

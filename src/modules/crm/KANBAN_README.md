@@ -79,3 +79,4 @@ O Kanban de Oportunidades permite visualizar e gerenciar oportunidades organizad
 - Verifique se o campo `crm_column` pode ser atualizado
 
 
+

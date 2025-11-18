@@ -79,3 +79,4 @@ Me diga qual erro apareceu e eu ajudo a ajustar! Os erros mais comuns:
 - Variáveis de ambiente faltando
 
 
+

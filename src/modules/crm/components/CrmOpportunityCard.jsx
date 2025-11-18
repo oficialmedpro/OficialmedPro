@@ -61,3 +61,4 @@ const CrmOpportunityCard = ({ opportunity, onClick }) => {
 export default CrmOpportunityCard;
 
 
+

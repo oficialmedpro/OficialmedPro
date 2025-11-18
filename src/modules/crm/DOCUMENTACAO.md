@@ -649,3 +649,4 @@ Para dúvidas ou problemas, consulte:
 
 **Última atualização:** 17/11/2025
 
+

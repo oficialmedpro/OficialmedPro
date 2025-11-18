@@ -210,3 +210,4 @@ Próximo passo mais importante: **Configurar o cron job no Supabase** para que o
 Depois disso, o sistema estará 100% operacional! 🚀
 
 
+

@@ -43,3 +43,4 @@ docker exec chatwoot_chatwoot-chatwoot-web-1 env | grep -E "POSTGRES|REDIS|FRONT
 # 12. Verificar se há algum erro de conexão nos logs
 docker logs chatwoot_chatwoot-chatwoot-web-1 2>&1 | grep -i error | tail -20
 
+

@@ -59,3 +59,4 @@ const CrmPipeline = ({ opportunities = [], onOpportunityClick }) => {
 export default CrmPipeline;
 
 
+

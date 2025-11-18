@@ -372,3 +372,4 @@ Sempre fazer backup do banco de dados antes de atualizar!
 **Versão do Chatwoot:** 2.0.0 (imagem oficial)  
 **Status:** ✅ Funcionando e pronto para personalização
 
+

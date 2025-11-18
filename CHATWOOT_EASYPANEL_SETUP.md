@@ -281,3 +281,4 @@ docker run --rm -v chatwoot_chatwoot_data:/data -v $(pwd):/backup alpine tar czf
 **Dúvidas?** Consulte a documentação do Chatwoot ou abra uma issue no repositório.
 
 
+

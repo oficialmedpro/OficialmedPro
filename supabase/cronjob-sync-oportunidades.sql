@@ -361,3 +361,4 @@ RAISE NOTICE '🔍 Monitore os logs em: SELECT * FROM api.sync_oportunidades_log
 
 
 
+

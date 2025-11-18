@@ -60,3 +60,4 @@ Você pode alterar essas variáveis para customizar as cores conforme necessári
 Esta é uma réplica visual para fins de estudo e customização. As cores e textos podem ser facilmente alterados para se adequar ao seu projeto.
 
 
+
