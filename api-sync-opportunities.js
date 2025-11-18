@@ -9,7 +9,66 @@
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
 const cors = require('cors');
+
+// =============== VERSIONAMENTO ===============
+function getVersion() {
+    try {
+        // Tentar ler do package.json
+        const packagePath = path.join(__dirname, 'package-sync-apis.json');
+        if (fs.existsSync(packagePath)) {
+            const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+            if (packageJson.version) {
+                return packageJson.version;
+            }
+        }
+    } catch (e) {
+        // Ignorar erro
+    }
+    
+    // Fallback: tentar obter do git
+    try {
+        const gitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf8', cwd: __dirname }).trim();
+        const gitDate = execSync('git log -1 --format=%ci', { encoding: 'utf8', cwd: __dirname }).trim();
+        return `3.0.0-dev.${gitHash}`;
+    } catch (e) {
+        return '3.0.0-unknown';
+    }
+}
+
+function getBuildInfo() {
+    try {
+        const gitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf8', cwd: __dirname }).trim();
+        const gitDate = execSync('git log -1 --format=%ci', { encoding: 'utf8', cwd: __dirname }).trim();
+        const gitMessage = execSync('git log -1 --format=%s', { encoding: 'utf8', cwd: __dirname }).trim();
+        return {
+            hash: gitHash,
+            date: gitDate,
+            message: gitMessage
+        };
+    } catch (e) {
+        return {
+            hash: 'unknown',
+            date: new Date().toISOString(),
+            message: 'unknown'
+        };
+    }
+}
+
+const API_VERSION = getVersion();
+const BUILD_INFO = getBuildInfo();
+
+// Log de inicialização com versão
+console.log('\n' + '='.repeat(80));
+console.log('🚀 API DE SINCRONIZAÇÃO DE OPORTUNIDADES - OFICIALMED');
+console.log('='.repeat(80));
+console.log(`📦 Versão: ${API_VERSION}`);
+console.log(`🔖 Commit: ${BUILD_INFO.hash}`);
+console.log(`📅 Data: ${BUILD_INFO.date}`);
+console.log(`💬 Mensagem: ${BUILD_INFO.message}`);
+console.log('='.repeat(80) + '\n');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -1192,6 +1251,8 @@ async function runFullSync(trigger = 'manual_api') {
     console.log('\n🚀 ============================================================');
     console.log('🚀 INICIANDO SINCRONIZAÇÃO COMPLETA');
     console.log('🚀 ============================================================');
+    console.log(`📦 Versão da API: ${API_VERSION}`);
+    console.log(`🔖 Commit: ${BUILD_INFO.hash}`);
     console.log(`📅 Trigger: ${trigger}`);
     console.log(`⏰ Início: ${new Date().toISOString()}\n`);
 
