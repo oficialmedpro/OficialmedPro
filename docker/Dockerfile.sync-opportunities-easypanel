@@ -1,7 +1,7 @@
 FROM node:20-alpine
 
-# Instalar curl para health checks
-RUN apk add --no-cache curl
+# Instalar curl e git para health checks e versionamento
+RUN apk add --no-cache curl git
 
 # Criar diretório da aplicação
 WORKDIR /app
@@ -14,6 +14,9 @@ RUN npm install --production
 
 # Copiar arquivo da API
 COPY api-sync-opportunities.js index.js
+
+# Copiar .git se existir (para versionamento)
+COPY .git .git 2>/dev/null || true
 
 # Criar usuário não-root
 RUN addgroup -g 1001 -S nodejs && \
