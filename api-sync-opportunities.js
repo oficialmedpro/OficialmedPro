@@ -1225,8 +1225,24 @@ app.get('/status', handleStatus);
 // Health check
 app.get('/health', (req, res) => {
     res.json({
-        status: 'OK',
-        service: 'API Sync Opportunities',
+        status: 'ok',
+        version: API_VERSION,
+        build: {
+            hash: BUILD_INFO.hash,
+            date: BUILD_INFO.date,
+            message: BUILD_INFO.message
+        },
+        timestamp: new Date().toISOString(),
+        isSyncRunning,
+        lastRun
+    });
+});
+
+// Version info
+app.get('/version', (req, res) => {
+    res.json({
+        version: API_VERSION,
+        build: BUILD_INFO,
         timestamp: new Date().toISOString()
     });
 });
