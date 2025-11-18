@@ -33,13 +33,13 @@ RUN npm run build
 FROM nginx:alpine
 
 # Copy nginx config
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY config/nginx.conf /etc/nginx/nginx.conf
 
 # Copy built app from build stage
 COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copy entrypoint script
-COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY docker/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
 # Expose port
