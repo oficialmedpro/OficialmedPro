@@ -183,6 +183,28 @@ function App() {
           </MonitoramentoProtectedRoute>
         } />
         
+        {/* Rotas do CRM com Layout e Sidebar - sempre renderizadas, autenticação no CrmLayout */}
+        <Route path="/crm" element={<CrmLayout />}>
+          {crmRoutes.map(route => {
+            const Component = route.component;
+            const isIndex = route.path === '/crm';
+            // Para rotas aninhadas, remover o prefixo '/crm' e manter apenas o caminho relativo
+            const routePath = isIndex ? undefined : route.path.replace(/^\/crm\/?/, '') || undefined;
+            
+            return (
+              <Route
+                key={route.path}
+                {...(isIndex ? { index: true } : { path: routePath })}
+                element={
+                  <Suspense fallback={<div style={{ textAlign: 'center', padding: 40 }}>Carregando...</div>}>
+                    <Component />
+                  </Suspense>
+                }
+              />
+            );
+          })}
+        </Route>
+        
         {/* Rotas principais - requerem autenticação do sistema principal */}
         {!isAuthenticated ? (
           <Route path="*" element={<Login onLogin={handleLogin} />} />
@@ -210,27 +232,6 @@ function App() {
         <Route path="/clientes-consolidados" element={<ClientesConsolidados onLogout={handleLogout} />} />
         {/* /historico-compras agora está protegida pelo sistema de reativação acima */}
         <Route path="/vendas" element={<VendasPage onLogout={handleLogout} />} />
-        
-        {/* Rotas do CRM com Layout e Sidebar */}
-        <Route path="/crm" element={<CrmLayout />}>
-          {crmRoutes.map(route => {
-            const Component = route.component;
-            const isIndex = route.path === '/crm';
-            const routePath = isIndex ? undefined : route.path.replace('/crm/', '');
-            
-            return (
-              <Route
-                key={route.path}
-                {...(isIndex ? { index: true } : { path: routePath })}
-                element={
-                  <Suspense fallback={<div style={{ textAlign: 'center', padding: 40 }}>Carregando...</div>}>
-                    <Component />
-                  </Suspense>
-                }
-              />
-            );
-          })}
-        </Route>
         
         {/* Rotas do FLOW */}
         {flowRoutes.map(route => {
