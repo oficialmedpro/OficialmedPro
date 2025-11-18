@@ -28,31 +28,32 @@ function getVersion() {
         // Ignorar erro
     }
     
-    // Fallback: tentar obter do git
+    // Fallback: tentar obter do git (pode não funcionar no Docker sem .git)
     try {
-        const gitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf8', cwd: __dirname }).trim();
-        const gitDate = execSync('git log -1 --format=%ci', { encoding: 'utf8', cwd: __dirname }).trim();
+        const gitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf8', cwd: __dirname, stdio: 'pipe' }).trim();
         return `3.0.0-dev.${gitHash}`;
     } catch (e) {
-        return '3.0.0-unknown';
+        // Se não conseguir do git, usar versão do package.json ou fallback
+        return '3.0.2';
     }
 }
 
 function getBuildInfo() {
     try {
-        const gitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf8', cwd: __dirname }).trim();
-        const gitDate = execSync('git log -1 --format=%ci', { encoding: 'utf8', cwd: __dirname }).trim();
-        const gitMessage = execSync('git log -1 --format=%s', { encoding: 'utf8', cwd: __dirname }).trim();
+        const gitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf8', cwd: __dirname, stdio: 'pipe' }).trim();
+        const gitDate = execSync('git log -1 --format=%ci', { encoding: 'utf8', cwd: __dirname, stdio: 'pipe' }).trim();
+        const gitMessage = execSync('git log -1 --format=%s', { encoding: 'utf8', cwd: __dirname, stdio: 'pipe' }).trim();
         return {
             hash: gitHash,
             date: gitDate,
             message: gitMessage
         };
     } catch (e) {
+        // Se não conseguir do git (comum no Docker), usar informações de build
         return {
-            hash: 'unknown',
+            hash: process.env.GIT_SHA || process.env.GIT_COMMIT || 'unknown',
             date: new Date().toISOString(),
-            message: 'unknown'
+            message: process.env.GIT_MESSAGE || 'Built from Docker image'
         };
     }
 }

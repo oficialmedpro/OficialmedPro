@@ -15,9 +15,13 @@ RUN npm install --production
 # Copiar arquivo da API
 COPY api-sync-opportunities.js index.js
 
-# Copiar .git se existir (para versionamento) - ignorar erro se não existir
-# O EasyPanel pode não ter .git no contexto de build
-COPY .git .git 2>/dev/null || true
+# Variáveis de build do Git (passadas pelo EasyPanel)
+ARG GIT_SHA
+ARG GIT_COMMIT
+ARG GIT_MESSAGE
+ENV GIT_SHA=${GIT_SHA}
+ENV GIT_COMMIT=${GIT_COMMIT}
+ENV GIT_MESSAGE=${GIT_MESSAGE}
 
 # Criar usuário não-root
 RUN addgroup -g 1001 -S nodejs && \
