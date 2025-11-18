@@ -17,6 +17,7 @@ COPY api-sync-opportunities.js index.js
 
 # Copiar .git se existir (para versionamento) - ignorar erro se não existir
 # O EasyPanel pode não ter .git no contexto de build
+COPY .git .git 2>/dev/null || true
 
 # Criar usuário não-root
 RUN addgroup -g 1001 -S nodejs && \
@@ -35,5 +36,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Comando para iniciar
 CMD ["node", "index.js"]
-
 
