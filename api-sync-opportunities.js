@@ -309,14 +309,29 @@ function mapLeadToSupabase(lead, onMissingField = () => {}) {
     };
 
     // Tentar extrair de fullname se firstname/lastname não existirem
-    let firstname = getField('firstname', ['firstName', 'first_name', 'name']);
+    let firstname = getField('firstname', ['firstName', 'first_name']);
     let lastname = getField('lastname', ['lastName', 'last_name', 'surname', 'sobrenome']);
     
     // Se não tem firstname/lastname, tentar separar fullname
     if (!firstname && !lastname) {
         const fullname = getField('fullname', ['fullName', 'full_name', 'name', 'nome']);
-        if (fullname && typeof fullname === 'string') {
-            const parts = fullname.trim().split(/\s+/);
+        if (fullname && typeof fullname === 'string' && fullname.trim()) {
+            const parts = fullname.trim().split(/\s+/).filter(p => p);
+            if (parts.length > 0) {
+                firstname = parts[0];
+                if (parts.length > 1) {
+                    lastname = parts.slice(1).join(' ');
+                }
+            }
+        }
+    }
+    
+    // Se ainda não tem, tentar extrair do email (último recurso)
+    if (!firstname && !lastname) {
+        const email = getField('email', ['e_mail', 'e-mail']);
+        if (email && typeof email === 'string' && email.includes('@')) {
+            const emailName = email.split('@')[0];
+            const parts = emailName.replace(/[._-]/g, ' ').split(/\s+/).filter(p => p);
             if (parts.length > 0) {
                 firstname = parts[0];
                 if (parts.length > 1) {
