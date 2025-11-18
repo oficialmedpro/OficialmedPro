@@ -5,7 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'api-sync-opportunities.js'
-      - 'Dockerfile.sync-opportunities'
+      - 'docker/Dockerfile.sync-opportunities'
       - 'package-sync-apis.json'
       - '.github/workflows/deploy-oportunidades-sync.yml'
   workflow_dispatch:
@@ -32,7 +32,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: .
-        file: ./Dockerfile.sync-opportunities
+        file: ./docker/Dockerfile.sync-opportunities
         push: true
         tags: |
           oficialmedpro/oportunidades-sync-api:latest
