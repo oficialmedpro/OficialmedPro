@@ -16,7 +16,20 @@ const cors = require('cors');
 // =============== VERSIONAMENTO ===============
 function getVersion() {
     try {
-        // Tentar ler do package.json
+        // Tentar ler do package.json (copiado como package.json no Docker)
+        const packagePath = path.join(__dirname, 'package.json');
+        if (fs.existsSync(packagePath)) {
+            const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+            if (packageJson.version) {
+                return packageJson.version;
+            }
+        }
+    } catch (e) {
+        // Ignorar erro
+    }
+    
+    // Fallback: tentar package-sync-apis.json (para desenvolvimento local)
+    try {
         const packagePath = path.join(__dirname, 'package-sync-apis.json');
         if (fs.existsSync(packagePath)) {
             const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
@@ -34,7 +47,7 @@ function getVersion() {
         return `3.0.0-dev.${gitHash}`;
     } catch (e) {
         // Se não conseguir do git, usar versão do package.json ou fallback
-        return '3.0.2';
+        return '3.0.3';
     }
 }
 
