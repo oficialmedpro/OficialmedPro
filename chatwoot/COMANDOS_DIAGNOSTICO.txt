@@ -44,3 +44,4 @@ docker exec chatwoot_chatwoot-chatwoot-web-1 env | grep -E "POSTGRES|REDIS|FRONT
 docker logs chatwoot_chatwoot-chatwoot-web-1 2>&1 | grep -i error | tail -20
 
 
+

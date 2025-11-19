@@ -54,17 +54,26 @@ COMMENT ON VIEW api.vw_validacao_integridade IS 'Validação de integridade entr
 -- ========================================
 -- 2. VIEW: DASHBOARD DE REATIVAÇÃO
 -- ========================================
+-- CORRIGIDA: Usa data_aprovacao e exclui clientes com compras recentes (últimos 90 dias)
 
 CREATE OR REPLACE VIEW api.vw_dashboard_reativacao AS
 WITH pedidos_aprovados AS (
     SELECT 
         cliente_id,
         COUNT(*) as total_pedidos,
-        MAX(data_criacao) as ultima_compra,
-        MIN(data_criacao) as primeira_compra
+        -- Usa data_aprovacao quando disponível, senão usa data_criacao
+        MAX(COALESCE(data_aprovacao, data_criacao)) as ultima_compra,
+        MIN(COALESCE(data_aprovacao, data_criacao)) as primeira_compra
     FROM api.prime_pedidos
     WHERE status_aprovacao = 'APROVADO'
     GROUP BY cliente_id
+),
+-- Verifica se há pedidos aprovados recentes (últimos 90 dias)
+pedidos_recentes AS (
+    SELECT DISTINCT cliente_id
+    FROM api.prime_pedidos
+    WHERE status_aprovacao = 'APROVADO'
+    AND COALESCE(data_aprovacao, data_criacao) >= (NOW() - INTERVAL '90 days')
 ),
 clientes_com_pedidos AS (
     SELECT 
@@ -72,9 +81,12 @@ clientes_com_pedidos AS (
         pa.total_pedidos,
         pa.ultima_compra,
         pa.primeira_compra,
-        EXTRACT(DAYS FROM NOW() - pa.ultima_compra)::INTEGER as dias_sem_compra
+        EXTRACT(DAYS FROM NOW() - pa.ultima_compra)::INTEGER as dias_sem_compra,
+        -- Flag para indicar se tem compras recentes
+        CASE WHEN pr.cliente_id IS NOT NULL THEN true ELSE false END as tem_compra_recente
     FROM api.clientes_mestre cm
     LEFT JOIN pedidos_aprovados pa ON cm.id_prime = pa.cliente_id
+    LEFT JOIN pedidos_recentes pr ON cm.id_prime = pr.cliente_id
 )
 SELECT 
     -- TOTAIS GERAIS
@@ -89,12 +101,17 @@ SELECT
     -- ATIVOS (já compraram)
     (SELECT COUNT(*) FROM clientes_com_pedidos WHERE total_pedidos >= 1) as total_ativos,
     
-    -- PARA REATIVAÇÃO (90+ dias sem comprar)
-    (SELECT COUNT(*) FROM clientes_com_pedidos WHERE id_prime IS NOT NULL AND total_pedidos >= 1 AND dias_sem_compra > 90) as para_reativacao,
-    (SELECT COUNT(*) FROM clientes_com_pedidos WHERE id_prime IS NOT NULL AND total_pedidos = 1 AND dias_sem_compra > 90) as reativacao_1x,
-    (SELECT COUNT(*) FROM clientes_com_pedidos WHERE id_prime IS NOT NULL AND total_pedidos = 2 AND dias_sem_compra > 90) as reativacao_2x,
-    (SELECT COUNT(*) FROM clientes_com_pedidos WHERE id_prime IS NOT NULL AND total_pedidos = 3 AND dias_sem_compra > 90) as reativacao_3x,
-    (SELECT COUNT(*) FROM clientes_com_pedidos WHERE id_prime IS NOT NULL AND total_pedidos > 3 AND dias_sem_compra > 90) as reativacao_3x_plus,
+    -- PARA REATIVAÇÃO (90+ dias sem comprar E sem compras recentes)
+    (SELECT COUNT(*) FROM clientes_com_pedidos 
+     WHERE id_prime IS NOT NULL AND total_pedidos >= 1 AND dias_sem_compra > 90 AND NOT tem_compra_recente) as para_reativacao,
+    (SELECT COUNT(*) FROM clientes_com_pedidos 
+     WHERE id_prime IS NOT NULL AND total_pedidos = 1 AND dias_sem_compra > 90 AND NOT tem_compra_recente) as reativacao_1x,
+    (SELECT COUNT(*) FROM clientes_com_pedidos 
+     WHERE id_prime IS NOT NULL AND total_pedidos = 2 AND dias_sem_compra > 90 AND NOT tem_compra_recente) as reativacao_2x,
+    (SELECT COUNT(*) FROM clientes_com_pedidos 
+     WHERE id_prime IS NOT NULL AND total_pedidos = 3 AND dias_sem_compra > 90 AND NOT tem_compra_recente) as reativacao_3x,
+    (SELECT COUNT(*) FROM clientes_com_pedidos 
+     WHERE id_prime IS NOT NULL AND total_pedidos > 3 AND dias_sem_compra > 90 AND NOT tem_compra_recente) as reativacao_3x_plus,
     
     -- PARA MONITORAMENTO (0-90 dias)
     (SELECT COUNT(*) FROM clientes_com_pedidos WHERE id_prime IS NOT NULL AND total_pedidos >= 1 AND dias_sem_compra BETWEEN 1 AND 29) as monitoramento_1_29,
@@ -120,7 +137,8 @@ historico_orcamentos AS (
         cliente_id,
         COUNT(*) as total_orcamentos,
         MAX(data_criacao) as ultimo_orcamento,
-        MAX(CASE WHEN status_aprovacao = 'APROVADO' THEN data_criacao END) as ultimo_pedido_aprovado,
+        -- Usa data_aprovacao quando disponível, senão usa data_criacao
+        MAX(CASE WHEN status_aprovacao = 'APROVADO' THEN COALESCE(data_aprovacao, data_criacao) END) as ultimo_pedido_aprovado,
         STRING_AGG(DISTINCT status_aprovacao, ', ') as status_historico
     FROM api.prime_pedidos
     GROUP BY cliente_id
@@ -214,14 +232,16 @@ COMMENT ON VIEW api.vw_inativos_sem_orcamento IS 'Clientes inativos sem históri
 -- ========================================
 -- 7. VIEW: CLIENTES ATIVOS
 -- ========================================
+-- CORRIGIDA: Usa data_aprovacao quando disponível
 
 CREATE OR REPLACE VIEW api.vw_clientes_ativos AS
 WITH pedidos_aprovados AS (
     SELECT 
         cliente_id,
         COUNT(*) as total_pedidos,
-        MAX(data_criacao) as ultima_compra,
-        MIN(data_criacao) as primeira_compra,
+        -- Usa data_aprovacao quando disponível, senão usa data_criacao
+        MAX(COALESCE(data_aprovacao, data_criacao)) as ultima_compra,
+        MIN(COALESCE(data_aprovacao, data_criacao)) as primeira_compra,
         SUM(valor_total) as valor_total_compras
     FROM api.prime_pedidos
     WHERE status_aprovacao = 'APROVADO'
@@ -257,18 +277,27 @@ COMMENT ON VIEW api.vw_clientes_ativos IS 'Clientes ativos que já compraram pel
 -- ========================================
 -- 8. VIEW: PARA REATIVAÇÃO (90+ dias)
 -- ========================================
+-- CORRIGIDA: Usa data_aprovacao e exclui clientes com compras recentes (últimos 90 dias)
 
 CREATE OR REPLACE VIEW api.vw_para_reativacao AS
 WITH pedidos_aprovados AS (
     SELECT 
         cliente_id,
         COUNT(*) as total_pedidos,
-        MAX(data_criacao) as ultima_compra,
-        MIN(data_criacao) as primeira_compra,
+        -- Usa data_aprovacao quando disponível, senão usa data_criacao
+        MAX(COALESCE(data_aprovacao, data_criacao)) as ultima_compra,
+        MIN(COALESCE(data_aprovacao, data_criacao)) as primeira_compra,
         SUM(valor_total) as valor_total_compras
     FROM api.prime_pedidos
     WHERE status_aprovacao = 'APROVADO'
     GROUP BY cliente_id
+),
+-- Verifica se há pedidos aprovados recentes (últimos 90 dias)
+pedidos_recentes AS (
+    SELECT DISTINCT cliente_id
+    FROM api.prime_pedidos
+    WHERE status_aprovacao = 'APROVADO'
+    AND COALESCE(data_aprovacao, data_criacao) >= (NOW() - INTERVAL '90 days')
 ),
 historico_orcamentos AS (
     SELECT 
@@ -309,9 +338,14 @@ SELECT
 FROM api.clientes_mestre cm
 INNER JOIN pedidos_aprovados pa ON cm.id_prime = pa.cliente_id
 LEFT JOIN historico_orcamentos ho ON cm.id_prime = ho.cliente_id
+-- EXCLUI clientes que têm pedidos aprovados nos últimos 90 dias
 WHERE cm.id_prime IS NOT NULL
 AND pa.total_pedidos >= 1
 AND EXTRACT(DAYS FROM NOW() - pa.ultima_compra) > 90
+AND NOT EXISTS (
+    SELECT 1 FROM pedidos_recentes pr 
+    WHERE pr.cliente_id = cm.id_prime
+)
 ORDER BY pa.total_pedidos DESC, pa.ultima_compra DESC;
 
 COMMENT ON VIEW api.vw_para_reativacao IS 'Clientes para reativação (90+ dias sem comprar)';
@@ -344,14 +378,16 @@ COMMENT ON VIEW api.vw_reativacao_3x_plus IS 'Clientes para reativação que com
 -- ========================================
 -- 13. VIEW: PARA MONITORAMENTO (0-90 dias)
 -- ========================================
+-- CORRIGIDA: Usa data_aprovacao quando disponível
 
 CREATE OR REPLACE VIEW api.vw_para_monitoramento AS
 WITH pedidos_aprovados AS (
     SELECT 
         cliente_id,
         COUNT(*) as total_pedidos,
-        MAX(data_criacao) as ultima_compra,
-        MIN(data_criacao) as primeira_compra,
+        -- Usa data_aprovacao quando disponível, senão usa data_criacao
+        MAX(COALESCE(data_aprovacao, data_criacao)) as ultima_compra,
+        MIN(COALESCE(data_aprovacao, data_criacao)) as primeira_compra,
         SUM(valor_total) as valor_total_compras
     FROM api.prime_pedidos
     WHERE status_aprovacao = 'APROVADO'

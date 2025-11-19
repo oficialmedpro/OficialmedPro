@@ -65,6 +65,8 @@ const ReativacaoBasePage = ({ tipo }) => {
   const [sprinthubStatusFilter, setSprinthubStatusFilter] = useState('all'); // 'all' | 'sent' | 'not-sent'
   const [sprinthubLeadTagFilter, setSprinthubLeadTagFilter] = useState('all');
   const [availableSprinthubLeadTags, setAvailableSprinthubLeadTags] = useState([]);
+  const [sprinthubDataEnvioInicio, setSprinthubDataEnvioInicio] = useState(''); // Data início envio SprintHub
+  const [sprinthubDataEnvioFim, setSprinthubDataEnvioFim] = useState(''); // Data fim envio SprintHub
   const [crmStatusMap, setCrmStatusMap] = useState({}); // {leadId: {status, funis, opportunities}}
   const [loadingCrmStatus, setLoadingCrmStatus] = useState({}); // {leadId: true/false}
   const [showCrmStatusModal, setShowCrmStatusModal] = useState(false);
@@ -387,7 +389,7 @@ const ReativacaoBasePage = ({ tipo }) => {
       loadAvailableExportTags();
       loadAvailableDDDs();
     }
-  }, [tipo, currentPage, itemsPerPage, sortField, sortDirection, filters, exportFilter, exportTagFilter, userData, isVendedor, isSupervisor, searchTerm, sprinthubStatusFilter, sprinthubLeadTagFilter]);
+  }, [tipo, currentPage, itemsPerPage, sortField, sortDirection, filters, exportFilter, exportTagFilter, userData, isVendedor, isSupervisor, searchTerm, sprinthubStatusFilter, sprinthubLeadTagFilter, sprinthubDataEnvioInicio, sprinthubDataEnvioFim]);
 
   // Carregar tags de exportação disponíveis
   const loadAvailableExportTags = async () => {
@@ -933,6 +935,16 @@ const chunkArray = (array, size) => {
             sprinthubHistoryQuery = sprinthubHistoryQuery.ilike('tag_exportacao', 'SPRINTHUB%');
           }
           
+          // Filtro por data de envio
+          if (sprinthubDataEnvioInicio) {
+            const dataInicio = `${sprinthubDataEnvioInicio}T00:00:00`;
+            sprinthubHistoryQuery = sprinthubHistoryQuery.gte('data_exportacao', dataInicio);
+          }
+          if (sprinthubDataEnvioFim) {
+            const dataFim = `${sprinthubDataEnvioFim}T23:59:59`;
+            sprinthubHistoryQuery = sprinthubHistoryQuery.lte('data_exportacao', dataFim);
+          }
+          
           const { data: sprinthubHistoryData } = await sprinthubHistoryQuery;
           sprinthubSentIds = sprinthubHistoryData?.map(item => item.id_lead).filter(Boolean) || [];
           sprinthubSentIdSet = new Set(sprinthubSentIds.map(id => String(id)));
@@ -951,12 +963,25 @@ const chunkArray = (array, size) => {
         // Se filtro por tag, aplicar filtro de tag
         if (exportTagFilter && exportTagFilter !== 'all') {
           // Buscar TODOS os IDs exportados com aquela tag
-          const { data: exportedIds } = await supabase
+          let tagQuery = supabase
             .schema('api')
             .from('historico_exportacoes')
             .select('id_lead')
             .eq('tag_exportacao', exportTagFilter);
           
+          // Se for tag SprintHub, aplicar também filtro de data de envio
+          if (exportTagFilter.toLowerCase().includes('sprinthub')) {
+            if (sprinthubDataEnvioInicio) {
+              const dataInicio = `${sprinthubDataEnvioInicio}T00:00:00`;
+              tagQuery = tagQuery.gte('data_exportacao', dataInicio);
+            }
+            if (sprinthubDataEnvioFim) {
+              const dataFim = `${sprinthubDataEnvioFim}T23:59:59`;
+              tagQuery = tagQuery.lte('data_exportacao', dataFim);
+            }
+          }
+          
+          const { data: exportedIds } = await tagQuery;
           const exportedLeadIds = exportedIds?.map(e => e.id_lead).filter(Boolean) || [];
           if (exportedLeadIds.length > 0) {
             query = query.in('id', exportedLeadIds);
@@ -3754,13 +3779,39 @@ const chunkArray = (array, size) => {
                   ))}
                 </select>
               </div>
-              <div className="cc-filter-item">
+              <div className="cc-filter-item" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ whiteSpace: 'nowrap' }}>Data Envio SprintHub:</span>
+                <input
+                  type="date"
+                  value={sprinthubDataEnvioInicio}
+                  onChange={(e) => {
+                    setSprinthubDataEnvioInicio(e.target.value);
+                  }}
+                  className="cc-select cc-select-small"
+                  style={{ width: '130px' }}
+                  placeholder="Data início"
+                />
+                <span style={{ color: '#9ca3af', whiteSpace: 'nowrap' }}>até</span>
+                <input
+                  type="date"
+                  value={sprinthubDataEnvioFim}
+                  onChange={(e) => {
+                    setSprinthubDataEnvioFim(e.target.value);
+                  }}
+                  className="cc-select cc-select-small"
+                  style={{ width: '130px' }}
+                  placeholder="Data fim"
+                />
+              </div>
+              <div className="cc-filter-item" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <button className="cc-btn cc-btn-small" onClick={() => { setCurrentPage(1); loadData(); }}>
                   Aplicar
                 </button>
                 <button className="cc-btn cc-btn-small" onClick={() => {
                   setFilters({ hasCpf: false, hasEmail: false, hasEndereco: false, hasSexo: false, hasDataNascimento: false, phoneStatus: 'any', ddd: '', origins: [] });
                   setExportTagFilter('all');
+                  setSprinthubDataEnvioInicio('');
+                  setSprinthubDataEnvioFim('');
                   setSearchTerm('');
                   setCurrentPage(1);
                   loadData();

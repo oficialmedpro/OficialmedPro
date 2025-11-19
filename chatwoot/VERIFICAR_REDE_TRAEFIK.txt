@@ -19,3 +19,4 @@ docker exec 42f4fd9845cb cat /etc/traefik/traefik.yml 2>/dev/null || echo "Arqui
 docker logs 42f4fd9845cb --tail 200 | grep -i "chatwoot\|chat.oficialmed"
 
 
+
