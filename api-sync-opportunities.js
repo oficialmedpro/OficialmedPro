@@ -1263,8 +1263,21 @@ app.get('/metrics', (_req, res) => {
     res.json({ running: isSyncRunning, last: lastRun });
 });
 
-// Orquestrador sequencial com lock
-async function runFullSync(trigger = 'manual_api') {
+// Orquestrador sequencial com lock - permite sincronização seletiva
+async function runFullSync(trigger = 'manual_api', options = {}) {
+    // Opções: { syncOportunidades: true/false, syncLeads: true/false, syncSegmentos: true/false }
+    // Por padrão, sincroniza tudo se nenhuma opção for especificada
+    const {
+        syncOportunidades = true,
+        syncLeads = true,
+        syncSegmentos = true
+    } = options;
+
+    // Se nenhuma opção foi especificada, sincroniza tudo (comportamento padrão)
+    const syncAll = !options.hasOwnProperty('syncOportunidades') && 
+                    !options.hasOwnProperty('syncLeads') && 
+                    !options.hasOwnProperty('syncSegmentos');
+
     if (isSyncRunning) {
         console.log('⚠️ Sincronização já está em andamento');
         return {
@@ -1273,12 +1286,18 @@ async function runFullSync(trigger = 'manual_api') {
         };
     }
 
+    const syncTypes = [];
+    if (syncAll || syncOportunidades) syncTypes.push('OPORTUNIDADES');
+    if (syncAll || syncLeads) syncTypes.push('LEADS');
+    if (syncAll || syncSegmentos) syncTypes.push('SEGMENTOS');
+
     console.log('\n🚀 ============================================================');
-    console.log('🚀 INICIANDO SINCRONIZAÇÃO COMPLETA');
+    console.log(`🚀 INICIANDO SINCRONIZAÇÃO ${syncAll ? 'COMPLETA' : 'SELETIVA'}`);
     console.log('🚀 ============================================================');
     console.log(`📦 Versão da API: ${API_VERSION}`);
     console.log(`🔖 Commit: ${BUILD_INFO.hash}`);
     console.log(`📅 Trigger: ${trigger}`);
+    console.log(`📋 Recursos: ${syncTypes.join(', ')}`);
     console.log(`⏰ Início: ${new Date().toISOString()}\n`);
 
     isSyncRunning = true;
@@ -1286,21 +1305,33 @@ async function runFullSync(trigger = 'manual_api') {
     const summary = {};
 
     try {
-        console.log('\n🔄 Fase 1/3: Sincronizando OPORTUNIDADES...');
-        summary.oportunidades = await syncOpportunities();
-        console.log(`✅ Oportunidades: ${summary.oportunidades?.totalProcessed || 0} processadas`);
+        if (syncAll || syncOportunidades) {
+            console.log('\n🔄 Sincronizando OPORTUNIDADES...');
+            summary.oportunidades = await syncOpportunities();
+            console.log(`✅ Oportunidades: ${summary.oportunidades?.totalProcessed || 0} processadas`);
+        } else {
+            summary.oportunidades = { totalProcessed: 0, totalErrors: 0, message: 'Pulado' };
+        }
         
-        console.log('\n🔄 Fase 2/3: Sincronizando LEADS...');
-        summary.leads = await syncLeads();
-        console.log(`✅ Leads: ${summary.leads?.totalProcessed || 0} processados`);
+        if (syncAll || syncLeads) {
+            console.log('\n🔄 Sincronizando LEADS...');
+            summary.leads = await syncLeads();
+            console.log(`✅ Leads: ${summary.leads?.totalProcessed || 0} processados`);
+        } else {
+            summary.leads = { totalProcessed: 0, totalErrors: 0, message: 'Pulado' };
+        }
         
-        console.log('\n🔄 Fase 3/3: Sincronizando SEGMENTOS...');
-        try {
-            summary.segmentos = await syncSegments();
-            console.log(`✅ Segmentos: ${summary.segmentos?.totalProcessed || 0} processados`);
-        } catch (segmentError) {
-            console.error(`❌ Erro ao sincronizar segmentos (continuando...):`, segmentError.message);
-            summary.segmentos = { totalProcessed: 0, totalErrors: 1, error: segmentError.message };
+        if (syncAll || syncSegmentos) {
+            console.log('\n🔄 Sincronizando SEGMENTOS...');
+            try {
+                summary.segmentos = await syncSegments();
+                console.log(`✅ Segmentos: ${summary.segmentos?.totalProcessed || 0} processados`);
+            } catch (segmentError) {
+                console.error(`❌ Erro ao sincronizar segmentos (continuando...):`, segmentError.message);
+                summary.segmentos = { totalProcessed: 0, totalErrors: 1, error: segmentError.message };
+            }
+        } else {
+            summary.segmentos = { totalProcessed: 0, totalErrors: 0, message: 'Pulado' };
         }
         
         // Vendedores: não há endpoint /users na API do SprintHub
@@ -1319,12 +1350,12 @@ async function runFullSync(trigger = 'manual_api') {
         const durationSeconds = (completedAt - startedAt) / 1000;
         
         console.log('\n✅ ============================================================');
-        console.log('✅ SINCRONIZAÇÃO COMPLETA FINALIZADA');
+        console.log(`✅ SINCRONIZAÇÃO ${syncAll ? 'COMPLETA' : 'SELETIVA'} FINALIZADA`);
         console.log('✅ ============================================================');
         console.log(`📊 Resumo:`);
-        console.log(`   Oportunidades: ${summary.oportunidades?.totalProcessed || 0} processadas`);
-        console.log(`   Leads: ${summary.leads?.totalProcessed || 0} processados`);
-        console.log(`   Segmentos: ${summary.segmentos?.totalProcessed || 0} processados`);
+        console.log(`   Oportunidades: ${summary.oportunidades?.totalProcessed || 0} processadas ${summary.oportunidades?.message ? `(${summary.oportunidades.message})` : ''}`);
+        console.log(`   Leads: ${summary.leads?.totalProcessed || 0} processados ${summary.leads?.message ? `(${summary.leads.message})` : ''}`);
+        console.log(`   Segmentos: ${summary.segmentos?.totalProcessed || 0} processados ${summary.segmentos?.message ? `(${summary.segmentos.message})` : ''}`);
         console.log(`   Vendedores: ${summary.vendedores?.message || 'N/A'}`);
         console.log(`   Total: ${totals.totalProcessed} processados`);
         console.log(`   Erros: ${totals.totalErrors}`);
@@ -1365,7 +1396,15 @@ const handleFullSync = async (req, res) => {
     try {
         // Para GET, não há body, então usar query params ou default
         const trigger = (req.method === 'GET' ? req.query?.trigger : req.body?.trigger) || 'manual_api';
-        const result = await runFullSync(trigger);
+        
+        // Permitir sincronização seletiva via query params ou body
+        const options = {
+            syncOportunidades: req.query?.oportunidades !== 'false' && req.body?.oportunidades !== false,
+            syncLeads: req.query?.leads !== 'false' && req.body?.leads !== false,
+            syncSegmentos: req.query?.segmentos !== 'false' && req.body?.segmentos !== false
+        };
+        
+        const result = await runFullSync(trigger, options);
         if (result.alreadyRunning) {
             return res.json({
                 success: true,
@@ -1380,8 +1419,98 @@ const handleFullSync = async (req, res) => {
     }
 };
 
+// Handler para sincronização apenas de oportunidades
+const handleSyncOportunidades = async (req, res) => {
+    try {
+        const trigger = (req.method === 'GET' ? req.query?.trigger : req.body?.trigger) || 'manual_oportunidades';
+        const result = await runFullSync(trigger, { syncOportunidades: true, syncLeads: false, syncSegmentos: false });
+        if (result.alreadyRunning) {
+            return res.json({
+                success: true,
+                message: 'Execução já em andamento',
+                data: result.lastRun
+            });
+        }
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('❌ Erro na sincronização de oportunidades:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Handler para sincronização apenas de leads
+const handleSyncLeads = async (req, res) => {
+    try {
+        const trigger = (req.method === 'GET' ? req.query?.trigger : req.body?.trigger) || 'manual_leads';
+        const result = await runFullSync(trigger, { syncOportunidades: false, syncLeads: true, syncSegmentos: false });
+        if (result.alreadyRunning) {
+            return res.json({
+                success: true,
+                message: 'Execução já em andamento',
+                data: result.lastRun
+            });
+        }
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('❌ Erro na sincronização de leads:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Handler para sincronização apenas de segmentos
+const handleSyncSegmentos = async (req, res) => {
+    try {
+        const trigger = (req.method === 'GET' ? req.query?.trigger : req.body?.trigger) || 'manual_segmentos';
+        const result = await runFullSync(trigger, { syncOportunidades: false, syncLeads: false, syncSegmentos: true });
+        if (result.alreadyRunning) {
+            return res.json({
+                success: true,
+                message: 'Execução já em andamento',
+                data: result.lastRun
+            });
+        }
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('❌ Erro na sincronização de segmentos:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Handler para sincronização de leads + segmentos (para madrugada)
+const handleSyncLeadsSegmentos = async (req, res) => {
+    try {
+        const trigger = (req.method === 'GET' ? req.query?.trigger : req.body?.trigger) || 'manual_leads_segmentos';
+        const result = await runFullSync(trigger, { syncOportunidades: false, syncLeads: true, syncSegmentos: true });
+        if (result.alreadyRunning) {
+            return res.json({
+                success: true,
+                message: 'Execução já em andamento',
+                data: result.lastRun
+            });
+        }
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('❌ Erro na sincronização de leads e segmentos:', error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+// Endpoints principais
 app.post('/sync/all', handleFullSync);
 app.get(['/sync/all', '/sync', '/oportunidades/sync', '/oportunidades/sync/all'], handleFullSync);
+
+// Endpoints específicos para sincronização seletiva
+app.get('/sync/oportunidades', handleSyncOportunidades);
+app.post('/sync/oportunidades', handleSyncOportunidades);
+
+app.get('/sync/leads', handleSyncLeads);
+app.post('/sync/leads', handleSyncLeads);
+
+app.get('/sync/segmentos', handleSyncSegmentos);
+app.post('/sync/segmentos', handleSyncSegmentos);
+
+app.get('/sync/leads-segmentos', handleSyncLeadsSegmentos);
+app.post('/sync/leads-segmentos', handleSyncLeadsSegmentos);
 
 // Iniciar servidor
 app.listen(PORT, () => {
@@ -1390,6 +1519,14 @@ app.listen(PORT, () => {
     console.log(`   GET /oportunidades  | /  - Sincronizar oportunidades`);
     console.log(`   GET /oportunidades/status  | /status - Status das oportunidades`);
     console.log(`   GET /health - Health check`);
+    console.log(`   GET /version - Versão da API`);
+    console.log(`\n📡 Endpoints de sincronização:`);
+    console.log(`   GET /sync/all - Sincronizar tudo (oportunidades + leads + segmentos)`);
+    console.log(`   GET /sync/oportunidades - Sincronizar apenas oportunidades`);
+    console.log(`   GET /sync/leads - Sincronizar apenas leads`);
+    console.log(`   GET /sync/segmentos - Sincronizar apenas segmentos`);
+    console.log(`   GET /sync/leads-segmentos - Sincronizar leads + segmentos (para madrugada)`);
+    console.log(`\n💡 Dica: Use /sync/oportunidades no horário padrão e /sync/leads-segmentos de madrugada`);
 });
 
 module.exports = app;
