@@ -100,7 +100,6 @@ const ReativacaoBasePage = ({ tipo }) => {
     }
     return '0';
   });
-  const [sprinthubTagId, setSprinthubTagId] = useState('221'); // Tag padrão REATIVAÇÃO
   const [sprinthubOrigemOportunidade, setSprinthubOrigemOportunidade] = useState('Reativação');
   const [sprinthubTipoCompra, setSprinthubTipoCompra] = useState('reativação');
   const [showSprinthubModal, setShowSprinthubModal] = useState(false);
@@ -391,6 +390,7 @@ const ReativacaoBasePage = ({ tipo }) => {
     }
   }, [tipo, currentPage, itemsPerPage, sortField, sortDirection, filters, exportFilter, exportTagFilter, userData, isVendedor, isSupervisor, searchTerm, sprinthubStatusFilter, sprinthubLeadTagFilter, sprinthubDataEnvioInicio, sprinthubDataEnvioFim]);
 
+
   // Carregar tags de exportação disponíveis
   const loadAvailableExportTags = async () => {
     try {
@@ -670,7 +670,6 @@ const chunkArray = (array, size) => {
         setSprinthubEtapa(data.column_id ? String(data.column_id) : '');
         setSprinthubSequence(data.sequence_id ? String(data.sequence_id) : '0');
         setSprinthubVendedor(data.user_id ? String(data.user_id) : '');
-        setSprinthubTagId(data.sprinthub_tag_id ? String(data.sprinthub_tag_id) : '221');
         setSprinthubOrigemOportunidade(data.origem_opportunity || 'Reativação');
         setSprinthubTipoCompra(data.tipo_compra || 'reativação');
         setAutoSyncLimit(data.limit_leads ? String(data.limit_leads) : '200');
@@ -699,7 +698,6 @@ const chunkArray = (array, size) => {
           p_user_id: sprinthubVendedor ? Number(sprinthubVendedor) : null,
           p_user_id_creator: userId,
           p_sequence_id: sprinthubSequence ? Number(sprinthubSequence) : 0,
-          p_sprinthub_tag_id: sprinthubTagId ? Number(sprinthubTagId) : 221,
           p_origem_opportunity: sprinthubOrigemOportunidade || 'Reativação',
           p_tipo_compra: sprinthubTipoCompra || 'reativação',
           p_limit_leads: autoSyncLimit ? Number(autoSyncLimit) : 200,
@@ -746,17 +744,84 @@ const chunkArray = (array, size) => {
       
       if (allData.length === 0) return {};
       
+      // Buscar mapeamento de IDs do clientes_mestre para os IDs fornecidos
+      const numericIds = leadIds.map(id => Number(id)).filter(id => !isNaN(id));
+      const idMapping = {};
+      
+      if (numericIds.length > 0) {
+        // Buscar por id
+        const { data: byId } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('id, id_prime, id_sprinthub')
+          .in('id', numericIds);
+        (byId || []).forEach(cm => {
+          const cmIdStr = String(cm.id);
+          idMapping[cmIdStr] = cmIdStr;
+          if (cm.id_prime) idMapping[String(cm.id_prime)] = cmIdStr;
+          if (cm.id_sprinthub) idMapping[String(cm.id_sprinthub)] = cmIdStr;
+        });
+        
+        // Buscar por id_prime
+        const { data: byPrime } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('id, id_prime, id_sprinthub')
+          .in('id_prime', numericIds);
+        (byPrime || []).forEach(cm => {
+          const cmIdStr = String(cm.id);
+          idMapping[cmIdStr] = cmIdStr;
+          if (cm.id_prime) idMapping[String(cm.id_prime)] = cmIdStr;
+          if (cm.id_sprinthub) idMapping[String(cm.id_sprinthub)] = cmIdStr;
+        });
+        
+        // Buscar por id_sprinthub
+        const { data: bySprint } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('id, id_prime, id_sprinthub')
+          .in('id_sprinthub', numericIds);
+        (bySprint || []).forEach(cm => {
+          const cmIdStr = String(cm.id);
+          idMapping[cmIdStr] = cmIdStr;
+          if (cm.id_prime) idMapping[String(cm.id_prime)] = cmIdStr;
+          if (cm.id_sprinthub) idMapping[String(cm.id_sprinthub)] = cmIdStr;
+        });
+      }
+      
       const history = {};
       const sprinthubFlags = {};
+      
+      // Agrupar histórico por ID do clientes_mestre
+      const historyByClientesMestre = {};
+      allData.forEach(exp => {
+        const eId = String(exp.id_lead || exp.id_cliente || exp.id_cliente_mestre);
+        if (!historyByClientesMestre[eId]) {
+          historyByClientesMestre[eId] = [];
+        }
+        historyByClientesMestre[eId].push(exp);
+      });
+      
+      // Para cada ID fornecido, buscar histórico e armazenar com TODOS os IDs relacionados
       leadIds.forEach(id => {
         const idStr = String(id);
-        // Buscar por id_lead ou id_cliente (caso o campo seja diferente)
-        const exports = allData.filter(e => {
-          const eId = e.id_lead || e.id_cliente || e.id_cliente_mestre;
-          return String(eId) === idStr;
-        });
+        // Buscar o ID do clientes_mestre correspondente
+        const clientesMestreId = idMapping[idStr] || idStr;
+        
+        // Buscar histórico pelo ID do clientes_mestre
+        const exports = historyByClientesMestre[clientesMestreId] || [];
+        
         if (exports.length > 0) {
-          history[idStr] = exports;
+          // Armazenar histórico usando TODOS os IDs relacionados (id, id_prime, id_sprinthub)
+          // Isso garante que o ícone apareça independente de qual ID está na linha
+          const relatedIds = Object.keys(idMapping).filter(key => idMapping[key] === clientesMestreId);
+          relatedIds.push(idStr, clientesMestreId);
+          
+          const uniqueRelatedIds = [...new Set(relatedIds)];
+          uniqueRelatedIds.forEach(relatedId => {
+            history[relatedId] = exports;
+          });
+          
           const hasSprinthub = exports.some(exp => {
             const tag = (exp.tag_exportacao || '').toLowerCase();
             const motivo = (exp.motivo || '').toLowerCase();
@@ -764,7 +829,9 @@ const chunkArray = (array, size) => {
             return tag.includes('sprinthub') || motivo.includes('sprinthub') || observacao.includes('sprinthub');
           });
           if (hasSprinthub) {
-            sprinthubFlags[idStr] = true;
+            uniqueRelatedIds.forEach(relatedId => {
+              sprinthubFlags[relatedId] = true;
+            });
           }
         }
       });
@@ -1286,12 +1353,82 @@ const chunkArray = (array, size) => {
         filteredData = filterRowsBySearch(filteredData);
       }
       
-      if (supervisorSprinthubNotSentFilter && sprinthubSentIdSet.size > 0) {
-        filteredData = filteredData.filter(row => {
-          const leadId = getLeadIdentifier(row);
-          if (!leadId) return true;
-          return !sprinthubSentIdSet.has(String(leadId));
+      if (supervisorSprinthubNotSentFilter) {
+        // Buscar mapeamento de todos os IDs possíveis para IDs do clientes_mestre
+        const allCandidateIds = new Set();
+        filteredData.forEach(row => {
+          const candidates = getLeadIdentifierCandidates(row);
+          candidates.forEach(id => {
+            const numId = Number(id);
+            if (!isNaN(numId)) allCandidateIds.add(numId);
+          });
         });
+        
+        const numericCandidateIds = Array.from(allCandidateIds);
+        
+        if (numericCandidateIds.length > 0) {
+          // Buscar IDs do clientes_mestre correspondentes
+          // Processar em lotes para evitar limite do Supabase
+          const batchSize = 500;
+          const batches = [];
+          for (let i = 0; i < numericCandidateIds.length; i += batchSize) {
+            batches.push(numericCandidateIds.slice(i, i + batchSize));
+          }
+          
+          const idToClientesMestreMap = {};
+          
+          for (const batch of batches) {
+            // Buscar por id
+            const { data: byId } = await supabase
+              .schema('api')
+              .from('clientes_mestre')
+              .select('id, id_prime, id_sprinthub')
+              .in('id', batch);
+            (byId || []).forEach(cm => {
+              const cmIdStr = String(cm.id);
+              if (cm.id) idToClientesMestreMap[String(cm.id)] = cmIdStr;
+              if (cm.id_prime) idToClientesMestreMap[String(cm.id_prime)] = cmIdStr;
+              if (cm.id_sprinthub) idToClientesMestreMap[String(cm.id_sprinthub)] = cmIdStr;
+            });
+            
+            // Buscar por id_prime
+            const { data: byPrime } = await supabase
+              .schema('api')
+              .from('clientes_mestre')
+              .select('id, id_prime, id_sprinthub')
+              .in('id_prime', batch);
+            (byPrime || []).forEach(cm => {
+              const cmIdStr = String(cm.id);
+              if (cm.id) idToClientesMestreMap[String(cm.id)] = cmIdStr;
+              if (cm.id_prime) idToClientesMestreMap[String(cm.id_prime)] = cmIdStr;
+              if (cm.id_sprinthub) idToClientesMestreMap[String(cm.id_sprinthub)] = cmIdStr;
+            });
+            
+            // Buscar por id_sprinthub
+            const { data: bySprint } = await supabase
+              .schema('api')
+              .from('clientes_mestre')
+              .select('id, id_prime, id_sprinthub')
+              .in('id_sprinthub', batch);
+            (bySprint || []).forEach(cm => {
+              const cmIdStr = String(cm.id);
+              if (cm.id) idToClientesMestreMap[String(cm.id)] = cmIdStr;
+              if (cm.id_prime) idToClientesMestreMap[String(cm.id_prime)] = cmIdStr;
+              if (cm.id_sprinthub) idToClientesMestreMap[String(cm.id_sprinthub)] = cmIdStr;
+            });
+          }
+          
+          // Filtrar apenas os que NÃO estão no conjunto de enviados
+          filteredData = filteredData.filter(row => {
+            const candidates = getLeadIdentifierCandidates(row);
+            // Verificar se algum dos IDs do lead corresponde a um ID enviado
+            const hasBeenSent = candidates.some(id => {
+              const clientesMestreId = idToClientesMestreMap[String(id)];
+              return clientesMestreId && sprinthubSentIdSet.has(clientesMestreId);
+            });
+            return !hasBeenSent;
+          });
+        }
       }
       
       // Aplicar ordenação adicional se necessário
@@ -1769,7 +1906,6 @@ const chunkArray = (array, size) => {
         `Sequência: ${sprinthubSequence || SPRINTHUB_CONFIG.defaultSequenceId || '0'}`,
         `Vendedor: ${sprinthubVendedor || SPRINTHUB_CONFIG.defaultUserId || '-'}`,
         `Prefixo: ${sprinthubTituloPrefix || '-'}`,
-        `Tag Lead: ${sprinthubTagId || '221'}`,
         `Origem: ${sprinthubOrigemOportunidade || '-'}`,
         `Tipo de Compra: ${sprinthubTipoCompra || '-'}`
       ].join(' | ');
@@ -1874,7 +2010,6 @@ const chunkArray = (array, size) => {
               opportunity: opportunityPayload,
               tags: tagsForLead,
               orders: ordersForLead,
-              reativacaoTagId: toNumberOrUndefined(sprinthubTagId) || 221,
               rowData: row,
             });
           } catch (error) {
@@ -1907,7 +2042,7 @@ const chunkArray = (array, size) => {
           const errorCountBatch = batchResults.length - successCountBatch;
           const observacaoSprintHub = `${resumoConfiguracaoBase} | Lote ${batchIndex + 1}/${batches.length} | Enviados: ${successCountBatch} | Erros: ${errorCountBatch}`;
           const motivoSprintHub = 'WHATSAPI';
-          const tagHistoricoSprintHub = buildSprinthubHistoryTagValue(sprinthubTagId);
+          const tagHistoricoSprintHub = 'SPRINTHUB';
 
           try {
             await registerExport(batchLeadIds, motivoSprintHub, observacaoSprintHub, tagHistoricoSprintHub);
@@ -3178,14 +3313,72 @@ const chunkArray = (array, size) => {
     if (leadIds.length === 0) return [];
     
     try {
+      // Buscar IDs do clientes_mestre correspondentes aos IDs fornecidos
+      // O histórico está salvo com id_lead = id do clientes_mestre
+      let clientesMestreIds = new Set();
+      
+      // Tentar buscar por cada tipo de ID
+      const numericIds = leadIds.map(id => Number(id)).filter(id => !isNaN(id));
+      
+      if (numericIds.length > 0) {
+        // Buscar por id
+        const { data: byId, error: errorById } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('id')
+          .in('id', numericIds);
+        if (errorById) console.error('Erro ao buscar por id:', errorById);
+        (byId || []).forEach(cm => {
+          if (cm.id) clientesMestreIds.add(Number(cm.id));
+        });
+        
+        // Buscar por id_prime
+        const { data: byPrime, error: errorByPrime } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('id')
+          .in('id_prime', numericIds);
+        if (errorByPrime) console.error('Erro ao buscar por id_prime:', errorByPrime);
+        (byPrime || []).forEach(cm => {
+          if (cm.id) clientesMestreIds.add(Number(cm.id));
+        });
+        
+        // Buscar por id_sprinthub
+        const { data: bySprint, error: errorBySprint } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('id')
+          .in('id_sprinthub', numericIds);
+        if (errorBySprint) console.error('Erro ao buscar por id_sprinthub:', errorBySprint);
+        (bySprint || []).forEach(cm => {
+          if (cm.id) clientesMestreIds.add(Number(cm.id));
+        });
+      }
+      
+      // Se não encontrou correspondência, usar os IDs originais (podem já ser do clientes_mestre)
+      const idsParaBuscar = clientesMestreIds.size > 0 
+        ? Array.from(clientesMestreIds)
+        : numericIds;
+      
+      if (idsParaBuscar.length === 0) {
+        return [];
+      }
+      
       const { data, error } = await supabase
         .schema('api')
         .from('historico_exportacoes')
         .select('*')
-        .in('id_lead', leadIds)
+        .in('id_lead', idsParaBuscar)
         .order('data_exportacao', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar histórico:', error);
+        throw error;
+      }
+      
+      if (!data || data.length === 0) {
+        return [];
+      }
       
       // Remover duplicatas exatas (mesmo id_lead, tag, motivo, observação e data similar)
       // Agrupar por tag, motivo, observação e data (dentro de 1 segundo)
@@ -3237,24 +3430,27 @@ const chunkArray = (array, size) => {
     });
     
     const history = await loadClientExportHistory(candidates);
-    const sprinthubEntries = history.filter(isSprinthubHistoryEntry);
-    const exportEntries = history.filter((entry) => !isSprinthubHistoryEntry(entry));
-
-    if (onlySprinthub && sprinthubEntries.length === 0) {
-      alert('Nenhum histórico encontrado para SprintHub.');
-      return;
-    }
-
-    if (!onlySprinthub && exportEntries.length === 0) {
+    
+    if (!history || history.length === 0) {
       alert('Nenhum histórico encontrado de exportação.');
       return;
     }
+    
+    const sprinthubEntries = history.filter(isSprinthubHistoryEntry);
+    // Histórico geral mostra TODOS os registros (não apenas os não-SprintHub)
+    const exportEntries = history;
 
     if (onlySprinthub) {
+      if (sprinthubEntries.length === 0) {
+        alert('Nenhum histórico encontrado para SprintHub.');
+        return;
+      }
       setSprinthubHistory(sprinthubEntries);
       setShowSprinthubHistoryModal(true);
     } else {
-      setClientExportHistory(exportEntries);
+      // Mostrar TODOS os registros no histórico geral
+      const validExportEntries = Array.isArray(exportEntries) ? exportEntries : [];
+      setClientExportHistory(validExportEntries);
       setShowExportHistoryModal(true);
     }
   };
@@ -4989,20 +5185,6 @@ const chunkArray = (array, size) => {
                   </label>
 
                   <label className="cc-field" style={{ display: 'block', marginBottom: '16px' }}>
-                    <span>ID da Tag de Reativação</span>
-                    <input
-                      type="number"
-                      className="cc-input"
-                      value={sprinthubTagId}
-                      onChange={(e) => setSprinthubTagId(e.target.value)}
-                      placeholder="Ex: 221"
-                    />
-                    <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
-                      Esta tag será adicionada automaticamente a todos os leads enviados.
-                    </div>
-                  </label>
-
-                  <label className="cc-field" style={{ display: 'block', marginBottom: '16px' }}>
                     <span>Origem da Oportunidade</span>
                     <select
                       className="cc-input"
@@ -5214,16 +5396,6 @@ const chunkArray = (array, size) => {
                     value={sprinthubEtapa}
                     onChange={(e) => setSprinthubEtapa(e.target.value)}
                     placeholder={SPRINTHUB_CONFIG.defaultColumnId || 'Ex: 167'}
-                  />
-                </label>
-                <label className="cc-field">
-                  <span>ID da Tag de Reativação</span>
-                  <input
-                    type="number"
-                    className="cc-input"
-                    value={sprinthubTagId}
-                    onChange={(e) => setSprinthubTagId(e.target.value)}
-                    placeholder="Ex: 221"
                   />
                 </label>
                 <label className="cc-field">
@@ -5465,59 +5637,74 @@ const chunkArray = (array, size) => {
 
         {/* Modal de Histórico de Exportação */}
         {showExportHistoryModal && selectedClientForHistory && (
-          <div className="cc-modal-overlay" onClick={() => setShowExportHistoryModal(false)}>
+          <div className="cc-modal-overlay" onClick={() => {
+            setShowExportHistoryModal(false);
+            // Não limpar o histórico aqui para evitar problemas de renderização
+          }}>
             <div className="cc-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px', width: '90%' }}>
               <div className="cc-modal-header">
                 <h3>Histórico de Exportação</h3>
                 <button
                   className="cc-btn-close"
-                  onClick={() => setShowExportHistoryModal(false)}
+                  onClick={() => {
+                    setShowExportHistoryModal(false);
+                    // Não limpar o histórico aqui para evitar problemas de renderização
+                  }}
                   style={{ background: 'transparent', border: 'none', color: '#e0e7ff', cursor: 'pointer', fontSize: '24px', padding: '0', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
                   ×
                 </button>
               </div>
-              <div className="cc-modal-content" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-                <div style={{ marginBottom: '16px', padding: '12px', backgroundColor: '#1e293b', borderRadius: '6px', border: '1px solid #334155' }}>
-                  <strong style={{ color: '#e0e7ff' }}>Cliente:</strong>
-                  <span style={{ color: '#cbd5e1', marginLeft: '8px' }}>{selectedClientForHistory.nome || 'Sem nome'}</span>
-                  <br />
-                  <strong style={{ color: '#e0e7ff' }}>ID:</strong>
-                  <span style={{ color: '#cbd5e1', marginLeft: '8px' }}>{selectedClientForHistory.id}</span>
-                </div>
-                
-                {clientExportHistory.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-                    Nenhuma exportação encontrada para este cliente.
-                  </div>
-                ) : (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                      <thead>
-                        <tr style={{ backgroundColor: '#1e293b', borderBottom: '2px solid #334155' }}>
-                          <th style={{ padding: '10px', textAlign: 'left', color: '#e0e7ff', fontWeight: 'bold' }}>Data</th>
-                          <th style={{ padding: '10px', textAlign: 'left', color: '#e0e7ff', fontWeight: 'bold' }}>Motivo</th>
-                          <th style={{ padding: '10px', textAlign: 'left', color: '#e0e7ff', fontWeight: 'bold' }}>Tag</th>
-                          <th style={{ padding: '10px', textAlign: 'left', color: '#e0e7ff', fontWeight: 'bold' }}>Observação</th>
-                          <th style={{ padding: '10px', textAlign: 'left', color: '#e0e7ff', fontWeight: 'bold' }}>Usuário</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {clientExportHistory.map((exp, idx) => (
-                          <tr key={exp.id || idx} style={{ borderBottom: '1px solid #334155', backgroundColor: idx % 2 === 0 ? '#0f172a' : '#1e293b' }}>
-                            <td style={{ padding: '10px', color: '#cbd5e1' }}>
-                              {exp.data_exportacao 
-                                ? new Date(exp.data_exportacao).toLocaleString('pt-BR', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })
-                                : '-'}
-                            </td>
-                            <td style={{ padding: '10px', color: '#cbd5e1' }}>{exp.motivo || '-'}</td>
-                            <td style={{ padding: '10px', color: '#cbd5e1' }}>
+              <div style={{ marginBottom: '16px', color: '#94a3b8' }}>
+                <div><strong>Cliente:</strong> {selectedClientForHistory.nome || 'Sem nome'}</div>
+                <div><strong>ID:</strong> {selectedClientForHistory.id}</div>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="cc-table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>Motivo</th>
+                      <th>Tag</th>
+                      <th>Observação</th>
+                      <th>Usuário</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Array.isArray(clientExportHistory) && clientExportHistory.length > 0 ? (
+                      clientExportHistory.map((exp, idx) => {
+                        let dataFormatada = '-';
+                        try {
+                          if (exp.data_exportacao) {
+                            dataFormatada = new Date(exp.data_exportacao).toLocaleString('pt-BR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            });
+                          }
+                        } catch (e) {
+                          console.error('Erro ao formatar data:', e);
+                        }
+                        
+                        let tagLabel = '-';
+                        try {
+                          if (exp.tag_exportacao) {
+                            tagLabel = typeof formatSprinthubTagLabel === 'function' 
+                              ? formatSprinthubTagLabel(exp.tag_exportacao) 
+                              : exp.tag_exportacao;
+                          }
+                        } catch (e) {
+                          console.error('Erro ao formatar tag:', e);
+                          tagLabel = exp.tag_exportacao || '-';
+                        }
+                        
+                        return (
+                          <tr key={exp.id || `exp-${idx}`}>
+                            <td>{dataFormatada}</td>
+                            <td>{exp.motivo || '-'}</td>
+                            <td>
                               {exp.tag_exportacao ? (
                                 <span style={{ 
                                   backgroundColor: '#22c55e', 
@@ -5527,21 +5714,24 @@ const chunkArray = (array, size) => {
                                   fontSize: '11px',
                                   fontWeight: 'bold'
                                 }}>
-                                  {formatSprinthubTagLabel(exp.tag_exportacao)}
+                                  {tagLabel}
                                 </span>
                               ) : '-'}
                             </td>
-                            <td style={{ padding: '10px', color: '#cbd5e1', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} 
-                                title={exp.observacao || ''}>
-                              {exp.observacao || '-'}
-                            </td>
-                            <td style={{ padding: '10px', color: '#cbd5e1' }}>{exp.usuario_id || '-'}</td>
+                            <td>{exp.observacao || '-'}</td>
+                            <td>{exp.usuario_id || '-'}</td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td colSpan="5" style={{ padding: '16px', textAlign: 'center', color: '#94a3b8' }}>
+                          Nenhuma exportação encontrada para este cliente.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
               <div className="cc-modal-actions">
                 <button
