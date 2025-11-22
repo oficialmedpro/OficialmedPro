@@ -991,30 +991,98 @@ const chunkArray = (array, size) => {
       // Modo supervisor: aplicar filtro por exportação ANTES da paginação
       if (currentIsSupervisor) {
         if (supervisorSprinthubSentFilter || supervisorSprinthubNotSentFilter) {
-          let sprinthubHistoryQuery = supabase
-            .schema('api')
-            .from('historico_exportacoes')
-            .select('id_lead');
+          // Buscar TODOS os registros que foram enviados ao SprintHub
+          // Usar múltiplas queries para garantir que capture todos os casos
+          let allSentIds = new Set();
           
           if (sprinthubLeadTagFilter !== 'all') {
-            sprinthubHistoryQuery = sprinthubHistoryQuery.eq('tag_exportacao', buildSprinthubHistoryTagValue(sprinthubLeadTagFilter));
+            // Buscar por tag específica
+            let tagQuery = supabase
+              .schema('api')
+              .from('historico_exportacoes')
+              .select('id_lead')
+              .eq('tag_exportacao', buildSprinthubHistoryTagValue(sprinthubLeadTagFilter));
+            
+            if (sprinthubDataEnvioInicio) {
+              const dataInicio = `${sprinthubDataEnvioInicio}T00:00:00`;
+              tagQuery = tagQuery.gte('data_exportacao', dataInicio);
+            }
+            if (sprinthubDataEnvioFim) {
+              const dataFim = `${sprinthubDataEnvioFim}T23:59:59`;
+              tagQuery = tagQuery.lte('data_exportacao', dataFim);
+            }
+            
+            const { data: tagData } = await tagQuery;
+            (tagData || []).forEach(item => {
+              if (item.id_lead) allSentIds.add(String(item.id_lead));
+            });
           } else {
-            sprinthubHistoryQuery = sprinthubHistoryQuery.ilike('tag_exportacao', 'SPRINTHUB%');
+            // Buscar por tag que começa com SPRINTHUB
+            let tagQuery = supabase
+              .schema('api')
+              .from('historico_exportacoes')
+              .select('id_lead')
+              .ilike('tag_exportacao', 'SPRINTHUB%');
+            
+            if (sprinthubDataEnvioInicio) {
+              const dataInicio = `${sprinthubDataEnvioInicio}T00:00:00`;
+              tagQuery = tagQuery.gte('data_exportacao', dataInicio);
+            }
+            if (sprinthubDataEnvioFim) {
+              const dataFim = `${sprinthubDataEnvioFim}T23:59:59`;
+              tagQuery = tagQuery.lte('data_exportacao', dataFim);
+            }
+            
+            const { data: tagData } = await tagQuery;
+            (tagData || []).forEach(item => {
+              if (item.id_lead) allSentIds.add(String(item.id_lead));
+            });
+            
+            // Também buscar por motivo ou observação que contenha "sprinthub" (case insensitive)
+            let motivoQuery = supabase
+              .schema('api')
+              .from('historico_exportacoes')
+              .select('id_lead')
+              .ilike('motivo', '%sprinthub%');
+            
+            if (sprinthubDataEnvioInicio) {
+              const dataInicio = `${sprinthubDataEnvioInicio}T00:00:00`;
+              motivoQuery = motivoQuery.gte('data_exportacao', dataInicio);
+            }
+            if (sprinthubDataEnvioFim) {
+              const dataFim = `${sprinthubDataEnvioFim}T23:59:59`;
+              motivoQuery = motivoQuery.lte('data_exportacao', dataFim);
+            }
+            
+            const { data: motivoData } = await motivoQuery;
+            (motivoData || []).forEach(item => {
+              if (item.id_lead) allSentIds.add(String(item.id_lead));
+            });
+            
+            // Buscar por observação que contenha "sprinthub"
+            let obsQuery = supabase
+              .schema('api')
+              .from('historico_exportacoes')
+              .select('id_lead')
+              .ilike('observacao', '%sprinthub%');
+            
+            if (sprinthubDataEnvioInicio) {
+              const dataInicio = `${sprinthubDataEnvioInicio}T00:00:00`;
+              obsQuery = obsQuery.gte('data_exportacao', dataInicio);
+            }
+            if (sprinthubDataEnvioFim) {
+              const dataFim = `${sprinthubDataEnvioFim}T23:59:59`;
+              obsQuery = obsQuery.lte('data_exportacao', dataFim);
+            }
+            
+            const { data: obsData } = await obsQuery;
+            (obsData || []).forEach(item => {
+              if (item.id_lead) allSentIds.add(String(item.id_lead));
+            });
           }
           
-          // Filtro por data de envio
-          if (sprinthubDataEnvioInicio) {
-            const dataInicio = `${sprinthubDataEnvioInicio}T00:00:00`;
-            sprinthubHistoryQuery = sprinthubHistoryQuery.gte('data_exportacao', dataInicio);
-          }
-          if (sprinthubDataEnvioFim) {
-            const dataFim = `${sprinthubDataEnvioFim}T23:59:59`;
-            sprinthubHistoryQuery = sprinthubHistoryQuery.lte('data_exportacao', dataFim);
-          }
-          
-          const { data: sprinthubHistoryData } = await sprinthubHistoryQuery;
-          sprinthubSentIds = sprinthubHistoryData?.map(item => item.id_lead).filter(Boolean) || [];
-          sprinthubSentIdSet = new Set(sprinthubSentIds.map(id => String(id)));
+          sprinthubSentIds = Array.from(allSentIds).map(id => Number(id)).filter(id => !isNaN(id));
+          sprinthubSentIdSet = allSentIds;
         }
         
         if (supervisorSprinthubSentFilter) {
@@ -1320,24 +1388,9 @@ const chunkArray = (array, size) => {
         throw error;
       }
       
-      // Filtrar no cliente (telefone e endereço)
+      // Filtrar no cliente (telefone e endereço) - PRIMEIRO
       let filteredData = filterRowsByPhoneStatus(data || []);
       filteredData = filterClientSideIfNeeded(filteredData);
-      
-      // Carregar histórico de exportações
-      const leadIds = collectLeadIdsFromRows(filteredData);
-      if (leadIds.length > 0) {
-        const history = await loadExportHistory(leadIds);
-        setExportHistory(prev => ({ ...prev, ...history }));
-      }
-      
-      // Filtrar por status de exportação (modo supervisor)
-      // NOTA: No modo supervisor, o filtro já foi aplicado na query acima (ANTES da paginação)
-      // No modo vendedor, o filtro também já foi aplicado na query acima
-      // Não precisa filtrar novamente aqui, pois já foi aplicado no banco de dados
-      
-      // Filtro por tag já foi aplicado na query (modo supervisor)
-      // Não precisa filtrar novamente aqui
       
       // Filtrar por nome e duplicatas
       filteredData = filterRowsByNameStatus(filteredData);
@@ -1353,6 +1406,8 @@ const chunkArray = (array, size) => {
         filteredData = filterRowsBySearch(filteredData);
       }
       
+      // Aplicar filtro "Não enviados SprintHub" DEPOIS de todos os outros filtros
+      // Isso garante que estamos filtrando apenas os que já passaram pelo filtro de telefone
       if (supervisorSprinthubNotSentFilter) {
         // Buscar mapeamento de todos os IDs possíveis para IDs do clientes_mestre
         const allCandidateIds = new Set();
@@ -1419,15 +1474,40 @@ const chunkArray = (array, size) => {
           }
           
           // Filtrar apenas os que NÃO estão no conjunto de enviados
+          // IMPORTANTE: Este filtro deve funcionar em conjunto com o filtro de telefone
+          const beforeFilterCount = filteredData.length;
           filteredData = filteredData.filter(row => {
             const candidates = getLeadIdentifierCandidates(row);
+            if (candidates.length === 0) {
+              // Se não tem IDs, não pode verificar - manter no resultado (não enviado)
+              return true;
+            }
+            
             // Verificar se algum dos IDs do lead corresponde a um ID enviado
-            const hasBeenSent = candidates.some(id => {
-              const clientesMestreId = idToClientesMestreMap[String(id)];
-              return clientesMestreId && sprinthubSentIdSet.has(clientesMestreId);
-            });
+            let hasBeenSent = false;
+            
+            for (const id of candidates) {
+              const idStr = String(id);
+              
+              // Verificar diretamente se o ID está no conjunto (caso seja o próprio ID do clientes_mestre)
+              if (sprinthubSentIdSet.has(idStr)) {
+                hasBeenSent = true;
+                break;
+              }
+              
+              // Verificar através do mapeamento
+              const clientesMestreId = idToClientesMestreMap[idStr];
+              if (clientesMestreId && sprinthubSentIdSet.has(clientesMestreId)) {
+                hasBeenSent = true;
+                break;
+              }
+            }
+            
+            // Retornar apenas os que NÃO foram enviados
             return !hasBeenSent;
           });
+          
+          console.log(`🔍 [Filtro Não Enviados SprintHub] Antes: ${beforeFilterCount}, Depois: ${filteredData.length}, IDs enviados encontrados: ${sprinthubSentIdSet.size}`);
         }
       }
       
