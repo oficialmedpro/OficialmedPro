@@ -851,7 +851,7 @@ const FUNIS_CONFIG = {
     },
     38: {
         name: '[1] REATIVAÇÃO COMERCIAL',
-        stages: [333, 334, 335, 336, 337, 338, 339, 352]
+        stages: [333, 334, 335, 336, 337, 338, 339]
     },
     41: {
         name: '[1] MONITORAMENTO COMERCIAL',
