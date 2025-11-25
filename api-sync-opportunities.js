@@ -849,6 +849,10 @@ const FUNIS_CONFIG = {
         name: '[1] ATIVAÇÃO MARKETING',
         stages: [298, 299, 300, 301, 375, 376, 377, 378, 379, 380, 307, 340, 341, 342, 343, 381, 382, 383, 384, 385, 386, 344]
     },
+    36: {
+        name: '[1] LABORATÓRIO',
+        stages: [302, 367, 306, 305, 308]
+    },
     38: {
         name: '[1] REATIVAÇÃO COMERCIAL',
         stages: [333, 334, 335, 336, 337, 338, 339]
