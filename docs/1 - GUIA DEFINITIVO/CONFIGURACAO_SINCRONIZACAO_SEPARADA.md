@@ -132,3 +132,4 @@ GET /sync/leads-segmentos?trigger=cron_madrugada
 3. **Flexibilidade**: Pode agendar cada tipo de sincronização independentemente
 4. **Monitoramento**: Logs separados facilitam identificação de problemas
 
+

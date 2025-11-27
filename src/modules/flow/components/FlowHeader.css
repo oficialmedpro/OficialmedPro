@@ -183,6 +183,25 @@
   background: var(--flow-primary-hover);
 }
 
+/* Botão destacado para Gestão de Leads */
+.FlowHeader-nav-item-gestao {
+  background: var(--flow-primary) !important;
+  color: white !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.FlowHeader-nav-item-gestao:hover {
+  background: var(--flow-primary-hover) !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+.FlowHeader-nav-item-gestao.active {
+  background: var(--flow-primary-hover) !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.5);
+}
+
 .FlowHeader-nav-icon {
   width: 18px;
   height: 18px;

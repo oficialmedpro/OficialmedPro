@@ -344,3 +344,4 @@ SELECT '✅ Função corrigida com tratamento de UUID e BIGINT!' AS status;
 
 
 
+

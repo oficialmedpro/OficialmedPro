@@ -80,12 +80,61 @@ export const getFunilByNome = async (nome) => {
       .ilike('nome_funil', `%${nome}%`)
       .eq('status', 'ativo')
       .limit(1)
-      .single();
+      .maybeSingle(); // Usar maybeSingle ao invés de single para evitar erro quando não encontrar
 
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+    if (error) throw error;
     return data || null;
   } catch (error) {
     console.error('[flowService] Erro ao buscar funil por nome:', error);
+    throw error;
+  }
+};
+
+/**
+ * Busca as etapas de um funil
+ * @param {number} funilId - ID do funil (da tabela funis) ou id_funil_sprint diretamente
+ * @returns {Promise<Array>} Lista de etapas ordenadas
+ */
+export const getFunilEtapas = async (funilId) => {
+  try {
+    const supabase = getSupabase();
+    let idFunilSprint = null;
+    
+    // Primeiro buscar o funil para obter o id_funil_sprint
+    const { data: funil, error: funilError } = await supabase
+      .from(FUNIL_TABLE)
+      .select('id_funil_sprint')
+      .eq('id', funilId)
+      .single();
+    
+    if (funilError || !funil || !funil.id_funil_sprint) {
+      console.error('[flowService] Funil não encontrado ou sem id_funil_sprint:', { funilId, funilError, funil });
+      throw new Error(`Funil com ID ${funilId} não encontrado ou sem id_funil_sprint`);
+    }
+    
+    idFunilSprint = funil.id_funil_sprint;
+    
+    // Usar a mesma lógica do FunnelChart: buscar diretamente usando id_funil_sprint como string
+    // id_funil_sprint em funis é integer, mas em funil_etapas é varchar
+    const idFunilSprintStr = idFunilSprint.toString();
+    
+    // Buscar etapas do funil usando a mesma query do FunnelChart
+    const { data, error } = await supabase
+      .from('funil_etapas')
+      .select('*')
+      .eq('id_funil_sprint', idFunilSprintStr)
+      .eq('ativo', true)
+      .order('ordem_etapa', { ascending: true });
+    
+    if (error) {
+      console.error('[flowService] Erro ao buscar etapas:', error);
+      throw error;
+    }
+    
+    console.log(`[flowService] Etapas encontradas para funil ${funilId} (sprint: ${idFunilSprintStr}):`, data?.length || 0);
+    return data || [];
+  } catch (error) {
+    console.error('[flowService] Erro ao buscar etapas do funil:', error);
     throw error;
   }
 };
@@ -98,36 +147,125 @@ export const getFunilByNome = async (nome) => {
  */
 export const listOpportunitiesByEsteira = async (funilIdOuNome, filters = {}) => {
   try {
-    // Se for número, é ID; se for string, buscar por nome
+    // Verificar se é um número (ID) ou string (nome)
     let funilId = funilIdOuNome;
-    if (typeof funilIdOuNome === 'string') {
-      const funil = await getFunilByNome(funilIdOuNome);
+    let funil = null;
+    
+    // Se for string, verificar se pode ser convertido para número (ID)
+    const isNumericId = typeof funilIdOuNome === 'string' 
+      ? !isNaN(funilIdOuNome) && !isNaN(parseFloat(funilIdOuNome))
+      : typeof funilIdOuNome === 'number';
+    
+    if (isNumericId) {
+      // É um ID numérico
+      funilId = typeof funilIdOuNome === 'string' ? parseInt(funilIdOuNome, 10) : funilIdOuNome;
+      // Buscar dados do funil
+      const { data: funilData, error: funilError } = await getSupabase()
+        .from(FUNIL_TABLE)
+        .select('*')
+        .eq('id', funilId)
+        .single();
+      if (!funilError && funilData) {
+        funil = funilData;
+      } else if (funilError && funilError.code !== 'PGRST116') {
+        throw new Error(`Funil com ID "${funilId}" não encontrado`);
+      }
+    } else {
+      // É um nome, buscar por nome
+      funil = await getFunilByNome(funilIdOuNome);
       if (!funil) {
         throw new Error(`Funil "${funilIdOuNome}" não encontrado`);
       }
       funilId = funil.id;
     }
 
+    // Buscar oportunidades da tabela oportunidade_sprint (não flow_opportunities)
+    // usando id_funil_sprint ao invés de funil_id
     const supabase = getSupabase();
+    const idFunilSprint = funil.id_funil_sprint;
+    
     let query = supabase
-      .from(TABLE_NAME)
-      .select('*, funil:funis(*), lead:leads(id, firstname, lastname, email, phone, whatsapp)')
-      .eq('funil_id', funilId)
-      .eq('status', 'ativa');
+      .from('oportunidade_sprint')
+      .select('*')
+      .eq('funil_id', idFunilSprint)
+      .eq('status', 'open')
+      .eq('archived', 0);
 
     // Aplicar filtros
     if (filters.etapa) {
-      query = query.eq('etapa', filters.etapa);
+      // Se a etapa for um id_etapa_sprint, usar crm_column
+      query = query.eq('crm_column', filters.etapa);
     }
 
-    if (filters.search) {
-      query = query.or(`lead.firstname.ilike.%${filters.search}%,lead.lastname.ilike.%${filters.search}%,lead.email.ilike.%${filters.search}%`);
-    }
-
-    const { data, error } = await query.order('created_at', { ascending: false });
+    // Buscar dados
+    const { data, error } = await query.order('create_date', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Buscar dados dos leads separadamente
+    const leadIds = [...new Set(data.map(opp => opp.lead_id).filter(Boolean))];
+    let leadsMap = {};
+    
+    if (leadIds.length > 0) {
+      // Buscar leads em lotes se necessário
+      const batchSize = 1000;
+      for (let i = 0; i < leadIds.length; i += batchSize) {
+        const batch = leadIds.slice(i, i + batchSize);
+        const { data: leadsData, error: leadsError } = await supabase
+          .from('leads')
+          .select('id, firstname, lastname, email, phone, whatsapp')
+          .in('id', batch);
+        
+        if (!leadsError && leadsData) {
+          leadsData.forEach(lead => {
+            leadsMap[lead.id] = lead;
+          });
+        }
+      }
+    }
+
+    // Aplicar filtro de busca se houver
+    let filteredData = data;
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      filteredData = data.filter(opp => {
+        const lead = leadsMap[opp.lead_id];
+        if (!lead) return false;
+        return (
+          (lead.firstname && lead.firstname.toLowerCase().includes(searchLower)) ||
+          (lead.lastname && lead.lastname.toLowerCase().includes(searchLower)) ||
+          (lead.email && lead.email.toLowerCase().includes(searchLower))
+        );
+      });
+    }
+    
+    // Transformar dados de oportunidade_sprint para o formato esperado
+    // e adicionar dados do funil a cada oportunidade
+    if (filteredData && funil) {
+      return filteredData.map(opp => ({
+        id: opp.id,
+        lead_id: opp.lead_id,
+        funil_id: funil.id, // ID da tabela funis
+        etapa: opp.crm_column ? opp.crm_column.toString() : null, // crm_column é o id_etapa_sprint (integer)
+        tentativas: 0, // Não existe na oportunidade_sprint
+        status: 'ativa',
+        created_at: opp.create_date,
+        updated_at: opp.update_date,
+        lead: leadsMap[opp.lead_id] || {},
+        funil: funil,
+        // Campos adicionais da oportunidade_sprint
+        title: opp.title,
+        value: opp.value,
+        user_id: opp.user_id,
+        crm_column: opp.crm_column // Manter original para comparação
+      }));
+    }
+    
+    return [];
   } catch (error) {
     console.error('[flowService] Erro ao listar oportunidades:', error);
     throw error;
@@ -141,14 +279,27 @@ export const listOpportunitiesByEsteira = async (funilIdOuNome, filters = {}) =>
  */
 export const getOpportunityById = async (id) => {
   try {
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .schema(SCHEMA)
-      .select('*, funil:funis(*), lead:leads(id, firstname, lastname, email, phone, whatsapp)')
+      .select('*, lead:leads(id, firstname, lastname, email, phone, whatsapp)')
       .eq('id', id)
       .single();
 
     if (error) throw error;
+    
+    // Buscar dados do funil separadamente
+    if (data && data.funil_id) {
+      const { data: funilData, error: funilError } = await supabase
+        .from(FUNIL_TABLE)
+        .select('*')
+        .eq('id', data.funil_id)
+        .single();
+      if (!funilError && funilData) {
+        data.funil = funilData;
+      }
+    }
+    
     return data;
   } catch (error) {
     console.error('[flowService] Erro ao buscar oportunidade:', error);
@@ -166,7 +317,7 @@ export const getActiveOpportunityByLead = async (leadId) => {
     const supabase = getSupabase();
     const { data, error } = await supabase
       .from(TABLE_NAME)
-      .select('*, funil:funis(*), lead:leads(id, firstname, lastname, email, phone, whatsapp)')
+      .select('*, lead:leads(id, firstname, lastname, email, phone, whatsapp)')
       .eq('lead_id', leadId)
       .eq('status', 'ativa')
       .order('created_at', { ascending: false })
@@ -174,6 +325,19 @@ export const getActiveOpportunityByLead = async (leadId) => {
       .single();
 
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+    
+    // Buscar dados do funil separadamente
+    if (data && data.funil_id) {
+      const { data: funilData, error: funilError } = await supabase
+        .from(FUNIL_TABLE)
+        .select('*')
+        .eq('id', data.funil_id)
+        .single();
+      if (!funilError && funilData) {
+        data.funil = funilData;
+      }
+    }
+    
     return data || null;
   } catch (error) {
     console.error('[flowService] Erro ao buscar oportunidade ativa:', error);
@@ -216,10 +380,23 @@ export const createOpportunity = async (opportunityData) => {
         status: 'ativa',
         created_at: new Date().toISOString()
       }])
-      .select('*, funil:funis(*), lead:leads(id, firstname, lastname, email, phone, whatsapp)')
+      .select('*, lead:leads(id, firstname, lastname, email, phone, whatsapp)')
       .single();
 
     if (error) throw error;
+    
+    // Buscar dados do funil separadamente
+    if (data && data.funil_id) {
+      const { data: funilData, error: funilError } = await supabase
+        .from(FUNIL_TABLE)
+        .select('*')
+        .eq('id', data.funil_id)
+        .single();
+      if (!funilError && funilData) {
+        data.funil = funilData;
+      }
+    }
+    
     return data;
   } catch (error) {
     console.error('[flowService] Erro ao criar oportunidade:', error);
@@ -253,10 +430,23 @@ export const updateOpportunity = async (id, updates) => {
         updated_at: new Date().toISOString()
       })
       .eq('id', id)
-      .select('*, funil:funis(*), lead:leads(id, firstname, lastname, email, phone, whatsapp)')
+      .select('*, lead:leads(id, firstname, lastname, email, phone, whatsapp)')
       .single();
 
     if (error) throw error;
+    
+    // Buscar dados do funil separadamente
+    if (data && data.funil_id) {
+      const { data: funilData, error: funilError } = await supabase
+        .from(FUNIL_TABLE)
+        .select('*')
+        .eq('id', data.funil_id)
+        .single();
+      if (!funilError && funilData) {
+        data.funil = funilData;
+      }
+    }
+    
     return data;
   } catch (error) {
     console.error('[flowService] Erro ao atualizar oportunidade:', error);
@@ -487,6 +677,133 @@ export const processVenda = async (opportunityId) => {
   }
 };
 
+/**
+ * Obtém estatísticas de gestão de leads
+ * @returns {Promise<Object>} Estatísticas de leads
+ */
+export const getGestaoLeadsStats = async () => {
+  try {
+    const supabase = getSupabase();
+    
+    // 1. Total de leads na tabela api.leads
+    const { count: totalLeads, error: totalLeadsError } = await supabase
+      .from('leads')
+      .select('*', { count: 'exact', head: true });
+    
+    if (totalLeadsError) throw totalLeadsError;
+    
+    // 2. Obter IDs únicos de leads que têm oportunidades (qualquer status)
+    // Usar paginação para evitar limite de 1000 registros
+    let leadIdsComOportunidades = new Set();
+    let offset = 0;
+    const batchSize = 1000;
+    let hasMore = true;
+    
+    while (hasMore) {
+      const { data: batch, error: batchError } = await supabase
+        .from('oportunidade_sprint')
+        .select('lead_id')
+        .range(offset, offset + batchSize - 1);
+      
+      if (batchError) throw batchError;
+      
+      if (batch && batch.length > 0) {
+        batch.forEach(op => leadIdsComOportunidades.add(op.lead_id));
+        offset += batchSize;
+        hasMore = batch.length === batchSize;
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    // 3. Leads sem nenhuma oportunidade
+    const leadsSemOportunidade = totalLeads - leadIdsComOportunidades.size;
+    
+    // 4. Leads com oportunidades abertas (status='open')
+    let leadIdsComAbertas = new Set();
+    offset = 0;
+    hasMore = true;
+    
+    while (hasMore) {
+      const { data: batch, error: batchError } = await supabase
+        .from('oportunidade_sprint')
+        .select('lead_id')
+        .eq('status', 'open')
+        .range(offset, offset + batchSize - 1);
+      
+      if (batchError) throw batchError;
+      
+      if (batch && batch.length > 0) {
+        batch.forEach(op => leadIdsComAbertas.add(op.lead_id));
+        offset += batchSize;
+        hasMore = batch.length === batchSize;
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    // 5. Leads sem oportunidade aberta (não têm nenhuma com status='open')
+    const leadsSemAberta = totalLeads - leadIdsComAbertas.size;
+    
+    // 6. Leads com oportunidades ganhas (status='gain')
+    let leadIdsComGanhas = new Set();
+    offset = 0;
+    hasMore = true;
+    
+    while (hasMore) {
+      const { data: batch, error: batchError } = await supabase
+        .from('oportunidade_sprint')
+        .select('lead_id')
+        .eq('status', 'gain')
+        .range(offset, offset + batchSize - 1);
+      
+      if (batchError) throw batchError;
+      
+      if (batch && batch.length > 0) {
+        batch.forEach(op => leadIdsComGanhas.add(op.lead_id));
+        offset += batchSize;
+        hasMore = batch.length === batchSize;
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    // 7. Leads com oportunidades perdidas (status='lost')
+    let leadIdsComPerdidas = new Set();
+    offset = 0;
+    hasMore = true;
+    
+    while (hasMore) {
+      const { data: batch, error: batchError } = await supabase
+        .from('oportunidade_sprint')
+        .select('lead_id')
+        .eq('status', 'lost')
+        .range(offset, offset + batchSize - 1);
+      
+      if (batchError) throw batchError;
+      
+      if (batch && batch.length > 0) {
+        batch.forEach(op => leadIdsComPerdidas.add(op.lead_id));
+        offset += batchSize;
+        hasMore = batch.length === batchSize;
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    return {
+      totalLeads: totalLeads || 0,
+      leadsSemOportunidade: leadsSemOportunidade || 0,
+      leadsSemAberta: leadsSemAberta || 0,
+      leadsComGanhas: leadIdsComGanhas.size || 0,
+      leadsComPerdidas: leadIdsComPerdidas.size || 0
+    };
+  } catch (error) {
+    console.error('[flowService] Erro ao obter estatísticas de gestão de leads:', error);
+    throw error;
+  }
+};
+
 // Exportação padrão
 const flowService = {
   listFunils,
@@ -501,7 +818,8 @@ const flowService = {
   incrementTentativas,
   closePreviousOpportunities,
   getEsteiraStats,
-  processVenda
+  processVenda,
+  getGestaoLeadsStats
 };
 
 export default flowService;

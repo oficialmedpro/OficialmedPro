@@ -1,6 +1,6 @@
 {
   "name": "sync-apis-oficialmed",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "description": "APIs de sincronização para leads e oportunidades - OficialMed",
   "main": "api-sync-leads.js",
   "scripts": {

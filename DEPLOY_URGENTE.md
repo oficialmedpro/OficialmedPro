@@ -44,3 +44,4 @@ curl https://sincrocrm.oficialmed.com.br/health
 - **Funil 41: MONITORAMENTO COMERCIAL** ⚠️ NOVO
 
 
+

@@ -461,15 +461,34 @@ function mapLeadToSupabase(lead, onMissingField = () => {}) {
         }
     });
 
+    // Helper para converter JSON
+    const toJson = (value) => {
+        if (!value) return null;
+        if (typeof value === 'string') {
+            try {
+                return JSON.parse(value);
+            } catch {
+                return value;
+            }
+        }
+        return value;
+    };
+
+    // Helper para extrair fullname
+    const fullname = firstname && lastname 
+        ? `${firstname} ${lastname}`.trim() 
+        : (getField('fullname', ['fullName', 'full_name', 'name', 'nome']) || null);
+
     return {
         id: toBigIntField(lead.id),
         firstname: firstname ? String(firstname).trim() : null,
         lastname: lastname ? String(lastname).trim() : null,
+        fullname: fullname,
         email: email ? String(email).trim() : null,
         phone: phone ? String(phone).trim() : null,
         mobile: mobile ? String(mobile).trim() : null,
         whatsapp: whatsapp ? String(whatsapp).trim() : null,
-        photo_url: lead.photoUrl ?? null,
+        photo_url: lead.photoUrl ?? lead.photo_url ?? null,
         address: lead.address ?? null,
         city: lead.city ?? null,
         state: lead.state ?? null,
@@ -478,34 +497,115 @@ function mapLeadToSupabase(lead, onMissingField = () => {}) {
         timezone: lead.timezone ?? null,
         bairro: lead.bairro ?? null,
         complemento: lead.complemento ?? null,
-        numero_entrega: lead.numero_entrega ?? null,
-        rua_entrega: lead.rua_entrega ?? null,
+        numero_entrega: lead.numero_entrega ?? lead.numero ?? null,
+        rua_entrega: lead.rua_entrega ?? lead.rua ?? null,
         company: lead.company ?? null,
         points: toInteger(lead.points) ?? 0,
         owner: toBigIntField(lead.owner),
         stage: lead.stage ?? null,
         preferred_locale: lead.preferred_locale ?? null,
-        user_access: lead.userAccess ?? null,
-        department_access: lead.departmentAccess ?? null,
-        ignore_sub_departments: Boolean(lead.ignoreSubDepartments),
-        create_date: parseDateTime(lead.createDate),
-        updated_date: parseDateTime(lead.updatedDate),
-        last_active: parseDateTime(lead.lastActive),
-        created_by: toBigIntField(lead.createdBy),
-        created_by_name: lead.createdByName ?? null,
-        created_by_type: lead.createdByType ?? null,
-        updated_by: toBigIntField(lead.updatedBy),
-        updated_by_name: lead.updatedByName ?? null,
+        user_access: toJson(lead.userAccess ?? lead.user_access),
+        department_access: toJson(lead.departmentAccess ?? lead.department_access),
+        ignore_sub_departments: Boolean(lead.ignoreSubDepartments ?? lead.ignore_sub_departments),
+        create_date: parseDateTime(lead.createDate ?? lead.create_date),
+        updated_date: parseDateTime(lead.updatedDate ?? lead.updated_date),
+        last_active: parseDateTime(lead.lastActive ?? lead.last_active),
+        created_by: toBigIntField(lead.createdBy ?? lead.created_by),
+        created_by_name: lead.createdByName ?? lead.created_by_name ?? null,
+        created_by_type: lead.createdByType ?? lead.created_by_type ?? null,
+        updated_by: toBigIntField(lead.updatedBy ?? lead.updated_by),
+        updated_by_name: lead.updatedByName ?? lead.updated_by_name ?? null,
         synced_at: new Date().toISOString(),
         archived: Boolean(lead.archived),
-        third_party_data: lead.thirdPartyData ?? null,
+        third_party_data: toJson(lead.thirdPartyData ?? lead.third_party_data),
         categoria: lead.categoria ?? lead.category ?? null,
         origem: lead.origem ?? lead.origin ?? null,
         observacao: lead.observacao ?? lead.observation ?? null,
         produto: lead.produto ?? lead.product ?? null,
         segmento: lead.segmento ?? lead.segment ?? null,
-        data_de_nascimento: parseDateOnly(lead.data_de_nascimento),
-        data_do_contato: parseDateOnly(lead.data_do_contato)
+        data_de_nascimento: parseDateOnly(lead.data_de_nascimento ?? lead.data_de_nascimento_yampi),
+        data_do_contato: parseDateOnly(lead.data_do_contato),
+        // Campos adicionais do SprintHub
+        cpf: lead.cpf ?? null,
+        rg: lead.rg ?? null,
+        sexo: lead.sexo ?? null,
+        empresa: lead.empresa ?? null,
+        capital_de_investimento: lead.capital_de_investimento ?? null,
+        tipo_de_compra: lead.tipo_de_compra ?? null,
+        pedidos_shopify: lead.pedidos_shopify ?? null,
+        classificacao_google: lead.classificacao_google ?? null,
+        grau_de_interesse: lead.grau_de_interesse ?? null,
+        star_score: lead.star_score ?? null,
+        avaliacao_atendente: lead.avaliacao_atendente ?? null,
+        avaliacao_atendimento: lead.avaliacao_atendimento ?? null,
+        qualificacao_callix: lead.qualificacao_callix ?? null,
+        origem_manipulacao: lead.origem_manipulacao ?? null,
+        lista_de_origem: lead.lista_de_origem ?? null,
+        criativo: lead.criativo ?? null,
+        plataforma: lead.plataforma ?? null,
+        redes_sociais: lead.redes_sociais ?? null,
+        site: lead.site ?? null,
+        atendente: lead.atendente ?? null,
+        atendente_atual: lead.atendente_atual ?? null,
+        feedback: lead.feedback ?? null,
+        observacoes_do_lead: lead.observacoes_do_lead ?? null,
+        comportamento_da_ia: lead.comportamento_da_ia ?? null,
+        retorno: lead.retorno ?? null,
+        prescritor: lead.prescritor ?? null,
+        drograria: lead.drograria ?? null,
+        data_recompra: parseDateOnly(lead.data_recompra),
+        mes_que_entrou: lead.mes_que_entrou ?? null,
+        arquivo_receita: lead.arquivo_receita ?? null,
+        id_t56: lead.id_t56 ?? null,
+        objetivos_do_cliente: lead.objetivos_do_cliente ?? null,
+        perfil_do_cliente: lead.perfil_do_cliente ?? null,
+        recebedor: lead.recebedor ?? null,
+        whatsapp_remote_lid: lead.whatsapp_remote_lid ?? null,
+        status: lead.status ?? null,
+        sh_status: lead.sh_status ?? null,
+        channel_restrictions: toJson(lead.channelRestrictions ?? lead.channel_restrictions),
+        ips: toJson(lead.ips),
+        utm_tags: toJson(lead.utmTags ?? lead.utm_tags),
+        // Campos de endereço completo
+        numero: lead.numero ?? null,
+        rua: lead.rua ?? null,
+        pais: lead.pais ?? null,
+        endereco_completo: lead.endereco_completo ?? null,
+        // Campos de entrega
+        referencia_entrega: lead.referencia_entrega ?? null,
+        recebedor_qjl: lead.recebedor_qjl ?? null,
+        // Campos de pagamento
+        forma_de_entrega: lead.forma_de_entrega ?? null,
+        forma_pagamento: lead.forma_pagamento ?? null,
+        parcelas: lead.parcelas ?? null,
+        valor_do_frete: lead.valor_do_frete ?? null,
+        valor_parcela: lead.valor_parcela ?? null,
+        descontos: lead.descontos ?? null,
+        // Campos de integração
+        id_apomax: lead.id_apomax ?? null,
+        id_cliente_yampi: lead.id_cliente_yampi ?? lead.id_cliente_yampi_xpc ?? null,
+        id_cliente_yampi_xpc: lead.id_cliente_yampi_xpc ?? null,
+        id_transacao: lead.id_transacao ?? null,
+        id_correio: lead.id_correio ?? null,
+        codigo_de_rastreio: lead.codigo_de_rastreio ?? null,
+        status_getnet: lead.status_getnet ?? null,
+        status_pagamento: lead.status_pagamento ?? null,
+        status_stapa: lead.status_stapa ?? null,
+        status_melhor_envio: lead.status_melhor_envio ?? null,
+        ultimo_tipo_de_frete: lead.ultimo_tipo_de_frete ?? null,
+        url_etiqueta: lead.url_etiqueta ?? null,
+        link_pagamento: lead.linkpagamento ?? lead.link_pagamento ?? null,
+        numero_do_pedido: lead.numero_do_pedido ?? null,
+        titulo_pedido: lead.titulo_pedido ?? null,
+        total: lead.total ?? null,
+        ord: lead.ord ?? null,
+        req: lead.req ?? null,
+        skugetnet: lead.skugetnet ?? null,
+        cotar_frete_sedex: lead.cotar_frete_sedex ?? null,
+        created_by_utm: lead.createdByUtm ?? lead.created_by_utm ?? null,
+        data_de_nascimento_yampi: lead.data_de_nascimento_yampi ?? null,
+        descricao_formula: lead.descricao_formula ?? null,
+        data_ultima_compra: lead.data_ultima_compra ?? lead.ultimopedido ?? null
     };
 }
 
@@ -543,14 +643,119 @@ async function upsertLeadsBatch(rows) {
     }
 }
 
+// Função otimizada para buscar todos os IDs do SprintHub (usando MCP/cache)
+async function getAllSprintHubLeadIds() {
+    console.log('🔍 Buscando todos os IDs de leads do SprintHub...');
+    const allIds = new Set();
+    let page = 0;
+    let totalFetched = 0;
+
+    while (true) {
+        try {
+            const batch = await fetchLeadsFromSprintHub(page);
+            if (!batch || batch.length === 0) {
+                break;
+            }
+
+            batch.forEach(lead => {
+                if (lead.id) {
+                    allIds.add(lead.id);
+                }
+            });
+
+            totalFetched += batch.length;
+            console.log(`📄 Página ${page + 1}: ${batch.length} leads (Total IDs únicos: ${allIds.size})`);
+            
+            page++;
+            await sleep(300); // Delay menor para busca de IDs
+        } catch (error) {
+            console.error(`❌ Erro ao buscar página ${page + 1} de IDs:`, error.message);
+            break;
+        }
+    }
+
+    console.log(`✅ Total de IDs únicos encontrados no SprintHub: ${allIds.size}`);
+    return Array.from(allIds);
+}
+
+// Função para remover leads que não existem mais no SprintHub
+async function cleanupDeletedLeads(sprintHubIds) {
+    console.log('\n🧹 Limpando leads que não existem mais no SprintHub...');
+    
+    try {
+        // Buscar todos os IDs do banco
+        const { data: dbLeads, error } = await supabase
+            .from('leads')
+            .select('id')
+            .order('id', { ascending: true });
+
+        if (error) {
+            console.error('❌ Erro ao buscar leads do banco:', error.message);
+            return { deleted: 0, error: error.message };
+        }
+
+        const dbIds = new Set(dbLeads.map(l => l.id));
+        const sprintHubIdsSet = new Set(sprintHubIds.map(id => BigInt(id)));
+        
+        // Encontrar IDs que estão no banco mas não no SprintHub
+        const idsToDelete = [];
+        dbIds.forEach(id => {
+            if (!sprintHubIdsSet.has(BigInt(id))) {
+                idsToDelete.push(id);
+            }
+        });
+
+        if (idsToDelete.length === 0) {
+            console.log('✅ Nenhum lead para remover - banco está sincronizado');
+            return { deleted: 0 };
+        }
+
+        console.log(`🗑️  Removendo ${idsToDelete.length} leads que não existem mais no SprintHub...`);
+
+        // Deletar em lotes de 1000
+        let deleted = 0;
+        for (let i = 0; i < idsToDelete.length; i += 1000) {
+            const batch = idsToDelete.slice(i, i + 1000);
+            const { error: deleteError } = await supabase
+                .from('leads')
+                .delete()
+                .in('id', batch);
+
+            if (deleteError) {
+                console.error(`❌ Erro ao deletar lote ${i / 1000 + 1}:`, deleteError.message);
+            } else {
+                deleted += batch.length;
+                console.log(`✅ Removidos ${deleted} de ${idsToDelete.length} leads...`);
+            }
+        }
+
+        console.log(`✅ Limpeza concluída: ${deleted} leads removidos`);
+        return { deleted };
+    } catch (error) {
+        console.error('❌ Erro na limpeza:', error.message);
+        return { deleted: 0, error: error.message };
+    }
+}
+
 async function syncLeads() {
-    console.log('\n📊 Iniciando sincronização de LEADS...\n');
+    console.log('\n📊 Iniciando sincronização OTIMIZADA de LEADS...\n');
     const runId = await logRunStart('leads');
     let page = 0;
     let processed = 0, errors = 0;
     const missingFieldCounts = {};
     const missingFieldEvents = [];
+    let allSprintHubIds = null;
 
+    // FASE 1: Buscar todos os IDs do SprintHub (para limpeza posterior)
+    try {
+        allSprintHubIds = await getAllSprintHubLeadIds();
+        console.log(`\n📊 SprintHub tem ${allSprintHubIds.length} leads únicos\n`);
+    } catch (error) {
+        console.warn('⚠️ Não foi possível buscar todos os IDs, continuando sem limpeza:', error.message);
+    }
+
+    // FASE 2: Sincronizar todos os leads
+    page = 0; // Resetar página
     while (true) {
         const batch = await fetchLeadsFromSprintHub(page);
         if (!batch || batch.length === 0) {
@@ -558,7 +763,7 @@ async function syncLeads() {
             break;
         }
 
-        // Primeiro mapear todos os leads
+        // Primeiro mapear todos os leads com mapeamento COMPLETO
         const mapped = batch.map((lead) =>
             mapLeadToSupabase(lead, (field, sample) => {
                 missingFieldCounts[field] = (missingFieldCounts[field] || 0) + 1;
@@ -570,9 +775,9 @@ async function syncLeads() {
             })
         );
 
-        // Buscar detalhes individuais para TODOS os leads sem campos críticos
+        // Buscar detalhes individuais APENAS para leads sem campos críticos
         const leadsWithoutFields = mapped.filter(lead => 
-            !lead.firstname && !lead.lastname && !lead.whatsapp
+            !lead.firstname && !lead.lastname && !lead.whatsapp && !lead.email
         );
 
         if (leadsWithoutFields.length > 0) {
@@ -582,24 +787,18 @@ async function syncLeads() {
                 try {
                     const details = await fetchLeadDetails(lead.id);
                     if (details) {
-                        // A resposta pode vir em data.lead ou diretamente
                         const leadData = details.lead || details.data?.lead || details;
-                        // Tentar mapear novamente com os detalhes completos
                         const remapped = mapLeadToSupabase(leadData, () => {});
-                        // Atualizar o lead no array mapped
                         const index = mapped.findIndex(l => l.id === lead.id);
                         if (index >= 0) {
                             mapped[index] = { ...mapped[index], ...remapped };
                             updated++;
-                            if (updated <= 3) { // Log apenas os primeiros 3 para não poluir
-                                console.log(`✅ Lead ${lead.id} atualizado: firstname=${remapped.firstname || 'null'}, lastname=${remapped.lastname || 'null'}, whatsapp=${remapped.whatsapp || 'null'}`);
-                            }
                         }
                     }
                 } catch (err) {
-                    console.warn(`⚠️ Erro ao buscar detalhes do lead ${lead.id}:`, err.message);
+                    // Silenciar erros de leads individuais para não poluir logs
                 }
-                await sleep(100); // Delay reduzido entre buscas individuais
+                await sleep(50); // Delay reduzido
             }
             if (updated > 0) {
                 console.log(`✅ ${updated} de ${leadsWithoutFields.length} leads atualizados com detalhes individuais`);
@@ -620,15 +819,32 @@ async function syncLeads() {
         await sleep(LEADS_DELAY_BETWEEN_PAGES);
     }
 
+    // FASE 3: Limpar leads que não existem mais no SprintHub
+    let cleanupResult = { deleted: 0 };
+    if (allSprintHubIds && allSprintHubIds.length > 0) {
+        cleanupResult = await cleanupDeletedLeads(allSprintHubIds);
+    }
+
     await logMissingFieldEvents('lead', missingFieldEvents);
 
     await logRunFinish(runId, {
         status: errors > 0 ? 'success_with_errors' : 'success',
         total_processed: processed,
         total_errors: errors,
-        details: { missingFields: missingFieldCounts }
+        total_deleted: cleanupResult.deleted || 0,
+        details: { 
+            missingFields: missingFieldCounts,
+            sprintHubTotal: allSprintHubIds?.length || null
+        }
     });
-    return { totalProcessed: processed, totalErrors: errors, missingFields: missingFieldCounts };
+
+    return { 
+        totalProcessed: processed, 
+        totalErrors: errors, 
+        totalDeleted: cleanupResult.deleted || 0,
+        sprintHubTotal: allSprintHubIds?.length || null,
+        missingFields: missingFieldCounts 
+    };
 }
 
 app.get('/leads', async (_req, res) => {

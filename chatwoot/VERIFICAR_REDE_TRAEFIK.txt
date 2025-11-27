@@ -20,3 +20,4 @@ docker logs 42f4fd9845cb --tail 200 | grep -i "chatwoot\|chat.oficialmed"
 
 
 
+

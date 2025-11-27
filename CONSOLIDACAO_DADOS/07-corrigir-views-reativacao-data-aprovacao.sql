@@ -324,3 +324,4 @@ COMMENT ON VIEW api.vw_inativos_prime IS 'Clientes inativos do Prime com histór
 -- As views de monitoramento também são baseadas em vw_para_monitoramento.
 -- ========================================
 
+

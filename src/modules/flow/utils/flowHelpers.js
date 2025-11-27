@@ -241,10 +241,16 @@ export const getEsteiraInfo = async (esteiraIdOuNome) => {
   try {
     const supabase = await getSupabaseForHelpers();
     
+    // Verificar se é um número (ID) ou string (nome)
+    const isNumericId = typeof esteiraIdOuNome === 'string' 
+      ? !isNaN(esteiraIdOuNome) && !isNaN(parseFloat(esteiraIdOuNome))
+      : typeof esteiraIdOuNome === 'number';
+    
     let query = supabase.from('funis').select('*').eq('status', 'ativo');
     
-    if (typeof esteiraIdOuNome === 'number') {
-      query = query.eq('id', esteiraIdOuNome);
+    if (isNumericId) {
+      const funilId = typeof esteiraIdOuNome === 'string' ? parseInt(esteiraIdOuNome, 10) : esteiraIdOuNome;
+      query = query.eq('id', funilId);
     } else {
       query = query.ilike('nome_funil', `%${esteiraIdOuNome}%`);
     }

@@ -1017,25 +1017,33 @@ const chunkArray = (array, size) => {
               if (item.id_lead) allSentIds.add(String(item.id_lead));
             });
           } else {
-            // Buscar por tag que começa com SPRINTHUB
-            let tagQuery = supabase
-              .schema('api')
-              .from('historico_exportacoes')
-              .select('id_lead')
-              .ilike('tag_exportacao', 'SPRINTHUB%');
+            // Buscar por tag que começa com SPRINTHUB ou é exatamente SPRINTHUB
+            // Usar múltiplas queries para garantir que pegamos todos os casos
+            let tagQueries = [
+              supabase.schema('api').from('historico_exportacoes').select('id_lead').ilike('tag_exportacao', 'SPRINTHUB%'),
+              supabase.schema('api').from('historico_exportacoes').select('id_lead').eq('tag_exportacao', 'SPRINTHUB')
+            ];
             
-            if (sprinthubDataEnvioInicio) {
-              const dataInicio = `${sprinthubDataEnvioInicio}T00:00:00`;
-              tagQuery = tagQuery.gte('data_exportacao', dataInicio);
-            }
-            if (sprinthubDataEnvioFim) {
-              const dataFim = `${sprinthubDataEnvioFim}T23:59:59`;
-              tagQuery = tagQuery.lte('data_exportacao', dataFim);
-            }
+            // Aplicar filtros de data se existirem
+            tagQueries = tagQueries.map(tagQuery => {
+              let query = tagQuery;
+              if (sprinthubDataEnvioInicio) {
+                const dataInicio = `${sprinthubDataEnvioInicio}T00:00:00`;
+                query = query.gte('data_exportacao', dataInicio);
+              }
+              if (sprinthubDataEnvioFim) {
+                const dataFim = `${sprinthubDataEnvioFim}T23:59:59`;
+                query = query.lte('data_exportacao', dataFim);
+              }
+              return query;
+            });
             
-            const { data: tagData } = await tagQuery;
-            (tagData || []).forEach(item => {
-              if (item.id_lead) allSentIds.add(String(item.id_lead));
+            // Executar todas as queries e consolidar resultados
+            const tagResults = await Promise.all(tagQueries.map(q => q));
+            tagResults.forEach(({ data: tagData }) => {
+              (tagData || []).forEach(item => {
+                if (item.id_lead) allSentIds.add(String(item.id_lead));
+              });
             });
             
             // Também buscar por motivo ou observação que contenha "sprinthub" (case insensitive)
@@ -1083,6 +1091,16 @@ const chunkArray = (array, size) => {
           
           sprinthubSentIds = Array.from(allSentIds).map(id => Number(id)).filter(id => !isNaN(id));
           sprinthubSentIdSet = allSentIds;
+          
+          console.log(`🔍 [Filtro SprintHub] Total de IDs enviados encontrados: ${sprinthubSentIdSet.size}`);
+          if (sprinthubSentIdSet.size > 0) {
+            console.log(`🔍 [Filtro SprintHub] Primeiros 10 IDs enviados:`, Array.from(sprinthubSentIdSet).slice(0, 10));
+          }
+          
+          // IMPORTANTE: Garantir que o conjunto está correto antes de aplicar os filtros
+          if (supervisorSprinthubNotSentFilter && sprinthubSentIdSet.size === 0) {
+            console.warn(`⚠️ [Filtro Não Enviados] Nenhum ID enviado encontrado. Isso pode indicar um problema na busca.`);
+          }
         }
         
         if (supervisorSprinthubSentFilter) {
@@ -1392,6 +1410,8 @@ const chunkArray = (array, size) => {
       let filteredData = filterRowsByPhoneStatus(data || []);
       filteredData = filterClientSideIfNeeded(filteredData);
       
+      console.log(`📞 [Filtro Telefone] Após filtro de telefone: ${filteredData.length} registros`);
+      
       // Filtrar por nome e duplicatas
       filteredData = filterRowsByNameStatus(filteredData);
       filteredData = filterRowsByDuplicates(filteredData);
@@ -1407,8 +1427,10 @@ const chunkArray = (array, size) => {
       }
       
       // Aplicar filtro "Não enviados SprintHub" DEPOIS de todos os outros filtros
-      // Isso garante que estamos filtrando apenas os que já passaram pelo filtro de telefone
+      // IMPORTANTE: Este filtro DEVE ser aplicado DEPOIS do filtro de telefone
+      // para garantir que estamos filtrando apenas os que já passaram pelo filtro de telefone
       if (supervisorSprinthubNotSentFilter) {
+        console.log(`🔍 [Filtro Não Enviados] Aplicando filtro após telefone. Registros antes: ${filteredData.length}`);
         // Buscar mapeamento de todos os IDs possíveis para IDs do clientes_mestre
         const allCandidateIds = new Set();
         filteredData.forEach(row => {
@@ -1476,15 +1498,36 @@ const chunkArray = (array, size) => {
           // Filtrar apenas os que NÃO estão no conjunto de enviados
           // IMPORTANTE: Este filtro deve funcionar em conjunto com o filtro de telefone
           const beforeFilterCount = filteredData.length;
-          filteredData = filteredData.filter(row => {
+          
+          console.log(`🔍 [Filtro Não Enviados] Iniciando filtro. Total de registros antes: ${beforeFilterCount}, IDs enviados: ${sprinthubSentIdSet.size}`);
+          console.log(`🔍 [Filtro Não Enviados] Mapeamento criado para ${Object.keys(idToClientesMestreMap).length} IDs`);
+          
+          // Criar um conjunto reverso: clientes_mestre.id -> todos os IDs possíveis
+          const clientesMestreToAllIds = {};
+          Object.keys(idToClientesMestreMap).forEach(id => {
+            const cmId = idToClientesMestreMap[id];
+            if (!clientesMestreToAllIds[cmId]) {
+              clientesMestreToAllIds[cmId] = [];
+            }
+            clientesMestreToAllIds[cmId].push(id);
+          });
+          
+          let filteredCount = 0;
+          let sentCount = 0;
+          let debugExamples = [];
+          
+          filteredData = filteredData.filter((row, index) => {
             const candidates = getLeadIdentifierCandidates(row);
             if (candidates.length === 0) {
               // Se não tem IDs, não pode verificar - manter no resultado (não enviado)
+              filteredCount++;
               return true;
             }
             
             // Verificar se algum dos IDs do lead corresponde a um ID enviado
             let hasBeenSent = false;
+            let matchedId = null;
+            let matchedCmId = null;
             
             for (const id of candidates) {
               const idStr = String(id);
@@ -1492,22 +1535,92 @@ const chunkArray = (array, size) => {
               // Verificar diretamente se o ID está no conjunto (caso seja o próprio ID do clientes_mestre)
               if (sprinthubSentIdSet.has(idStr)) {
                 hasBeenSent = true;
+                matchedId = idStr;
+                matchedCmId = idStr;
                 break;
               }
               
               // Verificar através do mapeamento
               const clientesMestreId = idToClientesMestreMap[idStr];
-              if (clientesMestreId && sprinthubSentIdSet.has(clientesMestreId)) {
-                hasBeenSent = true;
-                break;
+              if (clientesMestreId) {
+                if (sprinthubSentIdSet.has(clientesMestreId)) {
+                  hasBeenSent = true;
+                  matchedId = idStr;
+                  matchedCmId = clientesMestreId;
+                  break;
+                }
+              }
+            }
+            
+            // Debug: coletar alguns exemplos
+            if (debugExamples.length < 5) {
+              if (hasBeenSent) {
+                debugExamples.push({
+                  rowId: row.id || row.id_prime || row.id_sprinthub,
+                  candidates: candidates.map(c => String(c)),
+                  matchedId,
+                  matchedCmId,
+                  inSentSet: sprinthubSentIdSet.has(matchedCmId || matchedId || '')
+                });
               }
             }
             
             // Retornar apenas os que NÃO foram enviados
+            if (!hasBeenSent) {
+              filteredCount++;
+            } else {
+              sentCount++;
+            }
             return !hasBeenSent;
           });
           
-          console.log(`🔍 [Filtro Não Enviados SprintHub] Antes: ${beforeFilterCount}, Depois: ${filteredData.length}, IDs enviados encontrados: ${sprinthubSentIdSet.size}`);
+          console.log(`🔍 [Filtro Não Enviados SprintHub] Antes: ${beforeFilterCount}, Depois: ${filteredData.length}, Removidos (enviados): ${sentCount}, Mantidos (não enviados): ${filteredCount}`);
+          if (debugExamples.length > 0) {
+            console.log(`🔍 [Filtro Não Enviados] Exemplos de leads removidos:`, debugExamples);
+          }
+          
+          // Verificação adicional: garantir que nenhum lead enviado passou pelo filtro
+          const verificationFailed = filteredData.some(row => {
+            const candidates = getLeadIdentifierCandidates(row);
+            for (const id of candidates) {
+              const idStr = String(id);
+              
+              // Verificar diretamente
+              if (sprinthubSentIdSet.has(idStr)) {
+                return true; // Este lead foi enviado mas passou pelo filtro!
+              }
+              
+              // Verificar através do mapeamento
+              const clientesMestreId = idToClientesMestreMap[idStr];
+              if (clientesMestreId && sprinthubSentIdSet.has(clientesMestreId)) {
+                return true; // Este lead foi enviado mas passou pelo filtro!
+              }
+            }
+            return false;
+          });
+          
+          if (verificationFailed) {
+            console.error(`❌ [Filtro Não Enviados] ERRO: Alguns leads enviados passaram pelo filtro!`);
+            // Encontrar e logar os leads problemáticos
+            const problematicLeads = filteredData.filter(row => {
+              const candidates = getLeadIdentifierCandidates(row);
+              for (const id of candidates) {
+                const idStr = String(id);
+                if (sprinthubSentIdSet.has(idStr)) return true;
+                const clientesMestreId = idToClientesMestreMap[idStr];
+                if (clientesMestreId && sprinthubSentIdSet.has(clientesMestreId)) return true;
+              }
+              return false;
+            }).slice(0, 5);
+            console.error(`❌ [Filtro Não Enviados] Leads problemáticos:`, problematicLeads.map(r => ({
+              id: r.id,
+              id_prime: r.id_prime,
+              id_sprinthub: r.id_sprinthub,
+              nome: r.nome_completo || r.nome
+            })));
+          } else {
+            console.log(`✅ [Filtro Não Enviados] Verificação passou: nenhum lead enviado encontrado nos resultados`);
+          }
         }
       }
       

@@ -10,6 +10,7 @@ import { lazy } from 'react';
 const FlowDashboardPage = lazy(() => import('../pages/FlowDashboardPage'));
 const FlowEsteirasPage = lazy(() => import('../pages/FlowEsteirasPage'));
 const FlowClientePage = lazy(() => import('../pages/FlowClientePage'));
+const FlowGestaoLeadsPage = lazy(() => import('../pages/FlowGestaoLeadsPage'));
 
 /**
  * Array de rotas do FLOW
@@ -40,6 +41,13 @@ export const flowRoutes = [
     component: FlowClientePage,
     label: 'Lead Flow',
     icon: '👤',
+    requiresAuth: true
+  },
+  {
+    path: '/flow/gestao-leads',
+    component: FlowGestaoLeadsPage,
+    label: 'Gestão de Leads',
+    icon: '📊',
     requiresAuth: true
   }
 ];

@@ -277,10 +277,10 @@ COMMENT ON VIEW api.vw_clientes_ativos IS 'Clientes ativos que já compraram pel
 -- ========================================
 -- 8. VIEW: PARA REATIVAÇÃO (90+ dias)
 -- ========================================
--- CORRIGIDA: Usa data_aprovacao e exclui clientes com compras recentes (últimos 90 dias)
+-- CORRIGIDA: Considera pedidos do Prime E oportunidades ganhas do SprintHub
 
 CREATE OR REPLACE VIEW api.vw_para_reativacao AS
-WITH pedidos_aprovados AS (
+WITH pedidos_aprovados_prime AS (
     SELECT 
         cliente_id,
         COUNT(*) as total_pedidos,
@@ -292,12 +292,54 @@ WITH pedidos_aprovados AS (
     WHERE status_aprovacao = 'APROVADO'
     GROUP BY cliente_id
 ),
--- Verifica se há pedidos aprovados recentes (últimos 90 dias)
-pedidos_recentes AS (
+-- Oportunidades ganhas no SprintHub (considerando lead_id via clientes_mestre)
+oportunidades_ganhas_sprinthub AS (
+    SELECT 
+        cm.id_prime as cliente_id,
+        COUNT(*) as total_oportunidades,
+        MAX(os.gain_date) as ultima_compra,
+        MIN(os.gain_date) as primeira_compra,
+        SUM(os.value) as valor_total_compras
+    FROM api.oportunidade_sprint os
+    INNER JOIN api.clientes_mestre cm ON os.lead_id = cm.id_sprinthub
+    WHERE os.status = 'gain'
+    AND os.gain_date IS NOT NULL
+    AND cm.id_prime IS NOT NULL
+    GROUP BY cm.id_prime
+),
+-- Combinar pedidos do Prime e oportunidades do SprintHub
+compras_consolidadas AS (
+    SELECT 
+        COALESCE(pp.cliente_id, os.cliente_id) as cliente_id,
+        COALESCE(pp.total_pedidos, 0) + COALESCE(os.total_oportunidades, 0) as total_pedidos,
+        GREATEST(
+            COALESCE(pp.ultima_compra, '1970-01-01'::timestamp),
+            COALESCE(os.ultima_compra, '1970-01-01'::timestamp)
+        ) as ultima_compra,
+        LEAST(
+            COALESCE(pp.primeira_compra, '9999-12-31'::timestamp),
+            COALESCE(os.primeira_compra, '9999-12-31'::timestamp)
+        ) as primeira_compra,
+        COALESCE(pp.valor_total_compras, 0) + COALESCE(os.valor_total_compras, 0) as valor_total_compras
+    FROM pedidos_aprovados_prime pp
+    FULL OUTER JOIN oportunidades_ganhas_sprinthub os ON pp.cliente_id = os.cliente_id
+),
+-- Verifica se há compras recentes (últimos 90 dias) - Prime OU SprintHub
+compras_recentes AS (
+    -- Pedidos do Prime recentes
     SELECT DISTINCT cliente_id
     FROM api.prime_pedidos
     WHERE status_aprovacao = 'APROVADO'
     AND COALESCE(data_aprovacao, data_criacao) >= (NOW() - INTERVAL '90 days')
+    UNION
+    -- Oportunidades ganhas do SprintHub recentes
+    SELECT DISTINCT cm.id_prime as cliente_id
+    FROM api.oportunidade_sprint os
+    INNER JOIN api.clientes_mestre cm ON os.lead_id = cm.id_sprinthub
+    WHERE os.status = 'gain'
+    AND os.gain_date IS NOT NULL
+    AND os.gain_date >= (NOW() - INTERVAL '90 days')
+    AND cm.id_prime IS NOT NULL
 ),
 historico_orcamentos AS (
     SELECT 
@@ -321,32 +363,32 @@ SELECT
     cm.estado,
     cm.qualidade_dados,
     cm.origem_marcas,
-    pa.total_pedidos,
-    pa.primeira_compra,
-    pa.ultima_compra,
-    pa.valor_total_compras,
-    EXTRACT(DAYS FROM NOW() - pa.ultima_compra)::INTEGER as dias_sem_compra,
+    cc.total_pedidos,
+    cc.primeira_compra,
+    cc.ultima_compra,
+    cc.valor_total_compras,
+    EXTRACT(DAYS FROM NOW() - cc.ultima_compra)::INTEGER as dias_sem_compra,
     ho.total_orcamentos,
     ho.ultimo_orcamento,
     ho.status_historico,
     CASE 
-        WHEN pa.total_pedidos = 1 THEN '1x'
-        WHEN pa.total_pedidos = 2 THEN '2x'
-        WHEN pa.total_pedidos = 3 THEN '3x'
-        WHEN pa.total_pedidos > 3 THEN '3+ vezes'
+        WHEN cc.total_pedidos = 1 THEN '1x'
+        WHEN cc.total_pedidos = 2 THEN '2x'
+        WHEN cc.total_pedidos = 3 THEN '3x'
+        WHEN cc.total_pedidos > 3 THEN '3+ vezes'
     END as frequencia_compra
 FROM api.clientes_mestre cm
-INNER JOIN pedidos_aprovados pa ON cm.id_prime = pa.cliente_id
+INNER JOIN compras_consolidadas cc ON cm.id_prime = cc.cliente_id
 LEFT JOIN historico_orcamentos ho ON cm.id_prime = ho.cliente_id
--- EXCLUI clientes que têm pedidos aprovados nos últimos 90 dias
+-- EXCLUI clientes que têm compras recentes (últimos 90 dias) - Prime OU SprintHub
 WHERE cm.id_prime IS NOT NULL
-AND pa.total_pedidos >= 1
-AND EXTRACT(DAYS FROM NOW() - pa.ultima_compra) > 90
+AND cc.total_pedidos >= 1
+AND EXTRACT(DAYS FROM NOW() - cc.ultima_compra) > 90
 AND NOT EXISTS (
-    SELECT 1 FROM pedidos_recentes pr 
-    WHERE pr.cliente_id = cm.id_prime
+    SELECT 1 FROM compras_recentes cr 
+    WHERE cr.cliente_id = cm.id_prime
 )
-ORDER BY pa.total_pedidos DESC, pa.ultima_compra DESC;
+ORDER BY cc.total_pedidos DESC, cc.ultima_compra DESC;
 
 COMMENT ON VIEW api.vw_para_reativacao IS 'Clientes para reativação (90+ dias sem comprar)';
 

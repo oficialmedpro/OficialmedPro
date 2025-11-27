@@ -229,6 +229,13 @@ const FlowHeader = () => {
 
         <nav className="FlowHeader-nav">
           <button
+            className={`FlowHeader-nav-item FlowHeader-nav-item-gestao ${location.pathname === '/flow/gestao-leads' ? 'active' : ''}`}
+            onClick={() => navigate('/flow/gestao-leads')}
+          >
+            <FiBarChart2 className="FlowHeader-nav-icon" />
+            <span>Gestão de Leads</span>
+          </button>
+          <button
             className={`FlowHeader-nav-item ${location.pathname === '/flow' ? 'active' : ''}`}
             onClick={() => navigate('/flow')}
           >
