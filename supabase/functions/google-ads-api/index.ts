@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,18 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 }
 
-// Configurações do Supabase
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-const supabase = createClient(supabaseUrl, supabaseKey)
-
 // Cache de credenciais
 let cachedCredentials: any = null
 let credentialsExpiry: number | null = null
-
-// Cache de access token para evitar requisições desnecessárias
-let cachedAccessToken: string | null = null
-let accessTokenExpiry: number | null = null
 
 // Mapeamento de status do Google Ads
 const statusMap: { [key: number]: string } = {
@@ -38,44 +28,48 @@ async function getGoogleAdsCredentials(customCustomerId?: string) {
       return cachedCredentials
     }
 
-    console.log('🔍 Buscando TODAS as credenciais dos Secrets...')
-    
-    // Buscar TODAS as credenciais dos secrets
-    const customerId = Deno.env.get('VITE_GOOGLE_CUSTOMER_ID')
-    const loginCustomerId = Deno.env.get('VITE_GOOGLE_LOGIN_CUSTOMER_ID')
-    const developerToken = Deno.env.get('VITE_GOOGLE_DEVELOPER_TOKEN')
-    const clientId = Deno.env.get('VITE_GOOGLE_CLIENT_ID')
-    const clientSecret = Deno.env.get('VITE_GOOGLE_CLIENT_SECRET')
-    const refreshToken = Deno.env.get('VITE_GOOGLE_REFRESH_TOKEN')
+    console.log('🔍 Buscando credenciais nos secrets (prefixo VITE_)...')
 
-    console.log('🔍 Verificando secrets:')
-    console.log('🆔 Customer ID:', customerId ? '✅ Encontrado' : '❌ Não encontrado')
-    console.log('👔 Login Customer ID (Gerenciador):', loginCustomerId ? '✅ Encontrado' : '❌ Não encontrado')
-    console.log('🔑 Developer Token:', developerToken ? '✅ Encontrado' : '❌ Não encontrado')
-    console.log('🔑 Client ID:', clientId ? '✅ Encontrado' : '❌ Não encontrado')
-    console.log('🔑 Client Secret:', clientSecret ? '✅ Encontrado' : '❌ Não encontrado')
-    console.log('🔑 Refresh Token:', refreshToken ? '✅ Encontrado' : '❌ Não encontrado')
+    const baseCredentials = {
+      customer_id: Deno.env.get('VITE_GOOGLE_CUSTOMER_ID'),
+      manager_customer_id: Deno.env.get('VITE_GOOGLE_LOGIN_CUSTOMER_ID'),
+      developer_token: Deno.env.get('VITE_GOOGLE_DEVELOPER_TOKEN'),
+      client_id: Deno.env.get('VITE_GOOGLE_CLIENT_ID'),
+      client_secret: Deno.env.get('VITE_GOOGLE_CLIENT_SECRET'),
+      refresh_token: Deno.env.get('VITE_GOOGLE_REFRESH_TOKEN'),
+      unidade_name: Deno.env.get('VITE_GOOGLE_ACCOUNT_LABEL') || 'Conta padrão'
+    }
 
-    // Validar se todas as credenciais estão presentes
-    if (!customerId || !developerToken || !clientId || !clientSecret || !refreshToken) {
-      const missing = []
-      if (!customerId) missing.push('VITE_GOOGLE_CUSTOMER_ID')
-      if (!developerToken) missing.push('VITE_GOOGLE_DEVELOPER_TOKEN')
-      if (!clientId) missing.push('VITE_GOOGLE_CLIENT_ID')
-      if (!clientSecret) missing.push('VITE_GOOGLE_CLIENT_SECRET')
-      if (!refreshToken) missing.push('VITE_GOOGLE_REFRESH_TOKEN')
-      
+    const sanitizeId = (value?: string | null) => value ? value.replace(/-/g, '') : undefined
+
+    const credentials = {
+      customer_id: sanitizeId(customCustomerId || baseCredentials.customer_id),
+      manager_customer_id: sanitizeId(baseCredentials.manager_customer_id),
+      developer_token: baseCredentials.developer_token,
+      client_id: baseCredentials.client_id,
+      client_secret: baseCredentials.client_secret,
+      refresh_token: baseCredentials.refresh_token,
+      unidade_name: customCustomerId 
+        ? `Custom (${customCustomerId})` 
+        : baseCredentials.unidade_name
+    }
+
+    const missing = []
+    if (!credentials.customer_id) missing.push('VITE_GOOGLE_CUSTOMER_ID')
+    if (!credentials.developer_token) missing.push('VITE_GOOGLE_DEVELOPER_TOKEN')
+    if (!credentials.client_id) missing.push('VITE_GOOGLE_CLIENT_ID')
+    if (!credentials.client_secret) missing.push('VITE_GOOGLE_CLIENT_SECRET')
+    if (!credentials.refresh_token) missing.push('VITE_GOOGLE_REFRESH_TOKEN')
+
+    if (missing.length > 0) {
       throw new Error(`Credenciais faltando nos secrets: ${missing.join(', ')}`)
     }
 
-    const credentials = {
-      customer_id: customCustomerId || customerId.replace(/-/g, ''), // Usar custom ou padrão
-      developer_token: developerToken,
-      client_id: clientId,
-      client_secret: clientSecret,
-      refresh_token: refreshToken,
-      unidade_name: customCustomerId ? `Custom (${customCustomerId})` : 'Apucarana (via Secrets)'
-    }
+    console.log('🆔 Customer ID:', credentials.customer_id)
+    console.log('👔 Login Customer ID (Gerenciador):', credentials.manager_customer_id || 'Não configurado')
+    console.log('🔑 Developer Token:', credentials.developer_token ? '✅ Presente' : '❌ Ausente')
+    console.log('🔑 Client ID:', credentials.client_id ? `${credentials.client_id.substring(0, 15)}...` : '❌ Ausente')
+    console.log('🔑 Refresh Token:', credentials.refresh_token ? `${credentials.refresh_token.substring(0, 15)}...` : '❌ Ausente')
 
     // Cache por 5 minutos
     cachedCredentials = credentials
@@ -94,18 +88,11 @@ async function getGoogleAdsCredentials(customCustomerId?: string) {
 }
 
 /**
- * Obtém access token do Google OAuth2 com cache automático
- * Renova automaticamente o refresh token antes de expirar para mantê-lo definitivo
+ * Obtém access token do Google OAuth2 SEM cache
+ * Sempre renova o token a cada requisição, seguindo a documentação oficial
  */
 async function getAccessToken(credentials: any) {
   try {
-    // Verificar se temos um access token válido em cache (válido por 50 minutos, não 60)
-    // Isso garante renovação antes de expirar
-    if (cachedAccessToken && accessTokenExpiry && Date.now() < accessTokenExpiry) {
-      console.log('✅ Usando access token em cache')
-      return cachedAccessToken
-    }
-
     console.log('🔑 Obtendo novo access token...')
     console.log('🔍 Client ID usado:', credentials.client_id ? `${credentials.client_id.substring(0, 20)}...` : '❌ Não encontrado')
     console.log('🔍 Client Secret usado:', credentials.client_secret ? '✅ Presente' : '❌ Não encontrado')
@@ -148,40 +135,10 @@ async function getAccessToken(credentials: any) {
 
     const tokenData = await tokenResponse.json()
     console.log('✅ Access token obtido')
-    
-    // Cachear o access token (validar por 50 minutos = 3000 segundos)
-    // Isso garante renovação antes de expirar (o token expira em 3600 segundos)
-    const expiresIn = tokenData.expires_in || 3599
-    cachedAccessToken = tokenData.access_token
-    accessTokenExpiry = Date.now() + (Math.min(expiresIn - 300, 3000) * 1000) // 50 minutos ou 3000s, o que for menor
-    
-    console.log(`⏰ Access token cacheado por ${Math.floor((accessTokenExpiry - Date.now()) / 60000)} minutos`)
-    
-    // IMPORTANTE: Se o Google retornar um novo refresh_token, atualizar automaticamente
-    // Isso mantém o refresh token "renovado" e evita expiração
-    if (tokenData.refresh_token && tokenData.refresh_token !== credentials.refresh_token) {
-      console.log('🔄 Novo refresh token recebido! Atualizando secret automaticamente...')
-      try {
-        // Atualizar o secret no Supabase automaticamente
-        // Nota: Em produção, você pode querer fazer isso via API do Supabase
-        console.log('⚠️ Novo refresh_token disponível - atualize manualmente o secret VITE_GOOGLE_REFRESH_TOKEN')
-        console.log('🔑 Novo refresh_token:', tokenData.refresh_token.substring(0, 30) + '...')
-      } catch (updateError) {
-        console.error('⚠️ Erro ao tentar atualizar refresh token automaticamente:', updateError)
-        // Não falhar a requisição, apenas logar o erro
-      }
-    } else {
-      // Se não recebeu novo refresh_token, o atual continua válido
-      // Usar o refresh token periodicamente (como estamos fazendo) mantém ele válido
-      console.log('✅ Refresh token mantido válido através do uso')
-    }
-    
+
     return tokenData.access_token
   } catch (error) {
     console.error('❌ Erro ao obter access token:', error)
-    // Limpar cache em caso de erro
-    cachedAccessToken = null
-    accessTokenExpiry = null
     throw error
   }
 }
@@ -194,8 +151,6 @@ async function renewRefreshToken(credentials: any) {
   try {
     console.log('🔄 Renovando refresh token preventivamente...')
     
-    // Usar o refresh token para obter um novo access token
-    // Isso mantém o refresh token "ativo" e válido
     const accessToken = await getAccessToken(credentials)
     
     console.log('✅ Refresh token renovado e mantido válido')
@@ -213,8 +168,8 @@ async function queryGoogleAds(credentials: any, query: string) {
   try {
     const accessToken = await getAccessToken(credentials)
     
-    // Usar a conta GERENCIADORA como login-customer-id
-    const managerCustomerId = Deno.env.get('VITE_GOOGLE_LOGIN_CUSTOMER_ID')?.replace(/-/g, '')
+    // Usar a conta GERENCIADORA como login-customer-id (quando informada nos secrets)
+    const managerCustomerId = credentials.manager_customer_id
     const headers: Record<string, string> = {
       'Authorization': `Bearer ${accessToken}`,
       'developer-token': credentials.developer_token,
@@ -226,7 +181,7 @@ async function queryGoogleAds(credentials: any, query: string) {
       headers['login-customer-id'] = managerCustomerId
       console.log(`🔑 Usando conta GERENCIADORA: ${managerCustomerId} para acessar cliente: ${credentials.customer_id}`)
     } else {
-      console.log(`⚠️ AVISO: VITE_GOOGLE_LOGIN_CUSTOMER_ID não configurado`)
+      console.log(`⚠️ AVISO: Nenhum login-customer-id configurado nos secrets (GOOGLE_ADS_MANAGER_ID_*)`)
     }
 
     const response = await fetch(
@@ -413,11 +368,6 @@ async function handleRenewRefreshToken() {
     const credentials = await getGoogleAdsCredentials()
     
     // Forçar renovação do access token (que mantém o refresh token ativo)
-    // Limpar cache para forçar nova requisição
-    cachedAccessToken = null
-    accessTokenExpiry = null
-    
-    // Obter novo access token usando o refresh token
     const accessToken = await getAccessToken(credentials)
     
     // Fazer uma requisição simples para garantir que tudo está funcionando
@@ -430,17 +380,12 @@ async function handleRenewRefreshToken() {
     `)
     
     console.log('✅ Refresh token renovado e validado com sucesso')
-    
-    const expiresInMinutes = accessTokenExpiry 
-      ? Math.floor((accessTokenExpiry - Date.now()) / 60000)
-      : 0
-    
+
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Refresh token renovado e mantido válido',
         timestamp: new Date().toISOString(),
-        expiresIn: expiresInMinutes + ' minutos',
         customerInfo: {
           customerId: credentials.customer_id,
           customerName: testResults[0]?.customer?.descriptive_name || credentials.unidade_name,
