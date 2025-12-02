@@ -1148,11 +1148,275 @@ async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = 
     }
 }
 
+// Função helper para converter data/hora de campos customizados
+function parseDateTimeField(value) {
+    if (!value) return null;
+    if (typeof value === 'string') {
+        // Formato brasileiro: "DD/MM/YYYY HH:mm" ou "DD/MM/YYYY"
+        const brFormat = /^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/;
+        const match = value.trim().match(brFormat);
+        if (match) {
+            const [, day, month, year, hour = '00', minute = '00'] = match;
+            const dateStr = `${year}-${month}-${day}T${hour}:${minute}:00`;
+            const date = new Date(dateStr);
+            if (!Number.isNaN(date.getTime())) {
+                return date.toISOString();
+            }
+        }
+        
+        // Tentar parsear como ISO string ou formato comum
+        const date = new Date(value);
+        if (!Number.isNaN(date.getTime())) {
+            return date.toISOString();
+        }
+    }
+    if (value instanceof Date) {
+        return value.toISOString();
+    }
+    return null;
+}
+
+// Função helper para mapear campos de data/hora das etapas
+function mapStageDateTimeFields(fields) {
+    if (!fields || typeof fields !== 'object') return {};
+    
+    // Log para debug - mostrar TODOS os campos recebidos (apenas no funil 33)
+    const allFieldNames = Object.keys(fields);
+    if (allFieldNames.length > 0) {
+        // Procurar campos que podem ser de data/hora
+        const possibleDateTimeFields = allFieldNames.filter(k => {
+            const kLower = k.toLowerCase();
+            return kLower.includes('entrada') || kLower.includes('acolhimento') || 
+                   kLower.includes('qualificado') || kLower.includes('qualificacao') ||
+                   kLower.includes('orcamento') || kLower.includes('orçamento') ||
+                   kLower.includes('negociacao') || kLower.includes('negociação') ||
+                   kLower.includes('follow') || kLower.includes('followup') ||
+                   kLower.includes('cadastro') || kLower.includes('compra') ||
+                   kLower.includes('recompra') || kLower.includes('monitoramento') ||
+                   kLower.includes('ativacao') || kLower.includes('ativação') ||
+                   kLower.includes('reativacao') || kLower.includes('reativação') ||
+                   kLower.includes('data') || kLower.includes('hora') || kLower.includes('time');
+        });
+        
+        if (possibleDateTimeFields.length > 0) {
+            console.log(`🔍 DEBUG: Campos de data/hora detectados (${possibleDateTimeFields.length}):`, possibleDateTimeFields);
+            possibleDateTimeFields.forEach(field => {
+                const value = fields[field];
+                if (value !== null && value !== undefined && value !== '') {
+                    console.log(`   ✅ ${field}: ${value} (tipo: ${typeof value})`);
+                }
+            });
+        }
+    }
+    
+    // Mapeamento de nomes do SprintHub para nomes da tabela
+    // Formato esperado: "Entrada Compra", "Acolhimento Compra", etc.
+    // Inclui variações possíveis de nomes
+    const stageFieldMap = {
+        // Compra - variações possíveis
+        'Entrada Compra': 'entrada_compra',
+        'ENTRADA COMPRA': 'entrada_compra',
+        'entrada compra': 'entrada_compra',
+        'Acolhimento Compra': 'acolhimento_compra',
+        'ACOLHIMENTO COMPRA': 'acolhimento_compra',
+        'acolhimento compra': 'acolhimento_compra',
+        'Qualificado Compra': 'qualificado_compra',
+        'QUALIFICADO COMPRA': 'qualificado_compra',
+        'qualificado compra': 'qualificado_compra',
+        'Orcamento Compra': 'orcamento_compra',
+        'ORCAMENTO COMPRA': 'orcamento_compra',
+        'orcamento compra': 'orcamento_compra',
+        'Orçamento Compra': 'orcamento_compra',
+        'Negociacao Compra': 'negociacao_compra',
+        'NEGOCIACAO COMPRA': 'negociacao_compra',
+        'negociacao compra': 'negociacao_compra',
+        'Negociação Compra': 'negociacao_compra',
+        'Follow Up Compra': 'follow_up_compra',
+        'FOLLOW UP COMPRA': 'follow_up_compra',
+        'follow up compra': 'follow_up_compra',
+        'Cadastro Compra': 'cadastro_compra',
+        'CADASTRO COMPRA': 'cadastro_compra',
+        'cadastro compra': 'cadastro_compra',
+        // Recompra - variações possíveis
+        'Entrada Recompra': 'entrada_recompra',
+        'ENTRADA RECOMPRA': 'entrada_recompra',
+        'entrada recompra': 'entrada_recompra',
+        'Acolhimento Recompra': 'acolhimento_recompra',
+        'ACOLHIMENTO RECOMPRA': 'acolhimento_recompra',
+        'acolhimento recompra': 'acolhimento_recompra',
+        'Qualificado Recompra': 'qualificado_recompra',
+        'QUALIFICADO RECOMPRA': 'qualificado_recompra',
+        'qualificado recompra': 'qualificado_recompra',
+        'Orcamento Recompra': 'orcamento_recompra',
+        'ORCAMENTO RECOMPRA': 'orcamento_recompra',
+        'orcamento recompra': 'orcamento_recompra',
+        'Orçamento Recompra': 'orcamento_recompra',
+        'Negociacao Recompra': 'negociacao_recompra',
+        'NEGOCIACAO RECOMPRA': 'negociacao_recompra',
+        'negociacao recompra': 'negociacao_recompra',
+        'Negociação Recompra': 'negociacao_recompra',
+        'Follow Up Recompra': 'follow_up_recompra',
+        'FOLLOW UP RECOMPRA': 'follow_up_recompra',
+        'follow up recompra': 'follow_up_recompra',
+        'Cadastro Recompra': 'cadastro_recompra',
+        'CADASTRO RECOMPRA': 'cadastro_recompra',
+        'cadastro recompra': 'cadastro_recompra',
+        // Monitoramento - variações possíveis
+        'Entrada Monitoramento': 'entrada_monitoramento',
+        'ENTRADA MONITORAMENTO': 'entrada_monitoramento',
+        'entrada monitoramento': 'entrada_monitoramento',
+        'Acolhimento Monitoramento': 'acolhimento_monitoramento',
+        'ACOLHIMENTO MONITORAMENTO': 'acolhimento_monitoramento',
+        'acolhimento monitoramento': 'acolhimento_monitoramento',
+        'Qualificado Monitoramento': 'qualificado_monitoramento',
+        'QUALIFICADO MONITORAMENTO': 'qualificado_monitoramento',
+        'qualificado monitoramento': 'qualificado_monitoramento',
+        'Orcamento Monitoramento': 'orcamento_monitoramento',
+        'ORCAMENTO MONITORAMENTO': 'orcamento_monitoramento',
+        'orcamento monitoramento': 'orcamento_monitoramento',
+        'Orçamento Monitoramento': 'orcamento_monitoramento',
+        'Negociacao Monitoramento': 'negociacao_monitoramento',
+        'NEGOCIACAO MONITORAMENTO': 'negociacao_monitoramento',
+        'negociacao monitoramento': 'negociacao_monitoramento',
+        'Negociação Monitoramento': 'negociacao_monitoramento',
+        'Follow Up Monitoramento': 'follow_up_monitoramento',
+        'FOLLOW UP MONITORAMENTO': 'follow_up_monitoramento',
+        'follow up monitoramento': 'follow_up_monitoramento',
+        'Cadastro Monitoramento': 'cadastro_monitoramento',
+        'CADASTRO MONITORAMENTO': 'cadastro_monitoramento',
+        'cadastro monitoramento': 'cadastro_monitoramento',
+        // Ativacao - variações possíveis
+        'Entrada Ativacao': 'entrada_ativacao',
+        'ENTRADA ATIVACAO': 'entrada_ativacao',
+        'entrada ativacao': 'entrada_ativacao',
+        'Entrada Ativação': 'entrada_ativacao',
+        'Acolhimento Ativacao': 'acolhimento_ativacao',
+        'ACOLHIMENTO ATIVACAO': 'acolhimento_ativacao',
+        'acolhimento ativacao': 'acolhimento_ativacao',
+        'Acolhimento Ativação': 'acolhimento_ativacao',
+        'Qualificado Ativacao': 'qualificado_ativacao',
+        'QUALIFICADO ATIVACAO': 'qualificado_ativacao',
+        'qualificado ativacao': 'qualificado_ativacao',
+        'Qualificado Ativação': 'qualificado_ativacao',
+        'Orcamento Ativacao': 'orcamento_ativacao',
+        'ORCAMENTO ATIVACAO': 'orcamento_ativacao',
+        'orcamento ativacao': 'orcamento_ativacao',
+        'Orçamento Ativação': 'orcamento_ativacao',
+        'Negociacao Ativacao': 'negociacao_ativacao',
+        'NEGOCIACAO ATIVACAO': 'negociacao_ativacao',
+        'negociacao ativacao': 'negociacao_ativacao',
+        'Negociação Ativação': 'negociacao_ativacao',
+        'Follow Up Ativacao': 'follow_up_ativacao',
+        'FOLLOW UP ATIVACAO': 'follow_up_ativacao',
+        'follow up ativacao': 'follow_up_ativacao',
+        'Follow Up Ativação': 'follow_up_ativacao',
+        'Cadastro Ativacao': 'cadastro_ativacao',
+        'CADASTRO ATIVACAO': 'cadastro_ativacao',
+        'cadastro ativacao': 'cadastro_ativacao',
+        'Cadastro Ativação': 'cadastro_ativacao',
+        // Reativacao - variações possíveis
+        'Entrada Reativacao': 'entrada_reativacao',
+        'ENTRADA REATIVACAO': 'entrada_reativacao',
+        'entrada reativacao': 'entrada_reativacao',
+        'Entrada Reativação': 'entrada_reativacao',
+        'Acolhimento Reativacao': 'acolhimento_reativacao',
+        'ACOLHIMENTO REATIVACAO': 'acolhimento_reativacao',
+        'acolhimento reativacao': 'acolhimento_reativacao',
+        'Acolhimento Reativação': 'acolhimento_reativacao',
+        'Qualificado Reativacao': 'qualificado_reativacao',
+        'QUALIFICADO REATIVACAO': 'qualificado_reativacao',
+        'qualificado reativacao': 'qualificado_reativacao',
+        'Qualificado Reativação': 'qualificado_reativacao',
+        'Orcamento Reativacao': 'orcamento_reativacao',
+        'ORCAMENTO REATIVACAO': 'orcamento_reativacao',
+        'orcamento reativacao': 'orcamento_reativacao',
+        'Orçamento Reativação': 'orcamento_reativacao',
+        'Negociacao Reativacao': 'negociacao_reativacao',
+        'NEGOCIACAO REATIVACAO': 'negociacao_reativacao',
+        'negociacao reativacao': 'negociacao_reativacao',
+        'Negociação Reativação': 'negociacao_reativacao',
+        'Follow Up Reativacao': 'follow_up_reativacao',
+        'FOLLOW UP REATIVACAO': 'follow_up_reativacao',
+        'follow up reativacao': 'follow_up_reativacao',
+        'Follow Up Reativação': 'follow_up_reativacao',
+        'Cadastro Reativacao': 'cadastro_reativacao',
+        'CADASTRO REATIVACAO': 'cadastro_reativacao',
+        'cadastro reativacao': 'cadastro_reativacao',
+        'Cadastro Reativação': 'cadastro_reativacao'
+    };
+    
+    const mappedFields = {};
+    
+    // Mapear campos conhecidos (busca exata)
+    Object.keys(stageFieldMap).forEach(sprintHubField => {
+        const dbField = stageFieldMap[sprintHubField];
+        if (fields[sprintHubField] !== undefined) {
+            const parsedValue = parseDateTimeField(fields[sprintHubField]);
+            if (parsedValue) {
+                mappedFields[dbField] = parsedValue;
+                console.log(`✅ Mapeado (exato): "${sprintHubField}" -> ${dbField} = ${parsedValue}`);
+            }
+        }
+    });
+    
+    // Também tentar mapear variações (sem acentos, lowercase, etc)
+    Object.keys(fields).forEach(fieldName => {
+        // Pular se já foi mapeado exatamente
+        if (stageFieldMap[fieldName]) return;
+        
+        const fieldNameLower = fieldName.toLowerCase().trim();
+        const fieldNameNormalized = fieldNameLower
+            .replace(/[áàâã]/g, 'a')
+            .replace(/[éèê]/g, 'e')
+            .replace(/[íìî]/g, 'i')
+            .replace(/[óòôõ]/g, 'o')
+            .replace(/[úùû]/g, 'u')
+            .replace(/ç/g, 'c')
+            .replace(/\s+/g, ' ') // Normalizar espaços
+            .trim();
+        
+        // Tentar encontrar correspondência
+        Object.keys(stageFieldMap).forEach(sprintHubField => {
+            const sprintHubFieldNormalized = sprintHubField.toLowerCase()
+                .replace(/[áàâã]/g, 'a')
+                .replace(/[éèê]/g, 'e')
+                .replace(/[íìî]/g, 'i')
+                .replace(/[óòôõ]/g, 'o')
+                .replace(/[úùû]/g, 'u')
+                .replace(/ç/g, 'c')
+                .replace(/\s+/g, ' ') // Normalizar espaços
+                .trim();
+            
+            if (fieldNameNormalized === sprintHubFieldNormalized) {
+                const dbField = stageFieldMap[sprintHubField];
+                if (!mappedFields[dbField]) { // Só mapear se ainda não foi mapeado
+                    const parsedValue = parseDateTimeField(fields[fieldName]);
+                    if (parsedValue) {
+                        mappedFields[dbField] = parsedValue;
+                        console.log(`✅ Mapeado (normalizado): "${fieldName}" -> ${dbField} = ${parsedValue}`);
+                    }
+                }
+            }
+        });
+    });
+    
+    // Log final dos campos mapeados
+    const mappedCount = Object.keys(mappedFields).filter(k => mappedFields[k] !== null).length;
+    if (mappedCount > 0) {
+        console.log(`✅ Total de campos de data/hora mapeados: ${mappedCount}`);
+    }
+    
+    return mappedFields;
+}
+
 // Função para mapear campos da oportunidade
 function mapOpportunityFields(opportunity, funnelId) {
     const fields = opportunity.fields || {};
     const lead = opportunity.dataLead || {};
     const utmTags = (lead.utmTags && lead.utmTags[0]) || {};
+    
+    // Mapear campos de data/hora das etapas
+    const stageDateTimeFields = mapStageDateTimeFields(fields);
 
     return {
         id: opportunity.id,
@@ -1168,6 +1432,27 @@ function mapOpportunityFields(opportunity, funnelId) {
         origem_oportunidade: fields['ORIGEM OPORTUNIDADE'] || null,
         qualificacao: fields['QUALIFICACAO'] || null,
         status_orcamento: fields['Status Orcamento'] || null,
+        tipo_de_compra: fields['Tipo de Compra'] || null,
+        primecadastro: fields['PRIMECADASTRO'] ? parseInt(fields['PRIMECADASTRO']) || null : null,
+        codigo_prime_receita: fields['Codigo Prime Receita'] || null,
+        descricao_da_formula: fields['Descricao da Formula'] || null,
+        numero_do_pedido: fields['Numero do pedido'] || null,
+        status_getnet: fields['Status Getnet'] || null,
+        valorconfere: fields['Valorconfere'] || null,
+        valorfrete: fields['valorfrete'] || null,
+        valorprodutos: fields['valorprodutos'] || null,
+        codigo_id_lead: fields[' Codigo ID Lead'] || null,
+        codigo_id_oportunidade: fields[' Codigo ID Oportunidade'] || null,
+        id_oportunidade: fields['idoportunidade'] || null,
+        etapa: fields['etapa'] || null,
+        forma_pagamento: fields['Forma de Pagamento'] || null,
+        forma_de_entrega: fields['Forma de entrega'] || null,
+        frete_onibus_e_motoboy: fields['Frete Onibus e Motoboy'] || null,
+        parcelamento: fields['parcelamento'] || null,
+        posologia: fields['Posologia'] || null,
+        status_da_etapa: fields['Status da Etapa'] || null,
+        total_pedido: fields['Total Pedido'] || null,
+        valor_parcela: fields['Valor Parcela'] || null,
         lead_firstname: lead.firstname || null,
         lead_lastname: lead.lastname || null,
         lead_email: lead.email || null,
@@ -1180,9 +1465,15 @@ function mapOpportunityFields(opportunity, funnelId) {
         update_date: opportunity.updateDate ? new Date(opportunity.updateDate).toISOString() : null,
         gain_date: opportunity.gain_date ? new Date(opportunity.gain_date).toISOString() : null,
         lost_date: opportunity.lost_date ? new Date(opportunity.lost_date).toISOString() : null,
+        last_column_change: opportunity.last_column_change ? new Date(opportunity.last_column_change).toISOString() : null,
+        last_status_change: opportunity.last_status_change ? new Date(opportunity.last_status_change).toISOString() : null,
+        reopen_date: opportunity.reopen_date ? new Date(opportunity.reopen_date).toISOString() : null,
+        expected_close_date: opportunity.expected_close_date ? new Date(opportunity.expected_close_date).toISOString() : null,
         archived: opportunity.archived ?? 0,
         unidade_id: '[1]',
-        synced_at: new Date().toISOString()
+        synced_at: new Date().toISOString(),
+        // Campos de data/hora das etapas
+        ...stageDateTimeFields
     };
 }
 
@@ -1496,6 +1787,283 @@ app.get('/metrics', (_req, res) => {
     res.json({ running: isSyncRunning, last: lastRun });
 });
 
+// Endpoint de debug para analisar estrutura dos dados do SprintHub
+app.get('/debug/sample', async (req, res) => {
+    try {
+        const funnelId = parseInt(req.query.funnel || '14');
+        const stageId = parseInt(req.query.stage || '202');
+        const limit = parseInt(req.query.limit || '1');
+        
+        console.log(`🔍 Debug: Buscando amostra - Funil ${funnelId}, Etapa ${stageId}`);
+        
+        const opportunities = await fetchOpportunitiesFromStage(funnelId, stageId, 0, limit);
+        
+        if (!opportunities || opportunities.length === 0) {
+            return res.json({
+                success: true,
+                message: 'Nenhuma oportunidade encontrada',
+                funnelId,
+                stageId,
+                sample: null,
+                fieldsStructure: {}
+            });
+        }
+        
+        const sample = opportunities[0];
+        const fields = sample.fields || {};
+        const lead = sample.dataLead || {};
+        
+        // Analisar estrutura
+        const fieldsStructure = {
+            directFields: Object.keys(sample).filter(k => k !== 'fields' && k !== 'dataLead'),
+            customFields: Object.keys(fields),
+            leadFields: Object.keys(lead),
+            // Procurar campos de data/hora
+            dateTimeFields: Object.keys(fields).filter(k => {
+                const kLower = k.toLowerCase();
+                return kLower.includes('entrada') || kLower.includes('acolhimento') || 
+                       kLower.includes('qualificado') || kLower.includes('orcamento') ||
+                       kLower.includes('negociacao') || kLower.includes('follow') ||
+                       kLower.includes('cadastro') || kLower.includes('compra') ||
+                       kLower.includes('recompra') || kLower.includes('monitoramento') ||
+                       kLower.includes('ativacao') || kLower.includes('reativacao');
+            })
+        };
+        
+        res.json({
+            success: true,
+            message: 'Amostra de dados do SprintHub',
+            funnelId,
+            stageId,
+            sample: {
+                id: sample.id,
+                title: sample.title,
+                status: sample.status,
+                crm_column: sample.crm_column,
+                fields: fields,
+                dataLead: {
+                    firstname: lead.firstname,
+                    lastname: lead.lastname,
+                    email: lead.email,
+                    whatsapp: lead.whatsapp
+                }
+            },
+            fieldsStructure,
+            allFieldsInFields: Object.keys(fields).sort(),
+            mappedFields: mapStageDateTimeFields(fields)
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro no endpoint de debug:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Endpoint para buscar oportunidade específica por ID e funil
+app.get('/debug/opportunity', async (req, res) => {
+    try {
+        const funnelId = parseInt(req.query.funnelID || req.query.funnelId || '33');
+        const opportunityId = parseInt(req.query.opportunityID || req.query.opportunityId);
+        
+        if (!opportunityId) {
+            return res.status(400).json({
+                success: false,
+                error: 'opportunityID é obrigatório'
+            });
+        }
+        
+        console.log(`🔍 Debug: Buscando oportunidade ${opportunityId} no Funil ${funnelId}`);
+        
+        // Buscar em todas as etapas do funil
+        const funnelConfig = FUNIS_CONFIG[funnelId];
+        if (!funnelConfig) {
+            return res.status(400).json({
+                success: false,
+                error: `Funil ${funnelId} não encontrado na configuração`
+            });
+        }
+        
+        let opportunity = null;
+        let foundInStage = null;
+        
+        // Buscar em todas as etapas
+        for (const stageId of funnelConfig.stages) {
+            const opportunities = await fetchOpportunitiesFromStage(funnelId, stageId, 0, 200);
+            const found = opportunities.find(opp => opp.id === opportunityId);
+            if (found) {
+                opportunity = found;
+                foundInStage = stageId;
+                break;
+            }
+        }
+        
+        if (!opportunity) {
+            return res.json({
+                success: true,
+                message: `Oportunidade ${opportunityId} não encontrada no Funil ${funnelId}`,
+                funnelId,
+                opportunityId,
+                opportunity: null
+            });
+        }
+        
+        const fields = opportunity.fields || {};
+        const allFieldNames = Object.keys(fields).sort();
+        
+        // Procurar TODOS os campos que podem ser de data/hora
+        const possibleDateTimeFields = allFieldNames.filter(k => {
+            const kLower = k.toLowerCase();
+            return kLower.includes('entrada') || kLower.includes('acolhimento') || 
+                   kLower.includes('qualificado') || kLower.includes('qualificacao') ||
+                   kLower.includes('orcamento') || kLower.includes('orçamento') ||
+                   kLower.includes('negociacao') || kLower.includes('negociação') ||
+                   kLower.includes('follow') || kLower.includes('followup') ||
+                   kLower.includes('cadastro') || kLower.includes('compra') ||
+                   kLower.includes('recompra') || kLower.includes('monitoramento') ||
+                   kLower.includes('ativacao') || kLower.includes('ativação') ||
+                   kLower.includes('reativacao') || kLower.includes('reativação') ||
+                   kLower.includes('data') || kLower.includes('hora') || kLower.includes('time');
+        });
+        
+        // Verificar valores dos campos de data/hora
+        const dateTimeFieldsWithValues = {};
+        possibleDateTimeFields.forEach(fieldName => {
+            const value = fields[fieldName];
+            if (value !== null && value !== undefined && value !== '') {
+                dateTimeFieldsWithValues[fieldName] = value;
+            }
+        });
+        
+        const analyzed = {
+            id: opportunity.id,
+            title: opportunity.title,
+            crm_column: opportunity.crm_column,
+            status: opportunity.status,
+            foundInStage: foundInStage,
+            allFields: allFieldNames,
+            possibleDateTimeFields: possibleDateTimeFields,
+            dateTimeFieldsWithValues: dateTimeFieldsWithValues,
+            mappedFields: mapStageDateTimeFields(fields),
+            // Incluir TODOS os campos com valores para análise
+            allFieldsWithValues: Object.keys(fields).reduce((acc, key) => {
+                if (fields[key] !== null && fields[key] !== undefined && fields[key] !== '') {
+                    acc[key] = fields[key];
+                }
+                return acc;
+            }, {}),
+            // Incluir objeto fields completo para análise detalhada
+            fields: fields
+        };
+        
+        res.json({
+            success: true,
+            message: `Oportunidade ${opportunityId} encontrada no Funil ${funnelId}`,
+            funnelId,
+            opportunityId,
+            opportunity: analyzed
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro no endpoint de debug opportunity:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            stack: error.stack
+        });
+    }
+});
+
+// Endpoint para buscar oportunidade específica do funil 33 e ver TODOS os campos
+app.get('/debug/funil33', async (req, res) => {
+    try {
+        const funnelId = 33; // Ativação Comercial
+        const stageId = parseInt(req.query.stage || '317'); // Etapa padrão: Acolhimento
+        const limit = parseInt(req.query.limit || '5');
+        
+        console.log(`🔍 Debug Funil 33: Buscando amostra - Etapa ${stageId}`);
+        
+        const opportunities = await fetchOpportunitiesFromStage(funnelId, stageId, 0, limit);
+        
+        if (!opportunities || opportunities.length === 0) {
+            return res.json({
+                success: true,
+                message: 'Nenhuma oportunidade encontrada no Funil 33',
+                funnelId,
+                stageId,
+                opportunities: []
+            });
+        }
+        
+        // Analisar TODAS as oportunidades retornadas
+        const analyzed = opportunities.map(opp => {
+            const fields = opp.fields || {};
+            const allFieldNames = Object.keys(fields).sort();
+            
+            // Procurar TODOS os campos que podem ser de data/hora
+            const possibleDateTimeFields = allFieldNames.filter(k => {
+                const kLower = k.toLowerCase();
+                return kLower.includes('entrada') || kLower.includes('acolhimento') || 
+                       kLower.includes('qualificado') || kLower.includes('qualificacao') ||
+                       kLower.includes('orcamento') || kLower.includes('orçamento') ||
+                       kLower.includes('negociacao') || kLower.includes('negociação') ||
+                       kLower.includes('follow') || kLower.includes('followup') ||
+                       kLower.includes('cadastro') || kLower.includes('compra') ||
+                       kLower.includes('recompra') || kLower.includes('monitoramento') ||
+                       kLower.includes('ativacao') || kLower.includes('ativação') ||
+                       kLower.includes('reativacao') || kLower.includes('reativação') ||
+                       kLower.includes('data') || kLower.includes('hora') || kLower.includes('time');
+            });
+            
+            // Verificar valores dos campos de data/hora
+            const dateTimeFieldsWithValues = {};
+            possibleDateTimeFields.forEach(fieldName => {
+                const value = fields[fieldName];
+                if (value !== null && value !== undefined && value !== '') {
+                    dateTimeFieldsWithValues[fieldName] = value;
+                }
+            });
+            
+            return {
+                id: opp.id,
+                title: opp.title,
+                crm_column: opp.crm_column,
+                status: opp.status,
+                allFields: allFieldNames,
+                possibleDateTimeFields: possibleDateTimeFields,
+                dateTimeFieldsWithValues: dateTimeFieldsWithValues,
+                mappedFields: mapStageDateTimeFields(fields),
+                // Incluir TODOS os campos com valores para análise
+                allFieldsWithValues: Object.keys(fields).reduce((acc, key) => {
+                    if (fields[key] !== null && fields[key] !== undefined && fields[key] !== '') {
+                        acc[key] = fields[key];
+                    }
+                    return acc;
+                }, {})
+            };
+        });
+        
+        res.json({
+            success: true,
+            message: `Encontradas ${opportunities.length} oportunidades no Funil 33`,
+            funnelId,
+            stageId,
+            totalFound: opportunities.length,
+            opportunities: analyzed
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro no endpoint de debug Funil 33:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+            stack: error.stack
+        });
+    }
+});
+
 // Orquestrador sequencial com lock - permite sincronização seletiva
 async function runFullSync(trigger = 'manual_api', options = {}) {
     // Opções: { syncOportunidades: true/false, syncLeads: true/false, syncSegmentos: true/false }
@@ -1731,6 +2299,10 @@ const handleSyncLeadsSegmentos = async (req, res) => {
 // Endpoints principais
 app.post('/sync/all', handleFullSync);
 app.get(['/sync/all', '/sync', '/oportunidades/sync', '/oportunidades/sync/all'], handleFullSync);
+
+// Endpoint /api/sync-now (compatível com TopMenuBar)
+app.post('/api/sync-now', handleFullSync);
+app.get('/api/sync-now', handleFullSync);
 
 // Endpoints específicos para sincronização seletiva
 app.get('/sync/oportunidades', handleSyncOportunidades);

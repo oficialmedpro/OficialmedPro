@@ -1,0 +1,75 @@
+{
+  "total_campos": 33,
+  "campos_existentes": 51,
+  "campos_faltantes": 11,
+  "campos_com_valores": 2,
+  "campos_sem_valores": 9,
+  "campos_faltantes_detalhes": [
+    {
+      "nome_sprinthub": "Forma de entrega",
+      "nome_normalizado": "forma_de_entrega",
+      "tem_valor": false,
+      "valor_exemplo": null
+    },
+    {
+      "nome_sprinthub": "Forma de Pagamento",
+      "nome_normalizado": "forma_de_pagamento",
+      "tem_valor": false,
+      "valor_exemplo": null
+    },
+    {
+      "nome_sprinthub": "Frete Onibus e Motoboy",
+      "nome_normalizado": "frete_onibus_e_motoboy",
+      "tem_valor": false,
+      "valor_exemplo": null
+    },
+    {
+      "nome_sprinthub": "idoportunidade",
+      "nome_normalizado": "idoportunidade",
+      "tem_valor": true,
+      "valor_exemplo": "122157"
+    },
+    {
+      "nome_sprinthub": "parcelamento",
+      "nome_normalizado": "parcelamento",
+      "tem_valor": false,
+      "valor_exemplo": null
+    },
+    {
+      "nome_sprinthub": "Posologia",
+      "nome_normalizado": "posologia",
+      "tem_valor": false,
+      "valor_exemplo": null
+    },
+    {
+      "nome_sprinthub": "Status da Etapa",
+      "nome_normalizado": "status_da_etapa",
+      "tem_valor": false,
+      "valor_exemplo": null
+    },
+    {
+      "nome_sprinthub": "Tipo de Compra",
+      "nome_normalizado": "tipo_de_compra",
+      "tem_valor": true,
+      "valor_exemplo": "COMPRA"
+    },
+    {
+      "nome_sprinthub": "Tipo de Frete",
+      "nome_normalizado": "tipo_de_frete",
+      "tem_valor": false,
+      "valor_exemplo": null
+    },
+    {
+      "nome_sprinthub": "Total Pedido",
+      "nome_normalizado": "total_pedido",
+      "tem_valor": false,
+      "valor_exemplo": null
+    },
+    {
+      "nome_sprinthub": "Valor Parcela",
+      "nome_normalizado": "valor_parcela",
+      "tem_valor": false,
+      "valor_exemplo": null
+    }
+  ]
+}
