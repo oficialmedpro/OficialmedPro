@@ -262,8 +262,10 @@ const CockpitVendedores = () => {
   };
 
   const formatarMoeda = (valor) => {
-    if (valor === null || valor === undefined) return '—';
-    return `R$ ${parseFloat(valor).toFixed(2).replace('.', ',')}`;
+    if (valor === null || valor === undefined || valor === '') return '—';
+    const numValor = parseFloat(valor);
+    if (isNaN(numValor)) return '—';
+    return `R$ ${numValor.toFixed(2).replace('.', ',')}`;
   };
 
   const renderCardVendedor = (vendedor, index) => {
