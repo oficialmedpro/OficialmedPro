@@ -31,3 +31,5 @@ WHERE "publicId" LIKE '%clonazepan%' OR name LIKE '%clonazepan%';
 2. Use um cliente PostgreSQL ou terminal
 3. Execute as queries acima para verificar se o bot existe e está publicado
 
+
+

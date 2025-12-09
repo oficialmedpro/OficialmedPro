@@ -1796,47 +1796,54 @@ const TopMenuBar = ({
       const PAGE_LIMIT = 100;
       
       // 📋 CONFIGURAÇÃO DOS FUNIS E ETAPAS
+      // MESMA CONFIGURAÇÃO DA API DO EASYPANEL
       const FUNIS_CONFIG = {
         6: {
           name: "[1] COMERCIAL APUCARANA",
-          stages: [
-            { id: 130, name: "[0] ENTRADA" },
-            { id: 231, name: "[1] ACOLHIMENTO/TRIAGEM" },
-            { id: 82, name: "[2] QUALIFICADO" },
-            { id: 207, name: "[3] ORÇAMENTO REALIZADO" },
-            { id: 83, name: "[4] NEGOCIAÇÃO" },
-            { id: 85, name: "[5] FOLLOW UP" },
-            { id: 232, name: "[6] CADASTRO" }
-          ]
+          stages: [130, 231, 82, 207, 83, 85, 232] // Mesmas etapas da API
+        },
+        9: {
+          name: "[1] LOGÍSTICA MANIPULAÇÃO",
+          stages: [244, 245, 105, 267, 368, 108, 109, 261, 262, 263, 278, 110]
         },
         14: {
           name: "[2] RECOMPRA",
-          stages: [
-            { id: 227, name: "[X] PROMO" },
-            { id: 202, name: "[0] ENTRADA" },
-            { id: 228, name: "[1] ACOLHIMENTO/TRIAGEM" },
-            { id: 229, name: "[2] QUALIFICAÇÃO" },
-            { id: 206, name: "[3] ORÇAMENTOS" },
-            { id: 203, name: "[4] NEGOCIAÇÃO" },
-            { id: 204, name: "[5] FOLLOW UP" },
-            { id: 230, name: "[6] CADASTRO" },
-            { id: 205, name: "[X] PARCEIROS" },
-            { id: 241, name: "[0] MONITORAMENTO" },
-            { id: 146, name: "[1] DISPARO" },
-            { id: 147, name: "[2] DIA 1 - 1º TENTATIVA" },
-            { id: 167, name: "[3] DIA 1 - 2º TENTATIVA" },
-            { id: 148, name: "[4] DIA 2 - 1º TENTATIVA" },
-            { id: 168, name: "[5] DIA 2 - 2º TENTATIVA" },
-            { id: 149, name: "[6] DIA 3 - 1º TENTATIVA" },
-            { id: 169, name: "[7] DIA 3 - 2º TENTATIVA" },
-            { id: 150, name: "[8] FOLLOW UP INFINITO" }
-          ]
+          stages: [202, 228, 229, 206, 203, 204, 230, 205, 269, 167, 148, 168, 149, 169, 150] // Mesmas etapas da API
+        },
+        32: {
+          name: "[1] MONITORAMENTO MARKETING",
+          stages: [280, 281, 282, 283, 284, 285, 346, 347, 348, 349]
+        },
+        33: {
+          name: "[1] ATIVAÇÃO COMERCIAL",
+          stages: [314, 317, 315, 316, 318, 319, 320]
+        },
+        34: {
+          name: "[1] REATIVAÇÃO MARKETING",
+          stages: [286, 287, 288, 289, 369, 370, 371, 372, 373, 374, 296]
+        },
+        35: {
+          name: "[1] ATIVAÇÃO MARKETING",
+          stages: [298, 299, 300, 301, 375, 376, 377, 378, 379, 380, 307, 340, 341, 342, 343, 381, 382, 383, 384, 385, 386, 344]
+        },
+        36: {
+          name: "[1] LABORATÓRIO",
+          stages: [302, 367, 306, 305, 308]
+        },
+        38: {
+          name: "[1] REATIVAÇÃO COMERCIAL",
+          stages: [333, 334, 335, 336, 337, 338, 339]
+        },
+        41: {
+          name: "[1] MONITORAMENTO COMERCIAL",
+          stages: [353, 354, 355, 356, 357, 358, 359]
         }
       };
       
       logger.debug('🎯 CONFIGURAÇÃO DA SINCRONIZAÇÃO HORÁRIA:');
-      logger.debug(`   📊 Funis: 6 (APUCARANA) e 14 (RECOMPRA)`);
-      logger.debug(`   📋 Total etapas: ${FUNIS_CONFIG[6].stages.length + FUNIS_CONFIG[14].stages.length}`);
+      logger.debug(`   📊 Funis: ${Object.keys(FUNIS_CONFIG).join(', ')} (mesmos da API Easypanel)`);
+      const totalStages = Object.values(FUNIS_CONFIG).reduce((sum, f) => sum + f.stages.length, 0);
+      logger.debug(`   📋 Total etapas: ${totalStages}`);
       logger.debug(`   📅 Filtro: createDate de hoje (TODOS os status)`);
       logger.debug(`   📄 Limit por página: ${PAGE_LIMIT}`);
       logger.debug('='.repeat(80));
@@ -1853,11 +1860,81 @@ const TopMenuBar = ({
         }
       };
       
-      // 💾 FUNÇÃO PARA MAPEAR CAMPOS (baseada na função semanal)
+      // 💾 FUNÇÃO PARA MAPEAR CAMPOS (mesma lógica da API do Easypanel)
+      // Helper para converter data/hora
+      const parseDateTimeField = (value) => {
+        if (!value) return null;
+        if (typeof value === 'string') {
+          const date = new Date(value);
+          if (!Number.isNaN(date.getTime())) {
+            return date.toISOString();
+          }
+        }
+        if (value instanceof Date) {
+          return value.toISOString();
+        }
+        return null;
+      };
+      
+      // Helper para mapear campos de data/hora das etapas (mesma função da API)
+      const mapStageDateTimeFields = (fields) => {
+        if (!fields || typeof fields !== 'object') return {};
+        
+        const stageFieldMap = {
+          'Entrada Compra': 'entrada_compra', 'Acolhimento Compra': 'acolhimento_compra',
+          'Qualificado Compra': 'qualificado_compra', 'Orcamento Compra': 'orcamento_compra',
+          'Negociacao Compra': 'negociacao_compra', 'Follow Up Compra': 'follow_up_compra',
+          'Cadastro Compra': 'cadastro_compra',
+          'Entrada Recompra': 'entrada_recompra', 'Acolhimento Recompra': 'acolhimento_recompra',
+          'Qualificado Recompra': 'qualificado_recompra', 'Orcamento Recompra': 'orcamento_recompra',
+          'Negociacao Recompra': 'negociacao_recompra', 'Follow Up Recompra': 'follow_up_recompra',
+          'Cadastro Recompra': 'cadastro_recompra',
+          'Entrada Monitoramento': 'entrada_monitoramento', 'Acolhimento Monitoramento': 'acolhimento_monitoramento',
+          'Qualificado Monitoramento': 'qualificado_monitoramento', 'Orcamento Monitoramento': 'orcamento_monitoramento',
+          'Negociacao Monitoramento': 'negociacao_monitoramento', 'Follow Up Monitoramento': 'follow_up_monitoramento',
+          'Cadastro Monitoramento': 'cadastro_monitoramento',
+          'Entrada Ativacao': 'entrada_ativacao', 'Acolhimento Ativacao': 'acolhimento_ativacao',
+          'Qualificado Ativacao': 'qualificado_ativacao', 'Orcamento Ativacao': 'orcamento_ativacao',
+          'Negociacao Ativacao': 'negociacao_ativacao', 'Follow Up Ativacao': 'follow_up_ativacao',
+          'Cadastro Ativacao': 'cadastro_ativacao',
+          'Entrada Reativacao': 'entrada_reativacao', 'Acolhimento Reativacao': 'acolhimento_reativacao',
+          'Qualificado Reativacao': 'qualificado_reativacao', 'Orcamento Reativacao': 'orcamento_reativacao',
+          'Negociacao Reativacao': 'negociacao_reativacao', 'Follow Up Reativacao': 'follow_up_reativacao',
+          'Cadastro Reativacao': 'cadastro_reativacao'
+        };
+        
+        const mappedFields = {};
+        Object.keys(stageFieldMap).forEach(sprintHubField => {
+          const dbField = stageFieldMap[sprintHubField];
+          // Tentar variações (case insensitive, com/sem acentos)
+          const variations = [
+            sprintHubField,
+            sprintHubField.toUpperCase(),
+            sprintHubField.toLowerCase(),
+            ...Object.keys(fields).filter(k => 
+              k.toLowerCase().replace(/[áàâãéèêíìîóòôõúùûç]/g, '') === 
+              sprintHubField.toLowerCase().replace(/[áàâãéèêíìîóòôõúùûç]/g, '')
+            )
+          ];
+          
+          for (const variation of variations) {
+            if (fields[variation] !== undefined) {
+              mappedFields[dbField] = parseDateTimeField(fields[variation]);
+              break;
+            }
+          }
+        });
+        
+        return mappedFields;
+      };
+      
       const mapOpportunityFields = (opportunity, funnelId) => {
         const fields = opportunity.fields || {};
         const lead = opportunity.dataLead || {};
         const utmTags = (lead.utmTags && lead.utmTags[0]) || {};
+        
+        // Mapear campos de data/hora das etapas
+        const stageDateTimeFields = mapStageDateTimeFields(fields);
 
         return {
           id: opportunity.id,
@@ -1873,8 +1950,12 @@ const TopMenuBar = ({
           // Datas importantes
           create_date: opportunity.createDate ? new Date(opportunity.createDate).toISOString() : null,
           update_date: opportunity.updateDate ? new Date(opportunity.updateDate).toISOString() : null,
-          lost_date: opportunity.lost_date || null,
-          gain_date: opportunity.gain_date || null,
+          lost_date: opportunity.lost_date ? new Date(opportunity.lost_date).toISOString() : null,
+          gain_date: opportunity.gain_date ? new Date(opportunity.gain_date).toISOString() : null,
+          last_column_change: opportunity.last_column_change ? new Date(opportunity.last_column_change).toISOString() : null,
+          last_status_change: opportunity.last_status_change ? new Date(opportunity.last_status_change).toISOString() : null,
+          reopen_date: opportunity.reopen_date ? new Date(opportunity.reopen_date).toISOString() : null,
+          expected_close_date: opportunity.expected_close_date ? new Date(opportunity.expected_close_date).toISOString() : null,
           
           // Campos específicos
           origem_oportunidade: fields["ORIGEM OPORTUNIDADE"] || null,
@@ -1882,23 +1963,28 @@ const TopMenuBar = ({
           status_orcamento: fields["Status Orcamento"] || null,
           
           // UTM
-          utm_source: utmTags.utmSource || null,
-          utm_campaign: utmTags.utmCampaign || null,
-          utm_medium: utmTags.utmMedium || null,
+          utm_source: utmTags.utmSource || utmTags.source || null,
+          utm_campaign: utmTags.utmCampaign || utmTags.campaign || null,
+          utm_medium: utmTags.utmMedium || utmTags.medium || null,
           
           // Lead
           lead_firstname: lead.firstname || null,
+          lead_lastname: lead.lastname || null,
           lead_email: lead.email || null,
           lead_whatsapp: lead.whatsapp || null,
+          lead_city: lead.city || null,
           
           // Controle
-          archived: opportunity.archived || 0,
+          archived: opportunity.archived ?? 0,
           synced_at: new Date().toISOString(),
           
           // Funil
           funil_id: funnelId,
-          unidade_id: '[1]', // Ambos funis são da unidade Apucarana
-          funil_nome: funnelId === 6 ? '[1] Comercial Apucarana' : '[1] Recompra Apucarana'
+          unidade_id: '[1]',
+          funil_nome: FUNIS_CONFIG[funnelId]?.name || null,
+          
+          // Campos de data/hora das etapas
+          ...stageDateTimeFields
         };
       };
       

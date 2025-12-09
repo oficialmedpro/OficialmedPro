@@ -17,7 +17,8 @@ const DailyPerformanceTable = ({
   selectedSeller,
   selectedSellerName,
   selectedOrigin,
-  t // traduções
+  t, // traduções
+  title = 'Performance Diária' // título customizado, padrão: Performance Diária
 }) => {
   const [dailyData, setDailyData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -641,7 +642,7 @@ const DailyPerformanceTable = ({
     <div className="main-chart">
       <div className="daily-performance-table-container">
       <div className="daily-performance-header">
-        <h2>Performance Diária</h2>
+        <h2>{title}</h2>
 
         {/* Seção de Filtros Aplicados (igual ao FunnelChart) */}
         <div className="fc-applied-filters">

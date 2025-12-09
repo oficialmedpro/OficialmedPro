@@ -11,6 +11,7 @@ import { useAuth } from '../hooks/useAuth';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import sprinthubService from '../service/sprinthubService';
 
 const ClientesConsolidadosPage = ({ onLogout }) => {
   const { user } = useAuth();
@@ -96,6 +97,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const [monitoramento129Data, setMonitoramento129Data] = useState([]);
   const [monitoramento3059Data, setMonitoramento3059Data] = useState([]);
   const [monitoramento6090Data, setMonitoramento6090Data] = useState([]);
+  const [monitoramentoD45Data, setMonitoramentoD45Data] = useState([]);
+  const [monitoramentoD60Data, setMonitoramentoD60Data] = useState([]);
+  const [monitoramentoD75Data, setMonitoramentoD75Data] = useState([]);
+  const [monitoramentoD90Data, setMonitoramentoD90Data] = useState([]);
   const [monitoramentoStats, setMonitoramentoStats] = useState([]);
   const [ativacaoStats, setAtivacaoStats] = useState([]);
 
@@ -133,6 +138,21 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [selectedHistoryLead, setSelectedHistoryLead] = useState(null);
   const [showQualityModal, setShowQualityModal] = useState(false);
+  
+  // Estados para histórico SprintHub
+  const [sprinthubExportFlags, setSprinthubExportFlags] = useState({}); // IDs com export SprintHub
+  const [showSprinthubHistoryModal, setShowSprinthubHistoryModal] = useState(false);
+  const [showExportHistoryModal, setShowExportHistoryModal] = useState(false);
+  const [selectedClientForHistory, setSelectedClientForHistory] = useState(null);
+  const [clientExportHistory, setClientExportHistory] = useState([]);
+  const [sprinthubHistory, setSprinthubHistory] = useState([]);
+  
+  // Estados para filtros SprintHub
+  const [sprinthubStatusFilter, setSprinthubStatusFilter] = useState('all'); // 'all' | 'sent' | 'not-sent'
+  const [sprinthubLeadTagFilter, setSprinthubLeadTagFilter] = useState('all');
+  const [availableSprinthubLeadTags, setAvailableSprinthubLeadTags] = useState([]);
+  const [sprinthubDataEnvioInicio, setSprinthubDataEnvioInicio] = useState(''); // Data início envio SprintHub
+  const [sprinthubDataEnvioFim, setSprinthubDataEnvioFim] = useState(''); // Data fim envio SprintHub
   const [selectedQualityClient, setSelectedQualityClient] = useState(null);
   const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
   const [selectedDuplicatesClient, setSelectedDuplicatesClient] = useState(null);
@@ -166,6 +186,79 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   const handleStatusFilterChange = () => {};
   const [editFields, setEditFields] = useState(null);
 
+  // Configuração do SprintHub
+  const SPRINTHUB_CONFIG = sprinthubService.getConfig();
+  
+  // Constante para prefixo de tags de histórico SprintHub
+  const SPRINT_HISTORY_TAG_PREFIX = 'SPRINTHUB_LEADTAG_';
+  
+  // Função para construir valor de tag de histórico SprintHub
+  const buildSprinthubHistoryTagValue = (leadTagId) => {
+    if (!leadTagId) return 'SPRINTHUB';
+    return `${SPRINT_HISTORY_TAG_PREFIX}${leadTagId}`;
+  };
+  
+  // Função para extrair tag de lead do SprintHub de um valor de tag
+  const extractSprinthubLeadTag = (tagValue) => {
+    if (!tagValue) return null;
+    if (tagValue.startsWith(SPRINT_HISTORY_TAG_PREFIX)) {
+      return tagValue.substring(SPRINT_HISTORY_TAG_PREFIX.length);
+    }
+    if (tagValue.toLowerCase() === 'sprinthub') {
+      return 'default';
+    }
+    return null;
+  };
+  
+  // Função para formatar label de tag SprintHub
+  const formatSprinthubTagLabel = (tagValue) => {
+    if (!tagValue) return '-';
+    const leadTag = extractSprinthubLeadTag(tagValue);
+    if (leadTag && leadTag !== 'default') {
+      return `SPRINTHUB (Tag ${leadTag})`;
+    }
+    return tagValue;
+  };
+  
+  // Estados específicos para exportação Sprinthub
+  const [sprinthubEtapa, setSprinthubEtapa] = useState(() => {
+    if (SPRINTHUB_CONFIG.defaultColumnId != null) {
+      return String(SPRINTHUB_CONFIG.defaultColumnId);
+    }
+    return '167';
+  });
+  const [sprinthubVendedor, setSprinthubVendedor] = useState(() => {
+    if (SPRINTHUB_CONFIG.defaultUserId != null) {
+      return String(SPRINTHUB_CONFIG.defaultUserId);
+    }
+    return '229';
+  });
+  const [sprinthubTituloPrefix, setSprinthubTituloPrefix] = useState('MONITORAMENTO');
+  const [sprinthubFunnelId, setSprinthubFunnelId] = useState(() => {
+    if (SPRINTHUB_CONFIG.defaultFunnelId != null) {
+      return String(SPRINTHUB_CONFIG.defaultFunnelId);
+    }
+    return '';
+  });
+  const [sprinthubSequence, setSprinthubSequence] = useState(() => {
+    if (SPRINTHUB_CONFIG.defaultSequenceId != null) {
+      return String(SPRINTHUB_CONFIG.defaultSequenceId);
+    }
+    return '0';
+  });
+  const [sprinthubOrigemOportunidade, setSprinthubOrigemOportunidade] = useState('Monitoramento');
+  const [sprinthubTipoCompra, setSprinthubTipoCompra] = useState('recompra monitoramento');
+  const [showSprinthubModal, setShowSprinthubModal] = useState(false);
+  const [isSendingToSprinthub, setIsSendingToSprinthub] = useState(false);
+  const [sprinthubResults, setSprinthubResults] = useState([]);
+  const [sprinthubError, setSprinthubError] = useState(null);
+  const [sprinthubAvailableTags, setSprinthubAvailableTags] = useState([]);
+  const [isLoadingSprinthubTags, setIsLoadingSprinthubTags] = useState(false);
+  const [sprinthubBatchSize, setSprinthubBatchSize] = useState('50');
+  const [sprinthubProgress, setSprinthubProgress] = useState(null);
+  const [showAutoSyncConfig, setShowAutoSyncConfig] = useState(false);
+  const [autoSyncLimit, setAutoSyncLimit] = useState('200');
+
   const t = translations[currentLanguage];
 
   // Atualizar dados de mercado
@@ -177,6 +270,31 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     updateData();
     const interval = setInterval(updateData, 30000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Carregar tags do SprintHub
+  useEffect(() => {
+    let active = true;
+    const fetchTagsFromSprint = async () => {
+      try {
+        setIsLoadingSprinthubTags(true);
+        const tags = await sprinthubService.getInstanceTags();
+        if (active) {
+          setSprinthubAvailableTags(Array.isArray(tags) ? tags : []);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar tags da SprintHub:', error);
+      } finally {
+        if (active) {
+          setIsLoadingSprinthubTags(false);
+        }
+      }
+    };
+    fetchTagsFromSprint();
+    loadAvailableExportTags(); // Carregar tags de leads do SprintHub
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Carregar dados ao mudar de aba
@@ -230,7 +348,7 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     loadTabData();
     setSelectedRows([]);
     setLastClickedIndex(null);
-  }, [currentPage, itemsPerPage, sortField, sortDirection, duplicatesFilter]);
+  }, [currentPage, itemsPerPage, sortField, sortDirection, duplicatesFilter, sprinthubStatusFilter, sprinthubLeadTagFilter, sprinthubDataEnvioInicio, sprinthubDataEnvioFim]);
 
   // Carregar TODOS os dados da aba atual (sem paginação) para detectar duplicatas
   // Buscar TODAS as duplicatas da view atual usando SQL direto
@@ -541,6 +659,127 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   }, [activeTab]); // Recarregar apenas quando mudar aba
 
   // ===== APLICAÇÃO DE FILTROS NAS CONSULTAS =====
+  // Função auxiliar para aplicar filtros SprintHub
+  const applySprinthubFiltersToQuery = async (query) => {
+    // Se não há filtros SprintHub ativos, retornar query sem modificação
+    if (sprinthubStatusFilter === 'all' && sprinthubLeadTagFilter === 'all' && !sprinthubDataEnvioInicio && !sprinthubDataEnvioFim) {
+      return { query, shouldReturnEmpty: false };
+    }
+
+    let allSentIds = new Set();
+    const hasSprinthubFilter = sprinthubStatusFilter === 'sent' || sprinthubStatusFilter === 'not-sent' || sprinthubLeadTagFilter !== 'all';
+
+    if (hasSprinthubFilter) {
+      if (sprinthubLeadTagFilter !== 'all') {
+        // Buscar por tag específica
+        let tagQuery = supabase
+          .schema('api')
+          .from('historico_exportacoes')
+          .select('id_lead')
+          .eq('tag_exportacao', buildSprinthubHistoryTagValue(sprinthubLeadTagFilter));
+        
+        if (sprinthubDataEnvioInicio) {
+          const dataInicio = `${sprinthubDataEnvioInicio}T00:00:00`;
+          tagQuery = tagQuery.gte('data_exportacao', dataInicio);
+        }
+        if (sprinthubDataEnvioFim) {
+          const dataFim = `${sprinthubDataEnvioFim}T23:59:59`;
+          tagQuery = tagQuery.lte('data_exportacao', dataFim);
+        }
+        
+        const { data: tagData } = await tagQuery;
+        (tagData || []).forEach(item => {
+          if (item.id_lead) allSentIds.add(String(item.id_lead));
+        });
+      } else {
+        // Buscar por tag que começa com SPRINTHUB ou é exatamente SPRINTHUB
+        let tagQueries = [
+          supabase.schema('api').from('historico_exportacoes').select('id_lead').ilike('tag_exportacao', 'SPRINTHUB%'),
+          supabase.schema('api').from('historico_exportacoes').select('id_lead').eq('tag_exportacao', 'SPRINTHUB')
+        ];
+        
+        // Aplicar filtros de data se existirem
+        tagQueries = tagQueries.map(tagQuery => {
+          let q = tagQuery;
+          if (sprinthubDataEnvioInicio) {
+            const dataInicio = `${sprinthubDataEnvioInicio}T00:00:00`;
+            q = q.gte('data_exportacao', dataInicio);
+          }
+          if (sprinthubDataEnvioFim) {
+            const dataFim = `${sprinthubDataEnvioFim}T23:59:59`;
+            q = q.lte('data_exportacao', dataFim);
+          }
+          return q;
+        });
+        
+        // Executar todas as queries e consolidar resultados
+        const tagResults = await Promise.all(tagQueries.map(q => q));
+        tagResults.forEach(({ data: tagData }) => {
+          (tagData || []).forEach(item => {
+            if (item.id_lead) allSentIds.add(String(item.id_lead));
+          });
+        });
+        
+        // Também buscar por motivo ou observação que contenha "sprinthub"
+        let motivoQuery = supabase
+          .schema('api')
+          .from('historico_exportacoes')
+          .select('id_lead')
+          .ilike('motivo', '%sprinthub%');
+        
+        if (sprinthubDataEnvioInicio) {
+          const dataInicio = `${sprinthubDataEnvioInicio}T00:00:00`;
+          motivoQuery = motivoQuery.gte('data_exportacao', dataInicio);
+        }
+        if (sprinthubDataEnvioFim) {
+          const dataFim = `${sprinthubDataEnvioFim}T23:59:59`;
+          motivoQuery = motivoQuery.lte('data_exportacao', dataFim);
+        }
+        
+        const { data: motivoData } = await motivoQuery;
+        (motivoData || []).forEach(item => {
+          if (item.id_lead) allSentIds.add(String(item.id_lead));
+        });
+        
+        // Buscar por observação que contenha "sprinthub"
+        let obsQuery = supabase
+          .schema('api')
+          .from('historico_exportacoes')
+          .select('id_lead')
+          .ilike('observacao', '%sprinthub%');
+        
+        if (sprinthubDataEnvioInicio) {
+          const dataInicio = `${sprinthubDataEnvioInicio}T00:00:00`;
+          obsQuery = obsQuery.gte('data_exportacao', dataInicio);
+        }
+        if (sprinthubDataEnvioFim) {
+          const dataFim = `${sprinthubDataEnvioFim}T23:59:59`;
+          obsQuery = obsQuery.lte('data_exportacao', dataFim);
+        }
+        
+        const { data: obsData } = await obsQuery;
+        (obsData || []).forEach(item => {
+          if (item.id_lead) allSentIds.add(String(item.id_lead));
+        });
+      }
+      
+      const sprinthubSentIds = Array.from(allSentIds).map(id => Number(id)).filter(id => !isNaN(id));
+      
+      if (sprinthubStatusFilter === 'sent') {
+        if (sprinthubSentIds.length === 0) {
+          return { query, shouldReturnEmpty: true };
+        }
+        query = query.in('id', sprinthubSentIds);
+      } else if (sprinthubStatusFilter === 'not-sent') {
+        // Para "not-sent", precisamos buscar todos os IDs primeiro e depois filtrar no cliente
+        // Retornar uma flag especial para indicar que precisa filtrar no cliente
+        return { query, shouldReturnEmpty: false, sprinthubSentIds: Array.from(allSentIds) };
+      }
+    }
+    
+    return { query, shouldReturnEmpty: false };
+  };
+
   const applyFiltersToQuery = (query) => {
     // Presença de campos
     if (filters.hasCpf) {
@@ -676,6 +915,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         case 'monitoramento-1-29': await loadMonitoramento129(); break;
         case 'monitoramento-30-59': await loadMonitoramento3059(); break;
         case 'monitoramento-60-90': await loadMonitoramento6090(); break;
+        case 'monitoramento-d45': await loadMonitoramentoD45(); break;
+        case 'monitoramento-d60': await loadMonitoramentoD60(); break;
+        case 'monitoramento-d75': await loadMonitoramentoD75(); break;
+        case 'monitoramento-d90': await loadMonitoramentoD90(); break;
       }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
@@ -1841,6 +2084,76 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
                 <option value="no-duplicates">Sem Duplicatas</option>
               </select>
             </div>
+          </div>
+          <div className="cc-filters-row">
+            <div className="cc-filter-item">
+              <span>Status SprintHub:</span>
+              <select
+                value={sprinthubStatusFilter}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSprinthubStatusFilter(value);
+                  setCurrentPage(1);
+                  if (value === 'all') {
+                    setSprinthubLeadTagFilter('all');
+                  }
+                  loadTabData();
+                }}
+                className="cc-select cc-select-small"
+              >
+                <option value="all">Todos</option>
+                <option value="sent">Enviados</option>
+                <option value="not-sent">Não Enviados</option>
+              </select>
+            </div>
+            <div className="cc-filter-item">
+              <span>Tag Lead SprintHub:</span>
+              <select
+                value={sprinthubLeadTagFilter}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSprinthubLeadTagFilter(value);
+                  setCurrentPage(1);
+                  if (value !== 'all') {
+                    setSprinthubStatusFilter('sent');
+                  }
+                  loadTabData();
+                }}
+                className="cc-select cc-select-small"
+                disabled={isLoadingSprinthubTags}
+              >
+                <option value="all">Todas</option>
+                {availableSprinthubLeadTags.map(tag => (
+                  <option key={tag} value={tag}>{tag}</option>
+                ))}
+              </select>
+            </div>
+            <div className="cc-filter-item">
+              <span style={{ whiteSpace: 'nowrap' }}>Data Envio SprintHub:</span>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="date"
+                  value={sprinthubDataEnvioInicio}
+                  onChange={(e) => {
+                    setSprinthubDataEnvioInicio(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="cc-input cc-input-small"
+                  style={{ width: '140px' }}
+                />
+                <span>até</span>
+                <input
+                  type="date"
+                  value={sprinthubDataEnvioFim}
+                  onChange={(e) => {
+                    setSprinthubDataEnvioFim(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="cc-input cc-input-small"
+                  style={{ width: '140px' }}
+                />
+              </div>
+            </div>
             <div className="cc-filter-item" style={{ alignItems: 'flex-start' }}>
               <span style={{ marginTop: '6px' }}>Origens:</span>
               <div className="cc-filter-chips">
@@ -1868,6 +2181,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
               </button>
               <button className="cc-btn cc-btn-small" onClick={() => {
                 setFilters({ hasCpf: false, hasEmail: false, hasEndereco: false, hasSexo: false, hasDataNascimento: false, phoneStatus: 'any', ddd: '', origins: [] });
+                setSprinthubStatusFilter('all');
+                setSprinthubLeadTagFilter('all');
+                setSprinthubDataEnvioInicio('');
+                setSprinthubDataEnvioFim('');
                 setCurrentPage(1);
                 loadTabData();
               }}>Limpar</button>
@@ -1902,26 +2219,206 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     </div>
   );
 
+  // Função auxiliar para verificar se uma entrada de histórico é do SprintHub
+  const isSprinthubHistoryEntry = (entry) => {
+    if (!entry) return false;
+    const tag = (entry.tag_exportacao || '').toLowerCase();
+    const motivo = (entry.motivo || '').toLowerCase();
+    const observacao = (entry.observacao || '').toLowerCase();
+    return tag.includes('sprinthub') || motivo.includes('sprinthub') || observacao.includes('sprinthub');
+  };
+
+  // Função para carregar histórico de exportação de um cliente
+  const loadClientExportHistory = async (leadIdentifiers) => {
+    const leadIdsArray = Array.isArray(leadIdentifiers) ? leadIdentifiers : [leadIdentifiers];
+    const leadIds = [...new Set(leadIdsArray.filter(Boolean).map((id) => String(id)))];
+    if (leadIds.length === 0) return [];
+    
+    try {
+      // Buscar IDs do clientes_mestre correspondentes aos IDs fornecidos
+      let clientesMestreIds = new Set();
+      
+      // Tentar buscar por cada tipo de ID
+      const numericIds = leadIds.map(id => Number(id)).filter(id => !isNaN(id));
+      
+      if (numericIds.length > 0) {
+        // Buscar por id
+        const { data: byId } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('id')
+          .in('id', numericIds);
+        (byId || []).forEach(cm => {
+          if (cm.id) clientesMestreIds.add(Number(cm.id));
+        });
+        
+        // Buscar por id_prime
+        const { data: byPrime } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('id')
+          .in('id_prime', numericIds);
+        (byPrime || []).forEach(cm => {
+          if (cm.id) clientesMestreIds.add(Number(cm.id));
+        });
+        
+        // Buscar por id_sprinthub
+        const { data: bySprint } = await supabase
+          .schema('api')
+          .from('clientes_mestre')
+          .select('id')
+          .in('id_sprinthub', numericIds);
+        (bySprint || []).forEach(cm => {
+          if (cm.id) clientesMestreIds.add(Number(cm.id));
+        });
+      }
+      
+      // Se não encontrou correspondência, usar os IDs originais
+      const idsParaBuscar = clientesMestreIds.size > 0 
+        ? Array.from(clientesMestreIds)
+        : numericIds;
+      
+      if (idsParaBuscar.length === 0) {
+        return [];
+      }
+      
+      const { data, error } = await supabase
+        .schema('api')
+        .from('historico_exportacoes')
+        .select('*')
+        .in('id_lead', idsParaBuscar)
+        .order('data_exportacao', { ascending: false });
+      
+      if (error) {
+        console.error('Erro ao buscar histórico:', error);
+        return [];
+      }
+      
+      if (!data || data.length === 0) {
+        return [];
+      }
+      
+      // Verificar se tem SprintHub e atualizar flags
+      const hasSprinthub = data.some(exp => isSprinthubHistoryEntry(exp));
+      if (hasSprinthub) {
+        setSprinthubExportFlags(prev => {
+          const updates = { ...prev };
+          leadIds.forEach(id => {
+            updates[String(id)] = true;
+          });
+          return updates;
+        });
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Erro ao carregar histórico de exportação:', error);
+      return [];
+    }
+  };
+
+  // Função para lidar com clique no ícone de exportação
+  const handleExportIconClick = async (row, onlySprinthub = false) => {
+    const candidates = getLeadIdentifierCandidates(row);
+    if (candidates.length === 0) return;
+    
+    setSelectedClientForHistory({
+      id: candidates[0],
+      nome: row.nome_completo || 'Sem nome'
+    });
+    
+    const history = await loadClientExportHistory(candidates);
+    
+    if (!history || history.length === 0) {
+      alert('Nenhum histórico encontrado de exportação.');
+      return;
+    }
+    
+    const sprinthubEntries = history.filter(isSprinthubHistoryEntry);
+    const exportEntries = history;
+
+    if (onlySprinthub) {
+      if (sprinthubEntries.length === 0) {
+        alert('Nenhum histórico encontrado para SprintHub.');
+        return;
+      }
+      setSprinthubHistory(sprinthubEntries);
+      setShowSprinthubHistoryModal(true);
+    } else {
+      const validExportEntries = Array.isArray(exportEntries) ? exportEntries : [];
+      setClientExportHistory(validExportEntries);
+      setShowExportHistoryModal(true);
+    }
+  };
+
   const renderExportStatusIcon = (row) => {
-    const leadId = row.id || row.id_lead || row.id_cliente;
-    if (!leadId) return null;
+    const candidateIds = getLeadIdentifierCandidates(row);
+    if (candidateIds.length === 0) return null;
     
-    const history = exportHistory[leadId];
-    if (!history || history.length === 0) return null;
+    const historyEntries = candidateIds.flatMap(id => exportHistory[String(id)] || []);
+    if (historyEntries.length === 0) return null;
     
-    const total = history.length;
+    const hasSprinthubExport = candidateIds.some(id => sprinthubExportFlags[String(id)])
+      || historyEntries.some(isSprinthubHistoryEntry);
+    
+    const baseStyle = {
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontWeight: 'bold',
+      lineHeight: '1',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      marginRight: '4px'
+    };
+    
+    const standardIcon = (
+      <span
+        style={{
+          ...baseStyle,
+          fontSize: '10px',
+          color: '#22c55e',
+          padding: '1px 4px',
+          borderRadius: '3px',
+          backgroundColor: '#dcfce7',
+        }}
+        title={`Clique para ver histórico de ${historyEntries.length} exportação(ões)`}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleExportIconClick(row, false);
+        }}
+      >
+        EX
+      </span>
+    );
+    
+    const sprinthubIcon = (
+      <span
+        style={{
+          ...baseStyle,
+          width: '20px',
+          height: '20px',
+          borderRadius: '50%',
+          backgroundColor: '#7c3aed',
+          color: '#fff',
+          fontSize: '11px',
+          boxShadow: '0 0 6px rgba(124, 58, 237, 0.6)',
+        }}
+        title={`Enviado ao SprintHub (${historyEntries.length} registro(s)). Clique para ver o histórico.`}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleExportIconClick(row, true);
+        }}
+      >
+        S
+      </span>
+    );
     
     return (
-      <span 
-        className="cc-export-icon" 
-        onClick={() => {
-          setSelectedHistoryLead({ leadId, history, row });
-          setShowHistoryModal(true);
-        }}
-        style={{ cursor: 'pointer', fontSize: '16px' }}
-      >
-        ✅
-      </span>
+      <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+        {standardIcon}
+        {hasSprinthubExport && sprinthubIcon}
+      </div>
     );
   };
 
@@ -2256,14 +2753,44 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       .from('vw_monitoramento_1_29_dias')
       .select('*', { count: 'exact' });
     query = applyFiltersToQuery(query);
+    
+    // Aplicar filtros SprintHub
+    const sprinthubFilterResult = await applySprinthubFiltersToQuery(query);
+    if (sprinthubFilterResult.shouldReturnEmpty) {
+      setMonitoramento129Data([]);
+      setTotalCount(0);
+      return;
+    }
+    query = sprinthubFilterResult.query;
+    
     if (sortField) {
       query = query.order(sortField, { ascending: sortDirection === 'asc' });
     }
     const { data, count } = await query.range(start, end);
-    const filtered = filterClientSideIfNeeded(data || []);
+    let filtered = filterClientSideIfNeeded(data || []);
+    
+    // Aplicar filtro "not-sent" no cliente se necessário
+    if (sprinthubStatusFilter === 'not-sent' && sprinthubFilterResult.sprinthubSentIds) {
+      const sentIdsSet = new Set(sprinthubFilterResult.sprinthubSentIds.map(id => String(id)));
+      filtered = filtered.filter(row => {
+        const rowId = String(row.id || row.id_cliente || row.id_cliente_mestre);
+        return !sentIdsSet.has(rowId);
+      });
+    }
+    
     const sorted = sortByExportedThenName(filtered);
     setMonitoramento129Data(sorted);
     setTotalCount(count || 0);
+    
+    // Carregar histórico de exportações para exibir ícones
+    const leadIds = sorted.map(row => {
+      const candidates = getLeadIdentifierCandidates(row);
+      return candidates.length > 0 ? candidates[0] : null;
+    }).filter(Boolean);
+    if (leadIds.length > 0) {
+      const history = await loadExportHistory(leadIds);
+      setExportHistory(prev => ({ ...prev, ...history }));
+    }
   };
 
   const loadMonitoramento3059 = async () => {
@@ -2274,14 +2801,44 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       .from('vw_monitoramento_30_59_dias')
       .select('*', { count: 'exact' });
     query = applyFiltersToQuery(query);
+    
+    // Aplicar filtros SprintHub
+    const sprinthubFilterResult = await applySprinthubFiltersToQuery(query);
+    if (sprinthubFilterResult.shouldReturnEmpty) {
+      setMonitoramento3059Data([]);
+      setTotalCount(0);
+      return;
+    }
+    query = sprinthubFilterResult.query;
+    
     if (sortField) {
       query = query.order(sortField, { ascending: sortDirection === 'asc' });
     }
     const { data, count } = await query.range(start, end);
-    const filtered = filterClientSideIfNeeded(data || []);
+    let filtered = filterClientSideIfNeeded(data || []);
+    
+    // Aplicar filtro "not-sent" no cliente se necessário
+    if (sprinthubStatusFilter === 'not-sent' && sprinthubFilterResult.sprinthubSentIds) {
+      const sentIdsSet = new Set(sprinthubFilterResult.sprinthubSentIds.map(id => String(id)));
+      filtered = filtered.filter(row => {
+        const rowId = String(row.id || row.id_cliente || row.id_cliente_mestre);
+        return !sentIdsSet.has(rowId);
+      });
+    }
+    
     const sorted = sortByExportedThenName(filtered);
     setMonitoramento3059Data(sorted);
     setTotalCount(count || 0);
+    
+    // Carregar histórico de exportações para exibir ícones
+    const leadIds = sorted.map(row => {
+      const candidates = getLeadIdentifierCandidates(row);
+      return candidates.length > 0 ? candidates[0] : null;
+    }).filter(Boolean);
+    if (leadIds.length > 0) {
+      const history = await loadExportHistory(leadIds);
+      setExportHistory(prev => ({ ...prev, ...history }));
+    }
   };
 
   const loadMonitoramento6090 = async () => {
@@ -2292,14 +2849,236 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       .from('vw_monitoramento_60_90_dias')
       .select('*', { count: 'exact' });
     query = applyFiltersToQuery(query);
+    
+    // Aplicar filtros SprintHub
+    const sprinthubFilterResult = await applySprinthubFiltersToQuery(query);
+    if (sprinthubFilterResult.shouldReturnEmpty) {
+      setMonitoramento6090Data([]);
+      setTotalCount(0);
+      return;
+    }
+    query = sprinthubFilterResult.query;
+    
     if (sortField) {
       query = query.order(sortField, { ascending: sortDirection === 'asc' });
     }
     const { data, count } = await query.range(start, end);
-    const filtered = filterClientSideIfNeeded(data || []);
+    let filtered = filterClientSideIfNeeded(data || []);
+    
+    // Aplicar filtro "not-sent" no cliente se necessário
+    if (sprinthubStatusFilter === 'not-sent' && sprinthubFilterResult.sprinthubSentIds) {
+      const sentIdsSet = new Set(sprinthubFilterResult.sprinthubSentIds.map(id => String(id)));
+      filtered = filtered.filter(row => {
+        const rowId = String(row.id || row.id_cliente || row.id_cliente_mestre);
+        return !sentIdsSet.has(rowId);
+      });
+    }
+    
     const sorted = sortByExportedThenName(filtered);
     setMonitoramento6090Data(sorted);
     setTotalCount(count || 0);
+    
+    // Carregar histórico de exportações para exibir ícones
+    const leadIds = sorted.map(row => {
+      const candidates = getLeadIdentifierCandidates(row);
+      return candidates.length > 0 ? candidates[0] : null;
+    }).filter(Boolean);
+    if (leadIds.length > 0) {
+      const history = await loadExportHistory(leadIds);
+      setExportHistory(prev => ({ ...prev, ...history }));
+    }
+  };
+
+  const loadMonitoramentoD45 = async () => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage - 1;
+    let query = supabase
+      .schema('api')
+      .from('vw_monitoramento_d45')
+      .select('*', { count: 'exact' });
+    query = applyFiltersToQuery(query);
+    
+    // Aplicar filtros SprintHub
+    const sprinthubFilterResult = await applySprinthubFiltersToQuery(query);
+    if (sprinthubFilterResult.shouldReturnEmpty) {
+      setMonitoramentoD45Data([]);
+      setTotalCount(0);
+      return;
+    }
+    query = sprinthubFilterResult.query;
+    
+    if (sortField) {
+      query = query.order(sortField, { ascending: sortDirection === 'asc' });
+    }
+    const { data, count } = await query.range(start, end);
+    let filtered = filterClientSideIfNeeded(data || []);
+    
+    // Aplicar filtro "not-sent" no cliente se necessário
+    if (sprinthubStatusFilter === 'not-sent' && sprinthubFilterResult.sprinthubSentIds) {
+      const sentIdsSet = new Set(sprinthubFilterResult.sprinthubSentIds.map(id => String(id)));
+      filtered = filtered.filter(row => {
+        const rowId = String(row.id || row.id_cliente || row.id_cliente_mestre);
+        return !sentIdsSet.has(rowId);
+      });
+    }
+    
+    const sorted = sortByExportedThenName(filtered);
+    setMonitoramentoD45Data(sorted);
+    setTotalCount(count || 0);
+    
+    // Carregar histórico de exportações para exibir ícones
+    const leadIds = sorted.map(row => {
+      const candidates = getLeadIdentifierCandidates(row);
+      return candidates.length > 0 ? candidates[0] : null;
+    }).filter(Boolean);
+    if (leadIds.length > 0) {
+      const history = await loadExportHistory(leadIds);
+      setExportHistory(prev => ({ ...prev, ...history }));
+    }
+  };
+
+  const loadMonitoramentoD60 = async () => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage - 1;
+    let query = supabase
+      .schema('api')
+      .from('vw_monitoramento_d60')
+      .select('*', { count: 'exact' });
+    query = applyFiltersToQuery(query);
+    
+    // Aplicar filtros SprintHub
+    const sprinthubFilterResult = await applySprinthubFiltersToQuery(query);
+    if (sprinthubFilterResult.shouldReturnEmpty) {
+      setMonitoramentoD60Data([]);
+      setTotalCount(0);
+      return;
+    }
+    query = sprinthubFilterResult.query;
+    
+    if (sortField) {
+      query = query.order(sortField, { ascending: sortDirection === 'asc' });
+    }
+    const { data, count } = await query.range(start, end);
+    let filtered = filterClientSideIfNeeded(data || []);
+    
+    // Aplicar filtro "not-sent" no cliente se necessário
+    if (sprinthubStatusFilter === 'not-sent' && sprinthubFilterResult.sprinthubSentIds) {
+      const sentIdsSet = new Set(sprinthubFilterResult.sprinthubSentIds.map(id => String(id)));
+      filtered = filtered.filter(row => {
+        const rowId = String(row.id || row.id_cliente || row.id_cliente_mestre);
+        return !sentIdsSet.has(rowId);
+      });
+    }
+    
+    const sorted = sortByExportedThenName(filtered);
+    setMonitoramentoD60Data(sorted);
+    setTotalCount(count || 0);
+    
+    // Carregar histórico de exportações para exibir ícones
+    const leadIds = sorted.map(row => {
+      const candidates = getLeadIdentifierCandidates(row);
+      return candidates.length > 0 ? candidates[0] : null;
+    }).filter(Boolean);
+    if (leadIds.length > 0) {
+      const history = await loadExportHistory(leadIds);
+      setExportHistory(prev => ({ ...prev, ...history }));
+    }
+  };
+
+  const loadMonitoramentoD75 = async () => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage - 1;
+    let query = supabase
+      .schema('api')
+      .from('vw_monitoramento_d75')
+      .select('*', { count: 'exact' });
+    query = applyFiltersToQuery(query);
+    
+    // Aplicar filtros SprintHub
+    const sprinthubFilterResult = await applySprinthubFiltersToQuery(query);
+    if (sprinthubFilterResult.shouldReturnEmpty) {
+      setMonitoramentoD75Data([]);
+      setTotalCount(0);
+      return;
+    }
+    query = sprinthubFilterResult.query;
+    
+    if (sortField) {
+      query = query.order(sortField, { ascending: sortDirection === 'asc' });
+    }
+    const { data, count } = await query.range(start, end);
+    let filtered = filterClientSideIfNeeded(data || []);
+    
+    // Aplicar filtro "not-sent" no cliente se necessário
+    if (sprinthubStatusFilter === 'not-sent' && sprinthubFilterResult.sprinthubSentIds) {
+      const sentIdsSet = new Set(sprinthubFilterResult.sprinthubSentIds.map(id => String(id)));
+      filtered = filtered.filter(row => {
+        const rowId = String(row.id || row.id_cliente || row.id_cliente_mestre);
+        return !sentIdsSet.has(rowId);
+      });
+    }
+    
+    const sorted = sortByExportedThenName(filtered);
+    setMonitoramentoD75Data(sorted);
+    setTotalCount(count || 0);
+    
+    // Carregar histórico de exportações para exibir ícones
+    const leadIds = sorted.map(row => {
+      const candidates = getLeadIdentifierCandidates(row);
+      return candidates.length > 0 ? candidates[0] : null;
+    }).filter(Boolean);
+    if (leadIds.length > 0) {
+      const history = await loadExportHistory(leadIds);
+      setExportHistory(prev => ({ ...prev, ...history }));
+    }
+  };
+
+  const loadMonitoramentoD90 = async () => {
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage - 1;
+    let query = supabase
+      .schema('api')
+      .from('vw_monitoramento_d90')
+      .select('*', { count: 'exact' });
+    query = applyFiltersToQuery(query);
+    
+    // Aplicar filtros SprintHub
+    const sprinthubFilterResult = await applySprinthubFiltersToQuery(query);
+    if (sprinthubFilterResult.shouldReturnEmpty) {
+      setMonitoramentoD90Data([]);
+      setTotalCount(0);
+      return;
+    }
+    query = sprinthubFilterResult.query;
+    
+    if (sortField) {
+      query = query.order(sortField, { ascending: sortDirection === 'asc' });
+    }
+    const { data, count } = await query.range(start, end);
+    let filtered = filterClientSideIfNeeded(data || []);
+    
+    // Aplicar filtro "not-sent" no cliente se necessário
+    if (sprinthubStatusFilter === 'not-sent' && sprinthubFilterResult.sprinthubSentIds) {
+      const sentIdsSet = new Set(sprinthubFilterResult.sprinthubSentIds.map(id => String(id)));
+      filtered = filtered.filter(row => {
+        const rowId = String(row.id || row.id_cliente || row.id_cliente_mestre);
+        return !sentIdsSet.has(rowId);
+      });
+    }
+    
+    const sorted = sortByExportedThenName(filtered);
+    setMonitoramentoD90Data(sorted);
+    setTotalCount(count || 0);
+    
+    // Carregar histórico de exportações para exibir ícones
+    const leadIds = sorted.map(row => {
+      const candidates = getLeadIdentifierCandidates(row);
+      return candidates.length > 0 ? candidates[0] : null;
+    }).filter(Boolean);
+    if (leadIds.length > 0) {
+      const history = await loadExportHistory(leadIds);
+      setExportHistory(prev => ({ ...prev, ...history }));
+    }
   };
 
   // ===== FUNÇÕES AUXILIARES =====
@@ -2339,6 +3118,27 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
   };
 
   // ===== HISTÓRICO DE EXPORTAÇÃO =====
+  // Carregar tags de exportação disponíveis (incluindo tags de leads SprintHub)
+  const loadAvailableExportTags = async () => {
+    try {
+      const { data } = await supabase
+        .schema('api')
+        .from('historico_exportacoes')
+        .select('tag_exportacao')
+        .not('tag_exportacao', 'is', null);
+      
+      const uniqueTags = [...new Set(data?.map(d => d.tag_exportacao).filter(Boolean) || [])];
+      
+      // Extrair tags de leads do SprintHub
+      const sprinthubLeadTags = uniqueTags
+        .map(extractSprinthubLeadTag)
+        .filter(tag => tag && tag !== 'default');
+      setAvailableSprinthubLeadTags([...new Set(sprinthubLeadTags)].sort());
+    } catch (error) {
+      console.error('Erro ao carregar tags de exportação:', error);
+    }
+  };
+
   const loadExportHistory = async (leadIds) => {
     console.log('🔍 [LOAD_EXPORT_HISTORY] Iniciando carregamento de histórico...');
     console.log('🔍 [LOAD_EXPORT_HISTORY] Lead IDs:', leadIds?.length || 0);
@@ -2380,12 +3180,29 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       }
       
       const history = {};
+      const sprinthubIds = new Set();
+      
       leadIds.forEach(id => {
         const exports = data.filter(e => e.id_lead === id);
+        // Verificar se há histórico do SprintHub
+        if (exports.some(exp => isSprinthubHistoryEntry(exp))) {
+          sprinthubIds.add(String(id));
+        }
         if (exports.length > 0) {
           history[id] = exports;
         }
       });
+      
+      // Atualizar flags do SprintHub
+      if (sprinthubIds.size > 0) {
+        setSprinthubExportFlags(prev => {
+          const updates = { ...prev };
+          sprinthubIds.forEach(id => {
+            updates[String(id)] = true;
+          });
+          return updates;
+        });
+      }
       
       console.log('✅ [LOAD_EXPORT_HISTORY] Histórico processado:', Object.keys(history).length, 'leads com histórico');
       return history;
@@ -2397,12 +3214,13 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     }
   };
 
-  const registerExport = async (leadIds, motivo, observacao) => {
+  const registerExport = async (leadIds, motivo, observacao, tag) => {
     console.log('🔍 [REGISTER_EXPORT] Iniciando registro de exportação...');
     console.log('🔍 [REGISTER_EXPORT] Parâmetros:', { 
       leadIds: leadIds?.length || 0, 
       motivo, 
       observacao,
+      tag,
       user: user ? { id: user.id, email: user.email } : null
     });
     
@@ -2421,7 +3239,8 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         const record = {
         id_lead,
         motivo,
-          observacao: observacao?.trim() || null
+          observacao: observacao?.trim() || null,
+          tag_exportacao: tag?.trim() || null
         };
         // Só adiciona usuario_id se existir (corresponde ao id da tabela api.users)
         if (userId) {
@@ -2602,6 +3421,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       case 'monitoramento-1-29': data = monitoramento129Data; break;
       case 'monitoramento-30-59': data = monitoramento3059Data; break;
       case 'monitoramento-60-90': data = monitoramento6090Data; break;
+      case 'monitoramento-d45': data = monitoramentoD45Data; break;
+      case 'monitoramento-d60': data = monitoramentoD60Data; break;
+      case 'monitoramento-d75': data = monitoramentoD75Data; break;
+      case 'monitoramento-d90': data = monitoramentoD90Data; break;
       default: data = []; break;
     }
     const selected = getSelectedRowsFrom(data);
@@ -2627,6 +3450,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       case 'monitoramento-1-29': data = monitoramento129Data; break;
       case 'monitoramento-30-59': data = monitoramento3059Data; break;
       case 'monitoramento-60-90': data = monitoramento6090Data; break;
+      case 'monitoramento-d45': data = monitoramentoD45Data; break;
+      case 'monitoramento-d60': data = monitoramentoD60Data; break;
+      case 'monitoramento-d75': data = monitoramentoD75Data; break;
+      case 'monitoramento-d90': data = monitoramentoD90Data; break;
       default: data = []; break;
     }
     const selected = getSelectedRowsFrom(data);
@@ -2657,6 +3484,576 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       alert('Erro ao exportar.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // ===== FUNÇÕES AUXILIARES PARA SPRINTHUB =====
+  
+  /**
+   * Normaliza telefone e gera variações (com e sem o 9)
+   * Retorna array com todas as variações possíveis do telefone (apenas dígitos)
+   */
+  const normalizePhoneVariations = (phone) => {
+    if (!phone) return [];
+    
+    // Remove todos os caracteres não numéricos
+    const digits = String(phone).replace(/\D/g, '');
+    if (!digits) return [];
+    
+    // Remove código do país se presente (55)
+    let localDigits = digits;
+    if (digits.startsWith('55') && digits.length > 10) {
+      localDigits = digits.substring(2);
+    }
+    
+    const variations = [];
+    
+    // Se tem 11 dígitos (com 9), adiciona variação sem o 9
+    if (localDigits.length === 11) {
+      // Formato: DDD + 9 + número (ex: 11987654321)
+      const ddd = localDigits.substring(0, 2);
+      const terceiroDigito = localDigits[2];
+      if (terceiroDigito === '9') {
+        const numero = localDigits.substring(3); // Remove o 9
+        variations.push(localDigits); // Com 9: 11987654321
+        variations.push(`${ddd}${numero}`); // Sem 9: 1187654321
+      } else {
+        // 11 dígitos mas não tem 9 na posição esperada, apenas adiciona como está
+        variations.push(localDigits);
+      }
+    }
+    // Se tem 10 dígitos (sem 9), adiciona variação com o 9
+    else if (localDigits.length === 10) {
+      // Formato: DDD + número (ex: 1187654321)
+      const ddd = localDigits.substring(0, 2);
+      const numero = localDigits.substring(2);
+      variations.push(localDigits); // Sem 9: 1187654321
+      variations.push(`${ddd}9${numero}`); // Com 9: 11987654321
+    }
+    // Outros formatos, apenas adiciona como está
+    else {
+      variations.push(localDigits);
+    }
+    
+    // Remove duplicatas
+    return [...new Set(variations)];
+  };
+
+  /**
+   * Verifica se o lead já tem oportunidade aberta em qualquer um dos funis especificados
+   * Retorna true se deve criar oportunidade (não tem duplicata), false se já existe (tem duplicata)
+   * Objetivo: evitar criar múltiplas oportunidades abertas para o mesmo lead em diferentes funis
+   */
+  const shouldCreateOpportunity = async (row) => {
+    // Funis que devem ser verificados para evitar duplicatas
+    const funisParaVerificar = [6, 14, 38, 34, 41, 32, 33, 35];
+    
+    try {
+      // Obter telefones do registro
+      const whatsapp = row.whatsapp || row.telefone || '';
+      const telefone = row.telefone || row.whatsapp || '';
+      
+      if (!whatsapp && !telefone) {
+        // Sem telefone, permite criar (não consegue verificar)
+        console.warn('[ClientesConsolidados] Sem telefone para verificar oportunidades:', row.nome_completo || 'Cliente');
+        return true;
+      }
+      
+      // Gerar variações dos telefones
+      const whatsappVariations = normalizePhoneVariations(whatsapp);
+      const telefoneVariations = normalizePhoneVariations(telefone);
+      const allVariations = [...new Set([...whatsappVariations, ...telefoneVariations])];
+      
+      if (allVariations.length === 0) {
+        console.warn('[ClientesConsolidados] Nenhuma variação válida de telefone encontrada:', row.nome_completo || 'Cliente');
+        return true;
+      }
+      
+      // Buscar lead pelo telefone (tentar todas as variações)
+      let foundLead = null;
+      for (const phoneVariation of allVariations) {
+        try {
+          // findLeadByPhone já faz a sanitização internamente, então passamos apenas os dígitos
+          foundLead = await sprinthubService.findLeadByPhone(phoneVariation, phoneVariation);
+          if (foundLead && foundLead.id) {
+            break; // Encontrou, para de buscar
+          }
+        } catch (error) {
+          console.warn('[ClientesConsolidados] Erro ao buscar lead por telefone:', phoneVariation, error);
+          continue;
+        }
+      }
+      
+      // Se não encontrou o lead, pode criar
+      if (!foundLead || !foundLead.id) {
+        return true;
+      }
+      
+      // Buscar oportunidades abertas do lead
+      const opportunities = await sprinthubService.listLeadOpportunities(foundLead.id);
+      if (!Array.isArray(opportunities) || opportunities.length === 0) {
+        return true; // Sem oportunidades, pode criar
+      }
+      
+      // Filtrar apenas oportunidades abertas
+      const openOpportunities = opportunities.filter(opp => opp && opp.status === 'open');
+      if (openOpportunities.length === 0) {
+        return true; // Sem oportunidades abertas, pode criar
+      }
+      
+      // Verificar se alguma oportunidade está em qualquer um dos funis especificados
+      const hasExistingOpportunity = openOpportunities.some(opp => {
+        const funnelId = opp.funnel_id || opp.funnelId;
+        return funnelId && funisParaVerificar.includes(Number(funnelId));
+      });
+      
+      if (hasExistingOpportunity) {
+        const existingFunnels = openOpportunities
+          .filter(opp => {
+            const funnelId = opp.funnel_id || opp.funnelId;
+            return funnelId && funisParaVerificar.includes(Number(funnelId));
+          })
+          .map(opp => opp.funnel_id || opp.funnelId)
+          .join(', ');
+        console.log(`[ClientesConsolidados] Lead ${foundLead.id} (${row.nome_completo || 'Cliente'}) já tem oportunidade aberta no(s) funil(is): ${existingFunnels}. Não criando nova oportunidade para evitar duplicata.`);
+        return false; // Já tem oportunidade aberta, não criar para evitar duplicata
+      }
+      
+      return true; // Não tem oportunidade em funil bloqueado, pode criar
+    } catch (error) {
+      console.error('[ClientesConsolidados] Erro ao verificar oportunidades existentes:', error);
+      // Em caso de erro, permite criar (melhor criar duplicada do que não criar)
+      return true;
+    }
+  };
+
+  const chunkArray = (array, size) => {
+    if (!Array.isArray(array) || size <= 0) return [array];
+    const chunks = [];
+    for (let i = 0; i < array.length; i += size) {
+      chunks.push(array.slice(i, i + size));
+    }
+    return chunks;
+  };
+
+  const toNumberOrUndefined = (value) => {
+    if (value === null || value === undefined || value === '') return undefined;
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) return undefined;
+    return parsed;
+  };
+
+  const getLeadIdentifierCandidates = (row) => {
+    if (!row) return [];
+    const ids = [];
+    const pushId = (value) => {
+      if (value === undefined || value === null) return;
+      const str = String(value).trim();
+      if (!str) return;
+      ids.push(str);
+    };
+    
+    pushId(row.id);
+    pushId(row.id_cliente_mestre);
+    pushId(row.id_cliente);
+    pushId(row.id_prime);
+    pushId(row.prime_id);
+    pushId(row.id_lead);
+    pushId(row.lead_id);
+    pushId(row.id_sprinthub);
+    pushId(row.id_sprint);
+    
+    return [...new Set(ids)];
+  };
+
+  const getLeadIdentifier = (row) => {
+    if (!row) return null;
+    const candidates = getLeadIdentifierCandidates(row);
+    return candidates.length > 0 ? candidates[0] : null;
+  };
+
+  const fetchPedidosDataForRows = async (rows) => {
+    if (!rows || rows.length === 0) return {};
+    const clientIdsRaw = rows
+      .map(r => r.id_prime || r.prime_id || r.id_cliente || r.id_cliente_mestre || null)
+      .filter(Boolean);
+    
+    if (clientIdsRaw.length === 0) return {};
+    
+    const uniqueClientIds = Array.from(new Set(clientIdsRaw.map(id => {
+      if (typeof id === 'number') return id;
+      const parsed = Number(id);
+      return Number.isNaN(parsed) ? id : parsed;
+    })));
+    
+    const pedidosData = {};
+    
+    try {
+      const { data: allPedidos, error: pedidosError } = await supabase
+        .schema('api')
+        .from('prime_pedidos')
+        .select('id, cliente_id, valor_total, data_criacao, data_aprovacao, data_entrega, status_aprovacao, status_geral, status_entrega, codigo_orcamento_original')
+        .in('cliente_id', uniqueClientIds)
+        .order('data_criacao', { ascending: false });
+      
+      if (pedidosError) {
+        console.error('Erro ao carregar pedidos para SprintHub:', pedidosError);
+        return pedidosData;
+      }
+      
+      const pedidosIds = (allPedidos || []).map(p => p.id).filter(Boolean);
+      let formulasPorPedido = {};
+      
+      if (pedidosIds.length > 0) {
+        const { data: allFormulas, error: formulasError } = await supabase
+          .schema('api')
+          .from('prime_formulas')
+          .select('id, pedido_id, numero_formula, descricao, posologia, valor_formula')
+          .in('pedido_id', pedidosIds)
+          .order('numero_formula', { ascending: true });
+        
+        if (!formulasError && allFormulas) {
+          formulasPorPedido = allFormulas.reduce((acc, formula) => {
+            if (!acc[formula.pedido_id]) {
+              acc[formula.pedido_id] = [];
+            }
+            acc[formula.pedido_id].push(formula);
+            return acc;
+          }, {});
+        }
+      }
+      
+      uniqueClientIds.forEach(clienteId => {
+        const pedidosCliente = (allPedidos || []).filter(p => String(p.cliente_id) === String(clienteId));
+        
+        const ultimoPedido = pedidosCliente.find(p =>
+          p.status_aprovacao === 'APROVADO' ||
+          p.status_geral === 'APROVADO' ||
+          p.status_entrega === 'ENTREGUE'
+        );
+        
+        const ultimoOrcamento = pedidosCliente.find(p =>
+          p.status_aprovacao !== 'APROVADO' &&
+          p.status_geral !== 'APROVADO' &&
+          p.status_entrega !== 'ENTREGUE'
+        );
+        
+        if (ultimoPedido && formulasPorPedido[ultimoPedido.id]) {
+          ultimoPedido.formulas = formulasPorPedido[ultimoPedido.id];
+        }
+        if (ultimoOrcamento && formulasPorPedido[ultimoOrcamento.id]) {
+          ultimoOrcamento.formulas = formulasPorPedido[ultimoOrcamento.id];
+        }
+        
+        const referencia = ultimoPedido || ultimoOrcamento || pedidosCliente?.[0] || null;
+        
+        pedidosData[clienteId] = {
+          ultimoPedido,
+          ultimoOrcamento,
+          referencia
+        };
+      });
+    } catch (error) {
+      console.error('Erro ao buscar dados de pedidos para SprintHub:', error);
+    }
+    
+    return pedidosData;
+  };
+
+  const normalizeTagKey = (value) => {
+    if (!value) return '';
+    return String(value)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+  };
+
+  const resolveTagsForRow = (row) => {
+    if (!row) return [];
+    const tags = [];
+
+    const addTagIfExists = (value) => {
+      const key = normalizeTagKey(value);
+      if (!key) return;
+      const found = sprinthubAvailableTags.find(t => normalizeTagKey(t?.tag || t?.name) === key);
+      if (found && !tags.includes(found.id)) {
+        tags.push(found.id);
+      }
+    };
+
+    if (row.origens) {
+      if (Array.isArray(row.origens)) {
+        row.origens.forEach(addTagIfExists);
+      } else if (typeof row.origens === 'string') {
+        row.origens
+          .split(/[,;|]/)
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .forEach(addTagIfExists);
+      }
+    }
+
+    if (row.tags && Array.isArray(row.tags)) {
+      row.tags.forEach(addTagIfExists);
+    }
+
+    return tags;
+  };
+
+  // ===== FUNÇÕES DE ENVIO PARA SPRINTHUB =====
+  const handleSprinthubSend = () => {
+    if (selectedRows.length === 0) {
+      alert('Nenhum registro selecionado.');
+      return;
+    }
+    setSprinthubResults([]);
+    setSprinthubError(null);
+    setShowSprinthubModal(true);
+  };
+
+  const closeSprinthubModal = () => {
+    if (isSendingToSprinthub) return;
+    setShowSprinthubModal(false);
+    setSprinthubResults([]);
+    setSprinthubError(null);
+  };
+
+  const handleSprinthubConfirm = async () => {
+    let data = [];
+    switch (activeTab) {
+      case 'monitoramento-1-29': data = monitoramento129Data; break;
+      case 'monitoramento-30-59': data = monitoramento3059Data; break;
+      case 'monitoramento-60-90': data = monitoramento6090Data; break;
+      case 'monitoramento-d45': data = monitoramentoD45Data; break;
+      case 'monitoramento-d60': data = monitoramentoD60Data; break;
+      case 'monitoramento-d75': data = monitoramentoD75Data; break;
+      case 'monitoramento-d90': data = monitoramentoD90Data; break;
+      default: data = []; break;
+    }
+    
+    const selected = selectedRows.map(i => data[i]).filter(Boolean);
+    if (selected.length === 0) {
+      setSprinthubError('Nenhum registro válido selecionado.');
+      return;
+    }
+
+    const funnelIdValue = sprinthubFunnelId?.trim();
+    if (!funnelIdValue) {
+      setSprinthubError('Por favor, preencha o campo "Funil (ID)" no modal.');
+      return;
+    }
+
+    const batchSizeValue = Math.max(1, parseInt(sprinthubBatchSize, 10) || 50);
+    const batches = chunkArray(selected, batchSizeValue);
+
+    setIsSendingToSprinthub(true);
+    setSprinthubError(null);
+    setSprinthubProgress({
+      totalLeads: selected.length,
+      processed: 0,
+      currentBatch: 0,
+      totalBatches: batches.length,
+      batchSize: batchSizeValue,
+      batchProcessed: 0,
+      currentLeadName: ''
+    });
+
+    try {
+      const pedidosData = await fetchPedidosDataForRows(selected);
+      const normalizedOrders = sprinthubService.normalizeOrdersFromPrime(pedidosData);
+      const allResults = [];
+      let processedCount = 0;
+
+      const resumoConfiguracaoBase = [
+        `Funil: ${sprinthubFunnelId || SPRINTHUB_CONFIG.defaultFunnelId || '-'}`,
+        `Coluna: ${sprinthubEtapa || SPRINTHUB_CONFIG.defaultColumnId || '-'}`,
+        `Sequência: ${sprinthubSequence || SPRINTHUB_CONFIG.defaultSequenceId || '0'}`,
+        `Vendedor: ${sprinthubVendedor || SPRINTHUB_CONFIG.defaultUserId || '-'}`,
+        `Prefixo: ${sprinthubTituloPrefix || '-'}`,
+        `Origem: ${sprinthubOrigemOportunidade || '-'}`,
+        `Tipo de Compra: ${sprinthubTipoCompra || '-'}`
+      ].join(' | ');
+
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batchRows = batches[batchIndex];
+        const batchResults = [];
+        const batchLeadIds = [];
+
+        setSprinthubProgress(prev => prev ? { ...prev, currentBatch: batchIndex + 1, batchProcessed: 0 } : prev);
+
+        for (const row of batchRows) {
+          const clientId = row.id_prime || row.prime_id || row.id_cliente || row.id_cliente_mestre || null;
+          const leadPayload = sprinthubService.normalizeLeadFromRow(row);
+          const tagsForLead = resolveTagsForRow(row);
+          const ordersForLead = normalizedOrders.filter(order => String(order.leadPrimeId) === String(clientId));
+          const leadName = row.nome_completo || row.nome || 'Cliente';
+
+          setSprinthubProgress(prev => prev ? { ...prev, currentLeadName: leadName } : prev);
+
+          let referencia = null;
+          if (clientId && pedidosData[clientId]) {
+            referencia = pedidosData[clientId].ultimoPedido || pedidosData[clientId].ultimoOrcamento || pedidosData[clientId].referencia || null;
+          }
+
+          const ultimoPedidoResumo = clientId && pedidosData[clientId]?.ultimoPedido
+            ? sprinthubService.buildResumoPedido(pedidosData[clientId].ultimoPedido)
+            : '';
+          const ultimoOrcamentoResumo = clientId && pedidosData[clientId]?.ultimoOrcamento
+            ? sprinthubService.buildResumoPedido(pedidosData[clientId].ultimoOrcamento, { isOrcamento: true })
+            : '';
+
+          const ultimoPedidoData = clientId && pedidosData[clientId]?.ultimoPedido?.data_criacao
+            ? pedidosData[clientId].ultimoPedido.data_criacao
+            : null;
+          const ultimoOrcamentoData = clientId && pedidosData[clientId]?.ultimoOrcamento?.data_criacao
+            ? pedidosData[clientId].ultimoOrcamento.data_criacao
+            : null;
+
+          const referenceValueRaw = referencia?.valor_total ?? ordersForLead?.[0]?.valor ?? 0;
+          const referenceValue = Number(referenceValueRaw);
+
+          const funnelIdFromModal = toNumberOrUndefined(sprinthubFunnelId);
+          const funnelIdFinal = funnelIdFromModal ?? SPRINTHUB_CONFIG.defaultFunnelId;
+
+          if (!funnelIdFinal) {
+            throw new Error('Funil (ID) não configurado. Por favor, preencha o campo "Funil (ID)" no modal ou configure VITE_SPRINTHUB_FUNNEL_ID no .env');
+          }
+
+          const valueAsString = Number.isNaN(referenceValue) ? '0' : String(referenceValue);
+          const sequenceValue = toNumberOrUndefined(sprinthubSequence) ?? SPRINTHUB_CONFIG.defaultSequenceId;
+          const sequenceAsString = sequenceValue !== undefined && sequenceValue !== null ? String(sequenceValue) : '0';
+
+          const opportunityPayload = {
+            funnelId: funnelIdFinal,
+            title: `${sprinthubTituloPrefix || 'Monitoramento'} | ${leadPayload.firstname || row.nome_completo || row.nome || ''}`.trim(),
+            value: valueAsString,
+            crm_column: toNumberOrUndefined(sprinthubEtapa) ?? SPRINTHUB_CONFIG.defaultColumnId,
+            sequence: sequenceAsString,
+            status: 'open',
+            user: toNumberOrUndefined(sprinthubVendedor) ?? SPRINTHUB_CONFIG.defaultUserId,
+            fields: {},
+          };
+
+          if (clientId) {
+            opportunityPayload.fields["idprime"] = String(clientId);
+          }
+
+          if (ultimoPedidoData) {
+            try {
+              const dataPedido = ultimoPedidoData instanceof Date ? ultimoPedidoData : new Date(ultimoPedidoData);
+              if (!isNaN(dataPedido.getTime())) {
+                opportunityPayload.fields["ultimopedido"] = dataPedido.toISOString().split('T')[0];
+              }
+            } catch (e) {
+              console.warn('[ClientesConsolidados] Erro ao converter data do pedido:', e);
+            }
+          }
+
+          if (ultimoOrcamentoData) {
+            try {
+              const dataOrcamento = ultimoOrcamentoData instanceof Date ? ultimoOrcamentoData : new Date(ultimoOrcamentoData);
+              if (!isNaN(dataOrcamento.getTime())) {
+                opportunityPayload.fields["ultimoorcamento"] = dataOrcamento.toISOString().split('T')[0];
+              }
+            } catch (e) {
+              console.warn('[ClientesConsolidados] Erro ao converter data do orçamento:', e);
+            }
+          }
+
+          if (ultimoPedidoResumo) {
+            opportunityPayload.fields["Descricao da Formula"] = ultimoPedidoResumo;
+          }
+
+          opportunityPayload.fields["ORIGEM OPORTUNIDADE"] = sprinthubOrigemOportunidade || "Monitoramento";
+          opportunityPayload.fields["Tipo de Compra"] = sprinthubTipoCompra || "recompra monitoramento";
+
+          // Verificar se já existe oportunidade aberta nos funis bloqueados
+          const canCreate = await shouldCreateOpportunity(row);
+          
+          let ensureResult;
+          if (!canCreate) {
+            // Não deve criar oportunidade (já existe em algum dos funis verificados)
+            ensureResult = {
+              lead: null,
+              opportunity: { 
+                id: null, 
+                status: 'skipped',
+                reason: 'Já existe oportunidade aberta em um dos funis verificados (6, 14, 38, 34, 41, 32, 33, 35). Evitando duplicata.'
+              },
+              errors: []
+            };
+            console.log(`[ClientesConsolidados] Pulando criação de oportunidade para ${leadName}: já existe oportunidade aberta em um dos funis verificados (evitando duplicata)`);
+          } else {
+            try {
+              ensureResult = await sprinthubService.ensureLeadAndOpportunity({
+                lead: leadPayload,
+                opportunity: opportunityPayload,
+                tags: tagsForLead,
+                orders: ordersForLead,
+                rowData: row,
+              });
+            } catch (error) {
+              console.error('[ClientesConsolidados] Erro ao enviar lead individual para SprintHub:', error);
+              ensureResult = { errors: [{ message: error?.message || 'Erro ao enviar lead' }] };
+            }
+          }
+
+          const leadIdentifier = getLeadIdentifier(row);
+          batchResults.push({
+            id: leadIdentifier,
+            nome: leadName,
+            ensureResult,
+          });
+          if (leadIdentifier) {
+            batchLeadIds.push(leadIdentifier);
+          }
+
+          processedCount += 1;
+          setSprinthubProgress(prev => prev ? {
+            ...prev,
+            processed: processedCount,
+            batchProcessed: (prev.batchProcessed || 0) + 1,
+          } : prev);
+        }
+
+        allResults.push(...batchResults);
+
+        if (batchLeadIds.length > 0) {
+          const successCountBatch = batchResults.filter(r => r.ensureResult?.lead?.id && !r.ensureResult?.errors?.length).length;
+          const errorCountBatch = batchResults.length - successCountBatch;
+          const observacaoSprintHub = `${resumoConfiguracaoBase} | Lote ${batchIndex + 1}/${batches.length} | Enviados: ${successCountBatch} | Erros: ${errorCountBatch}`;
+          const motivoSprintHub = 'WHATSAPI';
+          const tagHistoricoSprintHub = 'SPRINTHUB';
+
+          try {
+            await registerExport(batchLeadIds, motivoSprintHub, observacaoSprintHub, tagHistoricoSprintHub);
+            // Atualizar flags do SprintHub
+            setSprinthubExportFlags(prev => {
+              const updates = { ...prev };
+              batchLeadIds.forEach(id => {
+                if (id) updates[String(id)] = true;
+              });
+              return updates;
+            });
+            // Recarregar histórico para atualizar a UI
+            const newHistory = await loadExportHistory(batchLeadIds);
+            setExportHistory(prev => ({ ...prev, ...newHistory }));
+          } catch (histError) {
+            console.warn('Erro ao registrar histórico do lote SprintHub:', histError);
+          }
+        }
+      }
+
+      setSprinthubResults(allResults);
+      setSelectedRows([]);
+      loadTabData();
+    } catch (error) {
+      console.error('Erro ao enviar dados para SprintHub:', error);
+      setSprinthubError(error.message || 'Erro ao enviar dados para a SprintHub.');
+    } finally {
+      setIsSendingToSprinthub(false);
+      setSprinthubProgress(null);
     }
   };
 
@@ -2864,7 +4261,11 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
         { key: 'monitoramento-geral', icon: '📊', label: 'Dashboard Monitoramento', description: 'Compraram nos últimos 90 dias' },
         { key: 'monitoramento-1-29', icon: '🟢', label: '1-29 dias', description: 'Compraram há 1-29 dias' },
         { key: 'monitoramento-30-59', icon: '🟡', label: '30-59 dias', description: 'Compraram há 30-59 dias' },
-        { key: 'monitoramento-60-90', icon: '🟠', label: '60-90 dias', description: 'Compraram há 60-90 dias' }
+        { key: 'monitoramento-60-90', icon: '🟠', label: '60-90 dias', description: 'Compraram há 60-90 dias' },
+        { key: 'monitoramento-d45', icon: '🔵', label: 'D45 (31-45 dias)', description: 'Compraram há 31-45 dias' },
+        { key: 'monitoramento-d60', icon: '🟣', label: 'D60 (46-60 dias)', description: 'Compraram há 46-60 dias' },
+        { key: 'monitoramento-d75', icon: '🟤', label: 'D75 (61-75 dias)', description: 'Compraram há 61-75 dias' },
+        { key: 'monitoramento-d90', icon: '⚫', label: 'D90 (76-90 dias)', description: 'Compraram há 76-90 dias' }
       ]
     },
     {
@@ -5000,6 +6401,24 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
             <option value="json">JSON</option>
             <option value="pdf">PDF</option>
           </select>
+          <button
+            className="cc-btn cc-btn-primary"
+            onClick={handleSprinthubSend}
+            disabled={isLoading || selectedRows.length === 0 || isSendingToSprinthub}
+            title="Enviar para SprintHub"
+          >
+            🚀 Enviar SprintHub
+          </button>
+          <button
+            className="cc-btn cc-btn-small"
+            onClick={async () => {
+              setShowAutoSyncConfig(true);
+            }}
+            style={{ backgroundColor: '#7c3aed', color: 'white' }}
+            title="Configurar envio automático"
+          >
+            ⚙️ Config. Automático
+          </button>
           <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('monitoramento_1_29')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
           <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('monitoramento_1_29', 'vw_monitoramento_1_29_dias')} disabled={isLoading}>Exportar Tudo (CSV)</button>
       </div>
@@ -5087,6 +6506,24 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
             <option value="json">JSON</option>
             <option value="pdf">PDF</option>
           </select>
+          <button
+            className="cc-btn cc-btn-primary"
+            onClick={handleSprinthubSend}
+            disabled={isLoading || selectedRows.length === 0 || isSendingToSprinthub}
+            title="Enviar para SprintHub"
+          >
+            🚀 Enviar SprintHub
+          </button>
+          <button
+            className="cc-btn cc-btn-small"
+            onClick={async () => {
+              setShowAutoSyncConfig(true);
+            }}
+            style={{ backgroundColor: '#7c3aed', color: 'white' }}
+            title="Configurar envio automático"
+          >
+            ⚙️ Config. Automático
+          </button>
           <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('monitoramento_30_59')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
           <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('monitoramento_30_59', 'vw_monitoramento_30_59_dias')} disabled={isLoading}>Exportar Tudo (CSV)</button>
       </div>
@@ -5174,6 +6611,24 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
             <option value="json">JSON</option>
             <option value="pdf">PDF</option>
           </select>
+          <button
+            className="cc-btn cc-btn-primary"
+            onClick={handleSprinthubSend}
+            disabled={isLoading || selectedRows.length === 0 || isSendingToSprinthub}
+            title="Enviar para SprintHub"
+          >
+            🚀 Enviar SprintHub
+          </button>
+          <button
+            className="cc-btn cc-btn-small"
+            onClick={async () => {
+              setShowAutoSyncConfig(true);
+            }}
+            style={{ backgroundColor: '#7c3aed', color: 'white' }}
+            title="Configurar envio automático"
+          >
+            ⚙️ Config. Automático
+          </button>
           <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('monitoramento_60_90')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
           <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('monitoramento_60_90', 'vw_monitoramento_60_90_dias')} disabled={isLoading}>Exportar Tudo (CSV)</button>
       </div>
@@ -5249,6 +6704,406 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
     </div>
   );
 
+  const renderMonitoramentoD45 = () => (
+    <div className="cc-list-container">
+      <div className="cc-list-header">
+        <h2>🔵 Monitoramento - D45 (31-45 dias)</h2>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <select className="cc-select cc-select-small" value={exportFormat} onChange={(e)=>setExportFormat(e.target.value)}>
+            <option value="csv">CSV</option>
+            <option value="excel">Excel (.xls)</option>
+            <option value="xlsx">XLSX</option>
+            <option value="json">JSON</option>
+            <option value="pdf">PDF</option>
+          </select>
+          <button
+            className="cc-btn cc-btn-primary"
+            onClick={handleSprinthubSend}
+            disabled={isLoading || selectedRows.length === 0 || isSendingToSprinthub}
+            title="Enviar para SprintHub"
+          >
+            🚀 Enviar SprintHub
+          </button>
+          <button
+            className="cc-btn cc-btn-small"
+            onClick={async () => {
+              setShowAutoSyncConfig(true);
+            }}
+            style={{ backgroundColor: '#7c3aed', color: 'white' }}
+            title="Configurar envio automático"
+          >
+            ⚙️ Config. Automático
+          </button>
+          <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('monitoramento_d45')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
+          <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('monitoramento_d45', 'vw_monitoramento_d45')} disabled={isLoading}>Exportar Tudo (CSV)</button>
+      </div>
+      </div>
+      {renderFiltersBar()}
+      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(monitoramentoD45Data)), [
+        { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
+        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {renderNomePorOrigem(row)}
+            {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
+              <button
+                className="cc-btn-corrigir"
+                onClick={() => corrigirTelefoneNoNome(row.id || row.id_cliente_mestre, row.nome_completo)}
+                title="Corrigir telefone no nome"
+              >
+                🔧
+              </button>
+            )}
+          </div>
+        ) },
+        { header: 'Email', field: 'email' },
+        { header: 'WhatsApp', field: 'whatsapp' },
+        { header: 'CPF', field: 'cpf' },
+        { 
+          header: 'Total Compras', 
+          field: 'total_compras',
+          render: (row) => {
+            const totalCompras = row.total_pedidos || row.total_compras || 0;
+            const idPrime = row.id_prime || row.prime_id || row.idprime;
+            const nomeCliente = row.nome_completo || 'Cliente';
+            
+            if (!idPrime) {
+              return <span>{totalCompras}</span>;
+            }
+            
+            return (
+              <span 
+                className="cc-total-compras-clickable"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}`;
+                  window.open(url, '_blank');
+                }}
+                title="Clique para ver histórico completo de compras"
+              >
+                {totalCompras}
+              </span>
+            );
+          }
+        },
+        { 
+          header: 'Dias Última Compra', 
+          field: 'dias_desde_ultima_compra',
+          render: (row) => {
+            const diasUltimaCompra = row.dias_desde_ultima_compra;
+            return <span>{diasUltimaCompra !== null && diasUltimaCompra !== undefined ? diasUltimaCompra : '-'}</span>;
+          }
+        },
+        { header: 'Origens', render: (row) => renderOriginsBadges(row) },
+        { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
+        { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
+        { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
+        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
+            ])}
+      {renderPagination()}
+    </div>
+  );
+
+  const renderMonitoramentoD60 = () => (
+    <div className="cc-list-container">
+      <div className="cc-list-header">
+        <h2>🟣 Monitoramento - D60 (46-60 dias)</h2>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <select className="cc-select cc-select-small" value={exportFormat} onChange={(e)=>setExportFormat(e.target.value)}>
+            <option value="csv">CSV</option>
+            <option value="excel">Excel (.xls)</option>
+            <option value="xlsx">XLSX</option>
+            <option value="json">JSON</option>
+            <option value="pdf">PDF</option>
+          </select>
+          <button
+            className="cc-btn cc-btn-primary"
+            onClick={handleSprinthubSend}
+            disabled={isLoading || selectedRows.length === 0 || isSendingToSprinthub}
+            title="Enviar para SprintHub"
+          >
+            🚀 Enviar SprintHub
+          </button>
+          <button
+            className="cc-btn cc-btn-small"
+            onClick={async () => {
+              setShowAutoSyncConfig(true);
+            }}
+            style={{ backgroundColor: '#7c3aed', color: 'white' }}
+            title="Configurar envio automático"
+          >
+            ⚙️ Config. Automático
+          </button>
+          <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('monitoramento_d60')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
+          <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('monitoramento_d60', 'vw_monitoramento_d60')} disabled={isLoading}>Exportar Tudo (CSV)</button>
+      </div>
+      </div>
+      {renderFiltersBar()}
+      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(monitoramentoD60Data)), [
+        { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
+        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {renderNomePorOrigem(row)}
+            {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
+              <button
+                className="cc-btn-corrigir"
+                onClick={() => corrigirTelefoneNoNome(row.id || row.id_cliente_mestre, row.nome_completo)}
+                title="Corrigir telefone no nome"
+              >
+                🔧
+              </button>
+            )}
+          </div>
+        ) },
+        { header: 'Email', field: 'email' },
+        { header: 'WhatsApp', field: 'whatsapp' },
+        { header: 'CPF', field: 'cpf' },
+        { 
+          header: 'Total Compras', 
+          field: 'total_compras',
+          render: (row) => {
+            const totalCompras = row.total_pedidos || row.total_compras || 0;
+            const idPrime = row.id_prime || row.prime_id || row.idprime;
+            const nomeCliente = row.nome_completo || 'Cliente';
+            
+            if (!idPrime) {
+              return <span>{totalCompras}</span>;
+            }
+            
+            return (
+              <span 
+                className="cc-total-compras-clickable"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}`;
+                  window.open(url, '_blank');
+                }}
+                title="Clique para ver histórico completo de compras"
+              >
+                {totalCompras}
+              </span>
+            );
+          }
+        },
+        { 
+          header: 'Dias Última Compra', 
+          field: 'dias_desde_ultima_compra',
+          render: (row) => {
+            const diasUltimaCompra = row.dias_desde_ultima_compra;
+            return <span>{diasUltimaCompra !== null && diasUltimaCompra !== undefined ? diasUltimaCompra : '-'}</span>;
+          }
+        },
+        { header: 'Origens', render: (row) => renderOriginsBadges(row) },
+        { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
+        { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
+        { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
+        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
+            ])}
+      {renderPagination()}
+    </div>
+  );
+
+  const renderMonitoramentoD75 = () => (
+    <div className="cc-list-container">
+      <div className="cc-list-header">
+        <h2>🟤 Monitoramento - D75 (61-75 dias)</h2>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <select className="cc-select cc-select-small" value={exportFormat} onChange={(e)=>setExportFormat(e.target.value)}>
+            <option value="csv">CSV</option>
+            <option value="excel">Excel (.xls)</option>
+            <option value="xlsx">XLSX</option>
+            <option value="json">JSON</option>
+            <option value="pdf">PDF</option>
+          </select>
+          <button
+            className="cc-btn cc-btn-primary"
+            onClick={handleSprinthubSend}
+            disabled={isLoading || selectedRows.length === 0 || isSendingToSprinthub}
+            title="Enviar para SprintHub"
+          >
+            🚀 Enviar SprintHub
+          </button>
+          <button
+            className="cc-btn cc-btn-small"
+            onClick={async () => {
+              setShowAutoSyncConfig(true);
+            }}
+            style={{ backgroundColor: '#7c3aed', color: 'white' }}
+            title="Configurar envio automático"
+          >
+            ⚙️ Config. Automático
+          </button>
+          <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('monitoramento_d75')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
+          <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('monitoramento_d75', 'vw_monitoramento_d75')} disabled={isLoading}>Exportar Tudo (CSV)</button>
+      </div>
+      </div>
+      {renderFiltersBar()}
+      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(monitoramentoD75Data)), [
+        { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
+        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {renderNomePorOrigem(row)}
+            {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
+              <button
+                className="cc-btn-corrigir"
+                onClick={() => corrigirTelefoneNoNome(row.id || row.id_cliente_mestre, row.nome_completo)}
+                title="Corrigir telefone no nome"
+              >
+                🔧
+              </button>
+            )}
+          </div>
+        ) },
+        { header: 'Email', field: 'email' },
+        { header: 'WhatsApp', field: 'whatsapp' },
+        { header: 'CPF', field: 'cpf' },
+        { 
+          header: 'Total Compras', 
+          field: 'total_compras',
+          render: (row) => {
+            const totalCompras = row.total_pedidos || row.total_compras || 0;
+            const idPrime = row.id_prime || row.prime_id || row.idprime;
+            const nomeCliente = row.nome_completo || 'Cliente';
+            
+            if (!idPrime) {
+              return <span>{totalCompras}</span>;
+            }
+            
+            return (
+              <span 
+                className="cc-total-compras-clickable"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}`;
+                  window.open(url, '_blank');
+                }}
+                title="Clique para ver histórico completo de compras"
+              >
+                {totalCompras}
+              </span>
+            );
+          }
+        },
+        { 
+          header: 'Dias Última Compra', 
+          field: 'dias_desde_ultima_compra',
+          render: (row) => {
+            const diasUltimaCompra = row.dias_desde_ultima_compra;
+            return <span>{diasUltimaCompra !== null && diasUltimaCompra !== undefined ? diasUltimaCompra : '-'}</span>;
+          }
+        },
+        { header: 'Origens', render: (row) => renderOriginsBadges(row) },
+        { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
+        { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
+        { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
+        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
+            ])}
+      {renderPagination()}
+    </div>
+  );
+
+  const renderMonitoramentoD90 = () => (
+    <div className="cc-list-container">
+      <div className="cc-list-header">
+        <h2>⚫ Monitoramento - D90 (76-90 dias)</h2>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <select className="cc-select cc-select-small" value={exportFormat} onChange={(e)=>setExportFormat(e.target.value)}>
+            <option value="csv">CSV</option>
+            <option value="excel">Excel (.xls)</option>
+            <option value="xlsx">XLSX</option>
+            <option value="json">JSON</option>
+            <option value="pdf">PDF</option>
+          </select>
+          <button
+            className="cc-btn cc-btn-primary"
+            onClick={handleSprinthubSend}
+            disabled={isLoading || selectedRows.length === 0 || isSendingToSprinthub}
+            title="Enviar para SprintHub"
+          >
+            🚀 Enviar SprintHub
+          </button>
+          <button
+            className="cc-btn cc-btn-small"
+            onClick={async () => {
+              setShowAutoSyncConfig(true);
+            }}
+            style={{ backgroundColor: '#7c3aed', color: 'white' }}
+            title="Configurar envio automático"
+          >
+            ⚙️ Config. Automático
+          </button>
+          <button className="cc-btn cc-btn-export" onClick={() => exportSelectedCurrent('monitoramento_d90')} disabled={isLoading || selectedRows.length===0}>📥 Exportar Selecionados</button>
+          <button className="cc-btn cc-btn-export" onClick={() => exportAllFromTable('monitoramento_d90', 'vw_monitoramento_d90')} disabled={isLoading}>Exportar Tudo (CSV)</button>
+      </div>
+      </div>
+      {renderFiltersBar()}
+      {renderClientesTable(filterRowsByDuplicates(filterRowsByNameStatus(monitoramentoD90Data)), [
+        { header: 'Exportado', render: (row) => renderExportStatusIcon(row) },
+        { header: 'Duplicatas', render: (row) => renderDuplicatesIcon(row) },
+        { header: 'Nome', sortField: 'nome_completo', render: (row) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {renderNomePorOrigem(row)}
+            {row.nome_completo && /[0-9]{10,}/.test(row.nome_completo) && (
+              <button
+                className="cc-btn-corrigir"
+                onClick={() => corrigirTelefoneNoNome(row.id || row.id_cliente_mestre, row.nome_completo)}
+                title="Corrigir telefone no nome"
+              >
+                🔧
+              </button>
+            )}
+          </div>
+        ) },
+        { header: 'Email', field: 'email' },
+        { header: 'WhatsApp', field: 'whatsapp' },
+        { header: 'CPF', field: 'cpf' },
+        { 
+          header: 'Total Compras', 
+          field: 'total_compras',
+          render: (row) => {
+            const totalCompras = row.total_pedidos || row.total_compras || 0;
+            const idPrime = row.id_prime || row.prime_id || row.idprime;
+            const nomeCliente = row.nome_completo || 'Cliente';
+            
+            if (!idPrime) {
+              return <span>{totalCompras}</span>;
+            }
+            
+            return (
+              <span 
+                className="cc-total-compras-clickable"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const url = `/historico-compras?cliente_id=${idPrime}&nome=${encodeURIComponent(nomeCliente)}`;
+                  window.open(url, '_blank');
+                }}
+                title="Clique para ver histórico completo de compras"
+              >
+                {totalCompras}
+              </span>
+            );
+          }
+        },
+        { 
+          header: 'Dias Última Compra', 
+          field: 'dias_desde_ultima_compra',
+          render: (row) => {
+            const diasUltimaCompra = row.dias_desde_ultima_compra;
+            return <span>{diasUltimaCompra !== null && diasUltimaCompra !== undefined ? diasUltimaCompra : '-'}</span>;
+          }
+        },
+        { header: 'Origens', render: (row) => renderOriginsBadges(row) },
+        { header: 'Cidade/Estado', sortField: 'cidade', render: (row) => `${row.cidade || '-'}/${row.estado || '-'}` },
+        { header: 'Sexo', render: (row) => formatSexo(row.sexo) },
+        { header: 'Data Nascimento', field: 'data_nascimento', render: (row) => row.data_nascimento ? new Date(row.data_nascimento).toLocaleDateString('pt-BR') : '-' },
+        { header: 'Qualidade', sortField: 'qualidade_dados', render: renderQualityBadge }
+            ])}
+      {renderPagination()}
+    </div>
+  );
+
   const renderTabContent = () => {
     if (isLoading) {
       return (
@@ -5306,6 +7161,10 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
       case 'monitoramento-1-29': return renderMonitoramento129();
       case 'monitoramento-30-59': return renderMonitoramento3059();
       case 'monitoramento-60-90': return renderMonitoramento6090();
+      case 'monitoramento-d45': return renderMonitoramentoD45();
+      case 'monitoramento-d60': return renderMonitoramentoD60();
+      case 'monitoramento-d75': return renderMonitoramentoD75();
+      case 'monitoramento-d90': return renderMonitoramentoD90();
       default: return null;
     }
   };
@@ -6214,6 +8073,504 @@ const ClientesConsolidadosPage = ({ onLogout }) => {
                   ✅ Mesclar Clientes
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de envio para SprintHub */}
+      {showSprinthubModal && (
+        <div className="cc-modal-overlay" onClick={closeSprinthubModal}>
+          <div className="cc-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Enviar Selecionados para SprintHub</h3>
+
+            <p style={{ marginBottom: '12px' }}>
+              {sprinthubResults.length > 0 || selectedRows.length > 0
+                ? `Você enviará ${sprinthubResults.length > 0 ? sprinthubResults.length : selectedRows.length} registro(s) para a SprintHub.`
+                : 'Nenhum registro atualmente selecionado.'}
+            </p>
+
+            {sprinthubError && (
+              <div
+                style={{
+                  backgroundColor: '#fee2e2',
+                  color: '#b91c1c',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  marginBottom: '12px',
+                }}
+              >
+                {sprinthubError}
+              </div>
+            )}
+
+            {sprinthubResults.length === 0 && (
+              <>
+                <div
+                  style={{
+                    display: 'grid',
+                    gap: '12px',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                    marginBottom: '16px',
+                  }}
+                >
+                  <label className="cc-field">
+                    <span>Funil (ID)</span>
+                    <input
+                      type="number"
+                      className="cc-input"
+                      value={sprinthubFunnelId}
+                      onChange={(e) => setSprinthubFunnelId(e.target.value)}
+                      placeholder={SPRINTHUB_CONFIG.defaultFunnelId || 'Ex: 56'}
+                    />
+                  </label>
+                  <label className="cc-field">
+                    <span>Coluna/Etapa (ID)</span>
+                    <input
+                      type="number"
+                      className="cc-input"
+                      value={sprinthubEtapa}
+                      onChange={(e) => setSprinthubEtapa(e.target.value)}
+                      placeholder={SPRINTHUB_CONFIG.defaultColumnId || 'Ex: 159'}
+                    />
+                  </label>
+                  <label className="cc-field">
+                    <span>Sequência</span>
+                    <input
+                      type="number"
+                      className="cc-input"
+                      value={sprinthubSequence}
+                      onChange={(e) => setSprinthubSequence(e.target.value)}
+                    />
+                  </label>
+                  <label className="cc-field">
+                    <span>Tamanho do lote</span>
+                    <input
+                      type="number"
+                      min={1}
+                      className="cc-input"
+                      value={sprinthubBatchSize}
+                      onChange={(e) => setSprinthubBatchSize(e.target.value)}
+                    />
+                    <small style={{ color: '#94a3b8' }}>Quantidade de leads enviados por vez (padrão 50)</small>
+                  </label>
+                  <label className="cc-field">
+                    <span>ID do Vendedor</span>
+                    <input
+                      type="number"
+                      className="cc-input"
+                      value={sprinthubVendedor}
+                      onChange={(e) => setSprinthubVendedor(e.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <label className="cc-field" style={{ display: 'block', marginBottom: '16px' }}>
+                  <span>Prefixo do título da oportunidade</span>
+                  <input
+                    type="text"
+                    className="cc-input"
+                    value={sprinthubTituloPrefix}
+                    onChange={(e) => setSprinthubTituloPrefix(e.target.value)}
+                    placeholder="Ex: MONITORAMENTO"
+                  />
+                </label>
+
+                <label className="cc-field" style={{ display: 'block', marginBottom: '16px' }}>
+                  <span>Origem da Oportunidade</span>
+                  <select
+                    className="cc-input"
+                    value={sprinthubOrigemOportunidade}
+                    onChange={(e) => setSprinthubOrigemOportunidade(e.target.value)}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', backgroundColor: '#1e293b', color: '#fff', border: '1px solid #334155' }}
+                  >
+                    <option value="Monitoramento">Monitoramento</option>
+                    <option value="Google Ads">Google Ads</option>
+                    <option value="Meta Ads">Meta Ads</option>
+                    <option value="Orgânico">Orgânico</option>
+                    <option value="Indicação">Indicação</option>
+                    <option value="Prescritor">Prescritor</option>
+                    <option value="Campanha">Campanha</option>
+                    <option value="Colaborador">Colaborador</option>
+                    <option value="Franquia">Franquia</option>
+                    <option value="Farmácia Parceira">Farmácia Parceira</option>
+                    <option value="Monitoramento/disparo">Monitoramento/disparo</option>
+                    <option value="Site">Site</option>
+                    <option value="Phusion/disparo">Phusion/disparo</option>
+                    <option value="Disparo">Disparo</option>
+                    <option value="Reativação">Reativação</option>
+                  </select>
+                </label>
+
+                <label className="cc-field" style={{ display: 'block', marginBottom: '16px' }}>
+                  <span>Tipo de Compra</span>
+                  <select
+                    className="cc-input"
+                    value={sprinthubTipoCompra}
+                    onChange={(e) => setSprinthubTipoCompra(e.target.value)}
+                    style={{ width: '100%', padding: '8px', borderRadius: '4px', backgroundColor: '#1e293b', color: '#fff', border: '1px solid #334155' }}
+                  >
+                    <option value="recompra monitoramento">recompra monitoramento</option>
+                    <option value="compra">compra</option>
+                    <option value="recompra">recompra</option>
+                    <option value="reativação">reativação</option>
+                    <option value="ativação">ativação</option>
+                  </select>
+                </label>
+
+                {isSendingToSprinthub && (
+                  <div style={{ marginBottom: '12px', color: '#2563eb' }}>
+                    Enviando dados para a SprintHub. Aguarde...
+                  </div>
+                )}
+                {sprinthubProgress && (
+                  <div style={{ marginBottom: '16px', padding: '12px', borderRadius: '8px', backgroundColor: '#0f172a', border: '1px solid rgba(37, 99, 235, 0.4)' }}>
+                    <div style={{ fontWeight: 600, color: '#60a5fa', marginBottom: '8px' }}>
+                      Processando lote {sprinthubProgress.currentBatch}/{sprinthubProgress.totalBatches}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#cbd5f5', marginBottom: '6px' }}>
+                      Leads processados: {sprinthubProgress.processed} / {sprinthubProgress.totalLeads}
+                    </div>
+                    <div style={{ fontSize: '13px', color: '#cbd5f5', marginBottom: '6px' }}>
+                      Lote atual: {sprinthubProgress.batchProcessed || 0} / {sprinthubProgress.batchSize}
+                    </div>
+                    {sprinthubProgress.currentLeadName && (
+                      <div style={{ fontSize: '12px', color: '#94a3b8', marginBottom: '6px' }}>
+                        Lead atual: {sprinthubProgress.currentLeadName}
+                      </div>
+                    )}
+                    <div style={{ width: '100%', height: '10px', backgroundColor: '#1e293b', borderRadius: '999px', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${Math.min(100, Math.round((sprinthubProgress.processed / sprinthubProgress.totalLeads) * 100))}%`,
+                          height: '100%',
+                          background: 'linear-gradient(90deg, #3b82f6, #a855f7)',
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {sprinthubResults.length > 0 && (
+              <>
+                <div style={{ 
+                  backgroundColor: '#1e293b', 
+                  padding: '12px', 
+                  borderRadius: '8px', 
+                  marginBottom: '12px',
+                  border: '1px solid rgba(59, 130, 246, 0.3)'
+                }}>
+                  <div style={{ fontWeight: 600, marginBottom: '8px', color: '#60a5fa' }}>
+                    ✅ Envio Concluído
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#cbd5f5', lineHeight: '1.6' }}>
+                    <div>📊 Total processado: {sprinthubResults.length} registro(s)</div>
+                    <div>✅ Sucessos: {sprinthubResults.filter(r => r.ensureResult?.lead?.id && !r.ensureResult?.errors?.length).length}</div>
+                    <div>❌ Erros: {sprinthubResults.filter(r => r.ensureResult?.errors?.length).length}</div>
+                  </div>
+                </div>
+                <div style={{ maxHeight: '320px', overflowY: 'auto', marginTop: '8px', marginBottom: '16px' }}>
+                  {sprinthubResults.map((result, index) => {
+                    const leadId = result.ensureResult?.lead?.id;
+                    const leadStatus = result.ensureResult?.lead?.status;
+                    const opportunityStatus = result.ensureResult?.opportunity?.status;
+                    const opportunityId = result.ensureResult?.opportunity?.id;
+                    const ordersSummary = result.ensureResult?.orders || [];
+                    const errors = result.ensureResult?.errors || [];
+                    const hasError = errors.length > 0;
+                    const isSuccess = leadId && !hasError;
+
+                    return (
+                      <div
+                        key={`${result.id || index}-${index}`}
+                        style={{
+                          border: `1px solid ${hasError ? 'rgba(248, 113, 113, 0.3)' : isSuccess ? 'rgba(34, 197, 94, 0.3)' : 'rgba(148, 163, 184, 0.3)'}`,
+                          borderRadius: '8px',
+                          padding: '12px',
+                          marginBottom: '12px',
+                          backgroundColor: '#0f172a',
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          {isSuccess ? '✅' : hasError ? '❌' : '⚠️'} {result.nome}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#cbd5f5' }}>
+                          <div>
+                            Lead ID SprintHub: <strong style={{ color: isSuccess ? '#22c55e' : '#f87171' }}>
+                              {leadId ? leadId : 'Não criado'}
+                            </strong>
+                            {leadStatus && ` (${leadStatus === 'created' ? 'Criado' : 'Atualizado'})`}
+                          </div>
+                          <div>
+                            Oportunidade:{' '}
+                            {opportunityStatus === 'already-exists' ? (
+                              <span style={{ color: '#fbbf24' }}>⚠️ Já existia (ID: {opportunityId || 'N/A'})</span>
+                            ) : opportunityId ? (
+                              <span style={{ color: '#22c55e' }}>✅ Criada (ID: {opportunityId})</span>
+                            ) : (
+                              <span style={{ color: '#f87171' }}>❌ Não criada</span>
+                            )}
+                          </div>
+                          {ordersSummary.length > 0 && (
+                            <div>
+                              Pedidos sincronizados:{' '}
+                              {ordersSummary.filter(item => item.status === 'synced').length}
+                              {ordersSummary.some(item => item.status === 'skipped') && (
+                                <> (alguns já estavam sincronizados)</>
+                              )}
+                            </div>
+                          )}
+                          {errors.length > 0 && (
+                            <div style={{ color: '#f87171', marginTop: '6px', padding: '6px', backgroundColor: 'rgba(248, 113, 113, 0.1)', borderRadius: '4px' }}>
+                              <strong>Erros:</strong> {errors.map(err => err.message || 'Erro desconhecido').join(' | ')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              {sprinthubResults.length === 0 ? (
+                <>
+                  <button className="cc-btn" onClick={closeSprinthubModal} disabled={isSendingToSprinthub}>
+                    Cancelar
+                  </button>
+                  <button
+                    className="cc-btn cc-btn-primary"
+                    onClick={handleSprinthubConfirm}
+                    disabled={isSendingToSprinthub || selectedRows.length === 0}
+                  >
+                    {isSendingToSprinthub ? 'Enviando...' : 'Enviar agora'}
+                  </button>
+                </>
+              ) : (
+                <button className="cc-btn cc-btn-primary" onClick={closeSprinthubModal}>
+                  Fechar
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Configuração de Envio Automático */}
+      {showAutoSyncConfig && (
+        <div className="cc-modal-overlay" onClick={() => setShowAutoSyncConfig(false)}>
+          <div className="cc-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <h3>⚙️ Configuração de Envio Automático</h3>
+            <p style={{ marginBottom: '16px', color: '#94a3b8', fontSize: '13px' }}>
+              Configure os parâmetros para o envio automático diário de leads para o SprintHub.
+            </p>
+
+            <div style={{ display: 'grid', gap: '12px', marginBottom: '16px' }}>
+              <label className="cc-field">
+                <span>Funil (ID)</span>
+                <input
+                  type="number"
+                  className="cc-input"
+                  value={sprinthubFunnelId}
+                  onChange={(e) => setSprinthubFunnelId(e.target.value)}
+                  placeholder={SPRINTHUB_CONFIG.defaultFunnelId || 'Ex: 14'}
+                />
+              </label>
+              <label className="cc-field">
+                <span>Coluna/Etapa (ID)</span>
+                <input
+                  type="number"
+                  className="cc-input"
+                  value={sprinthubEtapa}
+                  onChange={(e) => setSprinthubEtapa(e.target.value)}
+                  placeholder={SPRINTHUB_CONFIG.defaultColumnId || 'Ex: 167'}
+                />
+              </label>
+              <label className="cc-field">
+                <span>ID do Vendedor</span>
+                <input
+                  type="number"
+                  className="cc-input"
+                  value={sprinthubVendedor}
+                  onChange={(e) => setSprinthubVendedor(e.target.value)}
+                  placeholder={SPRINTHUB_CONFIG.defaultUserId || 'Ex: 229'}
+                />
+              </label>
+              <label className="cc-field">
+                <span>Limite de Leads por Execução</span>
+                <input
+                  type="number"
+                  className="cc-input"
+                  value={autoSyncLimit}
+                  onChange={(e) => setAutoSyncLimit(e.target.value)}
+                  placeholder="200"
+                />
+                <small style={{ color: '#94a3b8' }}>Quantidade máxima de leads processados por execução do cron</small>
+              </label>
+              <label className="cc-field">
+                <span>Tamanho do Lote</span>
+                <input
+                  type="number"
+                  className="cc-input"
+                  value={sprinthubBatchSize}
+                  onChange={(e) => setSprinthubBatchSize(e.target.value)}
+                  placeholder="50"
+                />
+                <small style={{ color: '#94a3b8' }}>Quantidade de leads enviados por vez (evita timeouts)</small>
+              </label>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+              <button className="cc-btn" onClick={() => setShowAutoSyncConfig(false)}>
+                Cancelar
+              </button>
+              <button 
+                className="cc-btn cc-btn-primary" 
+                onClick={() => {
+                  alert('Configuração salva! (Funcionalidade de salvamento será implementada)');
+                  setShowAutoSyncConfig(false);
+                }}
+                style={{ backgroundColor: '#10b981' }}
+              >
+                💾 Salvar Configuração
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Histórico de Exportação */}
+      {showExportHistoryModal && selectedClientForHistory && (
+        <div className="cc-modal-overlay" onClick={() => {
+          setShowExportHistoryModal(false);
+        }}>
+          <div className="cc-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px', width: '90%' }}>
+            <div className="cc-modal-header">
+              <h3>Histórico de Exportação</h3>
+              <button
+                className="cc-btn-close"
+                onClick={() => {
+                  setShowExportHistoryModal(false);
+                }}
+                style={{ background: 'transparent', border: 'none', color: '#e0e7ff', cursor: 'pointer', fontSize: '24px', padding: '0', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ marginBottom: '16px', color: '#94a3b8' }}>
+              <div><strong>Cliente:</strong> {selectedClientForHistory.nome || 'Sem nome'}</div>
+              <div><strong>ID:</strong> {selectedClientForHistory.id}</div>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="cc-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Motivo</th>
+                    <th>Tag</th>
+                    <th>Observação</th>
+                    <th>Usuário</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clientExportHistory.map((hist, index) => (
+                    <tr key={index}>
+                      <td>{new Date(hist.data_exportacao || hist.created_at).toLocaleString('pt-BR')}</td>
+                      <td>{hist.motivo || '-'}</td>
+                      <td>{hist.tag_exportacao || '-'}</td>
+                      <td>{hist.observacao || '-'}</td>
+                      <td>{hist.usuario_id || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {clientExportHistory.length === 0 && (
+                <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8' }}>
+                  Nenhum histórico disponível.
+                </div>
+              )}
+            </div>
+            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="cc-btn" onClick={() => {
+                setShowExportHistoryModal(false);
+              }}>
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Histórico SprintHub */}
+      {showSprinthubHistoryModal && selectedClientForHistory && (
+        <div
+          className="cc-modal-overlay"
+          onClick={() => {
+            setShowSprinthubHistoryModal(false);
+            setSprinthubHistory([]);
+          }}
+        >
+          <div className="cc-modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px', width: '90%' }}>
+            <div className="cc-modal-header">
+              <h3>Histórico SprintHub</h3>
+              <button
+                className="cc-btn-close"
+                onClick={() => {
+                  setShowSprinthubHistoryModal(false);
+                  setSprinthubHistory([]);
+                }}
+                style={{ background: 'transparent', border: 'none', color: '#e0e7ff', cursor: 'pointer', fontSize: '24px', padding: '0', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ marginBottom: '16px', color: '#94a3b8' }}>
+              <div><strong>Cliente:</strong> {selectedClientForHistory.nome}</div>
+              <div><strong>ID:</strong> {selectedClientForHistory.id}</div>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="cc-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Motivo</th>
+                    <th>Tag</th>
+                    <th>Observação</th>
+                    <th>Usuário</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sprinthubHistory.map((hist, index) => (
+                    <tr key={index}>
+                      <td>{new Date(hist.data_exportacao || hist.created_at).toLocaleString('pt-BR')}</td>
+                      <td>{hist.motivo || '-'}</td>
+                      <td>
+                        <span style={{ padding: '4px 8px', backgroundColor: '#7c3aed26', color: '#c084fc', borderRadius: '999px', fontWeight: '600', fontSize: '11px' }}>
+                          {formatSprinthubTagLabel(hist.tag_exportacao) || 'SPRINTHUB'}
+                        </span>
+                      </td>
+                      <td>{hist.observacao || '-'}</td>
+                      <td>{hist.usuario_id || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {sprinthubHistory.length === 0 && (
+                <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8' }}>
+                  Nenhum histórico disponível para SprintHub.
+                </div>
+              )}
+            </div>
+            <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+              <button className="cc-btn" onClick={() => {
+                setShowSprinthubHistoryModal(false);
+                setSprinthubHistory([]);
+              }}>
+                Fechar
+              </button>
             </div>
           </div>
         </div>
