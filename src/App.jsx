@@ -7,7 +7,7 @@ import './debug/buildInfo.js'
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 import PerformanceDiariaPage from './pages/PerformanceDiariaPage'
 import PerformanceRondaPage from './pages/PerformanceRondaPage'
-import OrcamentosTempoEtapaPage from './pages/OrcamentosTempoEtapaPage'
+import OrcamentosTempoEtapaPage from './pages/OrcamentosTempoEtapaPage.jsx'
 import RankingDePerformancePage from './pages/RankingDePerformancePage'
 import MatrizRFVPage from './pages/MatrizRFVPage'
 import MetasPage from './pages/MetasPage'
