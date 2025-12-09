@@ -369,6 +369,830 @@ const fetchAllRecords = async (url, headers) => {
   return allRecords;
 };
 
+// 🎯 FUNÇÃO PARA BUSCAR FUNIS POR IDs
+export const getFunisPorIds = async (ids) => {
+  try {
+    const client = getSupabaseWithSchema('api');
+    
+    if (!ids || ids.length === 0) {
+      console.warn('⚠️ [getFunisPorIds] Nenhum ID fornecido');
+      return [];
+    }
+
+    const { data, error } = await client
+      .from('funis')
+      .select('id_funil_sprint, nome_funil')
+      .in('id_funil_sprint', ids);
+
+    if (error) {
+      console.error('❌ [getFunisPorIds] Erro ao buscar funis:', error);
+      throw error;
+    }
+
+    console.log(`✅ [getFunisPorIds] ${data?.length || 0} funis encontrados`);
+    return data || [];
+  } catch (error) {
+    console.error('❌ [getFunisPorIds] Erro ao buscar funis:', error);
+    throw error;
+  }
+};
+
+// 🎯 FUNÇÃO PARA BUSCAR VENDEDORES POR IDs
+export const getVendedoresPorIds = async (ids) => {
+  try {
+    const client = getSupabaseWithSchema('api');
+    
+    if (!ids || ids.length === 0) {
+      console.warn('⚠️ [getVendedoresPorIds] Nenhum ID fornecido');
+      return [];
+    }
+
+    const { data, error } = await client
+      .from('vendedores')
+      .select('id, nome, id_sprint, id_unidade, status')
+      .in('id_sprint', ids)
+      .eq('status', 'ativo');
+
+    if (error) {
+      console.error('❌ [getVendedoresPorIds] Erro ao buscar vendedores:', error);
+      throw error;
+    }
+
+    console.log(`✅ [getVendedoresPorIds] ${data?.length || 0} vendedores encontrados`);
+    return data || [];
+  } catch (error) {
+    console.error('❌ [getVendedoresPorIds] Erro ao buscar vendedores:', error);
+    throw error;
+  }
+};
+
+// 🎯 FUNÇÕES PARA CONFIGURAÇÃO DO COCKPIT VENDEDORES
+export const getCockpitVendedoresConfig = async () => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    console.log('🔍 [getCockpitVendedoresConfig] Buscando configurações...');
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_vendedores_config?select=*&ativo=eq.true&order=tipo_secao.asc,ordem_exibicao.asc`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [getCockpitVendedoresConfig] Erro ao buscar configurações:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    
+    console.log(`✅ [getCockpitVendedoresConfig] ${data?.length || 0} configurações encontradas`);
+    return data || [];
+  } catch (error) {
+    console.error('❌ [getCockpitVendedoresConfig] Erro:', error);
+    throw error;
+  }
+};
+
+export const createCockpitVendedoresConfig = async (config) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_vendedores_config`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(config)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [createCockpitVendedoresConfig] Erro ao criar configuração:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [createCockpitVendedoresConfig] Erro:', error);
+    throw error;
+  }
+};
+
+export const updateCockpitVendedoresConfig = async (id, updates) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_vendedores_config?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({ ...updates, updated_at: new Date().toISOString() })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [updateCockpitVendedoresConfig] Erro ao atualizar configuração:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [updateCockpitVendedoresConfig] Erro:', error);
+    throw error;
+  }
+};
+
+export const deleteCockpitVendedoresConfig = async (id) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_vendedores_config?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=minimal'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [deleteCockpitVendedoresConfig] Erro ao deletar configuração:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ [deleteCockpitVendedoresConfig] Erro:', error);
+    throw error;
+  }
+};
+
+// 🎯 FUNÇÕES PARA TIPOS DE SEÇÃO
+export const getTiposSecao = async () => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_tipos_secao?select=*&ativo=eq.true&order=ordem.asc`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [getTiposSecao] Erro ao buscar tipos de seção:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data || [];
+  } catch (error) {
+    console.error('❌ [getTiposSecao] Erro:', error);
+    throw error;
+  }
+};
+
+export const createTipoSecao = async (tipo) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_tipos_secao`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(tipo)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [createTipoSecao] Erro ao criar tipo de seção:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [createTipoSecao] Erro:', error);
+    throw error;
+  }
+};
+
+export const updateTipoSecao = async (id, updates) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_tipos_secao?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({ ...updates, updated_at: new Date().toISOString() })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [updateTipoSecao] Erro ao atualizar tipo de seção:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [updateTipoSecao] Erro:', error);
+    throw error;
+  }
+};
+
+export const deleteTipoSecao = async (id) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_tipos_secao?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=minimal'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [deleteTipoSecao] Erro ao deletar tipo de seção:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ [deleteTipoSecao] Erro:', error);
+    throw error;
+  }
+};
+
+// 🎯 FUNÇÕES PARA METAS DOS VENDEDORES
+export const getMetasVendedores = async () => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_vendedores?select=*&ativo=eq.true&order=vendedor_id_sprint.asc,dia_semana.asc,nome_meta.asc`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [getMetasVendedores] Erro ao buscar metas:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data || [];
+  } catch (error) {
+    console.error('❌ [getMetasVendedores] Erro:', error);
+    throw error;
+  }
+};
+
+export const createMetaVendedor = async (meta) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_vendedores`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(meta)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [createMetaVendedor] Erro ao criar meta:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [createMetaVendedor] Erro:', error);
+    throw error;
+  }
+};
+
+export const updateMetaVendedor = async (id, updates) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_vendedores?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({ ...updates, updated_at: new Date().toISOString() })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [updateMetaVendedor] Erro ao atualizar meta:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [updateMetaVendedor] Erro:', error);
+    throw error;
+  }
+};
+
+export const deleteMetaVendedor = async (id) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_vendedores?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=minimal'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [deleteMetaVendedor] Erro ao deletar meta:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ [deleteMetaVendedor] Erro:', error);
+    throw error;
+  }
+};
+
+// Função para obter meta de um vendedor baseado no dia da semana atual
+export const getMetaVendedorPorDia = (metas, vendedorId, nomeMeta) => {
+  const hoje = new Date();
+  const diaSemana = hoje.getDay(); // 0 = domingo, 6 = sábado
+  
+  let diaSemanaMeta = 'seg_sex';
+  
+  if (diaSemana === 6) { // Sábado
+    diaSemanaMeta = 'sabado';
+  } else if (diaSemana === 0) { // Domingo - usa meta do sábado
+    diaSemanaMeta = 'sabado';
+  } else { // Segunda a Sexta
+    diaSemanaMeta = 'seg_sex';
+  }
+  
+  const meta = metas.find(m => 
+    m.vendedor_id_sprint === vendedorId &&
+    m.nome_meta === nomeMeta &&
+    m.dia_semana === diaSemanaMeta &&
+    m.ativo === true
+  );
+  
+  return meta?.valor_meta || null;
+};
+
+// 🎯 FUNÇÕES PARA TIPOS DE METAS
+export const getTiposMetas = async () => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_tipos_metas?select=*&ativo=eq.true&order=ordem.asc`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [getTiposMetas] Erro ao buscar tipos de metas:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data || [];
+  } catch (error) {
+    console.error('❌ [getTiposMetas] Erro:', error);
+    throw error;
+  }
+};
+
+export const createTipoMeta = async (tipo) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_tipos_metas`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(tipo)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [createTipoMeta] Erro ao criar tipo de meta:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [createTipoMeta] Erro:', error);
+    throw error;
+  }
+};
+
+export const updateTipoMeta = async (id, updates) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_tipos_metas?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({ ...updates, updated_at: new Date().toISOString() })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [updateTipoMeta] Erro ao atualizar tipo de meta:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [updateTipoMeta] Erro:', error);
+    throw error;
+  }
+};
+
+export const deleteTipoMeta = async (id) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_tipos_metas?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=minimal'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [deleteTipoMeta] Erro ao deletar tipo de meta:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ [deleteTipoMeta] Erro:', error);
+    throw error;
+  }
+};
+
+// 🎯 FUNÇÕES PARA NOMES DE METAS
+export const getNomesMetas = async () => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_nomes_metas?select=*&ativo=eq.true&order=ordem.asc`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [getNomesMetas] Erro ao buscar nomes de metas:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data || [];
+  } catch (error) {
+    console.error('❌ [getNomesMetas] Erro:', error);
+    throw error;
+  }
+};
+
+export const createNomeMeta = async (nome) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_nomes_metas`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(nome)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [createNomeMeta] Erro ao criar nome de meta:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [createNomeMeta] Erro:', error);
+    throw error;
+  }
+};
+
+export const updateNomeMeta = async (id, updates) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_nomes_metas?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({ ...updates, updated_at: new Date().toISOString() })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [updateNomeMeta] Erro ao atualizar nome de meta:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [updateNomeMeta] Erro:', error);
+    throw error;
+  }
+};
+
+export const deleteNomeMeta = async (id) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_nomes_metas?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=minimal'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [deleteNomeMeta] Erro ao deletar nome de meta:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ [deleteNomeMeta] Erro:', error);
+    throw error;
+  }
+};
+
+// 🎯 FUNÇÕES PARA METAS POR RONDA (HORÁRIO)
+export const getMetasRondas = async () => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_rondas?select=*&ativo=eq.true&order=vendedor_id_sprint.asc,horario.asc,nome_meta.asc`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [getMetasRondas] Erro ao buscar metas por ronda:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data || [];
+  } catch (error) {
+    console.error('❌ [getMetasRondas] Erro:', error);
+    throw error;
+  }
+};
+
+export const createMetaRonda = async (meta) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_rondas`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(meta)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [createMetaRonda] Erro ao criar meta por ronda:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [createMetaRonda] Erro:', error);
+    throw error;
+  }
+};
+
+export const updateMetaRonda = async (id, updates) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_rondas?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({ ...updates, updated_at: new Date().toISOString() })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [updateMetaRonda] Erro ao atualizar meta por ronda:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [updateMetaRonda] Erro:', error);
+    throw error;
+  }
+};
+
+export const deleteMetaRonda = async (id) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_rondas?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=minimal'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [deleteMetaRonda] Erro ao deletar meta por ronda:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ [deleteMetaRonda] Erro:', error);
+    throw error;
+  }
+};
+
 // 🎯 FUNÇÃO PARA BUSCAR ETAPAS DINÂMICAS DO FUNIL
 export const getFunilEtapas = async (idFunilSprint) => {
   try {

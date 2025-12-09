@@ -7,6 +7,7 @@ import './debug/buildInfo.js'
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 import PerformanceDiariaPage from './pages/PerformanceDiariaPage'
 import PerformanceRondaPage from './pages/PerformanceRondaPage'
+import OrcamentosTempoEtapaPage from './pages/OrcamentosTempoEtapaPage'
 import RankingDePerformancePage from './pages/RankingDePerformancePage'
 import MatrizRFVPage from './pages/MatrizRFVPage'
 import MetasPage from './pages/MetasPage'
@@ -21,11 +22,15 @@ import DebugRankingPage from './pages/DebugRankingPage'
 import DebugSellerRankingPage from './pages/DebugSellerRankingPage'
 import DebugTicketRankingPage from './pages/DebugTicketRankingPage'
 import UserManagementPage from './pages/UserManagementPage'
+import CockpitVendedoresConfigPage from './pages/CockpitVendedoresConfigPage'
+import CockpitMetasVendedoresPage from './pages/CockpitMetasVendedoresPage'
+import CockpitMetasRondasPage from './pages/CockpitMetasRondasPage'
 import Login from './components/Login'
 import autoSyncService from './service/autoSyncService'
 import Callix from './pages/callix'
 import ClientesConsolidados from './pages/clientes-consolidados'
 import HistoricoCompras from './pages/HistoricoCompras'
+import CockpitVendedores from './pages/CockpitVendedores'
 import HistoricoComprasReativacao from './pages/reativacao/HistoricoComprasReativacao'
 import VendasPage from './pages/vendas/VendasPage'
 import ReativacaoDashboard from './pages/reativacao/ReativacaoDashboard'
@@ -214,6 +219,7 @@ function App() {
         <Route path="/dashboard" element={<DashboardPage onLogout={handleLogout} />} />
         <Route path="/analise-funil" element={<DashboardPage onLogout={handleLogout} />} />
         <Route path="/performance-diaria" element={<PerformanceDiariaPage onLogout={handleLogout} />} />
+        <Route path="/orcamentos-tempo-etapa" element={<OrcamentosTempoEtapaPage onLogout={handleLogout} />} />
         <Route path="/performance-ronda" element={<PerformanceRondaPage onLogout={handleLogout} />} />
         <Route path="/ranking-de-performance" element={<RankingDePerformancePage onLogout={handleLogout} />} />
         <Route path="/matriz-rfv" element={<MatrizRFVPage onLogout={handleLogout} />} />
@@ -228,8 +234,12 @@ function App() {
         <Route path="/debug-seller-ranking" element={<DebugSellerRankingPage onLogout={handleLogout} />} />
         <Route path="/debug-ticket-ranking" element={<DebugTicketRankingPage onLogout={handleLogout} />} />
         <Route path="/usuarios" element={<UserManagementPage onLogout={handleLogout} />} />
+        <Route path="/cockpit-vendedores-config" element={<CockpitVendedoresConfigPage onLogout={handleLogout} />} />
+        <Route path="/cockpit-metas-vendedores" element={<CockpitMetasVendedoresPage onLogout={handleLogout} />} />
+        <Route path="/cockpit-metas-rondas" element={<CockpitMetasRondasPage onLogout={handleLogout} />} />
         <Route path="/callix" element={<Callix onLogout={handleLogout} />} />
         <Route path="/clientes-consolidados" element={<ClientesConsolidados onLogout={handleLogout} />} />
+        <Route path="/cockpit-vendedores" element={<CockpitVendedores onLogout={handleLogout} />} />
         {/* /historico-compras agora está protegida pelo sistema de reativação acima */}
         <Route path="/vendas" element={<VendasPage onLogout={handleLogout} />} />
         

@@ -1,0 +1,520 @@
+:root {
+  --bg: #020617;
+  --card: #020617;
+  --card-soft: #020b1f;
+  --accent: #38bdf8;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --border: #1f2937;
+  --good: #22c55e;
+  --bad: #ef4444;
+  --meta: #64748b;
+}
+
+.cockpit-vendedores-config-page {
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  background: radial-gradient(circle at top, #111827 0, #020617 55%, #000 100%);
+  color: var(--text);
+  padding: 24px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.cockpit-vendedores-config-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  background: var(--card);
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  padding: 24px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.7);
+  box-sizing: border-box;
+}
+
+/* Header similar ao CockpitVendedores */
+.cockpit-vendedores-config-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  gap: 16px;
+}
+
+.cockpit-vendedores-config-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  justify-content: flex-start;
+}
+
+.cockpit-vendedores-config-logo {
+  height: 64px;
+  width: auto;
+  max-width: 240px;
+}
+
+.cockpit-vendedores-config-header-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  text-align: center;
+}
+
+.cockpit-vendedores-config-page-titulo {
+  font-size: 24px;
+  margin: 0 0 4px 0;
+  color: var(--text);
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+.cockpit-vendedores-config-page-descricao {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.cockpit-vendedores-config-header-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 1;
+}
+
+/* Menu de 3 pontinhos */
+.cockpit-vendedores-config-menu-container {
+  position: relative;
+}
+
+.cockpit-vendedores-config-menu-trigger {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 6px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--text);
+  padding: 0;
+}
+
+.cockpit-vendedores-config-menu-trigger:hover {
+  border-color: rgba(148, 163, 184, 0.5);
+  background: var(--card-soft);
+}
+
+.cockpit-vendedores-config-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 220px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.9);
+  z-index: 1000;
+}
+
+.cockpit-vendedores-config-menu-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 10px 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cockpit-vendedores-config-menu-item svg {
+  stroke-width: 2;
+  flex-shrink: 0;
+}
+
+.cockpit-vendedores-config-menu-item:hover {
+  background: var(--card-soft);
+}
+
+.cockpit-vendedores-config-menu-item.active {
+  background: var(--card-soft);
+  color: var(--text);
+}
+
+/* Header de ações (botão adicionar) */
+.cockpit-vendedores-config-actions-header {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-bottom: 32px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cockpit-vendedores-config-btn-add {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.cockpit-vendedores-config-btn-add:hover {
+  color: var(--text);
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.cockpit-vendedores-config-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.cockpit-vendedores-config-section {
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px;
+  background: linear-gradient(145deg, var(--card-soft), var(--card));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.cockpit-vendedores-config-section h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 16px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 14px;
+}
+
+.cockpit-vendedores-config-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.cockpit-vendedores-config-table thead {
+  background: var(--card-soft);
+}
+
+.cockpit-vendedores-config-table th {
+  padding: 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border);
+}
+
+.cockpit-vendedores-config-table td {
+  padding: 12px;
+  font-size: 14px;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+}
+
+.cockpit-vendedores-config-table tbody tr:hover {
+  background: var(--card-soft);
+}
+
+.cockpit-vendedores-config-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.cockpit-vendedores-config-empty {
+  text-align: center;
+  color: var(--muted);
+  font-style: italic;
+  padding: 24px !important;
+}
+
+.cockpit-vendedores-config-status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.cockpit-vendedores-config-status.ativo {
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--good);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.cockpit-vendedores-config-status.inativo {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--bad);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.cockpit-vendedores-config-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.cockpit-vendedores-config-btn-edit {
+  background: rgba(34, 197, 94, 0.2);
+  color: var(--good);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cockpit-vendedores-config-btn-edit:hover {
+  background: rgba(34, 197, 94, 0.3);
+  border-color: var(--good);
+}
+
+.cockpit-vendedores-config-btn-delete {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--bad);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cockpit-vendedores-config-btn-delete:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: var(--bad);
+}
+
+/* Modal */
+.cockpit-vendedores-config-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.cockpit-vendedores-config-modal {
+  background: linear-gradient(145deg, var(--card-soft), var(--card));
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.9);
+}
+
+.cockpit-vendedores-config-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cockpit-vendedores-config-modal-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: 0.05em;
+}
+
+.cockpit-vendedores-config-modal-close {
+  background: transparent;
+  border: 1px solid var(--border);
+  font-size: 24px;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.cockpit-vendedores-config-modal-close:hover {
+  background: var(--card-soft);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.cockpit-vendedores-config-form {
+  padding: 24px;
+}
+
+.cockpit-vendedores-config-form-group {
+  margin-bottom: 20px;
+}
+
+.cockpit-vendedores-config-form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.cockpit-vendedores-config-form-group input[type="number"],
+.cockpit-vendedores-config-form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--card-soft);
+  box-sizing: border-box;
+  transition: all 0.2s;
+}
+
+.cockpit-vendedores-config-form-group input[type="number"]:focus,
+.cockpit-vendedores-config-form-group select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+  background: var(--card);
+}
+
+.cockpit-vendedores-config-form-group select option {
+  background: var(--card);
+  color: var(--text);
+}
+
+.cockpit-vendedores-config-form-group input[type="checkbox"] {
+  margin-right: 8px;
+  accent-color: var(--accent);
+}
+
+.cockpit-vendedores-config-form-group small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cockpit-vendedores-config-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.cockpit-vendedores-config-btn-cancel {
+  background: var(--card-soft);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cockpit-vendedores-config-btn-cancel:hover {
+  background: var(--card);
+  border-color: var(--muted);
+}
+
+.cockpit-vendedores-config-btn-save {
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+}
+
+.cockpit-vendedores-config-btn-save:hover {
+  background: #0ea5e9;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(56, 189, 248, 0.4);
+}
+
+.cockpit-vendedores-config-loading {
+  text-align: center;
+  padding: 40px;
+  color: var(--muted);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .cockpit-vendedores-config-page-header {
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .cockpit-vendedores-config-header-left,
+  .cockpit-vendedores-config-header-right {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .cockpit-vendedores-config-header-center {
+    width: 100%;
+  }
+
+  .cockpit-vendedores-config-page-titulo {
+    font-size: 20px;
+  }
+
+  .cockpit-vendedores-config-page-descricao {
+    font-size: 12px;
+  }
+
+  .cockpit-vendedores-config-menu-dropdown {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}

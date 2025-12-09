@@ -97,6 +97,7 @@ const Sidebar = ({
       icon: 'funil-compra',
       subItems: [
         { icon: 'funil-compra', label: 'Análise de Funil', path: '/analise-funil', active: false },
+        { icon: 'funil-compra', label: 'Quantidade de orçamentos', path: '/orcamentos-tempo-etapa', active: false },
         { icon: 'funil-compra', label: 'Dash GoogleAds', path: '/dashgooglepatrocinado', active: false },
         { icon: 'funil-compra', label: 'Performance Diária', path: '/performance-diaria', active: false },
         { icon: 'funil-compra', label: 'Performance por Ronda', path: '/performance-ronda', active: false },
@@ -106,6 +107,10 @@ const Sidebar = ({
         { icon: 'funil-compra', label: 'Metas', path: '/metas', active: false },
         { icon: 'dashboard-meta', label: 'Dashboard MetaAds', active: false },
         { icon: 'dashboard-google', label: 'Dashboard GoogleAds', active: false },
+        { icon: 'funil-compra', label: 'Cockpit Vendedores', path: '/cockpit-vendedores', active: false },
+        { icon: 'funil-compra', label: 'Config Cockpit Vendedores', path: '/cockpit-vendedores-config', active: false },
+        { icon: 'funil-compra', label: 'Metas Vendedores', path: '/cockpit-metas-vendedores', active: false },
+        { icon: 'funil-compra', label: 'Metas por Ronda', path: '/cockpit-metas-rondas', active: false },
         { icon: 'funil-compra', label: 'Usuários', path: '/usuarios', active: false }
       ]
     },
@@ -196,7 +201,9 @@ const Sidebar = ({
                       className="sidebar-component-collapsed-submenu-item"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (subItem.path) {
+                        if (subItem.label === 'Cockpit Vendedores' && subItem.path) {
+                          window.open(subItem.path, '_blank');
+                        } else if (subItem.path) {
                           navigate(subItem.path);
                         } else if (subItem.label === 'Dashboard MetaAds') {
                           navigate('/meta-ads');
@@ -222,7 +229,9 @@ const Sidebar = ({
                     key={subIndex} 
                     className={`sidebar-component-nav-item sidebar-component-submenu-item ${subItem.active ? 'active' : ''}`}
                     onClick={() => {
-                      if (subItem.path) {
+                      if (subItem.label === 'Cockpit Vendedores' && subItem.path) {
+                        window.open(subItem.path, '_blank');
+                      } else if (subItem.path) {
                         navigate(subItem.path);
                       } else if (subItem.label === 'Dashboard MetaAds') {
                         navigate('/meta-ads');
