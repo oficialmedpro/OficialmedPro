@@ -1,0 +1,187 @@
+.orcamentos-page-header {
+  padding: 30px 20px 20px 20px;
+  text-align: center;
+}
+
+.orcamentos-page-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+  margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.orcamentos-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.orcamento-card {
+  background: var(--bg-secondary, #1a1f2e);
+  border: 1px solid var(--border-color, #2d3748);
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.orcamento-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-color: var(--accent-blue, #3b82f6);
+}
+
+.orcamento-card-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color, #2d3748);
+}
+
+.orcamento-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary, #a0aec0);
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.orcamento-card-funil {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary, #ffffff);
+  margin: 0;
+}
+
+.orcamento-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.orcamento-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.orcamento-card-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary, #a0aec0);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.orcamento-card-icon {
+  color: var(--accent-blue, #3b82f6);
+  flex-shrink: 0;
+}
+
+
+.orcamento-card-quantidade {
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--accent-blue, #3b82f6);
+  font-family: 'Courier New', monospace;
+  line-height: 1.2;
+}
+
+.orcamento-card-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--accent-green, #10b981);
+  font-family: 'Courier New', monospace;
+}
+
+.orcamento-card-time {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary, #ffffff);
+  font-family: 'Courier New', monospace;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .orcamentos-cards-container {
+    grid-template-columns: 1fr;
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .orcamento-card {
+    padding: 20px;
+  }
+
+  .orcamento-card-quantidade {
+    font-size: 42px;
+  }
+
+  .orcamento-card-value {
+    font-size: 20px;
+  }
+
+  .orcamento-card-time {
+    font-size: 16px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .orcamentos-cards-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1025px) {
+  .orcamentos-cards-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1440px) {
+  .orcamentos-cards-container {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* Light theme support */
+.light-theme .orcamento-card {
+  background: var(--bg-secondary-light, #ffffff);
+  border-color: var(--border-color-light, #e2e8f0);
+}
+
+.light-theme .orcamento-card-header {
+  border-bottom-color: var(--border-color-light, #e2e8f0);
+}
+
+.light-theme .orcamento-card-title {
+  color: var(--text-secondary-light, #64748b);
+}
+
+.light-theme .orcamento-card-funil {
+  color: var(--text-primary-light, #1e293b);
+}
+
+.light-theme .orcamento-card-label {
+  color: var(--text-secondary-light, #64748b);
+}
+
+.light-theme .orcamento-card-time {
+  color: var(--text-primary-light, #1e293b);
+}
+
+.light-theme .orcamentos-page-title {
+  color: var(--text-primary-light, #1e293b);
+}
+
+@media (max-width: 768px) {
+  .orcamentos-page-title {
+    font-size: 24px;
+  }
+}
+
