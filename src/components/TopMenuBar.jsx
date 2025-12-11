@@ -2297,18 +2297,16 @@ const TopMenuBar = ({
     }
   };
 
-  // ⚡ SINCRONIZAÇÃO IMEDIATA - COMPLETA (OPORTUNIDADES, LEADS, SEGMENTOS)
+  // ⚡ SINCRONIZAÇÃO IMEDIATA - OPORTUNIDADES
   const handleSyncNow = async () => {
     if (isSyncingNow) return;
     
     const confirmSync = confirm(
-      '⚡ SYNC AGORA - Sincronização Completa\n\n' +
+      '⚡ SYNC AGORA - Sincronização de Oportunidades\n\n' +
       '🎯 O que será executado:\n' +
-      '• Sincronizar TODAS as oportunidades (todos os funis: 6, 9, 14, 34, 38)\n' +
-      '• Sincronizar TODOS os leads\n' +
-      '• Sincronizar TODOS os segmentos\n' +
+      '• Sincronizar TODAS as oportunidades de todos os funis\n' +
       '• Processamento otimizado e completo\n\n' +
-      '⏱️ Tempo estimado: 5-15 minutos\n' +
+      '⏱️ Tempo estimado: 2-10 minutos\n' +
       '🔄 Atualiza dados em tempo real\n\n' +
       'Deseja continuar?'
     );
@@ -2316,10 +2314,10 @@ const TopMenuBar = ({
     if (!confirmSync) return;
     
     setIsSyncingNow(true);
-    updateSyncProgress('Sync Agora - Completo', 0, 100, 'Iniciando sincronização completa...');
+    updateSyncProgress('Sync Agora - Oportunidades', 0, 100, 'Iniciando sincronização de oportunidades...');
     
     try {
-      logger.info('⚡ INICIANDO SYNC AGORA - SINCRONIZAÇÃO COMPLETA');
+      logger.info('⚡ INICIANDO SYNC AGORA - SINCRONIZAÇÃO DE OPORTUNIDADES');
       logger.info('='.repeat(80));
       logger.info(`🕒 Início: ${new Date().toLocaleTimeString('pt-BR')}`);
       
