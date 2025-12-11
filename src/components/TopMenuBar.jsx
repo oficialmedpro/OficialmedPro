@@ -2367,98 +2367,114 @@ const TopMenuBar = ({
       updateSyncProgress('Sync Agora - Oportunidades', 10, 100, 'Chamando serviço de sincronização...');
       
       const startTime = Date.now();
-      // Usar GET para /oportunidades (a API aceita ambos, mas GET é mais seguro)
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: requestHeaders
-      });
       
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
-      }
+      // Criar AbortController para timeout de 5 minutos
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 minutos
       
-      const data = await response.json();
-      const endTime = Date.now();
-      const durationSeconds = ((endTime - startTime) / 1000).toFixed(2);
-      
-      updateSyncProgress('Sync Agora - Oportunidades', 90, 100, 'Processando resultados...');
-      
-      logger.info('\n' + '='.repeat(80));
-      logger.info('📊 RESULTADO DA SINCRONIZAÇÃO DE OPORTUNIDADES');
-      logger.info('='.repeat(80));
-      
-      // Processar resposta da API de oportunidades
-      let totalOportunidades = 0;
-      let executionTime = durationSeconds;
-      
-      // A API de oportunidades retorna um formato específico
-      // Pode retornar: { success: true, data: {...} } ou dados diretos
-      if (data.alreadyRunning) {
-        logger.warn('⚠️ Sincronização já está em andamento');
-        updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Já em execução');
-        alert('⚠️ Sincronização já está em andamento. Aguarde a conclusão.');
-      } else if (data.success || data.totalProcessed !== undefined) {
-        totalOportunidades = data.totalProcessed || data.processed || data.total || 0;
-        executionTime = data.executionTime ? (data.executionTime / 1000).toFixed(2) : durationSeconds;
+      try {
+        // Usar GET para /oportunidades (a API aceita ambos, mas GET é mais seguro)
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: requestHeaders,
+          signal: controller.signal
+        });
         
-        logger.info(`✅ Oportunidades: ${totalOportunidades} processadas`);
-        if (data.inserted !== undefined) logger.info(`   - Inseridas: ${data.inserted}`);
-        if (data.updated !== undefined) logger.info(`   - Atualizadas: ${data.updated}`);
-        if (data.errors !== undefined) logger.info(`   - Erros: ${data.errors}`);
-        
-        logger.info(`⏱️ Duração: ${executionTime}s`);
-        
-        updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Concluído!');
-        
-        // Atualizar tempo da última sincronização
-        setLastSyncTime(new Date());
-        
-        // Calcular próxima sincronização (próximo múltiplo de 15 minutos)
-        const nowTime = new Date();
-        const nextSync = new Date(nowTime);
-        nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 15) * 15);
-        if (nextSync <= nowTime) {
-          nextSync.setMinutes(nextSync.getMinutes() + 15);
+        clearTimeout(timeoutId);
+      
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `HTTP ${response.status}: ${response.statusText}`);
         }
-        setNextScheduledSync(nextSync);
         
-        alert(
-          `⚡ SYNC AGORA CONCLUÍDO!\n\n` +
-          `📊 RESULTADOS:\n` +
-          `• Oportunidades: ${totalOportunidades} processadas\n` +
-          `• ⏱️ Tempo: ${executionTime}s\n\n` +
-          `✅ Dados atualizados em tempo real!`
-        );
+        const data = await response.json();
+        const endTime = Date.now();
+        const durationSeconds = ((endTime - startTime) / 1000).toFixed(2);
         
-        // Registrar na tabela api.sincronizacao (UI)
-        await insertSyncRecordBrowser(
-          `Sync agora (UI) concluído: ${totalOportunidades} oportunidades`
-        );
-      } else if (data.message) {
-        // Resposta simples de sucesso
-        logger.info(`✅ ${data.message}`);
-        totalOportunidades = 0; // Não sabemos o total
+        updateSyncProgress('Sync Agora - Oportunidades', 90, 100, 'Processando resultados...');
         
-        logger.info(`⏱️ Duração: ${executionTime}s`);
-        updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Concluído!');
-        setLastSyncTime(new Date());
-        alert('✅ Sincronização de oportunidades iniciada com sucesso!');
-        await insertSyncRecordBrowser(`Sync agora (UI) concluído: ${data.message}`);
-      } else {
-        // Formato desconhecido - assumir sucesso
-        logger.info('✅ Sincronização de oportunidades concluída');
-        totalOportunidades = 0;
+        logger.info('\n' + '='.repeat(80));
+        logger.info('📊 RESULTADO DA SINCRONIZAÇÃO DE OPORTUNIDADES');
+        logger.info('='.repeat(80));
         
-        logger.info(`⏱️ Duração: ${executionTime}s`);
-        updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Concluído (sem detalhes)');
-        setLastSyncTime(new Date());
-        alert('✅ Sincronização de oportunidades iniciada com sucesso!');
-        await insertSyncRecordBrowser('Sync agora (UI) concluído: resposta sem formato conhecido');
+        // Processar resposta da API de oportunidades
+        let totalOportunidades = 0;
+        let executionTime = durationSeconds;
+        
+        // A API de oportunidades retorna um formato específico
+        // Pode retornar: { success: true, data: {...} } ou dados diretos
+        if (data.alreadyRunning) {
+          logger.warn('⚠️ Sincronização já está em andamento');
+          updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Já em execução');
+          alert('⚠️ Sincronização já está em andamento. Aguarde a conclusão.');
+        } else if (data.success || data.totalProcessed !== undefined) {
+          totalOportunidades = data.totalProcessed || data.processed || data.total || 0;
+          executionTime = data.executionTime ? (data.executionTime / 1000).toFixed(2) : durationSeconds;
+          
+          logger.info(`✅ Oportunidades: ${totalOportunidades} processadas`);
+          if (data.inserted !== undefined) logger.info(`   - Inseridas: ${data.inserted}`);
+          if (data.updated !== undefined) logger.info(`   - Atualizadas: ${data.updated}`);
+          if (data.errors !== undefined) logger.info(`   - Erros: ${data.errors}`);
+          
+          logger.info(`⏱️ Duração: ${executionTime}s`);
+          
+          updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Concluído!');
+          
+          // Atualizar tempo da última sincronização
+          setLastSyncTime(new Date());
+          
+          // Calcular próxima sincronização (próximo múltiplo de 15 minutos)
+          const nowTime = new Date();
+          const nextSync = new Date(nowTime);
+          nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 15) * 15);
+          if (nextSync <= nowTime) {
+            nextSync.setMinutes(nextSync.getMinutes() + 15);
+          }
+          setNextScheduledSync(nextSync);
+          
+          alert(
+            `⚡ SYNC AGORA CONCLUÍDO!\n\n` +
+            `📊 RESULTADOS:\n` +
+            `• Oportunidades: ${totalOportunidades} processadas\n` +
+            `• ⏱️ Tempo: ${executionTime}s\n\n` +
+            `✅ Dados atualizados em tempo real!`
+          );
+          
+          // Registrar na tabela api.sincronizacao (UI)
+          await insertSyncRecordBrowser(
+            `Sync agora (UI) concluído: ${totalOportunidades} oportunidades`
+          );
+        } else if (data.message) {
+          // Resposta simples de sucesso
+          logger.info(`✅ ${data.message}`);
+          totalOportunidades = 0; // Não sabemos o total
+          
+          logger.info(`⏱️ Duração: ${executionTime}s`);
+          updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Concluído!');
+          setLastSyncTime(new Date());
+          alert('✅ Sincronização de oportunidades iniciada com sucesso!');
+          await insertSyncRecordBrowser(`Sync agora (UI) concluído: ${data.message}`);
+        } else {
+          // Formato desconhecido - assumir sucesso
+          logger.info('✅ Sincronização de oportunidades concluída');
+          totalOportunidades = 0;
+          
+          logger.info(`⏱️ Duração: ${executionTime}s`);
+          updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Concluído (sem detalhes)');
+          setLastSyncTime(new Date());
+          alert('✅ Sincronização de oportunidades iniciada com sucesso!');
+          await insertSyncRecordBrowser('Sync agora (UI) concluído: resposta sem formato conhecido');
+        }
+        
+        // Atualiza label buscando do banco
+        await fetchLastSyncFromDB();
+      } catch (fetchError) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Timeout: A sincronização demorou mais de 5 minutos. A API pode estar processando em background.');
+        }
+        throw fetchError;
       }
-      
-      // Atualiza label buscando do banco
-      await fetchLastSyncFromDB();
     } catch (error) {
       logger.error('❌ ERRO NO SYNC AGORA:', error);
       updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Erro!');
