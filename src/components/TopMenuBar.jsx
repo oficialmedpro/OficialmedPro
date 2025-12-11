@@ -2393,8 +2393,8 @@ const TopMenuBar = ({
       };
       
       if (isLocalhost) {
-        // Em localhost, usa o servidor Node.js
-        apiUrl = 'http://localhost:3002/api/sync-now';
+        // Em localhost, usa o servidor Node.js (endpoint de oportunidades)
+        apiUrl = 'http://localhost:3002/oportunidades';
         requestHeaders = {
           'Content-Type': 'application/json'
         };
@@ -2418,7 +2418,7 @@ const TopMenuBar = ({
           syncApiUrl = syncApiUrl.slice(0, -1);
         }
         
-        apiUrl = `${syncApiUrl}/sync/all`;
+        apiUrl = `${syncApiUrl}/oportunidades`;
         requestHeaders = {
           'Content-Type': 'application/json'
           // A API do EasyPanel pode precisar de autenticação - adicionar se necessário
@@ -2426,19 +2426,13 @@ const TopMenuBar = ({
       }
       
       logger.info(`📡 Chamando API: ${apiUrl}`);
-      updateSyncProgress('Sync Agora - Completo', 10, 100, 'Chamando serviço de sincronização...');
+      updateSyncProgress('Sync Agora - Oportunidades', 10, 100, 'Chamando serviço de sincronização...');
       
       const startTime = Date.now();
+      // Usar GET para /oportunidades (a API aceita ambos, mas GET é mais seguro)
       const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: requestHeaders,
-        body: JSON.stringify(isLocalhost ? {
-          source: 'ui_button',
-          optimized: true
-        } : {
-          trigger: 'ui_button',
-          optimized: true
-        }) // API do EasyPanel espera trigger e optimized
+        method: 'GET',
+        headers: requestHeaders
       });
       
       if (!response.ok) {
@@ -2453,55 +2447,36 @@ const TopMenuBar = ({
       updateSyncProgress('Sync Agora - Completo', 90, 100, 'Processando resultados...');
       
       logger.info('\n' + '='.repeat(80));
-      logger.info('📊 RESULTADO DA SINCRONIZAÇÃO COMPLETA');
+      logger.info('📊 RESULTADO DA SINCRONIZAÇÃO DE OPORTUNIDADES');
       logger.info('='.repeat(80));
       
-      // Processar resposta tanto do servidor Node.js quanto da Edge Function
-      let totals = {
-        oportunidades: 0,
-        leads: 0,
-        segmentos: 0,
-        total: 0
-      };
+      // Processar resposta da API de oportunidades
+      let totalOportunidades = 0;
       let executionTime = durationSeconds;
       
-      if (data.success) {
-        // Formato Edge Function (sync-hourly-cron)
-        if (data.stats) {
-          totals.oportunidades = data.stats.totalProcessed || 0;
-          totals.total = totals.oportunidades;
-          executionTime = (data.stats.executionTime / 1000).toFixed(2) || durationSeconds;
-          logger.info(`✅ Oportunidades: ${totals.oportunidades} processadas`);
-          logger.info(`   - Inseridas: ${data.stats.totalInserted || 0}`);
-          logger.info(`   - Atualizadas: ${data.stats.totalUpdated || 0}`);
-          logger.info(`   - Erros: ${data.stats.totalErrors || 0}`);
-        }
-        // Formato servidor Node.js (/api/sync-now) ou API EasyPanel (/sync/all)
-        else if (data.data && data.data.summary) {
-          const summary = data.data.summary;
-          totals = {
-            oportunidades: summary.oportunidades?.totalProcessed || 0,
-            leads: summary.leads?.totalProcessed || 0,
-            segmentos: summary.segmentos?.totalProcessed || 0,
-            total: (summary.oportunidades?.totalProcessed || 0) + 
-                   (summary.leads?.totalProcessed || 0) + 
-                   (summary.segmentos?.totalProcessed || 0)
-          };
-          executionTime = data.data.durationSeconds || durationSeconds;
-          logger.info(`✅ Oportunidades: ${totals.oportunidades} processadas`);
-          logger.info(`✅ Leads: ${totals.leads} processados`);
-          logger.info(`✅ Segmentos: ${totals.segmentos} processados`);
-        }
-        // Formato direto da API EasyPanel (pode retornar success sem data estruturada)
-        else {
-          logger.info('✅ Sincronização iniciada com sucesso na API do EasyPanel');
-          logger.info('   (A API processa em background - verifique os logs do serviço)');
-        }
+      // A API de oportunidades retorna um formato específico
+      // Pode retornar: { success: true, data: {...} } ou dados diretos
+      if (data.success || data.totalProcessed !== undefined) {
+        totalOportunidades = data.totalProcessed || data.processed || data.total || 0;
+        executionTime = data.executionTime ? (data.executionTime / 1000).toFixed(2) : durationSeconds;
         
-        logger.info(`📊 Total geral: ${totals.total} processados`);
+        logger.info(`✅ Oportunidades: ${totalOportunidades} processadas`);
+        if (data.inserted !== undefined) logger.info(`   - Inseridas: ${data.inserted}`);
+        if (data.updated !== undefined) logger.info(`   - Atualizadas: ${data.updated}`);
+        if (data.errors !== undefined) logger.info(`   - Erros: ${data.errors}`);
+      } else if (data.message) {
+        // Resposta simples de sucesso
+        logger.info(`✅ ${data.message}`);
+        totalOportunidades = 0; // Não sabemos o total
+      } else {
+        // Formato desconhecido - assumir sucesso
+        logger.info('✅ Sincronização de oportunidades concluída');
+        totalOportunidades = 0;
+      }
+      
         logger.info(`⏱️ Duração: ${executionTime}s`);
         
-        updateSyncProgress('Sync Agora - Completo', 100, 100, 'Concluído!');
+        updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Concluído!');
         
         // Atualizar tempo da última sincronização
         setLastSyncTime(new Date());
@@ -2518,33 +2493,30 @@ const TopMenuBar = ({
         alert(
           `⚡ SYNC AGORA CONCLUÍDO!\n\n` +
           `📊 RESULTADOS:\n` +
-          `• Oportunidades: ${totals.oportunidades} processadas\n` +
-          (totals.leads > 0 ? `• Leads: ${totals.leads} processados\n` : '') +
-          (totals.segmentos > 0 ? `• Segmentos: ${totals.segmentos} processados\n` : '') +
-          `• Total: ${totals.total} processados\n` +
+          `• Oportunidades: ${totalOportunidades} processadas\n` +
           `• ⏱️ Tempo: ${executionTime}s\n\n` +
           `✅ Dados atualizados em tempo real!`
         );
         
         // Registrar na tabela api.sincronizacao (UI)
         await insertSyncRecordBrowser(
-          `Sync agora (UI) concluído: ${totals.oportunidades} oportunidades${totals.leads > 0 ? ` | ${totals.leads} leads` : ''}${totals.segmentos > 0 ? ` | ${totals.segmentos} segmentos` : ''}`
+          `Sync agora (UI) concluído: ${totalOportunidades} oportunidades`
         );
       } else if (data.alreadyRunning) {
         logger.warn('⚠️ Sincronização já está em andamento');
-        updateSyncProgress('Sync Agora - Completo', 100, 100, 'Já em execução');
+        updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Já em execução');
         alert('⚠️ Sincronização já está em andamento. Aguarde a conclusão.');
       } else {
         logger.warn('⚠️ Resposta inesperada da API:', data);
-        updateSyncProgress('Sync Agora - Completo', 100, 100, 'Concluído (sem detalhes)');
-        alert('✅ Sincronização iniciada com sucesso!');
+        updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Concluído (sem detalhes)');
+        alert('✅ Sincronização de oportunidades iniciada com sucesso!');
       }
       
       // Atualiza label buscando do banco
       await fetchLastSyncFromDB();
     } catch (error) {
       logger.error('❌ ERRO NO SYNC AGORA:', error);
-      updateSyncProgress('Sync Agora - Completo', 100, 100, 'Erro!');
+      updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Erro!');
       await insertSyncRecordBrowser(`Sync agora (UI) falhou: ${error.message}`);
       await fetchLastSyncFromDB();
       alert(`❌ Erro na sincronização: ${error.message}\n\nVerifique o console para mais detalhes.`);
@@ -2831,12 +2803,11 @@ const TopMenuBar = ({
         {/* Botões do Serviço Diário - apenas para admin */}
         {isAdmin && (
           <>
-            
             <button 
               className={`tmb-sync-btn ${isSyncingNow ? 'syncing' : ''}`}
               onClick={handleSyncNow}
               disabled={isSyncingNow}
-              title="⚡ SYNC AGORA - Sincronização completa: oportunidades (todos os funis), leads e segmentos"
+              title="⚡ SYNC AGORA - Sincronização de oportunidades"
               style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)' }}
             >
               {isSyncingNow ? (
@@ -2850,42 +2821,6 @@ const TopMenuBar = ({
                 </>
               )}
             </button>
-
-            <button
-              className={`tmb-sync-alert-btn ${alertsCount > 0 ? 'has-alerts' : 'no-alerts'}`}
-              onClick={handleOpenAlertsModal}
-              disabled={alertsLoading && alertsCount === 0}
-              title={alertsCount > 0 ? 'Campos aguardando mapeamento' : 'Nenhum alerta pendente'}
-              style={{ marginLeft: '8px' }}
-            >
-              🚨 Alertas
-              <span className="tmb-alert-count">
-                {alertsLoading && alertsCount === 0 ? '...' : alertsCount}
-              </span>
-            </button>
-
-            {/* Botão de Sincronização Agendada - Apenas informativo, cronjob roda no Supabase */}
-            <button 
-              className="tmb-sync-btn"
-              onClick={() => {
-                alert(
-                  '🕐 SINCRONIZAÇÃO AUTOMÁTICA ATIVA\n\n' +
-                  '✅ O cronjob está rodando automaticamente no Supabase\n' +
-                  '⏰ Executa às :45 de cada hora (00:45, 01:45, 02:45...)\n' +
-                  '📊 Os dados de última e próxima sincronização são atualizados automaticamente\n\n' +
-                  'Use o botão "⚡ SYNC AGORA" para forçar uma sincronização imediata.'
-                );
-              }}
-              title="🕐 SINCRONIZAÇÃO AUTOMÁTICA - Cronjob rodando no Supabase às :45 de cada hora"
-              style={{ 
-                marginLeft: '8px', 
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' 
-              }}
-            >
-              🕐 AUTO SYNC ATIVO
-            </button>
-
-
           </>
         )}
       </div>
