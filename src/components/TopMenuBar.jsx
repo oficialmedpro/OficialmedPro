@@ -182,22 +182,26 @@ const TopMenuBar = ({
         if (status.proxima_sincronizacao) {
           setNextScheduledSync(new Date(status.proxima_sincronizacao));
         } else {
-          // Se não tem próxima sincronização, calcular baseado no cronjob (a cada 15 minutos)
+          // Se não tem próxima sincronização, calcular baseado no cronjob (a cada 30 minutos)
           const now = new Date();
           const nextSync = new Date(now);
-          nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 15) * 15);
+          nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 30) * 30);
+          nextSync.setSeconds(0);
+          nextSync.setMilliseconds(0);
           if (nextSync <= now) {
-            nextSync.setMinutes(nextSync.getMinutes() + 15);
+            nextSync.setMinutes(nextSync.getMinutes() + 30);
           }
           setNextScheduledSync(nextSync);
         }
       } else {
-        // Se não há dados, calcular próxima sincronização baseado no cronjob (a cada 15 minutos)
+        // Se não há dados, calcular próxima sincronização baseado no cronjob (a cada 30 minutos)
         const now = new Date();
         const nextSync = new Date(now);
-        nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 15) * 15);
+        nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 30) * 30);
+        nextSync.setSeconds(0);
+        nextSync.setMilliseconds(0);
         if (nextSync <= now) {
-          nextSync.setMinutes(nextSync.getMinutes() + 15);
+          nextSync.setMinutes(nextSync.getMinutes() + 30);
         }
         setNextScheduledSync(nextSync);
       }
@@ -224,22 +228,26 @@ const TopMenuBar = ({
             if (sync.started_at) {
               setLastSyncTime(new Date(sync.started_at));
             }
-            // Calcular próxima sincronização (15 minutos após a última ou próximo múltiplo de 15)
+            // Calcular próxima sincronização (30 minutos após a última ou próximo múltiplo de 30)
             if (sync.finished_at) {
               const lastSync = new Date(sync.finished_at);
               const nextSync = new Date(lastSync);
-              nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 15) * 15);
+              nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 30) * 30);
+              nextSync.setSeconds(0);
+              nextSync.setMilliseconds(0);
               if (nextSync <= lastSync) {
-                nextSync.setMinutes(nextSync.getMinutes() + 15);
+                nextSync.setMinutes(nextSync.getMinutes() + 30);
               }
               setNextScheduledSync(nextSync);
             } else {
               // Se ainda está rodando, calcular a partir de agora
               const now = new Date();
               const nextSync = new Date(now);
-              nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 15) * 15);
+              nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 30) * 30);
+              nextSync.setSeconds(0);
+              nextSync.setMilliseconds(0);
               if (nextSync <= now) {
-                nextSync.setMinutes(nextSync.getMinutes() + 15);
+                nextSync.setMinutes(nextSync.getMinutes() + 30);
               }
               setNextScheduledSync(nextSync);
             }
@@ -2421,12 +2429,14 @@ const TopMenuBar = ({
           // Atualizar tempo da última sincronização
           setLastSyncTime(new Date());
           
-          // Calcular próxima sincronização (próximo múltiplo de 15 minutos)
+          // Calcular próxima sincronização (próximo múltiplo de 30 minutos - cronjob roda a cada 30min)
           const nowTime = new Date();
           const nextSync = new Date(nowTime);
-          nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 15) * 15);
+          nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 30) * 30);
+          nextSync.setSeconds(0);
+          nextSync.setMilliseconds(0);
           if (nextSync <= nowTime) {
-            nextSync.setMinutes(nextSync.getMinutes() + 15);
+            nextSync.setMinutes(nextSync.getMinutes() + 30);
           }
           setNextScheduledSync(nextSync);
           

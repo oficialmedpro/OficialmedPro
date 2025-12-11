@@ -1080,21 +1080,76 @@ const FUNIS_CONFIG = {
 };
 
 const PAGE_LIMIT = 100;
-let DELAY_BETWEEN_PAGES = 500; // ajustável por backoff
-const DELAY_BETWEEN_STAGES = 400;
+let DELAY_BETWEEN_PAGES = 150; // Reduzido de 500ms para 150ms (otimização)
+const DELAY_BETWEEN_STAGES = 100; // Reduzido de 400ms para 100ms
 const MAX_BACKOFF_MS = 8000;
-const MIN_BACKOFF_MS = 500;
-const CONCURRENCY_PAGES = 1; // manter 1 por segurança inicial (Traefik + origem)
+const MIN_BACKOFF_MS = 100; // Reduzido de 500ms para 100ms
+const CONCURRENCY_STAGES = 8; // Processar até 8 etapas simultaneamente (otimização)
+const UPSERT_BATCH_SIZE = 500; // Aumentado de 100 para 500 (otimização)
 
-// Função para buscar oportunidades de uma etapa
+// =============== RATE LIMITER (Token Bucket) ===============
+// Limite de 100 requisições por minuto
+class RateLimiter {
+    constructor(maxTokens = 100, refillIntervalMs = 60000) {
+        this.maxTokens = maxTokens;
+        this.tokens = maxTokens;
+        this.refillIntervalMs = refillIntervalMs;
+        this.lastRefill = Date.now();
+        this.queue = [];
+        this.processing = false;
+    }
+
+    async acquire() {
+        return new Promise((resolve) => {
+            this.queue.push(resolve);
+            this.processQueue();
+        });
+    }
+
+    async processQueue() {
+        if (this.processing || this.queue.length === 0) return;
+        this.processing = true;
+
+        while (this.queue.length > 0) {
+            // Refill tokens
+            const now = Date.now();
+            const elapsed = now - this.lastRefill;
+            if (elapsed >= this.refillIntervalMs) {
+                this.tokens = this.maxTokens;
+                this.lastRefill = now;
+            }
+
+            if (this.tokens > 0) {
+                this.tokens--;
+                const resolve = this.queue.shift();
+                resolve();
+            } else {
+                // Esperar até ter tokens disponíveis
+                const waitTime = this.refillIntervalMs - elapsed;
+                await new Promise(resolve => setTimeout(resolve, waitTime));
+                this.tokens = this.maxTokens;
+                this.lastRefill = Date.now();
+            }
+        }
+
+        this.processing = false;
+    }
+}
+
+// Instância global do rate limiter (100 req/min = ~1.67 req/seg)
+const rateLimiter = new RateLimiter(100, 60000);
+
+// Função para buscar oportunidades de uma etapa (com rate limiting)
 async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = PAGE_LIMIT) {
+    // Aguardar token do rate limiter
+    await rateLimiter.acquire();
+    
     const url = `https://${SPRINTHUB_CONFIG.baseUrl}/crm/opportunities/${funnelId}?apitoken=${SPRINTHUB_CONFIG.apiToken}&i=${SPRINTHUB_CONFIG.instance}`;
     
     try {
         const payloadObject = { page, limit, columnId: stageId };
-        if (process.env.SPRINTHUB_SUPPORTS_INCREMENTAL === 'true'
-            && globalThis.__LAST_UPDATE_PER_STAGE
-            && globalThis.__LAST_UPDATE_PER_STAGE[`${funnelId}:${stageId}`]) {
+        // Sempre tentar usar incremental se disponível (otimização)
+        if (globalThis.__LAST_UPDATE_PER_STAGE && globalThis.__LAST_UPDATE_PER_STAGE[`${funnelId}:${stageId}`]) {
             const since = globalThis.__LAST_UPDATE_PER_STAGE[`${funnelId}:${stageId}`];
             payloadObject.modifiedSince = since;
         }
@@ -1477,14 +1532,30 @@ function mapOpportunityFields(opportunity, funnelId) {
     };
 }
 
-// Upsert em lote (Prefer: return=minimal)
+// Upsert em lote otimizado (batches maiores)
 async function upsertBatch(opportunitiesBatch) {
     try {
-        const { error } = await supabase
-            .from('oportunidade_sprint')
-            .upsert(opportunitiesBatch, { onConflict: 'id', ignoreDuplicates: false });
-        if (error) {
-            return { success: false, error: error.message };
+        // Dividir em chunks de UPSERT_BATCH_SIZE se necessário
+        const chunks = [];
+        for (let i = 0; i < opportunitiesBatch.length; i += UPSERT_BATCH_SIZE) {
+            chunks.push(opportunitiesBatch.slice(i, i + UPSERT_BATCH_SIZE));
+        }
+
+        // Processar chunks em paralelo (otimização)
+        const results = await Promise.all(
+            chunks.map(chunk => 
+                supabase
+                    .from('oportunidade_sprint')
+                    .upsert(chunk, { onConflict: 'id', ignoreDuplicates: false })
+                    .then(({ error }) => ({ success: !error, error: error?.message }))
+                    .catch(error => ({ success: false, error: error.message }))
+            )
+        );
+
+        // Verificar se algum chunk falhou
+        const failed = results.find(r => !r.success);
+        if (failed) {
+            return { success: false, error: failed.error };
         }
         return { success: true };
     } catch (error) {
@@ -1494,7 +1565,90 @@ async function upsertBatch(opportunitiesBatch) {
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-// Função principal de sincronização
+// Função auxiliar para processar uma etapa completa
+async function processStage(funnelId, stageId, stageLastUpdateCache, stats) {
+    console.log(`\n   🔄 Etapa ${stageId} do Funil ${funnelId}...`);
+    const etapaStats = { processed: 0, errors: 0 };
+    
+    try {
+        await stageLastUpdateCache(Number(funnelId), stageId);
+        let page = 0;
+        let hasMore = true;
+        const mappedBatch = []; // Acumular para batch maior
+        
+        while (hasMore) {
+            try {
+                const opportunities = await fetchOpportunitiesFromStage(funnelId, stageId, page);
+                if (!opportunities || opportunities.length === 0) {
+                    if (page === 0) {
+                        console.log(`     ℹ️ Etapa ${stageId}: Nenhuma oportunidade encontrada (pode estar vazia)`);
+                    }
+                    hasMore = false;
+                    break;
+                }
+                console.log(`     📄 Página ${page + 1}: ${opportunities.length} oportunidades`);
+
+                // Mapear e acumular para batch maior
+                const mapped = opportunities.map((o) => mapOpportunityFields(o, funnelId));
+                mappedBatch.push(...mapped);
+                etapaStats.processed += mapped.length;
+
+                // Se acumulou suficiente ou é a última página, fazer upsert
+                if (mappedBatch.length >= UPSERT_BATCH_SIZE || opportunities.length < PAGE_LIMIT) {
+                    const batchToUpsert = mappedBatch.splice(0, UPSERT_BATCH_SIZE);
+                    const upsertRes = await upsertBatch(batchToUpsert);
+                    if (!upsertRes.success) {
+                        etapaStats.errors += batchToUpsert.length;
+                        console.error(`❌ Erro upsert em lote (página ${page + 1}, etapa ${stageId}, funil ${funnelId}):`, upsertRes.error);
+                    }
+                    
+                    // Delay menor (otimizado)
+                    if (mappedBatch.length > 0) {
+                        await sleep(100); // Delay reduzido
+                    }
+                }
+
+                // Verificar se há mais páginas
+                if (opportunities.length < PAGE_LIMIT) {
+                    hasMore = false;
+                }
+                
+                page++;
+                
+                // Delay reduzido entre páginas
+                if (hasMore) {
+                    await sleep(150); // Reduzido de 500ms para 150ms
+                }
+            } catch (err) {
+                console.error(`❌ Falha na página ${page + 1} da etapa ${stageId} do funil ${funnelId}:`, err.message);
+                etapaStats.errors += PAGE_LIMIT;
+                page++;
+                await sleep(500); // Delay maior em caso de erro
+            }
+        }
+        
+        // Processar batch restante
+        if (mappedBatch.length > 0) {
+            const upsertRes = await upsertBatch(mappedBatch);
+            if (!upsertRes.success) {
+                etapaStats.errors += mappedBatch.length;
+            }
+        }
+        
+        if (etapaStats.processed === 0) {
+            console.log(`     ℹ️ Etapa ${stageId} do Funil ${funnelId} concluída (sem oportunidades)`);
+        } else {
+            console.log(`     ✅ Etapa ${stageId} do Funil ${funnelId} concluída: ${etapaStats.processed} oportunidades${etapaStats.errors > 0 ? `, ${etapaStats.errors} erros` : ''}`);
+        }
+        
+        return etapaStats;
+    } catch (err) {
+        console.error(`❌ Erro ao processar etapa ${stageId} do Funil ${funnelId}:`, err.message);
+        return { processed: 0, errors: 1 };
+    }
+}
+
+// Função principal de sincronização (otimizada com paralelismo)
 async function syncOpportunities() {
     console.log('🚀 Iniciando sincronização de oportunidades via API...');
     const runId = await logRunStart('oportunidades');
@@ -1555,74 +1709,33 @@ async function syncOpportunities() {
         let funilProcessed = 0;
         let funilErrors = 0;
         
-        // Processar cada etapa do funil
-        for (const stageId of funnelConfig.stages) {
-            console.log(`\n   🔄 Etapa ${stageId} do Funil ${funnelId}...`);
-            try {
-                await stageLastUpdateCache(Number(funnelId), stageId);
-                let page = 0;
-                let hasMore = true;
-                let etapaProcessed = 0;
-                let etapaErrors = 0;
-                
-                while (hasMore) {
-                    try {
-                        const opportunities = await fetchOpportunitiesFromStage(funnelId, stageId, page);
-                        if (!opportunities || opportunities.length === 0) {
-                            if (page === 0) {
-                                console.log(`     ℹ️ Etapa ${stageId}: Nenhuma oportunidade encontrada (pode estar vazia)`);
-                            }
-                            hasMore = false;
-                            break;
-                        }
-                        console.log(`     📄 Página ${page + 1}: ${opportunities.length} oportunidades`);
-
-                        // Mapear e fazer upsert em lote
-                        const mapped = opportunities.map((o) => mapOpportunityFields(o, funnelId));
-                        totalProcessed += mapped.length;
-                        etapaProcessed += mapped.length;
-                        funilProcessed += mapped.length;
-
-                        const upsertRes = await upsertBatch(mapped);
-                        if (!upsertRes.success) {
-                            totalErrors += mapped.length;
-                            funilErrors += mapped.length;
-                            etapaErrors += mapped.length;
-                            console.error(`❌ Erro upsert em lote (página ${page + 1}, etapa ${stageId}, funil ${funnelId}):`, upsertRes.error);
-                            // backoff simples
-                            DELAY_BETWEEN_PAGES = Math.min(DELAY_BETWEEN_PAGES * 2, MAX_BACKOFF_MS);
-                            await sleep(DELAY_BETWEEN_PAGES);
-                        } else {
-                            // ajuste heurístico: considerar tudo como atualizado
-                            totalUpdated += mapped.length;
-                            // reduzir delay se estava alto
-                            DELAY_BETWEEN_PAGES = Math.max(Math.floor(DELAY_BETWEEN_PAGES / 2), MIN_BACKOFF_MS);
-                            await sleep(DELAY_BETWEEN_PAGES);
-                        }
-
-                        page++;
-                    } catch (err) {
-                        console.error(`❌ Falha na página ${page + 1} da etapa ${stageId} do funil ${funnelId}:`, err.message);
-                        console.error(`   Stack:`, err.stack);
-                        totalErrors += PAGE_LIMIT;
-                        funilErrors += PAGE_LIMIT;
-                        etapaErrors += PAGE_LIMIT;
-                        DELAY_BETWEEN_PAGES = Math.min(DELAY_BETWEEN_PAGES * 2, MAX_BACKOFF_MS);
-                        await sleep(DELAY_BETWEEN_PAGES);
-                        page++;
-                    }
-                }
-                
-                if (etapaProcessed === 0) {
-                    console.log(`     ℹ️ Etapa ${stageId} do Funil ${funnelId} concluída (sem oportunidades)`);
-                } else {
-                    console.log(`     ✅ Etapa ${stageId} do Funil ${funnelId} concluída: ${etapaProcessed} oportunidades${etapaErrors > 0 ? `, ${etapaErrors} erros` : ''}`);
-                }
-                await sleep(DELAY_BETWEEN_STAGES);
-            } catch (err) {
-                console.error(`❌ Erro ao processar etapa ${stageId} do Funil ${funnelId}:`, err.message);
-                console.error(`   Stack:`, err.stack);
-                funilErrors++;
+        // Processar etapas em paralelo (otimização)
+        const stages = funnelConfig.stages;
+        for (let i = 0; i < stages.length; i += CONCURRENCY_STAGES) {
+            const stageBatch = stages.slice(i, i + CONCURRENCY_STAGES);
+            
+            // Processar batch de etapas em paralelo
+            const stageResults = await Promise.all(
+                stageBatch.map(stageId => 
+                    processStage(funnelId, stageId, stageLastUpdateCache, {
+                        totalProcessed,
+                        totalErrors
+                    })
+                )
+            );
+            
+            // Agregar resultados
+            stageResults.forEach(result => {
+                funilProcessed += result.processed;
+                funilErrors += result.errors;
+                totalProcessed += result.processed;
+                totalUpdated += result.processed; // Estimado como atualizados
+                totalErrors += result.errors;
+            });
+            
+            // Pequeno delay entre batches de etapas
+            if (i + CONCURRENCY_STAGES < stages.length) {
+                await sleep(100);
             }
         }
         
