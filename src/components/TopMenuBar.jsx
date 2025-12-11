@@ -72,11 +72,6 @@ const TopMenuBar = ({
   const [isHourlySyncRunning, setIsHourlySyncRunning] = useState(false);
   const [hourlySyncInterval, setHourlySyncInterval] = useState(null);
   const [syncProgress, setSyncProgress] = useState(null);
-  const [missingFields, setMissingFields] = useState([]);
-  const [alertsLoading, setAlertsLoading] = useState(false);
-  const [alertsError, setAlertsError] = useState(null);
-  const [showAlertsModal, setShowAlertsModal] = useState(false);
-  
   // Estados para sincronização agendada
   const [isScheduledSyncRunning, setIsScheduledSyncRunning] = useState(false);
   const [nextScheduledSync, setNextScheduledSync] = useState(null);
@@ -85,63 +80,6 @@ const TopMenuBar = ({
   
   // Verificar se é admin (temporário - baseado nas credenciais fixas)
   const isAdmin = true; // Por enquanto sempre admin, depois implementar lógica real
-
-  const fetchMissingFields = useCallback(async () => {
-    if (!supabaseUrl || !supabaseAnonKey) {
-      setMissingFields([]);
-      setAlertsError('Credenciais Supabase ausentes');
-      setAlertsLoading(false);
-      return;
-    }
-
-    try {
-      setAlertsLoading(true);
-      setAlertsError(null);
-
-      const response = await fetch(
-        `${supabaseUrl}/rest/v1/sync_missing_fields?select=resource,field_name,occurrences,last_seen,sample&order=last_seen.desc`,
-        {
-          headers: {
-            'Authorization': `Bearer ${supabaseAnonKey}`,
-            'apikey': supabaseAnonKey,
-            'Accept-Profile': 'api'
-          }
-        }
-      );
-
-      if (!response.ok) {
-        const body = await response.text().catch(() => '');
-        setAlertsError(`HTTP ${response.status}: ${response.statusText}${body ? ` - ${body}` : ''}`);
-        setMissingFields([]);
-        return;
-      }
-
-      const data = await response.json();
-      setMissingFields(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setAlertsError(error.message);
-      setMissingFields([]);
-    } finally {
-      setAlertsLoading(false);
-    }
-  }, [supabaseUrl, supabaseAnonKey]);
-
-  useEffect(() => {
-    fetchMissingFields();
-    const interval = setInterval(fetchMissingFields, 60000);
-    return () => clearInterval(interval);
-  }, [fetchMissingFields]);
-
-  const alertsCount = missingFields.length;
-
-  const handleOpenAlertsModal = async () => {
-    await fetchMissingFields();
-    setShowAlertsModal(true);
-  };
-
-  const handleCloseAlertsModal = () => setShowAlertsModal(false);
-
-  const handleRefreshAlerts = () => fetchMissingFields();
 
   // Progress callback para UI em vez de logs excessivos
   const updateSyncProgress = (stage, progress, total, details = '') => {
@@ -2444,7 +2382,7 @@ const TopMenuBar = ({
       const endTime = Date.now();
       const durationSeconds = ((endTime - startTime) / 1000).toFixed(2);
       
-      updateSyncProgress('Sync Agora - Completo', 90, 100, 'Processando resultados...');
+      updateSyncProgress('Sync Agora - Oportunidades', 90, 100, 'Processando resultados...');
       
       logger.info('\n' + '='.repeat(80));
       logger.info('📊 RESULTADO DA SINCRONIZAÇÃO DE OPORTUNIDADES');
@@ -2456,7 +2394,11 @@ const TopMenuBar = ({
       
       // A API de oportunidades retorna um formato específico
       // Pode retornar: { success: true, data: {...} } ou dados diretos
-      if (data.success || data.totalProcessed !== undefined) {
+      if (data.alreadyRunning) {
+        logger.warn('⚠️ Sincronização já está em andamento');
+        updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Já em execução');
+        alert('⚠️ Sincronização já está em andamento. Aguarde a conclusão.');
+      } else if (data.success || data.totalProcessed !== undefined) {
         totalOportunidades = data.totalProcessed || data.processed || data.total || 0;
         executionTime = data.executionTime ? (data.executionTime / 1000).toFixed(2) : durationSeconds;
         
@@ -2464,16 +2406,7 @@ const TopMenuBar = ({
         if (data.inserted !== undefined) logger.info(`   - Inseridas: ${data.inserted}`);
         if (data.updated !== undefined) logger.info(`   - Atualizadas: ${data.updated}`);
         if (data.errors !== undefined) logger.info(`   - Erros: ${data.errors}`);
-      } else if (data.message) {
-        // Resposta simples de sucesso
-        logger.info(`✅ ${data.message}`);
-        totalOportunidades = 0; // Não sabemos o total
-      } else {
-        // Formato desconhecido - assumir sucesso
-        logger.info('✅ Sincronização de oportunidades concluída');
-        totalOportunidades = 0;
-      }
-      
+        
         logger.info(`⏱️ Duração: ${executionTime}s`);
         
         updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Concluído!');
@@ -2502,14 +2435,26 @@ const TopMenuBar = ({
         await insertSyncRecordBrowser(
           `Sync agora (UI) concluído: ${totalOportunidades} oportunidades`
         );
-      } else if (data.alreadyRunning) {
-        logger.warn('⚠️ Sincronização já está em andamento');
-        updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Já em execução');
-        alert('⚠️ Sincronização já está em andamento. Aguarde a conclusão.');
-      } else {
-        logger.warn('⚠️ Resposta inesperada da API:', data);
-        updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Concluído (sem detalhes)');
+      } else if (data.message) {
+        // Resposta simples de sucesso
+        logger.info(`✅ ${data.message}`);
+        totalOportunidades = 0; // Não sabemos o total
+        
+        logger.info(`⏱️ Duração: ${executionTime}s`);
+        updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Concluído!');
+        setLastSyncTime(new Date());
         alert('✅ Sincronização de oportunidades iniciada com sucesso!');
+        await insertSyncRecordBrowser(`Sync agora (UI) concluído: ${data.message}`);
+      } else {
+        // Formato desconhecido - assumir sucesso
+        logger.info('✅ Sincronização de oportunidades concluída');
+        totalOportunidades = 0;
+        
+        logger.info(`⏱️ Duração: ${executionTime}s`);
+        updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Concluído (sem detalhes)');
+        setLastSyncTime(new Date());
+        alert('✅ Sincronização de oportunidades iniciada com sucesso!');
+        await insertSyncRecordBrowser('Sync agora (UI) concluído: resposta sem formato conhecido');
       }
       
       // Atualiza label buscando do banco
@@ -2670,29 +2615,6 @@ const TopMenuBar = ({
   }, []);
 
   // Não é mais necessário - o autoSyncService já gerencia isso
-
-  const formatAlertTime = (isoDate) => {
-    if (!isoDate) return '—';
-    const parsed = new Date(isoDate);
-    if (Number.isNaN(parsed.getTime())) return '—';
-    return parsed.toLocaleString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const formatSampleValue = (sample) => {
-    if (sample === null || sample === undefined) return 'Sem amostra';
-    if (typeof sample === 'string') return sample;
-    try {
-      return JSON.stringify(sample, null, 2);
-    } catch (error) {
-      return String(sample);
-    }
-  };
 
   // Formatar data/hora da última sincronização
   const formatSyncTime = (date) => {
@@ -2903,63 +2825,6 @@ const TopMenuBar = ({
         )}
       </div>
       </header>
-
-      {showAlertsModal && (
-        <div className="tmb-alert-modal-backdrop" onClick={handleCloseAlertsModal}>
-          <div className="tmb-alert-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="tmb-alert-modal-header">
-              <h3>Alertas de Campos Pendentes</h3>
-              <div className="tmb-alert-modal-actions">
-                <button
-                  className="tmb-alert-action-btn"
-                  onClick={handleRefreshAlerts}
-                  disabled={alertsLoading}
-                >
-                  🔄 Atualizar
-                </button>
-                <button className="tmb-alert-action-btn" onClick={handleCloseAlertsModal}>
-                  ✖ Fechar
-                </button>
-              </div>
-            </div>
-
-            {alertsError && (
-              <div className="tmb-alert-error">
-                ⚠️ Erro ao carregar alertas: {alertsError}
-              </div>
-            )}
-
-            {alertsLoading && !alertsError ? (
-              <div className="tmb-alert-empty">Carregando alertas...</div>
-            ) : alertsCount === 0 ? (
-              <div className="tmb-alert-empty">Nenhum campo pendente no momento.</div>
-            ) : (
-              <div className="tmb-alert-list">
-                {missingFields.map((alert) => (
-                  <div
-                    key={`${alert.resource}-${alert.field_name}`}
-                    className="tmb-alert-item"
-                  >
-                    <div className="tmb-alert-item-header">
-                      <div className="tmb-alert-field">{alert.field_name}</div>
-                      <div className="tmb-alert-meta">
-                        <span className="tmb-alert-resource">Recurso: {alert.resource}</span>
-                        <span>Ocorrências: {alert.occurrences}</span>
-                        <span>Último registro: {formatAlertTime(alert.last_seen)}</span>
-                      </div>
-                    </div>
-                    {alert.sample && (
-                      <pre className="tmb-alert-sample">
-                        {formatSampleValue(alert.sample)}
-                      </pre>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </>
   );
 };
