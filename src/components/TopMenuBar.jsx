@@ -2386,10 +2386,44 @@ const TopMenuBar = ({
       logger.info(`🕒 Início: ${new Date().toLocaleTimeString('pt-BR')}`);
       
       // Determinar URL da API baseado no ambiente
-      const apiBaseUrl = window.location.origin.includes('localhost') 
-        ? 'http://localhost:3002' 
-        : window.location.origin;
-      const apiUrl = `${apiBaseUrl}/api/sync-now`;
+      const isLocalhost = window.location.origin.includes('localhost');
+      let apiUrl;
+      let requestHeaders = {
+        'Content-Type': 'application/json'
+      };
+      
+      if (isLocalhost) {
+        // Em localhost, usa o servidor Node.js
+        apiUrl = 'http://localhost:3002/api/sync-now';
+        requestHeaders = {
+          'Content-Type': 'application/json'
+        };
+      } else {
+        // Em produção, usa a API do EasyPanel (sincrocrm.oficialmed.com.br)
+        // Ler VITE_SYNC_API_URL de window.ENV (injetado pelo Docker) ou import.meta.env
+        const isBrowser = typeof window !== 'undefined';
+        let syncApiUrl = 'https://sincrocrm.oficialmed.com.br'; // Fallback padrão
+        
+        // Tentar ler de window.ENV primeiro (runtime injection)
+        if (isBrowser && window.ENV?.VITE_SYNC_API_URL) {
+          syncApiUrl = window.ENV.VITE_SYNC_API_URL;
+        } 
+        // Se não encontrou, tentar import.meta.env (build-time)
+        else if (import.meta.env?.VITE_SYNC_API_URL) {
+          syncApiUrl = import.meta.env.VITE_SYNC_API_URL;
+        }
+        
+        // Remover barra final se houver
+        if (syncApiUrl.endsWith('/')) {
+          syncApiUrl = syncApiUrl.slice(0, -1);
+        }
+        
+        apiUrl = `${syncApiUrl}/sync/all`;
+        requestHeaders = {
+          'Content-Type': 'application/json'
+          // A API do EasyPanel pode precisar de autenticação - adicionar se necessário
+        };
+      }
       
       logger.info(`📡 Chamando API: ${apiUrl}`);
       updateSyncProgress('Sync Agora - Completo', 10, 100, 'Chamando serviço de sincronização...');
@@ -2397,13 +2431,14 @@ const TopMenuBar = ({
       const startTime = Date.now();
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+        headers: requestHeaders,
+        body: JSON.stringify(isLocalhost ? {
           source: 'ui_button',
           optimized: true
-        })
+        } : {
+          trigger: 'ui_button',
+          optimized: true
+        }) // API do EasyPanel espera trigger e optimized
       });
       
       if (!response.ok) {
@@ -2421,22 +2456,50 @@ const TopMenuBar = ({
       logger.info('📊 RESULTADO DA SINCRONIZAÇÃO COMPLETA');
       logger.info('='.repeat(80));
       
-      if (data.success && data.data) {
-        const summary = data.data.summary || {};
-        const totals = {
-          oportunidades: summary.oportunidades?.totalProcessed || 0,
-          leads: summary.leads?.totalProcessed || 0,
-          segmentos: summary.segmentos?.totalProcessed || 0,
-          total: (summary.oportunidades?.totalProcessed || 0) + 
-                 (summary.leads?.totalProcessed || 0) + 
-                 (summary.segmentos?.totalProcessed || 0)
-        };
+      // Processar resposta tanto do servidor Node.js quanto da Edge Function
+      let totals = {
+        oportunidades: 0,
+        leads: 0,
+        segmentos: 0,
+        total: 0
+      };
+      let executionTime = durationSeconds;
+      
+      if (data.success) {
+        // Formato Edge Function (sync-hourly-cron)
+        if (data.stats) {
+          totals.oportunidades = data.stats.totalProcessed || 0;
+          totals.total = totals.oportunidades;
+          executionTime = (data.stats.executionTime / 1000).toFixed(2) || durationSeconds;
+          logger.info(`✅ Oportunidades: ${totals.oportunidades} processadas`);
+          logger.info(`   - Inseridas: ${data.stats.totalInserted || 0}`);
+          logger.info(`   - Atualizadas: ${data.stats.totalUpdated || 0}`);
+          logger.info(`   - Erros: ${data.stats.totalErrors || 0}`);
+        }
+        // Formato servidor Node.js (/api/sync-now) ou API EasyPanel (/sync/all)
+        else if (data.data && data.data.summary) {
+          const summary = data.data.summary;
+          totals = {
+            oportunidades: summary.oportunidades?.totalProcessed || 0,
+            leads: summary.leads?.totalProcessed || 0,
+            segmentos: summary.segmentos?.totalProcessed || 0,
+            total: (summary.oportunidades?.totalProcessed || 0) + 
+                   (summary.leads?.totalProcessed || 0) + 
+                   (summary.segmentos?.totalProcessed || 0)
+          };
+          executionTime = data.data.durationSeconds || durationSeconds;
+          logger.info(`✅ Oportunidades: ${totals.oportunidades} processadas`);
+          logger.info(`✅ Leads: ${totals.leads} processados`);
+          logger.info(`✅ Segmentos: ${totals.segmentos} processados`);
+        }
+        // Formato direto da API EasyPanel (pode retornar success sem data estruturada)
+        else {
+          logger.info('✅ Sincronização iniciada com sucesso na API do EasyPanel');
+          logger.info('   (A API processa em background - verifique os logs do serviço)');
+        }
         
-        logger.info(`✅ Oportunidades: ${totals.oportunidades} processadas`);
-        logger.info(`✅ Leads: ${totals.leads} processados`);
-        logger.info(`✅ Segmentos: ${totals.segmentos} processados`);
         logger.info(`📊 Total geral: ${totals.total} processados`);
-        logger.info(`⏱️ Duração: ${data.data.durationSeconds || durationSeconds}s`);
+        logger.info(`⏱️ Duração: ${executionTime}s`);
         
         updateSyncProgress('Sync Agora - Completo', 100, 100, 'Concluído!');
         
@@ -2456,16 +2519,16 @@ const TopMenuBar = ({
           `⚡ SYNC AGORA CONCLUÍDO!\n\n` +
           `📊 RESULTADOS:\n` +
           `• Oportunidades: ${totals.oportunidades} processadas\n` +
-          `• Leads: ${totals.leads} processados\n` +
-          `• Segmentos: ${totals.segmentos} processados\n` +
+          (totals.leads > 0 ? `• Leads: ${totals.leads} processados\n` : '') +
+          (totals.segmentos > 0 ? `• Segmentos: ${totals.segmentos} processados\n` : '') +
           `• Total: ${totals.total} processados\n` +
-          `• ⏱️ Tempo: ${data.data.durationSeconds || durationSeconds}s\n\n` +
+          `• ⏱️ Tempo: ${executionTime}s\n\n` +
           `✅ Dados atualizados em tempo real!`
         );
         
         // Registrar na tabela api.sincronizacao (UI)
         await insertSyncRecordBrowser(
-          `Sync agora (UI) concluído: ${totals.oportunidades} oportunidades | ${totals.leads} leads | ${totals.segmentos} segmentos`
+          `Sync agora (UI) concluído: ${totals.oportunidades} oportunidades${totals.leads > 0 ? ` | ${totals.leads} leads` : ''}${totals.segmentos > 0 ? ` | ${totals.segmentos} segmentos` : ''}`
         );
       } else if (data.alreadyRunning) {
         logger.warn('⚠️ Sincronização já está em andamento');
