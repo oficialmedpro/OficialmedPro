@@ -1194,6 +1194,204 @@ export const deleteMetaRonda = async (id) => {
 };
 
 // 🎯 FUNÇÃO PARA BUSCAR ETAPAS DINÂMICAS DO FUNIL
+/**
+ * 🎯 Buscar entradas por dia e vendedor (user_id)
+ * Conta quantas oportunidades têm entrada_compra preenchido em uma data específica por vendedor
+ *
+ * @param {number[]|null} userIds - lista opcional de user_id para filtrar
+ * @param {Date|string|null} date - data desejada (Date ou 'YYYY-MM-DD'); se null, usa hoje (timezone Brasil)
+ */
+/**
+ * 🎯 Buscar entradas por ronda (faixa horária) e vendedor
+ * Agrupa entradas por faixas horárias: 10h (00:01-10:00), 12h (10:01-12:00), 14h (12:01-14:00), 16h (14:01-16:00), 18h (16:01-18:00)
+ * 
+ * @param {number[]|null} userIds - lista opcional de user_id para filtrar
+ * @param {Date|string|null} date - data desejada (Date ou 'YYYY-MM-DD'); se null, usa hoje (timezone Brasil)
+ * @returns {Object} { user_id: { '10h': count, '12h': count, '14h': count, '16h': count, '18h': count } }
+ */
+export const getEntradasVendedoresPorRonda = async (userIds = null, date = null) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    console.log('🔍 [getEntradasVendedoresPorRonda] Buscando entradas por ronda...');
+    
+    // Determinar data base (em timezone do Brasil)
+    let baseDate;
+    if (date instanceof Date) {
+      baseDate = new Date(date);
+    } else if (typeof date === 'string' && date.length >= 10) {
+      baseDate = new Date(`${date}T00:00:00`);
+    } else {
+      const hoje = new Date();
+      baseDate = new Date(hoje.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    }
+
+    baseDate.setHours(0, 0, 0, 0);
+    const dataStr = baseDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    // Construir URL da query - buscar todas as entradas do dia
+    let url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=user_id,entrada_compra&entrada_compra=gte.${dataStr}T00:00:00&entrada_compra=lt.${dataStr}T23:59:59.999&entrada_compra=not.is.null`;
+    
+    // Se userIds foi fornecido, adicionar filtro
+    if (userIds && Array.isArray(userIds) && userIds.length > 0) {
+      const userIdsStr = userIds.join(',');
+      url += `&user_id=in.(${userIdsStr})`;
+    }
+    
+    console.log('📡 [getEntradasVendedoresPorRonda] URL:', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [getEntradasVendedoresPorRonda] Erro ao buscar entradas:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+    
+    const data = await response.json();
+    
+    // Agrupar por user_id e horário (ronda)
+    const contagemPorVendedorRonda = {};
+    
+    if (Array.isArray(data)) {
+      data.forEach(opp => {
+        if (!opp.user_id || !opp.entrada_compra) return;
+        
+        const entradaDate = new Date(opp.entrada_compra);
+        const hora = entradaDate.getHours();
+        const minuto = entradaDate.getMinutes();
+        const totalMinutos = hora * 60 + minuto;
+        
+        // Determinar ronda baseado nas faixas:
+        // 10h: 00:01 até 10:00 (1 minuto até 600 minutos)
+        // 12h: 10:01 até 12:00 (601 até 720 minutos)
+        // 14h: 12:01 até 14:00 (721 até 840 minutos)
+        // 16h: 14:01 até 16:00 (841 até 960 minutos)
+        // 18h: 16:01 até 18:00 (961 até 1080 minutos)
+        let ronda = null;
+        
+        if (totalMinutos >= 1 && totalMinutos <= 600) {
+          ronda = '10h';
+        } else if (totalMinutos >= 601 && totalMinutos <= 720) {
+          ronda = '12h';
+        } else if (totalMinutos >= 721 && totalMinutos <= 840) {
+          ronda = '14h';
+        } else if (totalMinutos >= 841 && totalMinutos <= 960) {
+          ronda = '16h';
+        } else if (totalMinutos >= 961 && totalMinutos <= 1080) {
+          ronda = '18h';
+        }
+        
+        if (ronda) {
+          if (!contagemPorVendedorRonda[opp.user_id]) {
+            contagemPorVendedorRonda[opp.user_id] = { '10h': 0, '12h': 0, '14h': 0, '16h': 0, '18h': 0 };
+          }
+          contagemPorVendedorRonda[opp.user_id][ronda] = (contagemPorVendedorRonda[opp.user_id][ronda] || 0) + 1;
+        }
+      });
+    }
+    
+    console.log(`✅ [getEntradasVendedoresPorRonda] Entradas agrupadas por ronda:`, contagemPorVendedorRonda);
+    return contagemPorVendedorRonda;
+  } catch (error) {
+    console.error('❌ [getEntradasVendedoresPorRonda] Erro:', error);
+    return {};
+  }
+};
+
+export const getEntradasVendedoresHoje = async (userIds = null, date = null) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    console.log('🔍 [getEntradasVendedoresHoje] Buscando entradas por dia...');
+    
+    // Determinar data base (em timezone do Brasil)
+    let baseDate;
+    if (date instanceof Date) {
+      baseDate = new Date(date);
+    } else if (typeof date === 'string' && date.length >= 10) {
+      // Interpretar como YYYY-MM-DD na timezone do Brasil
+      baseDate = new Date(`${date}T00:00:00`);
+    } else {
+      const hoje = new Date();
+      baseDate = new Date(hoje.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    }
+
+    baseDate.setHours(0, 0, 0, 0);
+    
+    // Converter para ISO string para usar na query
+    // Formato: YYYY-MM-DDTHH:mm:ss.sssZ
+    const inicioISO = baseDate.toISOString();
+    
+    // Fim do dia (23:59:59.999)
+    const fim = new Date(baseDate);
+    fim.setHours(23, 59, 59, 999);
+    const fimISO = fim.toISOString();
+    
+    // Construir URL da query
+    // PostgREST permite filtrar timestamps com gte (greater than or equal) e lt (less than)
+    let url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=user_id&entrada_compra=gte.${inicioISO}&entrada_compra=lt.${fimISO}`;
+    
+    // Se userIds foi fornecido, adicionar filtro
+    if (userIds && Array.isArray(userIds) && userIds.length > 0) {
+      // PostgREST usa in() para múltiplos valores
+      const userIdsStr = userIds.join(',');
+      url += `&user_id=in.(${userIdsStr})`;
+    }
+    
+    // Adicionar filtro para garantir que entrada_compra não é null
+    url += `&entrada_compra=not.is.null`;
+    
+    console.log('📡 [getEntradasVendedoresHoje] URL:', url);
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'count=exact'
+      }
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [getEntradasVendedoresHoje] Erro ao buscar entradas:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+    
+    const data = await response.json();
+    
+    // Agrupar por user_id e contar
+    const contagemPorVendedor = {};
+    if (Array.isArray(data)) {
+      data.forEach(opp => {
+        if (opp.user_id !== null && opp.user_id !== undefined) {
+          contagemPorVendedor[opp.user_id] = (contagemPorVendedor[opp.user_id] || 0) + 1;
+        }
+      });
+    }
+    
+    console.log(`✅ [getEntradasVendedoresHoje] ${Object.keys(contagemPorVendedor).length} vendedores com entradas hoje:`, contagemPorVendedor);
+    return contagemPorVendedor;
+  } catch (error) {
+    console.error('❌ [getEntradasVendedoresHoje] Erro:', error);
+    // Retornar objeto vazio em caso de erro para não quebrar o componente
+    return {};
+  }
+};
+
 export const getFunilEtapas = async (idFunilSprint) => {
   try {
     console.log('🔍 Buscando etapas do funil ID:', idFunilSprint)

@@ -6,8 +6,10 @@
   --text: #e5e7eb;
   --muted: #9ca3af;
   --border: #1f2937;
-  --good: #22c55e;
-  --bad: #ef4444;
+  --good: #22c55e; /* Verde bem vivo - 100% ou acima */
+  --warning-light: #a3e635; /* Amarelo quase verde - 81% a 99% */
+  --warning: #f59e0b; /* Laranja/amarelo - 51% a 80% */
+  --bad: #ef4444; /* Vermelho - 0% a 50% */
   --meta: #64748b;
 }
 
@@ -77,6 +79,53 @@
   align-items: center;
   justify-content: flex-end;
   flex: 1;
+  gap: 16px;
+}
+
+.cockpit-vendedores-date-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cockpit-vendedores-date-filter label {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.cockpit-vendedores-date-filter input[type="date"] {
+  padding: 8px 12px;
+  background-color: var(--card-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cockpit-vendedores-date-filter input[type="date"]:hover {
+  border-color: var(--accent);
+  background-color: rgba(56, 189, 248, 0.1);
+}
+
+.cockpit-vendedores-date-filter input[type="date"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2);
+}
+
+.cockpit-vendedores-date-filter input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.cockpit-vendedores-date-filter input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
 }
 
 .cockpit-vendedores-meta-badge {
@@ -277,6 +326,14 @@
   color: var(--good);
 }
 
+.cockpit-vendedores-metrica-real.warning-light {
+  color: var(--warning-light);
+}
+
+.cockpit-vendedores-metrica-real.warning {
+  color: var(--warning);
+}
+
 .cockpit-vendedores-metrica-real.bad {
   color: var(--bad);
 }
@@ -291,6 +348,14 @@
 
 .cockpit-vendedores-metrica-variacao.good {
   color: var(--good);
+}
+
+.cockpit-vendedores-metrica-variacao.warning-light {
+  color: var(--warning-light);
+}
+
+.cockpit-vendedores-metrica-variacao.warning {
+  color: var(--warning);
 }
 
 .cockpit-vendedores-metrica-variacao.bad {
@@ -411,6 +476,14 @@
   color: var(--good);
 }
 
+.cockpit-vendedores-pair-real.warning-light {
+  color: var(--warning-light);
+}
+
+.cockpit-vendedores-pair-real.warning {
+  color: var(--warning);
+}
+
 .cockpit-vendedores-pair-real.bad {
   color: var(--bad);
 }
@@ -421,6 +494,14 @@
 
 .cockpit-vendedores-pair-diff.good {
   color: var(--good);
+}
+
+.cockpit-vendedores-pair-diff.warning-light {
+  color: var(--warning-light);
+}
+
+.cockpit-vendedores-pair-diff.warning {
+  color: var(--warning);
 }
 
 .cockpit-vendedores-pair-diff.bad {
