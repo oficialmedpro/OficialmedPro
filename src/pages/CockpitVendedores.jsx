@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './CockpitVendedores.css';
 import LogoOficialmed from '../../icones/icone_oficialmed.svg';
-import { getVendedoresPorIds, getFunisPorIds, getCockpitVendedoresConfig, getTiposSecao, getMetasVendedores, getMetaVendedorPorDia, getMetasRondas, getNomesMetas, getEntradasVendedoresHoje, getEntradasVendedoresPorRonda } from '../service/supabase';
+import { getVendedoresPorIds, getFunisPorIds, getCockpitVendedoresConfig, getTiposSecao, getMetasVendedores, getMetaVendedorPorDia, getMetasRondas, getNomesMetas, getEntradasVendedoresHoje, getEntradasVendedoresPorRonda, getOrcamentosVendedoresHoje, getOrcamentosVendedoresPorRonda } from '../service/supabase';
 import { useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Settings, MoreVertical, Target } from 'lucide-react';
 
@@ -16,6 +16,8 @@ const CockpitVendedores = () => {
   const [nomesMetas, setNomesMetas] = useState([]);
   const [entradasHoje, setEntradasHoje] = useState({}); // { user_id: count }
   const [entradasPorRonda, setEntradasPorRonda] = useState({}); // { user_id: { '10h': count, '12h': count, ... } }
+  const [orcamentosHoje, setOrcamentosHoje] = useState({}); // { user_id: count }
+  const [orcamentosPorRonda, setOrcamentosPorRonda] = useState({}); // { user_id: { '10h': count, '12h': count, ... } }
   const [dataSelecionada, setDataSelecionada] = useState(() => {
     // Data padrão = hoje na timezone Brasil em formato YYYY-MM-DD
     const hoje = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
@@ -113,11 +115,25 @@ const CockpitVendedores = () => {
         setVendedoresNomes(mapaNomesVendedores);
         setFunisNomes(mapaNomesFunis);
         
-        // Buscar entradas de hoje e por ronda inicialmente
-        const entradasHojeInicial = await getEntradasVendedoresHoje(todosIds);
-        const entradasPorRondaInicial = await getEntradasVendedoresPorRonda(todosIds);
+        // Criar mapeamento de user_id -> funil_id para filtrar corretamente
+        const funilIdsMap = {};
+        configsAtivas.forEach(c => {
+          if (c.vendedor_id_sprint && c.funil_id) {
+            funilIdsMap[c.vendedor_id_sprint] = c.funil_id;
+          }
+        });
+        
+        // Buscar entradas e orçamentos de hoje e por ronda inicialmente (filtrando por funil_id)
+        const [entradasHojeInicial, entradasPorRondaInicial, orcamentosHojeInicial, orcamentosPorRondaInicial] = await Promise.all([
+          getEntradasVendedoresHoje(todosIds, null, funilIdsMap),
+          getEntradasVendedoresPorRonda(todosIds, null, funilIdsMap),
+          getOrcamentosVendedoresHoje(todosIds, null, funilIdsMap),
+          getOrcamentosVendedoresPorRonda(todosIds, null, funilIdsMap)
+        ]);
         setEntradasHoje(entradasHojeInicial);
         setEntradasPorRonda(entradasPorRondaInicial);
+        setOrcamentosHoje(orcamentosHojeInicial);
+        setOrcamentosPorRonda(orcamentosPorRondaInicial);
         
         console.log('✅ [CockpitVendedores] Dados carregados:', {
           configs: configsAtivas.length,
@@ -152,18 +168,32 @@ const CockpitVendedores = () => {
 
         if (todosIds.length === 0) return;
 
-        // Buscar entradas do dia e por ronda
-        const [entradasDia, entradasRonda] = await Promise.all([
-          getEntradasVendedoresHoje(todosIds, dataSelecionada),
-          getEntradasVendedoresPorRonda(todosIds, dataSelecionada)
+        // Criar mapeamento de user_id -> funil_id para filtrar corretamente
+        const funilIdsMap = {};
+        configVendedores.forEach(c => {
+          if (c.vendedor_id_sprint && c.funil_id) {
+            funilIdsMap[c.vendedor_id_sprint] = c.funil_id;
+          }
+        });
+
+        // Buscar entradas e orçamentos do dia e por ronda (filtrando por funil_id)
+        const [entradasDia, entradasRonda, orcamentosDia, orcamentosRonda] = await Promise.all([
+          getEntradasVendedoresHoje(todosIds, dataSelecionada, funilIdsMap),
+          getEntradasVendedoresPorRonda(todosIds, dataSelecionada, funilIdsMap),
+          getOrcamentosVendedoresHoje(todosIds, dataSelecionada, funilIdsMap),
+          getOrcamentosVendedoresPorRonda(todosIds, dataSelecionada, funilIdsMap)
         ]);
         
         setEntradasHoje(entradasDia);
         setEntradasPorRonda(entradasRonda);
+        setOrcamentosHoje(orcamentosDia);
+        setOrcamentosPorRonda(orcamentosRonda);
 
-        console.log('📊 [CockpitVendedores] Entradas carregadas para data', dataSelecionada, {
-          dia: entradasDia,
-          ronda: entradasRonda
+        console.log('📊 [CockpitVendedores] Entradas e orçamentos carregados para data', dataSelecionada, {
+          entradasDia,
+          entradasRonda,
+          orcamentosDia,
+          orcamentosRonda
         });
       } catch (error) {
         console.error('❌ [CockpitVendedores] Erro ao carregar entradas:', error);
@@ -261,11 +291,17 @@ const CockpitVendedores = () => {
           const entradaVariacaoRonda = metaEntradaRonda && metaEntradaRonda > 0 
             ? Math.round(((entradaAtualRonda - metaEntradaRonda) / metaEntradaRonda) * 100) 
             : 0;
+          
+          // Buscar orçamentos reais por ronda para este vendedor
+          const orcamentoAtualRonda = orcamentosPorRonda[config.idVendedor]?.[horario] || 0;
+          const orcamentoVariacaoRonda = metaOrcamentoRonda && metaOrcamentoRonda > 0
+            ? Math.round(((orcamentoAtualRonda - metaOrcamentoRonda) / metaOrcamentoRonda) * 100)
+            : 0;
 
           return {
             horario: horario,
             entrada: { atual: entradaAtualRonda, meta: metaEntradaRonda, variacao: entradaVariacaoRonda },
-            orcamento: { atual: 0, meta: metaOrcamentoRonda, variacao: 0 },
+            orcamento: { atual: orcamentoAtualRonda, meta: metaOrcamentoRonda, variacao: orcamentoVariacaoRonda },
             vendas: { atual: 0, meta: metaVendasRonda, variacao: 0 },
             valor: { atual: 0, meta: metaValorRonda, variacao: 0 },
             ticketMedio: { atual: 0, meta: metaTicketMedioRonda, variacao: 0 },
@@ -280,12 +316,18 @@ const CockpitVendedores = () => {
           ? Math.round(((entradaAtual - metaEntrada) / metaEntrada) * 100) 
           : 0;
         
+        // Buscar contagem de orçamentos de hoje para este vendedor
+        const orcamentoAtual = orcamentosHoje[config.idVendedor] || 0;
+        const orcamentoVariacao = metaOrcamentos && metaOrcamentos > 0
+          ? Math.round(((orcamentoAtual - metaOrcamentos) / metaOrcamentos) * 100)
+          : 0;
+        
         return {
           idVendedor: config.idVendedor,
           idFunil: config.idFunil,
           nome: vendedoresNomes[config.idVendedor] || `Vendedor ${index + 1}`,
           entrada: { atual: entradaAtual, meta: metaEntrada, variacao: entradaVariacao },
-          orcamentos: { atual: 0, meta: metaOrcamentos, variacao: 0 },
+          orcamentos: { atual: orcamentoAtual, meta: metaOrcamentos, variacao: orcamentoVariacao },
           vendas: { atual: 0, meta: metaVendas, variacao: 0 },
           valor: { atual: 0, meta: metaValor, variacao: 0 },
           ticketMedio: { atual: 0, meta: metaTicketMedio, variacao: 0 },
@@ -299,7 +341,7 @@ const CockpitVendedores = () => {
     });
 
     return dados;
-  }, [vendedoresNomes, funisNomes, configVendedoresPorTipo, tiposSecao, metas, metasRondas, entradasHoje, entradasPorRonda]);
+  }, [vendedoresNomes, funisNomes, configVendedoresPorTipo, tiposSecao, metas, metasRondas, entradasHoje, entradasPorRonda, orcamentosHoje, orcamentosPorRonda]);
 
   /**
    * Formata a porcentagem realizada e o que falta (se aplicável)

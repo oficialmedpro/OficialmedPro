@@ -2325,7 +2325,8 @@ const TopMenuBar = ({
     updateSyncProgress('Sync Agora - Oportunidades', 0, 100, 'Iniciando sincronização de oportunidades...');
     
     // Declarar apiUrl fora do try para poder usar no catch
-    let apiUrl = 'https://sincro.oficialmed.com.br/sync/oportunidades'; // Valor padrão
+    // IMPORTANTE: O Traefik remove o prefixo /oportunidades, então usamos /oportunidades/sync/oportunidades
+    let apiUrl = 'https://sincro.oficialmed.com.br/oportunidades/sync/oportunidades'; // Valor padrão
     
     try {
       logger.info('⚡ INICIANDO SYNC AGORA - SINCRONIZAÇÃO DE OPORTUNIDADES');
@@ -2360,8 +2361,9 @@ const TopMenuBar = ({
         syncApiUrl = syncApiUrl.slice(0, -1);
       }
       
-      // Usar /sync/oportunidades para garantir que sincroniza APENAS oportunidades
-      apiUrl = `${syncApiUrl}/sync/oportunidades`;
+      // IMPORTANTE: O Traefik remove o prefixo /oportunidades antes de passar para a API
+      // Então precisamos usar /oportunidades/sync/oportunidades para que a API receba /sync/oportunidades
+      apiUrl = `${syncApiUrl}/oportunidades/sync/oportunidades`;
       
       if (isLocalhost) {
         logger.info('🔧 Localhost usando API de produção:', apiUrl);

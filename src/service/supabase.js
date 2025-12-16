@@ -1209,7 +1209,7 @@ export const deleteMetaRonda = async (id) => {
  * @param {Date|string|null} date - data desejada (Date ou 'YYYY-MM-DD'); se null, usa hoje (timezone Brasil)
  * @returns {Object} { user_id: { '10h': count, '12h': count, '14h': count, '16h': count, '18h': count } }
  */
-export const getEntradasVendedoresPorRonda = async (userIds = null, date = null) => {
+export const getEntradasVendedoresPorRonda = async (userIds = null, date = null, funilIdsMap = null) => {
   try {
     const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
     
@@ -1227,78 +1227,166 @@ export const getEntradasVendedoresPorRonda = async (userIds = null, date = null)
     }
 
     baseDate.setHours(0, 0, 0, 0);
-    const dataStr = baseDate.toISOString().split('T')[0]; // YYYY-MM-DD
     
-    // Construir URL da query - buscar todas as entradas do dia
-    let url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=user_id,entrada_compra&entrada_compra=gte.${dataStr}T00:00:00&entrada_compra=lt.${dataStr}T23:59:59.999&entrada_compra=not.is.null`;
+    // Converter para ISO string para usar na query
+    const inicioISO = baseDate.toISOString();
+    const fim = new Date(baseDate);
+    fim.setHours(23, 59, 59, 999);
+    const fimISO = fim.toISOString();
     
-    // Se userIds foi fornecido, adicionar filtro
-    if (userIds && Array.isArray(userIds) && userIds.length > 0) {
-      const userIdsStr = userIds.join(',');
-      url += `&user_id=in.(${userIdsStr})`;
-    }
+    // Mapeamento de funil_id para campo de entrada
+    const funilParaCampo = {
+      6: 'entrada_compra',
+      14: 'entrada_recompra',
+      33: 'entrada_ativacao',
+      41: 'entrada_monitoramento',
+      38: 'entrada_reativacao'
+    };
     
-    console.log('📡 [getEntradasVendedoresPorRonda] URL:', url);
+    let promises = [];
     
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-        'apikey': supabaseAnonKey,
-        'Accept-Profile': 'api',
-        'Content-Profile': 'api'
-      }
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ [getEntradasVendedoresPorRonda] Erro ao buscar entradas:', response.status, errorText);
-      throw new Error(`Erro ${response.status}: ${errorText}`);
-    }
-    
-    const data = await response.json();
-    
-    // Agrupar por user_id e horário (ronda)
-    const contagemPorVendedorRonda = {};
-    
-    if (Array.isArray(data)) {
-      data.forEach(opp => {
-        if (!opp.user_id || !opp.entrada_compra) return;
-        
-        const entradaDate = new Date(opp.entrada_compra);
-        const hora = entradaDate.getHours();
-        const minuto = entradaDate.getMinutes();
-        const totalMinutos = hora * 60 + minuto;
-        
-        // Determinar ronda baseado nas faixas:
-        // 10h: 00:01 até 10:00 (1 minuto até 600 minutos)
-        // 12h: 10:01 até 12:00 (601 até 720 minutos)
-        // 14h: 12:01 até 14:00 (721 até 840 minutos)
-        // 16h: 14:01 até 16:00 (841 até 960 minutos)
-        // 18h: 16:01 até 18:00 (961 até 1080 minutos)
-        let ronda = null;
-        
-        if (totalMinutos >= 1 && totalMinutos <= 600) {
-          ronda = '10h';
-        } else if (totalMinutos >= 601 && totalMinutos <= 720) {
-          ronda = '12h';
-        } else if (totalMinutos >= 721 && totalMinutos <= 840) {
-          ronda = '14h';
-        } else if (totalMinutos >= 841 && totalMinutos <= 960) {
-          ronda = '16h';
-        } else if (totalMinutos >= 961 && totalMinutos <= 1080) {
-          ronda = '18h';
+    // Se funilIdsMap foi fornecido, buscar apenas os campos específicos de cada funil
+    if (funilIdsMap && typeof funilIdsMap === 'object') {
+      // Agrupar userIds por funil_id
+      const funisAgrupados = {};
+      Object.entries(funilIdsMap).forEach(([userId, funilId]) => {
+        const funilIdNum = parseInt(funilId);
+        if (!funisAgrupados[funilIdNum]) {
+          funisAgrupados[funilIdNum] = [];
+        }
+        funisAgrupados[funilIdNum].push(parseInt(userId));
+      });
+      
+      // Buscar cada funil separadamente
+      Object.entries(funisAgrupados).forEach(([funilId, userIdsList]) => {
+        const campoNome = funilParaCampo[parseInt(funilId)];
+        if (!campoNome) {
+          console.warn(`⚠️ [getEntradasVendedoresPorRonda] Funil ID ${funilId} não mapeado, ignorando`);
+          return;
         }
         
-        if (ronda) {
-          if (!contagemPorVendedorRonda[opp.user_id]) {
-            contagemPorVendedorRonda[opp.user_id] = { '10h': 0, '12h': 0, '14h': 0, '16h': 0, '18h': 0 };
+        const funilUserIdsFilter = `&user_id=in.(${userIdsList.join(',')})`;
+        const funilFilter = `&funil_id=eq.${funilId}`;
+        const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,${campoNome}&${campoNome}=gte.${inicioISO}&${campoNome}=lt.${fimISO}&${campoNome}=not.is.null${funilUserIdsFilter}${funilFilter}`;
+        
+        promises.push(
+          fetch(url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'apikey': supabaseAnonKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api'
+            }
+          }).then(response => {
+            if (!response.ok) {
+              console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${campoNome} (funil ${funilId}):`, response.status);
+              return [];
+            }
+            return response.json();
+          }).catch(error => {
+            console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${campoNome} (funil ${funilId}):`, error);
+            return [];
+          })
+        );
+      });
+    } else {
+      // Se não há funilIdsMap, buscar TODOS os campos (comportamento anterior)
+      const camposEntrada = Object.values(funilParaCampo);
+      const userIdsFilter = userIds && Array.isArray(userIds) && userIds.length > 0 
+        ? `&user_id=in.(${userIds.join(',')})` 
+        : '';
+      
+      promises = camposEntrada.map(nome => {
+        const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,${nome}&${nome}=gte.${inicioISO}&${nome}=lt.${fimISO}&${nome}=not.is.null${userIdsFilter}`;
+        
+        return fetch(url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
+            'Accept-Profile': 'api',
+            'Content-Profile': 'api'
           }
-          contagemPorVendedorRonda[opp.user_id][ronda] = (contagemPorVendedorRonda[opp.user_id][ronda] || 0) + 1;
-        }
+        }).then(response => {
+          if (!response.ok) {
+            console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${nome}:`, response.status);
+            return [];
+          }
+          return response.json();
+        }).catch(error => {
+          console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${nome}:`, error);
+          return [];
+        });
       });
     }
+    
+    const results = await Promise.all(promises);
+    
+    // Agrupar por user_id e horário (ronda), usando Set para evitar duplicatas
+    const contagemPorVendedorRonda = {};
+    const oportunidadesProcessadas = new Set();
+    
+    results.forEach((data) => {
+      
+      if (Array.isArray(data)) {
+        data.forEach(opp => {
+          if (!opp.user_id) return;
+          
+          // Usar id como chave única para evitar processar a mesma oportunidade múltiplas vezes
+          const chaveUnica = `${opp.user_id}-${opp.id}`;
+          if (oportunidadesProcessadas.has(chaveUnica)) return;
+          oportunidadesProcessadas.add(chaveUnica);
+          
+          // Buscar o campo de entrada preenchido (verificar todos os campos)
+          let dataEntrada = null;
+          const campos = Object.values(funilParaCampo);
+          for (const campo of campos) {
+            if (opp[campo]) {
+              dataEntrada = opp[campo];
+              break;
+            }
+          }
+          if (!dataEntrada) return;
+          
+          const entradaDate = new Date(dataEntrada);
+          // Ajustar para o fuso horário de São Paulo para extrair a hora correta
+          const localTime = new Date(entradaDate.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+          const hora = localTime.getHours();
+          const minuto = localTime.getMinutes();
+          const totalMinutos = hora * 60 + minuto;
+          
+          // Determinar ronda baseado nas faixas:
+          // 10h: 00:01 até 10:00 (1 minuto até 600 minutos)
+          // 12h: 10:01 até 12:00 (601 até 720 minutos)
+          // 14h: 12:01 até 14:00 (721 até 840 minutos)
+          // 16h: 14:01 até 16:00 (841 até 960 minutos)
+          // 18h: 16:01 até 18:00 (961 até 1080 minutos)
+          let ronda = null;
+          
+          if (totalMinutos >= 1 && totalMinutos <= 600) {
+            ronda = '10h';
+          } else if (totalMinutos >= 601 && totalMinutos <= 720) {
+            ronda = '12h';
+          } else if (totalMinutos >= 721 && totalMinutos <= 840) {
+            ronda = '14h';
+          } else if (totalMinutos >= 841 && totalMinutos <= 960) {
+            ronda = '16h';
+          } else if (totalMinutos >= 961 && totalMinutos <= 1080) {
+            ronda = '18h';
+          }
+          
+          if (ronda) {
+            if (!contagemPorVendedorRonda[opp.user_id]) {
+              contagemPorVendedorRonda[opp.user_id] = { '10h': 0, '12h': 0, '14h': 0, '16h': 0, '18h': 0 };
+            }
+            contagemPorVendedorRonda[opp.user_id][ronda] = (contagemPorVendedorRonda[opp.user_id][ronda] || 0) + 1;
+          }
+        });
+      }
+    });
     
     console.log(`✅ [getEntradasVendedoresPorRonda] Entradas agrupadas por ronda:`, contagemPorVendedorRonda);
     return contagemPorVendedorRonda;
@@ -1308,11 +1396,11 @@ export const getEntradasVendedoresPorRonda = async (userIds = null, date = null)
   }
 };
 
-export const getEntradasVendedoresHoje = async (userIds = null, date = null) => {
+export const getEntradasVendedoresHoje = async (userIds = null, date = null, funilIdsMap = null) => {
   try {
     const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
     
-    console.log('🔍 [getEntradasVendedoresHoje] Buscando entradas por dia...');
+    console.log('🔍 [getEntradasVendedoresHoje] Buscando entradas por dia (todos os funis)...');
     
     // Determinar data base (em timezone do Brasil)
     let baseDate;
@@ -1337,57 +1425,421 @@ export const getEntradasVendedoresHoje = async (userIds = null, date = null) => 
     fim.setHours(23, 59, 59, 999);
     const fimISO = fim.toISOString();
     
-    // Construir URL da query
-    // PostgREST permite filtrar timestamps com gte (greater than or equal) e lt (less than)
-    let url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=user_id&entrada_compra=gte.${inicioISO}&entrada_compra=lt.${fimISO}`;
+    // Construir filtro de userIds se fornecido
+    const userIdsFilter = userIds && Array.isArray(userIds) && userIds.length > 0 
+      ? `&user_id=in.(${userIds.join(',')})` 
+      : '';
     
-    // Se userIds foi fornecido, adicionar filtro
-    if (userIds && Array.isArray(userIds) && userIds.length > 0) {
-      // PostgREST usa in() para múltiplos valores
-      const userIdsStr = userIds.join(',');
-      url += `&user_id=in.(${userIdsStr})`;
-    }
+    // Mapeamento de funil_id para campo de entrada
+    const funilParaCampo = {
+      6: 'entrada_compra',
+      14: 'entrada_recompra',
+      33: 'entrada_ativacao',
+      41: 'entrada_monitoramento',
+      38: 'entrada_reativacao'
+    };
     
-    // Adicionar filtro para garantir que entrada_compra não é null
-    url += `&entrada_compra=not.is.null`;
+    let promises = [];
     
-    console.log('📡 [getEntradasVendedoresHoje] URL:', url);
-    
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-        'apikey': supabaseAnonKey,
-        'Accept-Profile': 'api',
-        'Content-Profile': 'api',
-        'Prefer': 'count=exact'
-      }
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ [getEntradasVendedoresHoje] Erro ao buscar entradas:', response.status, errorText);
-      throw new Error(`Erro ${response.status}: ${errorText}`);
-    }
-    
-    const data = await response.json();
-    
-    // Agrupar por user_id e contar
-    const contagemPorVendedor = {};
-    if (Array.isArray(data)) {
-      data.forEach(opp => {
-        if (opp.user_id !== null && opp.user_id !== undefined) {
-          contagemPorVendedor[opp.user_id] = (contagemPorVendedor[opp.user_id] || 0) + 1;
+    // Se funilIdsMap foi fornecido, buscar apenas os campos específicos de cada funil
+    if (funilIdsMap && typeof funilIdsMap === 'object') {
+      // Agrupar userIds por funil_id
+      const funisAgrupados = {};
+      Object.entries(funilIdsMap).forEach(([userId, funilId]) => {
+        const funilIdNum = parseInt(funilId);
+        if (!funisAgrupados[funilIdNum]) {
+          funisAgrupados[funilIdNum] = [];
         }
+        funisAgrupados[funilIdNum].push(parseInt(userId));
+      });
+      
+      // Buscar cada funil separadamente
+      Object.entries(funisAgrupados).forEach(([funilId, userIdsList]) => {
+        const campo = funilParaCampo[parseInt(funilId)];
+        if (!campo) {
+          console.warn(`⚠️ [getEntradasVendedoresHoje] Funil ID ${funilId} não mapeado, ignorando`);
+          return;
+        }
+        
+        const funilUserIdsFilter = `&user_id=in.(${userIdsList.join(',')})`;
+        const funilFilter = `&funil_id=eq.${funilId}`;
+        const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id&${campo}=gte.${inicioISO}&${campo}=lt.${fimISO}&${campo}=not.is.null${funilUserIdsFilter}${funilFilter}`;
+        
+        promises.push(
+          fetch(url, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'apikey': supabaseAnonKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api',
+              'Prefer': 'count=exact'
+            }
+          }).then(response => {
+            if (!response.ok) {
+              console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campo} (funil ${funilId}):`, response.status);
+              return [];
+            }
+            return response.json();
+          }).catch(error => {
+            console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campo} (funil ${funilId}):`, error);
+            return [];
+          })
+        );
+      });
+    } else {
+      // Se não há funilIdsMap, buscar TODOS os campos (comportamento anterior)
+      const camposEntrada = Object.values(funilParaCampo);
+      
+      promises = camposEntrada.map(campo => {
+        const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id&${campo}=gte.${inicioISO}&${campo}=lt.${fimISO}&${campo}=not.is.null${userIdsFilter}`;
+        
+        return fetch(url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'apikey': supabaseAnonKey,
+            'Accept-Profile': 'api',
+            'Content-Profile': 'api',
+            'Prefer': 'count=exact'
+          }
+        }).then(response => {
+          if (!response.ok) {
+            console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campo}:`, response.status);
+            return [];
+          }
+          return response.json();
+        }).catch(error => {
+          console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campo}:`, error);
+          return [];
+        });
       });
     }
+    
+    const results = await Promise.all(promises);
+    
+    // Combinar todos os resultados usando Set para evitar duplicatas
+    const oportunidadesUnicas = new Set();
+    const contagemPorVendedor = {};
+    
+    results.forEach(data => {
+      if (Array.isArray(data)) {
+        data.forEach(opp => {
+          if (opp.user_id !== null && opp.user_id !== undefined && opp.id !== null && opp.id !== undefined) {
+            // Usar id como chave única para evitar contar a mesma oportunidade múltiplas vezes
+            const chaveUnica = `${opp.user_id}-${opp.id}`;
+            if (!oportunidadesUnicas.has(chaveUnica)) {
+              oportunidadesUnicas.add(chaveUnica);
+              contagemPorVendedor[opp.user_id] = (contagemPorVendedor[opp.user_id] || 0) + 1;
+            }
+          }
+        });
+      }
+    });
     
     console.log(`✅ [getEntradasVendedoresHoje] ${Object.keys(contagemPorVendedor).length} vendedores com entradas hoje:`, contagemPorVendedor);
     return contagemPorVendedor;
   } catch (error) {
     console.error('❌ [getEntradasVendedoresHoje] Erro:', error);
     // Retornar objeto vazio em caso de erro para não quebrar o componente
+    return {};
+  }
+};
+
+// ============================================================================
+// FUNÇÕES PARA BUSCAR ORÇAMENTOS (ORÇAMENTO OU NEGOCIAÇÃO)
+// ============================================================================
+
+/**
+ * Busca orçamentos por vendedor para uma data específica
+ * Um orçamento é contabilizado quando o lead passa pela etapa ORÇAMENTO OU NEGOCIAÇÃO
+ * Se passar pelas duas etapas, conta apenas 1 orçamento (usa a data mais antiga)
+ */
+export const getOrcamentosVendedoresHoje = async (userIds = null, date = null, funilIdsMap = null) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    console.log('🔍 [getOrcamentosVendedoresHoje] Buscando orçamentos por dia...');
+    
+    let baseDate;
+    if (date instanceof Date) {
+      baseDate = new Date(date);
+    } else if (typeof date === 'string' && date.length >= 10) {
+      baseDate = new Date(`${date}T00:00:00`);
+    } else {
+      const hoje = new Date();
+      baseDate = new Date(hoje.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    }
+
+    baseDate.setHours(0, 0, 0, 0);
+    
+    const inicioISO = baseDate.toISOString();
+    const fim = new Date(baseDate);
+    fim.setHours(23, 59, 59, 999);
+    const fimISO = fim.toISOString();
+    
+    const funilParaCampos = {
+      6: { orcamento: 'orcamento_compra', negociacao: 'negociacao_compra' },
+      14: { orcamento: 'orcamento_recompra', negociacao: 'negociacao_recompra' },
+      33: { orcamento: 'orcamento_ativacao', negociacao: 'negociacao_ativacao' },
+      41: { orcamento: 'orcamento_monitoramento', negociacao: 'negociacao_monitoramento' },
+      38: { orcamento: 'orcamento_reativacao', negociacao: 'negociacao_reativacao' }
+    };
+    
+    const allOpportunities = [];
+    const oportunidadesProcessadas = new Set();
+
+    if (funilIdsMap && typeof funilIdsMap === 'object') {
+      const funisAgrupados = {};
+      Object.entries(funilIdsMap).forEach(([userId, funilId]) => {
+        const funilIdNum = parseInt(funilId);
+        if (!funisAgrupados[funilIdNum]) {
+          funisAgrupados[funilIdNum] = [];
+        }
+        funisAgrupados[funilIdNum].push(parseInt(userId));
+      });
+      
+      for (const [funilId, userIdsList] of Object.entries(funisAgrupados)) {
+        const campos = funilParaCampos[parseInt(funilId)];
+        if (!campos) {
+          console.warn(`⚠️ [getOrcamentosVendedoresHoje] Funil ID ${funilId} não mapeado`);
+          continue;
+        }
+        
+        const funilUserIdsFilter = `&user_id=in.(${userIdsList.join(',')})`;
+        const funilFilter = `&funil_id=eq.${funilId}`;
+        
+        // Buscar oportunidades com orcamento OU negociacao no intervalo de datas
+        // Como o PostgREST não suporta OR fácil, vamos buscar separadamente e combinar
+        const promises = [];
+        
+        // Buscar orcamentos no intervalo
+        const urlOrc = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,${campos.orcamento},${campos.negociacao}${funilUserIdsFilter}${funilFilter}&${campos.orcamento}=gte.${inicioISO}&${campos.orcamento}=lt.${fimISO}&${campos.orcamento}=not.is.null`;
+        promises.push(
+          fetch(urlOrc, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'apikey': supabaseAnonKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api',
+              'Prefer': 'count=exact'
+            }
+          }).then(response => response.ok ? response.json() : []).catch(() => [])
+        );
+        
+        // Buscar negociacoes no intervalo
+        const urlNeg = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,${campos.orcamento},${campos.negociacao}${funilUserIdsFilter}${funilFilter}&${campos.negociacao}=gte.${inicioISO}&${campos.negociacao}=lt.${fimISO}&${campos.negociacao}=not.is.null`;
+        promises.push(
+          fetch(urlNeg, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'apikey': supabaseAnonKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api',
+              'Prefer': 'count=exact'
+            }
+          }).then(response => response.ok ? response.json() : []).catch(() => [])
+        );
+        
+        try {
+          const [dataOrc, dataNeg] = await Promise.all(promises);
+          const dataCombinada = [...dataOrc, ...dataNeg];
+          
+          dataCombinada.forEach(opp => {
+            const chaveUnica = `${opp.user_id}-${opp.id}`;
+            if (oportunidadesProcessadas.has(chaveUnica)) return;
+            
+            // Se chegou aqui, já está no intervalo de datas (a query já filtra)
+            allOpportunities.push(opp);
+            oportunidadesProcessadas.add(chaveUnica);
+          });
+        } catch (error) {
+          console.warn(`⚠️ [getOrcamentosVendedoresHoje] Erro ao buscar funil ${funilId}:`, error);
+        }
+      }
+    }
+    
+    const contagemPorVendedor = {};
+    allOpportunities.forEach(opp => {
+      if (opp.user_id !== null && opp.user_id !== undefined) {
+        contagemPorVendedor[opp.user_id] = (contagemPorVendedor[opp.user_id] || 0) + 1;
+      }
+    });
+    
+    console.log(`✅ [getOrcamentosVendedoresHoje] ${Object.keys(contagemPorVendedor).length} vendedores com orçamentos:`, contagemPorVendedor);
+    return contagemPorVendedor;
+  } catch (error) {
+    console.error('❌ [getOrcamentosVendedoresHoje] Erro:', error);
+    return {};
+  }
+};
+
+/**
+ * Busca orçamentos agrupados por ronda (horários específicos)
+ */
+export const getOrcamentosVendedoresPorRonda = async (userIds = null, date = null, funilIdsMap = null) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    console.log('🔍 [getOrcamentosVendedoresPorRonda] Buscando orçamentos por ronda...');
+
+    let baseDate;
+    if (date instanceof Date) {
+      baseDate = new Date(date);
+    } else if (typeof date === 'string' && date.length >= 10) {
+      baseDate = new Date(`${date}T00:00:00`);
+    } else {
+      const hoje = new Date();
+      baseDate = new Date(hoje.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+    }
+    baseDate.setHours(0, 0, 0, 0);
+
+    const inicioISO = baseDate.toISOString();
+    const fim = new Date(baseDate);
+    fim.setHours(23, 59, 59, 999);
+    const fimISO = fim.toISOString();
+
+    const funilParaCampos = {
+      6: { orcamento: 'orcamento_compra', negociacao: 'negociacao_compra' },
+      14: { orcamento: 'orcamento_recompra', negociacao: 'negociacao_recompra' },
+      33: { orcamento: 'orcamento_ativacao', negociacao: 'negociacao_ativacao' },
+      41: { orcamento: 'orcamento_monitoramento', negociacao: 'negociacao_monitoramento' },
+      38: { orcamento: 'orcamento_reativacao', negociacao: 'negociacao_reativacao' }
+    };
+
+    const allOpportunities = [];
+    const oportunidadesProcessadas = new Set();
+
+    if (funilIdsMap && typeof funilIdsMap === 'object') {
+      const funisAgrupados = {};
+      Object.entries(funilIdsMap).forEach(([userId, funilId]) => {
+        const funilIdNum = parseInt(funilId);
+        if (!funisAgrupados[funilIdNum]) {
+          funisAgrupados[funilIdNum] = [];
+        }
+        funisAgrupados[funilIdNum].push(parseInt(userId));
+      });
+      
+      for (const [funilId, userIdsList] of Object.entries(funisAgrupados)) {
+        const campos = funilParaCampos[parseInt(funilId)];
+        if (!campos) continue;
+        
+        const funilUserIdsFilter = `&user_id=in.(${userIdsList.join(',')})`;
+        const funilFilter = `&funil_id=eq.${funilId}`;
+        
+        // Buscar orcamentos e negociacoes separadamente no intervalo de datas
+        const promises = [];
+        
+        // Buscar orcamentos
+        const urlOrc = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,${campos.orcamento},${campos.negociacao}${funilUserIdsFilter}${funilFilter}&${campos.orcamento}=gte.${inicioISO}&${campos.orcamento}=lt.${fimISO}&${campos.orcamento}=not.is.null`;
+        promises.push(
+          fetch(urlOrc, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'apikey': supabaseAnonKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api'
+            }
+          }).then(response => response.ok ? response.json() : []).catch(() => [])
+        );
+        
+        // Buscar negociacoes
+        const urlNeg = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,${campos.orcamento},${campos.negociacao}${funilUserIdsFilter}${funilFilter}&${campos.negociacao}=gte.${inicioISO}&${campos.negociacao}=lt.${fimISO}&${campos.negociacao}=not.is.null`;
+        promises.push(
+          fetch(urlNeg, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'apikey': supabaseAnonKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api'
+            }
+          }).then(response => response.ok ? response.json() : []).catch(() => [])
+        );
+        
+        try {
+          const [dataOrc, dataNeg] = await Promise.all(promises);
+          const dataCombinada = [...dataOrc, ...dataNeg];
+          
+          dataCombinada.forEach(opp => {
+            const chaveUnica = `${opp.user_id}-${opp.id}`;
+            if (oportunidadesProcessadas.has(chaveUnica)) return;
+            
+            // Se chegou aqui, já está no intervalo de datas (a query já filtra)
+            allOpportunities.push({ ...opp, funil_id: parseInt(funilId) });
+            oportunidadesProcessadas.add(chaveUnica);
+          });
+        } catch (error) {
+          console.warn(`⚠️ [getOrcamentosVendedoresPorRonda] Erro ao buscar funil ${funilId}:`, error);
+        }
+      }
+    }
+
+    const contagemPorVendedorPorRonda = {};
+
+    const rondasHorarios = {
+      '10h': { start: 0, end: 10 * 60 },
+      '12h': { start: 10 * 60 + 1, end: 12 * 60 },
+      '14h': { start: 12 * 60 + 1, end: 14 * 60 },
+      '16h': { start: 14 * 60 + 1, end: 16 * 60 },
+      '18h': { start: 16 * 60 + 1, end: 18 * 60 },
+    };
+
+    allOpportunities.forEach(opp => {
+      if (opp.user_id !== null && opp.user_id !== undefined) {
+        // Encontrar o funil_id correto baseado no user_id
+        const funilIdParaOpp = funilIdsMap ? funilIdsMap[opp.user_id] : null;
+        if (!funilIdParaOpp) return;
+        
+        const campos = funilParaCampos[parseInt(funilIdParaOpp)];
+        if (!campos) return;
+        
+        // Usar a data mais antiga entre orcamento e negociacao
+        const dataOrcamento = opp[campos.orcamento] ? new Date(opp[campos.orcamento]) : null;
+        const dataNegociacao = opp[campos.negociacao] ? new Date(opp[campos.negociacao]) : null;
+        
+        let dataParaUsar = null;
+        if (dataOrcamento && dataNegociacao) {
+          dataParaUsar = dataOrcamento <= dataNegociacao ? dataOrcamento : dataNegociacao;
+        } else if (dataOrcamento) {
+          dataParaUsar = dataOrcamento;
+        } else if (dataNegociacao) {
+          dataParaUsar = dataNegociacao;
+        }
+        
+        if (!dataParaUsar) return;
+        
+        const localTime = new Date(dataParaUsar.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+        const minutesOfDay = localTime.getHours() * 60 + localTime.getMinutes();
+
+        if (!contagemPorVendedorPorRonda[opp.user_id]) {
+          contagemPorVendedorPorRonda[opp.user_id] = {
+            '10h': 0, '12h': 0, '14h': 0, '16h': 0, '18h': 0
+          };
+        }
+
+        for (const ronda in rondasHorarios) {
+          const { start, end } = rondasHorarios[ronda];
+          if (minutesOfDay >= start && minutesOfDay <= end) {
+            contagemPorVendedorPorRonda[opp.user_id][ronda]++;
+            break;
+          }
+        }
+      }
+    });
+
+    console.log(`✅ [getOrcamentosVendedoresPorRonda] Orçamentos por ronda encontrados:`, contagemPorVendedorPorRonda);
+    return contagemPorVendedorPorRonda;
+  } catch (error) {
+    console.error('❌ [getOrcamentosVendedoresPorRonda] Erro:', error);
     return {};
   }
 };
