@@ -1123,12 +1123,18 @@ async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = 
     
     try {
         const payloadObject = { page, limit, columnId: stageId };
-        // Tentar usar incremental se disponível, mas remover se a API não aceitar
+        // SEMPRE tentar usar incremental (modifiedSince) se disponível
         let useModifiedSince = false;
-        if (globalThis.__LAST_UPDATE_PER_STAGE && globalThis.__LAST_UPDATE_PER_STAGE[`${funnelId}:${stageId}`]) {
-            const since = globalThis.__LAST_UPDATE_PER_STAGE[`${funnelId}:${stageId}`];
+        const cacheKey = `${funnelId}:${stageId}`;
+        if (globalThis.__LAST_UPDATE_PER_STAGE && globalThis.__LAST_UPDATE_PER_STAGE[cacheKey]) {
+            const since = globalThis.__LAST_UPDATE_PER_STAGE[cacheKey];
             payloadObject.modifiedSince = since;
             useModifiedSince = true;
+            if (page === 0) {
+                console.log(`     🔄 Buscando apenas oportunidades modificadas desde ${since} (INCREMENTAL)`);
+            }
+        } else if (page === 0) {
+            console.log(`     ⚠️ Nenhuma data de sincronização encontrada para etapa ${stageId}, buscando todas (FULL SYNC)`);
         }
         const postData = JSON.stringify(payloadObject);
         
@@ -1832,34 +1838,86 @@ async function syncOpportunities() {
     let totalUpdated = 0;  // estimado
     let totalErrors = 0;
     
-    // Carregar last_update por etapa do Supabase para tentar incremental na origem
+    // Carregar last_update por etapa do Supabase para SINCRONIZAÇÃO INCREMENTAL
     globalThis.__LAST_UPDATE_PER_STAGE = {};
+    
+    // Buscar última sincronização geral (fallback se não houver por etapa)
+    let lastGeneralSync = null;
     try {
-        const { data: lastStages } = await supabase
+        const { data: lastSync } = await supabase
             .from('oportunidade_sprint')
-            .select('crm_column, funil_id, update_date')
-            .order('update_date', { ascending: false })
+            .select('synced_at, update_date')
+            .order('synced_at', { ascending: false })
             .limit(1);
-        // consulta simples acima é só para aquecer a conexão; abaixo, faremos por etapa
-    } catch {}
+        if (lastSync && lastSync.length > 0) {
+            // Usar synced_at se disponível, senão update_date, senão últimas 24h
+            lastGeneralSync = lastSync[0].synced_at || lastSync[0].update_date;
+            if (lastGeneralSync) {
+                const date = new Date(lastGeneralSync);
+                // Se a última sync foi há mais de 7 dias, usar apenas últimas 24h para segurança
+                const daysSinceSync = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
+                if (daysSinceSync > 7) {
+                    lastGeneralSync = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+                    console.log(`⚠️ Última sync muito antiga (${Math.round(daysSinceSync)} dias), usando apenas últimas 24h`);
+                } else {
+                    lastGeneralSync = date.toISOString();
+                }
+            }
+        }
+    } catch (err) {
+        console.warn('⚠️ Erro ao buscar última sincronização geral:', err.message);
+    }
+    
+    // Se não houver sync anterior, usar últimas 24h por padrão (não buscar tudo!)
+    if (!lastGeneralSync) {
+        lastGeneralSync = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        console.log('ℹ️ Nenhuma sincronização anterior encontrada, usando apenas últimas 24h');
+    }
 
     const stageLastUpdateCache = async (funnelId, stageId) => {
         const key = `${funnelId}:${stageId}`;
-        if (globalThis.__LAST_UPDATE_PER_STAGE[key]) return globalThis.__LAST_UPDATE_PER_STAGE[key];
+        if (globalThis.__LAST_UPDATE_PER_STAGE[key]) {
+            return globalThis.__LAST_UPDATE_PER_STAGE[key];
+        }
+        
         try {
+            // Buscar última sincronização ESPECÍFICA desta etapa
             const { data, error } = await supabase
                 .from('oportunidade_sprint')
-                .select('update_date')
+                .select('synced_at, update_date')
                 .eq('funil_id', funnelId)
                 .eq('crm_column', stageId)
-                .order('update_date', { ascending: false })
+                .order('synced_at', { ascending: false })
                 .limit(1);
-            if (!error && data && data.length > 0 && data[0].update_date) {
-                const since = new Date(data[0].update_date).toISOString();
-                globalThis.__LAST_UPDATE_PER_STAGE[key] = since;
+            
+            if (!error && data && data.length > 0) {
+                // Priorizar synced_at, senão update_date
+                const lastSync = data[0].synced_at || data[0].update_date;
+                if (lastSync) {
+                    const since = new Date(lastSync).toISOString();
+                    globalThis.__LAST_UPDATE_PER_STAGE[key] = since;
+                    console.log(`     ✅ Etapa ${stageId} do Funil ${funnelId}: Usando sincronização incremental desde ${since}`);
+                    return since;
+                }
             }
-        } catch {}
-        return globalThis.__LAST_UPDATE_PER_STAGE[key];
+            
+            // Se não houver sync específica desta etapa, usar sync geral
+            if (lastGeneralSync) {
+                globalThis.__LAST_UPDATE_PER_STAGE[key] = lastGeneralSync;
+                console.log(`     ⚠️ Etapa ${stageId} do Funil ${funnelId}: Usando sincronização geral desde ${lastGeneralSync}`);
+                return lastGeneralSync;
+            }
+        } catch (err) {
+            console.warn(`     ⚠️ Erro ao buscar última sync da etapa ${stageId}:`, err.message);
+        }
+        
+        // Fallback: usar sync geral ou últimas 24h
+        if (lastGeneralSync) {
+            globalThis.__LAST_UPDATE_PER_STAGE[key] = lastGeneralSync;
+            return lastGeneralSync;
+        }
+        
+        return null;
     };
 
     // Processar cada funil

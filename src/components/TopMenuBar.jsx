@@ -2398,13 +2398,70 @@ const TopMenuBar = ({
         const endTime = Date.now();
         const durationSeconds = ((endTime - startTime) / 1000).toFixed(2);
         
+        logger.info('\n' + '='.repeat(80));
+        logger.info('📊 RESPOSTA DA API DE SINCRONIZAÇÃO');
+        logger.info('='.repeat(80));
+        logger.info(JSON.stringify(data, null, 2));
+        
+        // A API agora retorna IMEDIATAMENTE e processa em BACKGROUND
+        // Verificar se é resposta de "iniciado" ou resultado completo
+        if (data.success && data.message && data.message.includes('iniciada em background')) {
+          // Sincronização iniciada em background - mostrar mensagem e verificar status depois
+          logger.info('✅ Sincronização iniciada em background');
+          updateSyncProgress('Sync Agora - Oportunidades', 50, 100, 'Processando em background...');
+          
+          // Atualizar tempo da última sincronização
+          setLastSyncTime(new Date());
+          
+          // Calcular próxima sincronização
+          const nowTime = new Date();
+          const nextSync = new Date(nowTime);
+          nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 30) * 30);
+          nextSync.setSeconds(0);
+          nextSync.setMilliseconds(0);
+          if (nextSync <= nowTime) {
+            nextSync.setMinutes(nextSync.getMinutes() + 30);
+          }
+          setNextScheduledSync(nextSync);
+          
+          alert(
+            '✅ SINCRONIZAÇÃO INICIADA!\n\n' +
+            '🔄 A sincronização está processando em background.\n' +
+            '📊 Os dados serão atualizados automaticamente.\n\n' +
+            '💡 Dica: Aguarde alguns minutos e recarregue a página para ver os dados atualizados.\n' +
+            '⏰ O cronjob também atualiza automaticamente a cada 30 minutos.'
+          );
+          
+          // Registrar na tabela api.sincronizacao
+          await insertSyncRecordBrowser(
+            'Sincronização manual iniciada (background)'
+          );
+          
+          // Verificar status após 30 segundos (opcional)
+          setTimeout(async () => {
+            try {
+              const statusResponse = await fetch(`${apiUrl.replace('/sync/oportunidades', '/status')}`, {
+                method: 'GET',
+                headers: requestHeaders
+              });
+              if (statusResponse.ok) {
+                const statusData = await statusResponse.json();
+                logger.info('📊 Status da sincronização:', statusData);
+                if (statusData.status === 'idle') {
+                  updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Concluído!');
+                }
+              }
+            } catch (err) {
+              logger.warn('⚠️ Não foi possível verificar status:', err);
+            }
+          }, 30000);
+          
+          return; // Sair da função aqui
+        }
+        
         updateSyncProgress('Sync Agora - Oportunidades', 90, 100, 'Processando resultados...');
         
-        logger.info('\n' + '='.repeat(80));
-        logger.info('📊 RESULTADO DA SINCRONIZAÇÃO DE OPORTUNIDADES');
-        logger.info('='.repeat(80));
-        
-        // Processar resposta da API de oportunidades
+        // Processar resposta da API de oportunidades (formato antigo ou completo)
         let totalOportunidades = 0;
         let executionTime = durationSeconds;
         
