@@ -919,51 +919,20 @@ async function upsertSegments(rows) {
     }
 }
 
-async function syncSegments() {
-    // Log de stack trace para identificar quem está chamando esta função
-    const stack = new Error().stack;
-    console.log('\n📊 Iniciando sincronização de SEGMENTOS...\n');
-    console.log('🔍 Stack trace (quem chamou syncSegments):');
-    console.log(stack);
-    console.log('⚠️ ATENÇÃO: syncSegments foi chamado! Isso não deveria acontecer em /sync/oportunidades');
-    const runId = await logRunStart('segmentos');
-    let page = 0, processed = 0, errors = 0;
-    while (true) {
-        const batch = await fetchSegments(page);
-        if (!batch || batch.length === 0) {
-            console.log('✅ Sincronização de segmentos concluída');
-            break;
-        }
-        // Mapear para campos corretos da tabela 'segmento' (sem synced_at, usa create_date)
-        const mapped = batch.map((s) => ({ 
-            id: s.id, 
-            name: s.name || s.title || null,
-            alias: s.alias || null,
-            is_published: s.is_published || s.published || false,
-            create_date: s.create_date || s.createDate || new Date().toISOString(),
-            category_id: s.category_id || s.categoryId || null,
-            category_title: s.category_title || s.categoryTitle || s.category || null,
-            total_leads: s.total_leads || s.totalLeads || null,
-            last_lead_update: s.last_lead_update || s.lastLeadUpdate || null
-        }));
-        processed += mapped.length;
-        const r = await upsertSegments(mapped);
-        if (!r.success) {
-            errors += mapped.length;
-            console.error(`❌ Erro na página ${page + 1} de segmentos: ${r.error}`);
-        } else {
-            console.log(`✅ Página ${page + 1} de segmentos: ${mapped.length} processados (Total: ${processed})`);
-        }
-        page++;
-        await sleep(500);
-    }
-    await logRunFinish(runId, { status: errors > 0 ? 'success_with_errors' : 'success', total_processed: processed, total_errors: errors });
-    return { totalProcessed: processed, totalErrors: errors };
-}
+// FUNÇÃO DESABILITADA - SINCRONIZAÇÃO DE SEGMENTOS REMOVIDA COMPLETAMENTE
+// async function syncSegments() {
+//     console.error('❌ ERRO: syncSegments foi chamado mas está DESABILITADO!');
+//     console.error('Stack trace:', new Error().stack);
+//     throw new Error('Sincronização de segmentos foi desabilitada. Use apenas /sync/oportunidades');
+//     // CÓDIGO REMOVIDO - não sincronizar segmentos mais
+// }
 
+// ENDPOINT DESABILITADO - SINCRONIZAÇÃO DE SEGMENTOS REMOVIDA
 app.get('/segmentos', async (_req, res) => {
-    try { const result = await syncSegments(); res.json({ success: true, data: result }); }
-    catch (e) { res.status(500).json({ success: false, message: e.message }); }
+    res.status(410).json({ 
+        success: false, 
+        message: 'Sincronização de segmentos foi desabilitada. Use apenas /sync/oportunidades' 
+    });
 });
 
 // =============== VENDEDORES/USUÁRIOS ==================
@@ -1655,7 +1624,14 @@ async function processStage(funnelId, stageId, stageLastUpdateCache, stats) {
 
 // Função principal de sincronização (otimizada com paralelismo)
 async function syncOpportunities() {
-    console.log('🚀 Iniciando sincronização de oportunidades via API...');
+    console.log('\n' + '='.repeat(80));
+    console.log('🚀 INICIANDO SINCRONIZAÇÃO DE OPORTUNIDADES');
+    console.log('='.repeat(80));
+    console.log(`⏰ Timestamp: ${new Date().toISOString()}`);
+    console.log(`📦 Versão API: ${API_VERSION}`);
+    console.log('✅ GARANTIDO: Apenas oportunidades serão sincronizadas (SEM segmentos)');
+    console.log('='.repeat(80) + '\n');
+    
     const runId = await logRunStart('oportunidades');
     lastRun = { resource: 'oportunidades', start: Date.now(), end: null, status: 'running', durationMs: 0 };
     
@@ -2184,18 +2160,31 @@ app.get('/debug/funil33', async (req, res) => {
 
 // Orquestrador sequencial com lock - permite sincronização seletiva
 async function runFullSync(trigger = 'manual_api', options = {}) {
+    console.log('\n' + '='.repeat(80));
+    console.log('🔍 DEBUG runFullSync - INÍCIO');
+    console.log('='.repeat(80));
+    console.log(`📅 Trigger: ${trigger}`);
+    console.log(`📦 Options recebidas:`, JSON.stringify(options, null, 2));
+    
     // Opções: { syncOportunidades: true/false, syncLeads: true/false, syncSegmentos: true/false }
-    // Por padrão, sincroniza tudo se nenhuma opção for especificada
+    // IMPORTANTE: syncSegmentos padrão é FALSE (não sincronizar segmentos por padrão)
     const {
         syncOportunidades = true,
         syncLeads = true,
-        syncSegmentos = true
+        syncSegmentos = false  // MUDANÇA CRÍTICA: padrão é false, não true!
     } = options;
 
     // Se nenhuma opção foi especificada, sincroniza tudo (comportamento padrão)
     const syncAll = !options.hasOwnProperty('syncOportunidades') && 
                     !options.hasOwnProperty('syncLeads') && 
                     !options.hasOwnProperty('syncSegmentos');
+    
+    console.log(`🔍 DEBUG: syncAll=${syncAll}`);
+    console.log(`🔍 DEBUG: syncOportunidades=${syncOportunidades}`);
+    console.log(`🔍 DEBUG: syncLeads=${syncLeads}`);
+    console.log(`🔍 DEBUG: syncSegmentos=${syncSegmentos} (padrão: false)`);
+    console.log(`🔍 DEBUG: hasOwnProperty syncSegmentos=${options.hasOwnProperty('syncSegmentos')}`);
+    console.log('='.repeat(80));
 
     if (isSyncRunning) {
         console.log('⚠️ Sincronização já está em andamento');
@@ -2208,9 +2197,7 @@ async function runFullSync(trigger = 'manual_api', options = {}) {
     const syncTypes = [];
     if (syncAll || syncOportunidades) syncTypes.push('OPORTUNIDADES');
     if (syncAll || syncLeads) syncTypes.push('LEADS');
-    // SEGMENTOS: só adicionar se explicitamente solicitado
-    const shouldSyncSegmentos = syncSegmentos === true && options.hasOwnProperty('syncSegmentos') && !syncAll;
-    if (shouldSyncSegmentos) syncTypes.push('SEGMENTOS');
+    // SEGMENTOS: REMOVIDO COMPLETAMENTE - nunca adicionar aos tipos
 
     console.log('\n🚀 ============================================================');
     console.log(`🚀 INICIANDO SINCRONIZAÇÃO ${syncAll ? 'COMPLETA' : 'SELETIVA'}`);
@@ -2242,33 +2229,14 @@ async function runFullSync(trigger = 'manual_api', options = {}) {
             summary.leads = { totalProcessed: 0, totalErrors: 0, message: 'Pulado' };
         }
         
-        // SEGMENTOS: SÓ SINCRONIZAR SE EXPLICITAMENTE SOLICITADO
-        // REGRA RIGOROSA: syncSegmentos DEVE ser true E estar explicitamente nas opções
-        const shouldSyncSegmentos = options.hasOwnProperty('syncSegmentos') && syncSegmentos === true && !syncAll;
-        
+        // SEGMENTOS: DESABILITADO COMPLETAMENTE - NUNCA SINCRONIZAR
         console.log('\n' + '='.repeat(80));
-        console.log('🔍 DEBUG SEGMENTOS - VERIFICAÇÃO RIGOROSA');
+        console.log('🚫 SEGMENTOS: SINCRONIZAÇÃO DESABILITADA');
         console.log('='.repeat(80));
-        console.log(`   syncAll: ${syncAll}`);
-        console.log(`   syncSegmentos (valor): ${syncSegmentos}`);
-        console.log(`   hasOwnProperty('syncSegmentos'): ${options.hasOwnProperty('syncSegmentos')}`);
-        console.log(`   shouldSyncSegmentos: ${shouldSyncSegmentos}`);
-        console.log('='.repeat(80));
-        
-        if (shouldSyncSegmentos) {
-            console.log('\n⚠️ ATENÇÃO: Sincronizando SEGMENTOS (explicitamente solicitado)...');
-            try {
-                summary.segmentos = await syncSegments();
-                console.log(`✅ Segmentos: ${summary.segmentos?.totalProcessed || 0} processados`);
-            } catch (segmentError) {
-                console.error(`❌ Erro ao sincronizar segmentos (continuando...):`, segmentError.message);
-                summary.segmentos = { totalProcessed: 0, totalErrors: 1, error: segmentError.message };
-            }
-        } else {
-            console.log('✅ SEGMENTOS PULADOS - NÃO será sincronizado (não solicitado)');
-            summary.segmentos = { totalProcessed: 0, totalErrors: 0, message: 'Pulado - não solicitado' };
-        }
+        console.log('✅ Sincronização de segmentos foi REMOVIDA completamente');
+        console.log('✅ Apenas oportunidades serão sincronizadas');
         console.log('='.repeat(80) + '\n');
+        summary.segmentos = { totalProcessed: 0, totalErrors: 0, message: 'Desabilitado - sincronização de segmentos removida' };
         
         // Vendedores: não há endpoint /users na API do SprintHub
         // Os vendedores são gerenciados diretamente no Supabase
@@ -2334,10 +2302,11 @@ const handleFullSync = async (req, res) => {
         const trigger = (req.method === 'GET' ? req.query?.trigger : req.body?.trigger) || 'manual_api';
         
         // Permitir sincronização seletiva via query params ou body
+        // SEGMENTOS: REMOVIDO - sempre false
         const options = {
             syncOportunidades: req.query?.oportunidades !== 'false' && req.body?.oportunidades !== false,
             syncLeads: req.query?.leads !== 'false' && req.body?.leads !== false,
-            syncSegmentos: req.query?.segmentos !== 'false' && req.body?.segmentos !== false
+            syncSegmentos: false  // SEMPRE false - sincronização de segmentos removida
         };
         
         const result = await runFullSync(trigger, options);
@@ -2401,30 +2370,21 @@ const handleSyncLeads = async (req, res) => {
     }
 };
 
-// Handler para sincronização apenas de segmentos
+// Handler DESABILITADO - SINCRONIZAÇÃO DE SEGMENTOS REMOVIDA
 const handleSyncSegmentos = async (req, res) => {
-    try {
-        const trigger = (req.method === 'GET' ? req.query?.trigger : req.body?.trigger) || 'manual_segmentos';
-        const result = await runFullSync(trigger, { syncOportunidades: false, syncLeads: false, syncSegmentos: true });
-        if (result.alreadyRunning) {
-            return res.json({
-                success: true,
-                message: 'Execução já em andamento',
-                data: result.lastRun
-            });
-        }
-        res.json({ success: true, data: result });
-    } catch (error) {
-        console.error('❌ Erro na sincronização de segmentos:', error);
-        res.status(500).json({ success: false, message: error.message });
-    }
+    res.status(410).json({ 
+        success: false, 
+        message: 'Sincronização de segmentos foi desabilitada. Use apenas /sync/oportunidades' 
+    });
 };
 
-// Handler para sincronização de leads + segmentos (para madrugada)
+// Handler MODIFICADO - REMOVIDO segmentos, agora só sincroniza leads
 const handleSyncLeadsSegmentos = async (req, res) => {
     try {
-        const trigger = (req.method === 'GET' ? req.query?.trigger : req.body?.trigger) || 'manual_leads_segmentos';
-        const result = await runFullSync(trigger, { syncOportunidades: false, syncLeads: true, syncSegmentos: true });
+        const trigger = (req.method === 'GET' ? req.query?.trigger : req.body?.trigger) || 'manual_leads';
+        console.log('⚠️ /sync/leads-segmentos chamado - segmentos removido, sincronizando apenas leads');
+        // REMOVIDO syncSegmentos - agora só sincroniza leads
+        const result = await runFullSync(trigger, { syncOportunidades: false, syncLeads: true, syncSegmentos: false });
         if (result.alreadyRunning) {
             return res.json({
                 success: true,
@@ -2434,7 +2394,7 @@ const handleSyncLeadsSegmentos = async (req, res) => {
         }
         res.json({ success: true, data: result });
     } catch (error) {
-        console.error('❌ Erro na sincronização de leads e segmentos:', error);
+        console.error('❌ Erro na sincronização de leads:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
