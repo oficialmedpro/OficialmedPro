@@ -2349,39 +2349,27 @@ const TopMenuBar = ({
         syncApiUrl = import.meta.env.VITE_SYNC_API_URL;
       }
       
-      if (isLocalhost) {
-        // Em localhost: usar API de produção se VITE_SYNC_API_URL estiver configurada,
-        // senão usar localhost:3002 (para desenvolvimento local completo)
-        if (syncApiUrl) {
-          // Remover barra final se houver
-          if (syncApiUrl.endsWith('/')) {
-            syncApiUrl = syncApiUrl.slice(0, -1);
-          }
-          apiUrl = `${syncApiUrl}/sync/oportunidades`;
-          logger.info('🔧 Localhost usando API de produção:', apiUrl);
-        } else {
-          // Fallback: API local (se estiver rodando)
-          apiUrl = 'http://localhost:3002/sync/oportunidades';
-          logger.info('🔧 Localhost usando API local:', apiUrl);
-        }
-        requestHeaders = {
-          'Content-Type': 'application/json'
-        };
-      } else {
-        // Em produção, usa a API do EasyPanel
-        syncApiUrl = syncApiUrl || 'https://sincrocrm.oficialmed.com.br'; // Fallback padrão
-        
-        // Remover barra final se houver
-        if (syncApiUrl.endsWith('/')) {
-          syncApiUrl = syncApiUrl.slice(0, -1);
-        }
-        
-        // Usar /sync/oportunidades para garantir que sincroniza APENAS oportunidades
-        apiUrl = `${syncApiUrl}/sync/oportunidades`;
-        requestHeaders = {
-          'Content-Type': 'application/json'
-        };
+      // SEMPRE usar API de produção (não usar localhost:3002)
+      // Se VITE_SYNC_API_URL estiver configurada, usar ela, senão usar fallback padrão
+      syncApiUrl = syncApiUrl || 'https://sincro.oficialmed.com.br'; // Fallback padrão para produção
+      
+      // Remover barra final se houver
+      if (syncApiUrl.endsWith('/')) {
+        syncApiUrl = syncApiUrl.slice(0, -1);
       }
+      
+      // Usar /sync/oportunidades para garantir que sincroniza APENAS oportunidades
+      apiUrl = `${syncApiUrl}/sync/oportunidades`;
+      
+      if (isLocalhost) {
+        logger.info('🔧 Localhost usando API de produção:', apiUrl);
+      } else {
+        logger.info('🔧 Produção usando API:', apiUrl);
+      }
+      
+      requestHeaders = {
+        'Content-Type': 'application/json'
+      };
       
       logger.info(`📡 Chamando API: ${apiUrl}`);
       updateSyncProgress('Sync Agora - Oportunidades', 10, 100, 'Chamando serviço de sincronização...');
