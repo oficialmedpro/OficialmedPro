@@ -1054,8 +1054,8 @@ const FUNIS_CONFIG = {
 };
 
 const PAGE_LIMIT = 100;
-let DELAY_BETWEEN_PAGES = 150; // Reduzido de 500ms para 150ms (otimização)
-const DELAY_BETWEEN_STAGES = 100; // Reduzido de 400ms para 100ms
+let DELAY_BETWEEN_PAGES = 700; // Aumentado para respeitar rate limit (90 req/min = ~1.5 req/seg = 667ms entre reqs)
+const DELAY_BETWEEN_STAGES = 700; // Aumentado para respeitar rate limit
 const MAX_BACKOFF_MS = 8000;
 const MIN_BACKOFF_MS = 100; // Reduzido de 500ms para 100ms
 const CONCURRENCY_STAGES = 8; // Processar até 8 etapas simultaneamente (otimização)
@@ -1110,8 +1110,8 @@ class RateLimiter {
     }
 }
 
-// Instância global do rate limiter (100 req/min = ~1.67 req/seg)
-const rateLimiter = new RateLimiter(100, 60000);
+// Instância global do rate limiter (90 req/min para ter margem de segurança - limite da API é 100)
+const rateLimiter = new RateLimiter(90, 60000);
 
 // Função para buscar oportunidades de uma etapa (com rate limiting)
 async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = PAGE_LIMIT) {
@@ -1152,8 +1152,36 @@ async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = 
             const errorBody = await response.text().catch(() => '');
             const errorMsg = `HTTP ${response.status}: ${response.statusText}${errorBody ? ` - ${errorBody}` : ''}`;
             
+            // Se erro 401 de rate limit, aguardar e tentar novamente
+            if (response.status === 401 && errorBody.includes('too many requests')) {
+                const waitTime = 65000; // Aguardar 65 segundos (pouco mais de 1 minuto)
+                console.warn(`     ⚠️ Rate limit atingido na etapa ${stageId} do funil ${funnelId}. Aguardando ${waitTime/1000}s antes de retry...`);
+                await sleep(waitTime);
+                
+                // Tentar novamente após aguardar
+                const retryResponse = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${SPRINTHUB_CONFIG.apiToken}`,
+                        'apitoken': SPRINTHUB_CONFIG.apiToken
+                    },
+                    body: Buffer.from(postData)
+                });
+                
+                if (!retryResponse.ok) {
+                    const retryErrorBody = await retryResponse.text().catch(() => '');
+                    const retryErrorMsg = `HTTP ${retryResponse.status}: ${retryResponse.statusText}${retryErrorBody ? ` - ${retryErrorBody}` : ''}`;
+                    if (funnelId === 34 || funnelId === 38) {
+                        console.error(`     ❌ DEBUG Funil ${funnelId} Etapa ${stageId} - Erro HTTP após retry de rate limit:`, retryErrorMsg);
+                    }
+                    throw new Error(retryErrorMsg);
+                }
+                response = retryResponse;
+            }
             // Se erro 400 e estava usando modifiedSince, tentar novamente sem ele
-            if (response.status === 400 && useModifiedSince && errorBody.includes('modifiedSince')) {
+            else if (response.status === 400 && useModifiedSince && errorBody.includes('modifiedSince')) {
                 console.warn(`     ⚠️ Etapa ${stageId} do funil ${funnelId} não aceita modifiedSince, tentando sem ele...`);
                 delete payloadObject.modifiedSince;
                 const retryPostData = JSON.stringify(payloadObject);
@@ -1679,9 +1707,9 @@ async function processStage(funnelId, stageId, stageLastUpdateCache, stats) {
                         console.error(`❌ Erro upsert em lote (página ${page + 1}, etapa ${stageId}, funil ${funnelId}):`, upsertRes.error);
                     }
                     
-                    // Delay menor (otimizado)
+                    // Delay para respeitar rate limit
                     if (mappedBatch.length > 0) {
-                        await sleep(100); // Delay reduzido
+                        await sleep(700); // Delay aumentado para respeitar rate limit
                     }
                 }
 
@@ -1692,9 +1720,9 @@ async function processStage(funnelId, stageId, stageLastUpdateCache, stats) {
                 
                 page++;
                 
-                // Delay reduzido entre páginas
+                // Delay entre páginas para respeitar rate limit
                 if (hasMore) {
-                    await sleep(150); // Reduzido de 500ms para 150ms
+                    await sleep(700); // Aumentado para respeitar rate limit (90 req/min)
                 }
             } catch (err) {
                 console.error(`❌ Falha na página ${page + 1} da etapa ${stageId} do funil ${funnelId}:`, err.message);
@@ -1817,9 +1845,9 @@ async function syncOpportunities() {
                 totalErrors += result.errors;
             });
             
-            // Pequeno delay entre batches de etapas
+            // Delay entre batches de etapas para respeitar rate limit
             if (i + CONCURRENCY_STAGES < stages.length) {
-                await sleep(100);
+                await sleep(700);
             }
         }
         
