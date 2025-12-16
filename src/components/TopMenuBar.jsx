@@ -2336,26 +2336,40 @@ const TopMenuBar = ({
         'Content-Type': 'application/json'
       };
       
+      // Ler VITE_SYNC_API_URL de window.ENV (injetado pelo Docker) ou import.meta.env
+      const isBrowser = typeof window !== 'undefined';
+      let syncApiUrl = null;
+      
+      // Tentar ler de window.ENV primeiro (runtime injection)
+      if (isBrowser && window.ENV?.VITE_SYNC_API_URL) {
+        syncApiUrl = window.ENV.VITE_SYNC_API_URL;
+      } 
+      // Se não encontrou, tentar import.meta.env (build-time)
+      else if (import.meta.env?.VITE_SYNC_API_URL) {
+        syncApiUrl = import.meta.env.VITE_SYNC_API_URL;
+      }
+      
       if (isLocalhost) {
-        // Em localhost, usa o servidor Node.js (endpoint de oportunidades)
-        apiUrl = 'http://localhost:3002/sync/oportunidades';
+        // Em localhost: usar API de produção se VITE_SYNC_API_URL estiver configurada,
+        // senão usar localhost:3002 (para desenvolvimento local completo)
+        if (syncApiUrl) {
+          // Remover barra final se houver
+          if (syncApiUrl.endsWith('/')) {
+            syncApiUrl = syncApiUrl.slice(0, -1);
+          }
+          apiUrl = `${syncApiUrl}/sync/oportunidades`;
+          logger.info('🔧 Localhost usando API de produção:', apiUrl);
+        } else {
+          // Fallback: API local (se estiver rodando)
+          apiUrl = 'http://localhost:3002/sync/oportunidades';
+          logger.info('🔧 Localhost usando API local:', apiUrl);
+        }
         requestHeaders = {
           'Content-Type': 'application/json'
         };
       } else {
-        // Em produção, usa a API do EasyPanel (sincrocrm.oficialmed.com.br)
-        // Ler VITE_SYNC_API_URL de window.ENV (injetado pelo Docker) ou import.meta.env
-        const isBrowser = typeof window !== 'undefined';
-        let syncApiUrl = 'https://sincrocrm.oficialmed.com.br'; // Fallback padrão
-        
-        // Tentar ler de window.ENV primeiro (runtime injection)
-        if (isBrowser && window.ENV?.VITE_SYNC_API_URL) {
-          syncApiUrl = window.ENV.VITE_SYNC_API_URL;
-        } 
-        // Se não encontrou, tentar import.meta.env (build-time)
-        else if (import.meta.env?.VITE_SYNC_API_URL) {
-          syncApiUrl = import.meta.env.VITE_SYNC_API_URL;
-        }
+        // Em produção, usa a API do EasyPanel
+        syncApiUrl = syncApiUrl || 'https://sincrocrm.oficialmed.com.br'; // Fallback padrão
         
         // Remover barra final se houver
         if (syncApiUrl.endsWith('/')) {
@@ -2366,7 +2380,6 @@ const TopMenuBar = ({
         apiUrl = `${syncApiUrl}/sync/oportunidades`;
         requestHeaders = {
           'Content-Type': 'application/json'
-          // A API do EasyPanel pode precisar de autenticação - adicionar se necessário
         };
       }
       
