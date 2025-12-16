@@ -1054,11 +1054,11 @@ const FUNIS_CONFIG = {
 };
 
 const PAGE_LIMIT = 100;
-let DELAY_BETWEEN_PAGES = 700; // Aumentado para respeitar rate limit (90 req/min = ~1.5 req/seg = 667ms entre reqs)
-const DELAY_BETWEEN_STAGES = 700; // Aumentado para respeitar rate limit
+let DELAY_BETWEEN_PAGES = 1000; // Aumentado para respeitar rate limit (60 req/min = 1 req/seg = 1000ms entre reqs)
+const DELAY_BETWEEN_STAGES = 1000; // Aumentado para respeitar rate limit
 const MAX_BACKOFF_MS = 8000;
 const MIN_BACKOFF_MS = 100; // Reduzido de 500ms para 100ms
-const CONCURRENCY_STAGES = 8; // Processar até 8 etapas simultaneamente (otimização)
+const CONCURRENCY_STAGES = 3; // Reduzido de 8 para 3 para evitar picos de rate limit
 const UPSERT_BATCH_SIZE = 500; // Aumentado de 100 para 500 (otimização)
 
 // =============== RATE LIMITER (Token Bucket) ===============
@@ -1110,8 +1110,9 @@ class RateLimiter {
     }
 }
 
-// Instância global do rate limiter (90 req/min para ter margem de segurança - limite da API é 100)
-const rateLimiter = new RateLimiter(90, 60000);
+// Instância global do rate limiter (70 req/min para ter margem de segurança - limite da API é 100)
+// Reduzido para evitar erros de rate limit quando há múltiplas etapas em paralelo
+const rateLimiter = new RateLimiter(70, 60000);
 
 // Função para buscar oportunidades de uma etapa (com rate limiting)
 async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = PAGE_LIMIT) {
@@ -1158,6 +1159,9 @@ async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = 
                 console.warn(`     ⚠️ Rate limit atingido na etapa ${stageId} do funil ${funnelId}. Aguardando ${waitTime/1000}s antes de retry...`);
                 await sleep(waitTime);
                 
+                // IMPORTANTE: Aguardar token do rate limiter antes do retry
+                await rateLimiter.acquire();
+                
                 // Tentar novamente após aguardar
                 const retryResponse = await fetch(url, {
                     method: 'POST',
@@ -1183,6 +1187,10 @@ async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = 
             // Se erro 400 e estava usando modifiedSince, tentar novamente sem ele
             else if (response.status === 400 && useModifiedSince && errorBody.includes('modifiedSince')) {
                 console.warn(`     ⚠️ Etapa ${stageId} do funil ${funnelId} não aceita modifiedSince, tentando sem ele...`);
+                
+                // IMPORTANTE: Aguardar token do rate limiter antes do retry
+                await rateLimiter.acquire();
+                
                 delete payloadObject.modifiedSince;
                 const retryPostData = JSON.stringify(payloadObject);
                 response = await fetch(url, {
@@ -1753,7 +1761,7 @@ async function processStage(funnelId, stageId, stageLastUpdateCache, stats) {
                     
                     // Delay para respeitar rate limit
                     if (mappedBatch.length > 0) {
-                        await sleep(700); // Delay aumentado para respeitar rate limit
+                        await sleep(DELAY_BETWEEN_PAGES); // Delay para respeitar rate limit
                     }
                 }
 
@@ -1764,9 +1772,9 @@ async function processStage(funnelId, stageId, stageLastUpdateCache, stats) {
                 
                 page++;
                 
-                // Delay entre páginas para respeitar rate limit
+                // Delay entre páginas para respeitar rate limit (CRÍTICO: sempre aplicar)
                 if (hasMore) {
-                    await sleep(700); // Aumentado para respeitar rate limit (90 req/min)
+                    await sleep(DELAY_BETWEEN_PAGES); // Delay para respeitar rate limit (60 req/min)
                 }
             } catch (err) {
                 console.error(`❌ Falha na página ${page + 1} da etapa ${stageId} do funil ${funnelId}:`, err.message);
@@ -2513,6 +2521,20 @@ const handleSyncOportunidades = async (req, res) => {
     try {
         const trigger = (req.method === 'GET' ? req.query?.trigger : req.body?.trigger) || 'manual_oportunidades';
         console.log('🚀 handleSyncOportunidades chamado - GARANTINDO que syncSegmentos=false');
+        
+        // Verificar se já está rodando
+        if (isSyncRunning) {
+            return res.json({
+                success: true,
+                message: 'Sincronização já em andamento',
+                data: {
+                    status: 'running',
+                    startedAt: lastRun.start ? new Date(lastRun.start).toISOString() : null,
+                    durationMs: lastRun.start ? Date.now() - lastRun.start : 0
+                }
+            });
+        }
+        
         // FORÇAR syncSegmentos=false explicitamente para garantir que nunca sincronize segmentos
         const options = { 
             syncOportunidades: true, 
@@ -2520,17 +2542,30 @@ const handleSyncOportunidades = async (req, res) => {
             syncSegmentos: false  // EXPLICITAMENTE false
         };
         console.log('🔍 Opções passadas para runFullSync:', JSON.stringify(options));
-        const result = await runFullSync(trigger, options);
-        if (result.alreadyRunning) {
-            return res.json({
-                success: true,
-                message: 'Execução já em andamento',
-                data: result.lastRun
-            });
-        }
-        res.json({ success: true, data: result });
+        
+        // IMPORTANTE: Retornar resposta IMEDIATA e processar em background
+        // Isso evita timeout no frontend e permite que o cronjob funcione corretamente
+        res.json({ 
+            success: true, 
+            message: 'Sincronização iniciada em background',
+            data: {
+                status: 'started',
+                startedAt: new Date().toISOString(),
+                trigger: trigger
+            }
+        });
+        
+        // Processar em background (não bloquear a resposta)
+        setImmediate(async () => {
+            try {
+                await runFullSync(trigger, options);
+            } catch (error) {
+                console.error('❌ Erro na sincronização em background:', error);
+            }
+        });
+        
     } catch (error) {
-        console.error('❌ Erro na sincronização de oportunidades:', error);
+        console.error('❌ Erro ao iniciar sincronização de oportunidades:', error);
         res.status(500).json({ success: false, message: error.message });
     }
 };
