@@ -925,6 +925,7 @@ async function syncSegments() {
     console.log('\n📊 Iniciando sincronização de SEGMENTOS...\n');
     console.log('🔍 Stack trace (quem chamou syncSegments):');
     console.log(stack);
+    console.log('⚠️ ATENÇÃO: syncSegments foi chamado! Isso não deveria acontecer em /sync/oportunidades');
     const runId = await logRunStart('segmentos');
     let page = 0, processed = 0, errors = 0;
     while (true) {
@@ -2207,7 +2208,9 @@ async function runFullSync(trigger = 'manual_api', options = {}) {
     const syncTypes = [];
     if (syncAll || syncOportunidades) syncTypes.push('OPORTUNIDADES');
     if (syncAll || syncLeads) syncTypes.push('LEADS');
-    if (syncAll || syncSegmentos) syncTypes.push('SEGMENTOS');
+    // SEGMENTOS: só adicionar se explicitamente solicitado
+    const shouldSyncSegmentos = syncSegmentos === true && options.hasOwnProperty('syncSegmentos') && !syncAll;
+    if (shouldSyncSegmentos) syncTypes.push('SEGMENTOS');
 
     console.log('\n🚀 ============================================================');
     console.log(`🚀 INICIANDO SINCRONIZAÇÃO ${syncAll ? 'COMPLETA' : 'SELETIVA'}`);
@@ -2239,9 +2242,21 @@ async function runFullSync(trigger = 'manual_api', options = {}) {
             summary.leads = { totalProcessed: 0, totalErrors: 0, message: 'Pulado' };
         }
         
-        if (syncAll || syncSegmentos) {
-            console.log('\n🔄 Sincronizando SEGMENTOS...');
-            console.log(`🔍 DEBUG: syncAll=${syncAll}, syncSegmentos=${syncSegmentos}, options=`, JSON.stringify(options));
+        // SEGMENTOS: SÓ SINCRONIZAR SE EXPLICITAMENTE SOLICITADO
+        // REGRA RIGOROSA: syncSegmentos DEVE ser true E estar explicitamente nas opções
+        const shouldSyncSegmentos = options.hasOwnProperty('syncSegmentos') && syncSegmentos === true && !syncAll;
+        
+        console.log('\n' + '='.repeat(80));
+        console.log('🔍 DEBUG SEGMENTOS - VERIFICAÇÃO RIGOROSA');
+        console.log('='.repeat(80));
+        console.log(`   syncAll: ${syncAll}`);
+        console.log(`   syncSegmentos (valor): ${syncSegmentos}`);
+        console.log(`   hasOwnProperty('syncSegmentos'): ${options.hasOwnProperty('syncSegmentos')}`);
+        console.log(`   shouldSyncSegmentos: ${shouldSyncSegmentos}`);
+        console.log('='.repeat(80));
+        
+        if (shouldSyncSegmentos) {
+            console.log('\n⚠️ ATENÇÃO: Sincronizando SEGMENTOS (explicitamente solicitado)...');
             try {
                 summary.segmentos = await syncSegments();
                 console.log(`✅ Segmentos: ${summary.segmentos?.totalProcessed || 0} processados`);
@@ -2250,9 +2265,10 @@ async function runFullSync(trigger = 'manual_api', options = {}) {
                 summary.segmentos = { totalProcessed: 0, totalErrors: 1, error: segmentError.message };
             }
         } else {
-            console.log('⏭️  SEGMENTOS PULADOS (não solicitado na sincronização)');
-            summary.segmentos = { totalProcessed: 0, totalErrors: 0, message: 'Pulado' };
+            console.log('✅ SEGMENTOS PULADOS - NÃO será sincronizado (não solicitado)');
+            summary.segmentos = { totalProcessed: 0, totalErrors: 0, message: 'Pulado - não solicitado' };
         }
+        console.log('='.repeat(80) + '\n');
         
         // Vendedores: não há endpoint /users na API do SprintHub
         // Os vendedores são gerenciados diretamente no Supabase
@@ -2343,7 +2359,15 @@ const handleFullSync = async (req, res) => {
 const handleSyncOportunidades = async (req, res) => {
     try {
         const trigger = (req.method === 'GET' ? req.query?.trigger : req.body?.trigger) || 'manual_oportunidades';
-        const result = await runFullSync(trigger, { syncOportunidades: true, syncLeads: false, syncSegmentos: false });
+        console.log('🚀 handleSyncOportunidades chamado - GARANTINDO que syncSegmentos=false');
+        // FORÇAR syncSegmentos=false explicitamente para garantir que nunca sincronize segmentos
+        const options = { 
+            syncOportunidades: true, 
+            syncLeads: false, 
+            syncSegmentos: false  // EXPLICITAMENTE false
+        };
+        console.log('🔍 Opções passadas para runFullSync:', JSON.stringify(options));
+        const result = await runFullSync(trigger, options);
         if (result.alreadyRunning) {
             return res.json({
                 success: true,
