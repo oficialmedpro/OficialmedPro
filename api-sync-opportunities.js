@@ -1054,12 +1054,13 @@ const FUNIS_CONFIG = {
 };
 
 const PAGE_LIMIT = 100;
-let DELAY_BETWEEN_PAGES = 1000; // Aumentado para respeitar rate limit (60 req/min = 1 req/seg = 1000ms entre reqs)
-const DELAY_BETWEEN_STAGES = 1000; // Aumentado para respeitar rate limit
+// Otimizado: delay menor quando rate limiter está funcionando, mas seguro
+let DELAY_BETWEEN_PAGES = 600; // Reduzido de 1000ms - rate limiter já controla
+const DELAY_BETWEEN_STAGES = 500; // Reduzido de 1000ms - rate limiter já controla
 const MAX_BACKOFF_MS = 8000;
-const MIN_BACKOFF_MS = 100; // Reduzido de 500ms para 100ms
-const CONCURRENCY_STAGES = 3; // Reduzido de 8 para 3 para evitar picos de rate limit
-const UPSERT_BATCH_SIZE = 500; // Aumentado de 100 para 500 (otimização)
+const MIN_BACKOFF_MS = 100;
+const CONCURRENCY_STAGES = 5; // Aumentado de 3 para 5 - rate limiter protege
+const UPSERT_BATCH_SIZE = 1000; // Aumentado de 500 para 1000 - mais eficiente
 
 // =============== RATE LIMITER (Token Bucket) ===============
 // Limite de 100 requisições por minuto
@@ -1110,9 +1111,9 @@ class RateLimiter {
     }
 }
 
-// Instância global do rate limiter (70 req/min para ter margem de segurança - limite da API é 100)
-// Reduzido para evitar erros de rate limit quando há múltiplas etapas em paralelo
-const rateLimiter = new RateLimiter(70, 60000);
+// Instância global do rate limiter (85 req/min - margem de segurança, limite da API é 100)
+// Aumentado de 70 para 85 para melhor performance, mantendo segurança
+const rateLimiter = new RateLimiter(85, 60000);
 
 // Função para buscar oportunidades de uma etapa (com rate limiting)
 async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = PAGE_LIMIT) {
@@ -1765,10 +1766,6 @@ async function processStage(funnelId, stageId, stageLastUpdateCache, stats) {
                         console.error(`❌ Erro upsert em lote (página ${page + 1}, etapa ${stageId}, funil ${funnelId}):`, upsertRes.error);
                     }
                     
-                    // Delay para respeitar rate limit
-                    if (mappedBatch.length > 0) {
-                        await sleep(DELAY_BETWEEN_PAGES); // Delay para respeitar rate limit
-                    }
                 }
 
                 // Verificar se há mais páginas
@@ -1778,9 +1775,10 @@ async function processStage(funnelId, stageId, stageLastUpdateCache, stats) {
                 
                 page++;
                 
-                // Delay entre páginas para respeitar rate limit (CRÍTICO: sempre aplicar)
+                // Delay entre páginas (apenas se houver mais páginas)
+                // Rate limiter já controla, então delay menor
                 if (hasMore) {
-                    await sleep(DELAY_BETWEEN_PAGES); // Delay para respeitar rate limit (60 req/min)
+                    await sleep(DELAY_BETWEEN_PAGES);
                 }
             } catch (err) {
                 console.error(`❌ Falha na página ${page + 1} da etapa ${stageId} do funil ${funnelId}:`, err.message);
@@ -1869,9 +1867,12 @@ async function syncOpportunities() {
     }
     
     // Se não houver sync anterior, usar últimas 24h por padrão (não buscar tudo!)
+    // IMPORTANTE: Sempre usar incremental, mesmo na primeira vez (últimas 24h)
     if (!lastGeneralSync) {
         lastGeneralSync = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-        console.log('ℹ️ Nenhuma sincronização anterior encontrada, usando apenas últimas 24h');
+        console.log('ℹ️ Nenhuma sincronização anterior encontrada, usando SINCRONIZAÇÃO INCREMENTAL das últimas 24h');
+    } else {
+        console.log(`✅ Sincronização incremental ativa - última sync geral: ${lastGeneralSync}`);
     }
 
     const stageLastUpdateCache = async (funnelId, stageId) => {
@@ -1896,39 +1897,59 @@ async function syncOpportunities() {
                 if (lastSync) {
                     const since = new Date(lastSync).toISOString();
                     globalThis.__LAST_UPDATE_PER_STAGE[key] = since;
-                    console.log(`     ✅ Etapa ${stageId} do Funil ${funnelId}: Usando sincronização incremental desde ${since}`);
+                    console.log(`     ✅ Etapa ${stageId} do Funil ${funnelId}: SINCRONIZAÇÃO INCREMENTAL desde ${since}`);
                     return since;
                 }
             }
             
-            // Se não houver sync específica desta etapa, usar sync geral
+            // IMPORTANTE: Se não houver sync específica, SEMPRE usar sync geral (incremental)
+            // Nunca fazer full sync - sempre usar pelo menos últimas 24h
             if (lastGeneralSync) {
                 globalThis.__LAST_UPDATE_PER_STAGE[key] = lastGeneralSync;
-                console.log(`     ⚠️ Etapa ${stageId} do Funil ${funnelId}: Usando sincronização geral desde ${lastGeneralSync}`);
+                console.log(`     ✅ Etapa ${stageId} do Funil ${funnelId}: SINCRONIZAÇÃO INCREMENTAL (geral) desde ${lastGeneralSync}`);
                 return lastGeneralSync;
             }
         } catch (err) {
             console.warn(`     ⚠️ Erro ao buscar última sync da etapa ${stageId}:`, err.message);
         }
         
-        // Fallback: usar sync geral ou últimas 24h
+        // Fallback: SEMPRE usar sync geral ou últimas 24h (sempre incremental, nunca full)
         if (lastGeneralSync) {
             globalThis.__LAST_UPDATE_PER_STAGE[key] = lastGeneralSync;
             return lastGeneralSync;
         }
         
-        return null;
+        // Fallback final: últimas 24h (sempre incremental, nunca full sync)
+        const fallback24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        globalThis.__LAST_UPDATE_PER_STAGE[key] = fallback24h;
+        console.log(`     ✅ Etapa ${stageId} do Funil ${funnelId}: SINCRONIZAÇÃO INCREMENTAL (fallback 24h) desde ${fallback24h}`);
+        return fallback24h;
     };
 
-    // Processar cada funil
+    // Processar TODOS os funis configurados
     const funisIds = Object.keys(FUNIS_CONFIG).map(Number).sort((a, b) => a - b);
-    console.log(`\n📋 Total de funis a processar: ${funisIds.length} (${funisIds.join(', ')})`);
-    console.log(`📋 Funis configurados: ${JSON.stringify(FUNIS_CONFIG, null, 2)}`);
+    console.log(`\n📋 ========================================`);
+    console.log(`📋 SINCRONIZAÇÃO INCREMENTAL DE TODOS OS FUNIS`);
+    console.log(`📋 ========================================`);
+    console.log(`📋 Total de funis a processar: ${funisIds.length}`);
+    console.log(`📋 IDs dos funis: ${funisIds.join(', ')}`);
+    console.log(`📋 Funis configurados:`);
+    funisIds.forEach(id => {
+        const config = FUNIS_CONFIG[id];
+        if (config) {
+            console.log(`   - Funil ${id}: ${config.name} (${config.stages.length} etapas)`);
+        }
+    });
+    console.log(`📋 ========================================\n`);
+    
+    let funisProcessados = 0;
+    let funisComErro = 0;
     
     for (const funnelId of funisIds) {
         const funnelConfig = FUNIS_CONFIG[funnelId];
         if (!funnelConfig) {
             console.warn(`⚠️ Configuração não encontrada para Funil ${funnelId}, pulando...`);
+            funisComErro++;
             continue;
         }
         
@@ -1940,42 +1961,72 @@ async function syncOpportunities() {
         let funilProcessed = 0;
         let funilErrors = 0;
         
-        // Processar etapas em paralelo (otimização)
-        const stages = funnelConfig.stages;
-        for (let i = 0; i < stages.length; i += CONCURRENCY_STAGES) {
-            const stageBatch = stages.slice(i, i + CONCURRENCY_STAGES);
-            
-            // Processar batch de etapas em paralelo
-            const stageResults = await Promise.all(
-                stageBatch.map(stageId => 
-                    processStage(funnelId, stageId, stageLastUpdateCache, {
-                        totalProcessed,
-                        totalErrors
-                    })
-                )
-            );
-            
-            // Agregar resultados
-            stageResults.forEach(result => {
-                funilProcessed += result.processed;
-                funilErrors += result.errors;
-                totalProcessed += result.processed;
-                totalUpdated += result.processed; // Estimado como atualizados
-                totalErrors += result.errors;
-            });
-            
-            // Delay entre batches de etapas para respeitar rate limit
-            if (i + CONCURRENCY_STAGES < stages.length) {
-                await sleep(700);
+        try {
+            // Processar etapas em paralelo (otimização)
+            const stages = funnelConfig.stages;
+            for (let i = 0; i < stages.length; i += CONCURRENCY_STAGES) {
+                const stageBatch = stages.slice(i, i + CONCURRENCY_STAGES);
+                
+                // Processar batch de etapas em paralelo com tratamento de erro individual
+                const stageResults = await Promise.allSettled(
+                    stageBatch.map(stageId => 
+                        processStage(funnelId, stageId, stageLastUpdateCache, {
+                            totalProcessed,
+                            totalErrors
+                        }).catch(err => {
+                            console.error(`❌ Erro ao processar etapa ${stageId} do funil ${funnelId}:`, err.message);
+                            return { processed: 0, errors: 1 };
+                        })
+                    )
+                );
+                
+                // Agregar resultados (tratando Promise.allSettled)
+                stageResults.forEach((result, idx) => {
+                    if (result.status === 'fulfilled') {
+                        const res = result.value;
+                        funilProcessed += res.processed || 0;
+                        funilErrors += res.errors || 0;
+                        totalProcessed += res.processed || 0;
+                        totalUpdated += res.processed || 0;
+                        totalErrors += res.errors || 0;
+                    } else {
+                        console.error(`❌ Erro no batch de etapas (funil ${funnelId}):`, result.reason);
+                        funilErrors += stageBatch.length;
+                        totalErrors += stageBatch.length;
+                    }
+                });
+                
+                // Delay entre batches de etapas (reduzido - rate limiter já controla)
+                if (i + CONCURRENCY_STAGES < stages.length) {
+                    await sleep(DELAY_BETWEEN_STAGES);
+                }
             }
+            
+            funisProcessados++;
+            console.log(`\n✅ ========================================`);
+            console.log(`✅ Funil ${funnelId} (${funnelConfig.name}) concluído:`);
+            console.log(`   📊 Processadas: ${funilProcessed}`);
+            console.log(`   ❌ Erros: ${funilErrors}`);
+            console.log(`✅ ========================================\n`);
+        } catch (error) {
+            funisComErro++;
+            console.error(`\n❌ ========================================`);
+            console.error(`❌ ERRO ao processar Funil ${funnelId} (${funnelConfig.name}):`);
+            console.error(`   Mensagem: ${error.message}`);
+            console.error(`   Stack: ${error.stack}`);
+            console.error(`❌ ========================================\n`);
+            // Continuar com próximo funil mesmo se este falhar
         }
-        
-        console.log(`\n✅ ========================================`);
-        console.log(`✅ Funil ${funnelId} (${funnelConfig.name}) concluído:`);
-        console.log(`   📊 Processadas: ${funilProcessed}`);
-        console.log(`   ❌ Erros: ${funilErrors}`);
-        console.log(`✅ ========================================\n`);
     }
+    
+    console.log(`\n📊 ========================================`);
+    console.log(`📊 RESUMO FINAL DA SINCRONIZAÇÃO`);
+    console.log(`📊 ========================================`);
+    console.log(`✅ Funis processados com sucesso: ${funisProcessados}/${funisIds.length}`);
+    console.log(`❌ Funis com erro: ${funisComErro}`);
+    console.log(`📊 Total de oportunidades processadas: ${totalProcessed}`);
+    console.log(`❌ Total de erros: ${totalErrors}`);
+    console.log(`📊 ========================================\n`);
     
     const result = {
         totalProcessed,
@@ -2578,7 +2629,14 @@ const handleFullSync = async (req, res) => {
 const handleSyncOportunidades = async (req, res) => {
     try {
         const trigger = (req.method === 'GET' ? req.query?.trigger : req.body?.trigger) || 'manual_oportunidades';
-        console.log('🚀 handleSyncOportunidades chamado - GARANTINDO que syncSegmentos=false');
+        console.log('\n' + '='.repeat(80));
+        console.log('🚀 handleSyncOportunidades chamado');
+        console.log(`📡 Método: ${req.method}`);
+        console.log(`📡 Path: ${req.path}`);
+        console.log(`📡 URL completa: ${req.url}`);
+        console.log(`📡 Trigger: ${trigger}`);
+        console.log('✅ GARANTINDO que syncSegmentos=false');
+        console.log('='.repeat(80));
         
         // Verificar se já está rodando
         if (isSyncRunning) {
@@ -2603,22 +2661,64 @@ const handleSyncOportunidades = async (req, res) => {
         
         // IMPORTANTE: Retornar resposta IMEDIATA e processar em background
         // Isso evita timeout no frontend e permite que o cronjob funcione corretamente
-        res.json({ 
+        const totalFunis = Object.keys(FUNIS_CONFIG || {}).length;
+        const responseData = { 
             success: true, 
             message: 'Sincronização iniciada em background',
             data: {
                 status: 'started',
                 startedAt: new Date().toISOString(),
-                trigger: trigger
+                trigger: trigger,
+                incremental: true, // SEMPRE incremental - nunca full sync
+                funis: {
+                    total: totalFunis,
+                    ids: Object.keys(FUNIS_CONFIG || {}).map(Number).sort((a, b) => a - b)
+                },
+                mode: 'incremental', // Garantir que sempre seja incremental
+                message: `Sincronização incremental iniciada para ${totalFunis} funis`
             }
-        });
+        };
+        
+        // Enviar resposta imediatamente
+        res.json(responseData);
+        console.log('✅ Resposta enviada ao cliente:', JSON.stringify(responseData, null, 2));
         
         // Processar em background (não bloquear a resposta)
+        // Usar setImmediate para garantir que a resposta foi enviada primeiro
         setImmediate(async () => {
+            const bgStartTime = Date.now();
             try {
-                await runFullSync(trigger, options);
+                console.log('\n' + '='.repeat(80));
+                console.log('🔄 PROCESSAMENTO EM BACKGROUND INICIADO');
+                console.log('='.repeat(80));
+                console.log(`⏰ Início: ${new Date().toISOString()}`);
+                console.log(`📋 Funis a processar: ${Object.keys(FUNIS_CONFIG).length}`);
+                console.log(`🔄 Modo: INCREMENTAL (sempre)`);
+                console.log('='.repeat(80) + '\n');
+                
+                const result = await runFullSync(trigger, options);
+                
+                const bgDuration = ((Date.now() - bgStartTime) / 1000).toFixed(2);
+                console.log('\n' + '='.repeat(80));
+                console.log('✅ SINCRONIZAÇÃO EM BACKGROUND CONCLUÍDA');
+                console.log('='.repeat(80));
+                console.log(`⏰ Duração: ${bgDuration}s`);
+                console.log(`📊 Oportunidades processadas: ${result.summary?.oportunidades?.totalProcessed || 0}`);
+                console.log(`✅ Inseridas: ${result.summary?.oportunidades?.totalInserted || 0}`);
+                console.log(`🔄 Atualizadas: ${result.summary?.oportunidades?.totalUpdated || 0}`);
+                console.log(`❌ Erros: ${result.summary?.oportunidades?.totalErrors || 0}`);
+                console.log(`⏰ Fim: ${new Date().toISOString()}`);
+                console.log('='.repeat(80) + '\n');
             } catch (error) {
-                console.error('❌ Erro na sincronização em background:', error);
+                const bgDuration = ((Date.now() - bgStartTime) / 1000).toFixed(2);
+                console.error('\n' + '='.repeat(80));
+                console.error('❌ ERRO NA SINCRONIZAÇÃO EM BACKGROUND');
+                console.error('='.repeat(80));
+                console.error(`⏰ Duração até erro: ${bgDuration}s`);
+                console.error(`❌ Mensagem: ${error.message}`);
+                console.error(`📋 Stack trace:`);
+                console.error(error.stack);
+                console.error('='.repeat(80) + '\n');
             }
         });
         
@@ -2685,8 +2785,12 @@ app.post('/api/sync-now', handleFullSync);
 app.get('/api/sync-now', handleFullSync);
 
 // Endpoints específicos para sincronização seletiva
+// Compatível com Traefik (que remove /oportunidades do path)
 app.get('/sync/oportunidades', handleSyncOportunidades);
 app.post('/sync/oportunidades', handleSyncOportunidades);
+// Também aceitar quando vem do Traefik sem o prefixo removido (caso não remova)
+app.get('/oportunidades/sync/oportunidades', handleSyncOportunidades);
+app.post('/oportunidades/sync/oportunidades', handleSyncOportunidades);
 
 app.get('/sync/leads', handleSyncLeads);
 app.post('/sync/leads', handleSyncLeads);
