@@ -2376,12 +2376,15 @@ const TopMenuBar = ({
       
       const startTime = Date.now();
       
-      // Criar AbortController para timeout de 15 minutos (sincronização pode demorar)
+      // Criar AbortController para timeout de 30 segundos (API deve responder imediatamente)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15 * 60 * 1000); // 15 minutos
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        logger.error('⏱️ Timeout: API não respondeu em 30 segundos');
+      }, 30 * 1000); // 30 segundos para resposta inicial
       
       try {
-        // Usar GET para /oportunidades (a API aceita ambos, mas GET é mais seguro)
+        // Usar GET para /sync/oportunidades (a API retorna imediatamente e processa em background)
         const response = await fetch(apiUrl, {
           method: 'GET',
           headers: requestHeaders,
@@ -2596,16 +2599,43 @@ const TopMenuBar = ({
       } catch (fetchError) {
         clearTimeout(timeoutId);
         if (fetchError.name === 'AbortError') {
-          throw new Error('Timeout: A sincronização demorou mais de 15 minutos. A API pode estar processando em background. Verifique os logs do servidor para confirmar.');
+          throw new Error('Timeout: A API não respondeu em 30 segundos. Verifique se a API está online em https://sincro.oficialmed.com.br');
+        }
+        // Verificar se é erro de conexão
+        if (fetchError.message && (fetchError.message.includes('Failed to fetch') || fetchError.message.includes('ERR_CONNECTION'))) {
+          throw new Error(`Erro de conexão: Não foi possível conectar à API. Verifique se https://sincro.oficialmed.com.br está acessível. Erro: ${fetchError.message}`);
         }
         throw fetchError;
       }
     } catch (error) {
       logger.error('❌ ERRO NO SYNC AGORA:', error);
+      logger.error('URL tentada:', apiUrl);
+      logger.error('Tipo do erro:', error.name);
+      logger.error('Mensagem:', error.message);
       updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Erro!');
       await insertSyncRecordBrowser(`Sync agora (UI) falhou: ${error.message}`);
       await fetchLastSyncFromDB();
-      alert(`❌ Erro na sincronização: ${error.message}\n\nVerifique o console para mais detalhes.`);
+      
+      // Mensagem mais detalhada para o usuário
+      let errorMessage = error.message;
+      if (error.message.includes('Timeout') || error.message.includes('ERR_CONNECTION_TIMED_OUT')) {
+        errorMessage = '⏱️ Timeout: A API não respondeu em tempo hábil.\n\n' +
+          'Possíveis causas:\n' +
+          '• API está offline ou sobrecarregada\n' +
+          '• Problema de rede/firewall\n' +
+          '• URL incorreta\n\n' +
+          `URL tentada: ${apiUrl}\n\n` +
+          '💡 Tente novamente em alguns instantes ou verifique os logs do servidor.';
+      } else if (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION')) {
+        errorMessage = '🔌 Erro de conexão: Não foi possível conectar à API.\n\n' +
+          'Verifique:\n' +
+          '• Se a API está online: https://sincro.oficialmed.com.br\n' +
+          '• Se há bloqueio de firewall/CORS\n' +
+          '• Se a URL está correta\n\n' +
+          `URL tentada: ${apiUrl}`;
+      }
+      
+      alert(`❌ Erro na sincronização\n\n${errorMessage}\n\nVerifique o console para mais detalhes.`);
     } finally {
       setIsSyncingNow(false);
       clearSyncProgress();
