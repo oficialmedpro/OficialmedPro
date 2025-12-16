@@ -1595,6 +1595,9 @@ async function upsertBatch(opportunitiesBatch) {
         }
 
         // Processar chunks sequencialmente para evitar conflitos (mais seguro que paralelo)
+        let totalProcessed = 0;
+        let totalErrors = 0;
+        
         for (let i = 0; i < chunks.length; i++) {
             const chunk = chunks[i];
             try {
@@ -1607,27 +1610,59 @@ async function upsertBatch(opportunitiesBatch) {
                     if (error.message && error.message.includes('cannot affect row a second time')) {
                         console.warn(`   ⚠️ Duplicação detectada no chunk ${i + 1}, fazendo upsert individual...`);
                         let successCount = 0;
+                        let errorCount = 0;
                         for (const item of chunk) {
                             try {
                                 const { error: itemError } = await supabase
                                     .from('oportunidade_sprint')
                                     .upsert(item, { onConflict: 'id', ignoreDuplicates: false });
-                                if (!itemError) successCount++;
+                                if (!itemError) {
+                                    successCount++;
+                                } else {
+                                    errorCount++;
+                                    console.error(`   ❌ Erro ao upsert individual ID ${item.id}:`, itemError.message);
+                                }
                             } catch (e) {
+                                errorCount++;
                                 console.error(`   ❌ Erro ao upsert individual ID ${item.id}:`, e.message);
                             }
                         }
-                        console.log(`   ✅ Upsert individual: ${successCount}/${chunk.length} sucesso`);
+                        console.log(`   ✅ Upsert individual: ${successCount}/${chunk.length} sucesso, ${errorCount} erros`);
+                        totalProcessed += successCount;
+                        totalErrors += errorCount;
                     } else {
-                        return { success: false, error: error.message, chunkIndex: i };
+                        // Outro tipo de erro - retornar erro mas continuar tentando os próximos chunks
+                        console.error(`   ❌ Erro no chunk ${i + 1}:`, error.message);
+                        totalErrors += chunk.length;
                     }
+                } else {
+                    // Sucesso no chunk completo
+                    totalProcessed += chunk.length;
                 }
             } catch (chunkError) {
-                return { success: false, error: chunkError.message, chunkIndex: i };
+                console.error(`   ❌ Exceção no chunk ${i + 1}:`, chunkError.message);
+                totalErrors += chunk.length;
             }
         }
 
-        return { success: true, processed: deduplicated.length };
+        // Retornar sucesso se pelo menos alguns foram processados
+        if (totalProcessed > 0) {
+            return { 
+                success: true, 
+                processed: totalProcessed, 
+                errors: totalErrors,
+                total: deduplicated.length
+            };
+        } else if (totalErrors > 0) {
+            return { 
+                success: false, 
+                error: `Falha ao processar todos os ${deduplicated.length} itens`,
+                processed: 0,
+                errors: totalErrors
+            };
+        } else {
+            return { success: true, processed: 0, skipped: true };
+        }
     } catch (error) {
         return { success: false, error: error.message };
     }
@@ -1702,7 +1737,16 @@ async function processStage(funnelId, stageId, stageLastUpdateCache, stats) {
                     mappedBatch.push(...deduplicated.slice(UPSERT_BATCH_SIZE));
                     
                     const upsertRes = await upsertBatch(batchToUpsert);
-                    if (!upsertRes.success) {
+                    if (upsertRes.success) {
+                        // Contar apenas os realmente processados (pode ser menor devido a deduplicação)
+                        const processed = upsertRes.processed || batchToUpsert.length;
+                        const errors = upsertRes.errors || 0;
+                        etapaStats.processed = Math.max(etapaStats.processed - (batchToUpsert.length - processed), 0);
+                        etapaStats.errors += errors;
+                        if (processed < batchToUpsert.length) {
+                            console.log(`     ✅ Upsert: ${processed}/${batchToUpsert.length} processadas${errors > 0 ? `, ${errors} erros` : ''}`);
+                        }
+                    } else {
                         etapaStats.errors += batchToUpsert.length;
                         console.error(`❌ Erro upsert em lote (página ${page + 1}, etapa ${stageId}, funil ${funnelId}):`, upsertRes.error);
                     }
@@ -1735,8 +1779,17 @@ async function processStage(funnelId, stageId, stageLastUpdateCache, stats) {
         // Processar batch restante
         if (mappedBatch.length > 0) {
             const upsertRes = await upsertBatch(mappedBatch);
-            if (!upsertRes.success) {
+            if (upsertRes.success) {
+                const processed = upsertRes.processed || mappedBatch.length;
+                const errors = upsertRes.errors || 0;
+                etapaStats.processed = Math.max(etapaStats.processed - (mappedBatch.length - processed), 0);
+                etapaStats.errors += errors;
+                if (processed < mappedBatch.length || errors > 0) {
+                    console.log(`     ✅ Upsert final: ${processed}/${mappedBatch.length} processadas${errors > 0 ? `, ${errors} erros` : ''}`);
+                }
+            } else {
                 etapaStats.errors += mappedBatch.length;
+                console.error(`❌ Erro no upsert final da etapa ${stageId}:`, upsertRes.error);
             }
         }
         
