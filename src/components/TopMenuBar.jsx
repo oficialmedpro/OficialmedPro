@@ -2870,7 +2870,7 @@ const TopMenuBar = ({
               onClick={handleSyncNow}
               disabled={isSyncingNow}
               title="⚡ SYNC AGORA - Sincronização de oportunidades"
-              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}
+              style={{ marginLeft: '8px', background: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)' }}
             >
               {isSyncingNow ? (
                 <>
