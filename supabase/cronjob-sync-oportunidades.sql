@@ -26,13 +26,13 @@ AS $$
 DECLARE
   request_id bigint;
   response_data jsonb;
-  api_url text := 'https://sincro.oficialmed.com.br/oportunidades';
+  api_url text := 'https://sincro.oficialmed.com.br/sync/oportunidades';
 BEGIN
   -- Log de início
   RAISE NOTICE '[%] 🔄 Iniciando sincronização de oportunidades...', 
     NOW()::timestamp(0);
 
-  -- Fazer requisição HTTP usando pg_net
+  -- Fazer requisição HTTP usando pg_net para /sync/oportunidades (sincroniza APENAS oportunidades)
   SELECT net.http_get(
     url := api_url,
     headers := jsonb_build_object(
@@ -123,7 +123,7 @@ AS $$
 DECLARE
   request_id bigint;
   response_data jsonb;
-  api_url text := 'https://sincro.oficialmed.com.br/oportunidades';
+  api_url text := 'https://sincro.oficialmed.com.br/sync/oportunidades';
   start_time timestamptz;
   end_time timestamptz;
   duration_ms integer;
@@ -134,7 +134,7 @@ BEGIN
   RAISE NOTICE '[%] 🔄 Iniciando sincronização de oportunidades...', 
     NOW()::timestamp(0);
 
-  -- Fazer requisição HTTP
+  -- Fazer requisição HTTP para /sync/oportunidades (sincroniza APENAS oportunidades)
   SELECT net.http_get(
     url := api_url,
     headers := jsonb_build_object(

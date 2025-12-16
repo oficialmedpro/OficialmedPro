@@ -2338,7 +2338,7 @@ const TopMenuBar = ({
       
       if (isLocalhost) {
         // Em localhost, usa o servidor Node.js (endpoint de oportunidades)
-        apiUrl = 'http://localhost:3002/oportunidades';
+        apiUrl = 'http://localhost:3002/sync/oportunidades';
         requestHeaders = {
           'Content-Type': 'application/json'
         };
@@ -2362,7 +2362,8 @@ const TopMenuBar = ({
           syncApiUrl = syncApiUrl.slice(0, -1);
         }
         
-        apiUrl = `${syncApiUrl}/oportunidades`;
+        // Usar /sync/oportunidades para garantir que sincroniza APENAS oportunidades
+        apiUrl = `${syncApiUrl}/sync/oportunidades`;
         requestHeaders = {
           'Content-Type': 'application/json'
           // A API do EasyPanel pode precisar de autenticação - adicionar se necessário
@@ -2407,13 +2408,64 @@ const TopMenuBar = ({
         let totalOportunidades = 0;
         let executionTime = durationSeconds;
         
-        // A API de oportunidades retorna um formato específico
-        // Pode retornar: { success: true, data: {...} } ou dados diretos
-        if (data.alreadyRunning) {
+        // A API /sync/oportunidades retorna: { success: true, data: { oportunidades: {...} } }
+        // ou pode retornar dados diretos se for o endpoint antigo
+        const responseData = data.data || data;
+        const oportunidadesData = responseData?.oportunidades || responseData;
+        
+        if (data.alreadyRunning || responseData?.alreadyRunning) {
           logger.warn('⚠️ Sincronização já está em andamento');
           updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Já em execução');
           alert('⚠️ Sincronização já está em andamento. Aguarde a conclusão.');
+        } else if (data.success && oportunidadesData) {
+          // Formato novo: { success: true, data: { oportunidades: {...} } }
+          totalOportunidades = oportunidadesData.totalProcessed || oportunidadesData.processed || oportunidadesData.total || 0;
+          const inserted = oportunidadesData.totalInserted || oportunidadesData.inserted || 0;
+          const updated = oportunidadesData.totalUpdated || oportunidadesData.updated || 0;
+          const errors = oportunidadesData.totalErrors || oportunidadesData.errors || 0;
+          
+          executionTime = oportunidadesData.executionTime ? (oportunidadesData.executionTime / 1000).toFixed(2) : durationSeconds;
+          
+          logger.info(`✅ Oportunidades: ${totalOportunidades} processadas`);
+          if (inserted > 0) logger.info(`   - Inseridas: ${inserted}`);
+          if (updated > 0) logger.info(`   - Atualizadas: ${updated}`);
+          if (errors > 0) logger.info(`   - Erros: ${errors}`);
+          
+          logger.info(`⏱️ Duração: ${executionTime}s`);
+          
+          updateSyncProgress('Sync Agora - Oportunidades', 100, 100, 'Concluído!');
+          
+          // Atualizar tempo da última sincronização
+          setLastSyncTime(new Date());
+          
+          // Calcular próxima sincronização (próximo múltiplo de 30 minutos - cronjob roda a cada 30min)
+          const nowTime = new Date();
+          const nextSync = new Date(nowTime);
+          nextSync.setMinutes(Math.ceil(nextSync.getMinutes() / 30) * 30);
+          nextSync.setSeconds(0);
+          nextSync.setMilliseconds(0);
+          if (nextSync <= nowTime) {
+            nextSync.setMinutes(nextSync.getMinutes() + 30);
+          }
+          setNextScheduledSync(nextSync);
+          
+          alert(
+            `⚡ SYNC AGORA CONCLUÍDO!\n\n` +
+            `📊 RESULTADOS:\n` +
+            `• Oportunidades: ${totalOportunidades} processadas\n` +
+            (inserted > 0 ? `• Inseridas: ${inserted}\n` : '') +
+            (updated > 0 ? `• Atualizadas: ${updated}\n` : '') +
+            (errors > 0 ? `• Erros: ${errors}\n` : '') +
+            `• ⏱️ Tempo: ${executionTime}s\n\n` +
+            `✅ Dados atualizados em tempo real!`
+          );
+          
+          // Registrar na tabela api.sincronizacao (UI)
+          await insertSyncRecordBrowser(
+            `Sync agora (UI) concluído: ${totalOportunidades} oportunidades`
+          );
         } else if (data.success || data.totalProcessed !== undefined) {
+          // Formato antigo ou direto
           totalOportunidades = data.totalProcessed || data.processed || data.total || 0;
           executionTime = data.executionTime ? (data.executionTime / 1000).toFixed(2) : durationSeconds;
           
