@@ -920,7 +920,11 @@ async function upsertSegments(rows) {
 }
 
 async function syncSegments() {
+    // Log de stack trace para identificar quem está chamando esta função
+    const stack = new Error().stack;
     console.log('\n📊 Iniciando sincronização de SEGMENTOS...\n');
+    console.log('🔍 Stack trace (quem chamou syncSegments):');
+    console.log(stack);
     const runId = await logRunStart('segmentos');
     let page = 0, processed = 0, errors = 0;
     while (true) {
@@ -2237,6 +2241,7 @@ async function runFullSync(trigger = 'manual_api', options = {}) {
         
         if (syncAll || syncSegmentos) {
             console.log('\n🔄 Sincronizando SEGMENTOS...');
+            console.log(`🔍 DEBUG: syncAll=${syncAll}, syncSegmentos=${syncSegmentos}, options=`, JSON.stringify(options));
             try {
                 summary.segmentos = await syncSegments();
                 console.log(`✅ Segmentos: ${summary.segmentos?.totalProcessed || 0} processados`);
@@ -2245,6 +2250,7 @@ async function runFullSync(trigger = 'manual_api', options = {}) {
                 summary.segmentos = { totalProcessed: 0, totalErrors: 1, error: segmentError.message };
             }
         } else {
+            console.log('⏭️  SEGMENTOS PULADOS (não solicitado na sincronização)');
             summary.segmentos = { totalProcessed: 0, totalErrors: 0, message: 'Pulado' };
         }
         
