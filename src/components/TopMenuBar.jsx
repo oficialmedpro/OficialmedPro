@@ -2408,10 +2408,17 @@ const TopMenuBar = ({
         let totalOportunidades = 0;
         let executionTime = durationSeconds;
         
-        // A API /sync/oportunidades retorna: { success: true, data: { oportunidades: {...} } }
-        // ou pode retornar dados diretos se for o endpoint antigo
+        // A API /sync/oportunidades pode retornar em dois formatos:
+        // 1) Formato novo (runFullSync): { success: true, data: { startedAt, completedAt, summary: { oportunidades: {...} } } }
+        // 2) Formato antigo: { success: true, data: { oportunidades: {...} } } ou direto { totalProcessed, ... }
         const responseData = data.data || data;
-        const oportunidadesData = responseData?.oportunidades || responseData;
+        
+        // Tentar primeiro o formato mais específico (summary.oportunidades),
+        // depois cair para data.oportunidades e, por fim, para o próprio objeto.
+        let oportunidadesData =
+          responseData?.summary?.oportunidades ||
+          responseData?.oportunidades ||
+          responseData;
         
         if (data.alreadyRunning || responseData?.alreadyRunning) {
           logger.warn('⚠️ Sincronização já está em andamento');
