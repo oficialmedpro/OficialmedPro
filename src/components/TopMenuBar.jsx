@@ -2324,6 +2324,9 @@ const TopMenuBar = ({
     setIsSyncingNow(true);
     updateSyncProgress('Sync Agora - Oportunidades', 0, 100, 'Iniciando sincronização de oportunidades...');
     
+    // Declarar apiUrl fora do try para poder usar no catch
+    let apiUrl = 'https://sincro.oficialmed.com.br/sync/oportunidades'; // Valor padrão
+    
     try {
       logger.info('⚡ INICIANDO SYNC AGORA - SINCRONIZAÇÃO DE OPORTUNIDADES');
       logger.info('='.repeat(80));
@@ -2331,7 +2334,6 @@ const TopMenuBar = ({
       
       // Determinar URL da API baseado no ambiente
       const isLocalhost = window.location.origin.includes('localhost');
-      let apiUrl;
       let requestHeaders = {
         'Content-Type': 'application/json'
       };
