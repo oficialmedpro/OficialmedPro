@@ -2375,9 +2375,9 @@ const TopMenuBar = ({
       
       const startTime = Date.now();
       
-      // Criar AbortController para timeout de 5 minutos
+      // Criar AbortController para timeout de 15 minutos (sincronização pode demorar)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5 * 60 * 1000); // 5 minutos
+      const timeoutId = setTimeout(() => controller.abort(), 15 * 60 * 1000); // 15 minutos
       
       try {
         // Usar GET para /oportunidades (a API aceita ambos, mas GET é mais seguro)
@@ -2531,7 +2531,7 @@ const TopMenuBar = ({
       } catch (fetchError) {
         clearTimeout(timeoutId);
         if (fetchError.name === 'AbortError') {
-          throw new Error('Timeout: A sincronização demorou mais de 5 minutos. A API pode estar processando em background.');
+          throw new Error('Timeout: A sincronização demorou mais de 15 minutos. A API pode estar processando em background. Verifique os logs do servidor para confirmar.');
         }
         throw fetchError;
       }

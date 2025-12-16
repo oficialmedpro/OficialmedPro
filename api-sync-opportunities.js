@@ -1122,10 +1122,12 @@ async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = 
     
     try {
         const payloadObject = { page, limit, columnId: stageId };
-        // Sempre tentar usar incremental se disponível (otimização)
+        // Tentar usar incremental se disponível, mas remover se a API não aceitar
+        let useModifiedSince = false;
         if (globalThis.__LAST_UPDATE_PER_STAGE && globalThis.__LAST_UPDATE_PER_STAGE[`${funnelId}:${stageId}`]) {
             const since = globalThis.__LAST_UPDATE_PER_STAGE[`${funnelId}:${stageId}`];
             payloadObject.modifiedSince = since;
+            useModifiedSince = true;
         }
         const postData = JSON.stringify(payloadObject);
         
@@ -1135,7 +1137,7 @@ async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = 
             console.log(`     🔍 DEBUG Payload:`, JSON.stringify(payloadObject));
         }
         
-        const response = await fetch(url, {
+        let response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json; charset=utf-8',
@@ -1149,10 +1151,37 @@ async function fetchOpportunitiesFromStage(funnelId, stageId, page = 0, limit = 
         if (!response.ok) {
             const errorBody = await response.text().catch(() => '');
             const errorMsg = `HTTP ${response.status}: ${response.statusText}${errorBody ? ` - ${errorBody}` : ''}`;
-            if (funnelId === 34 || funnelId === 38) {
-                console.error(`     ❌ DEBUG Funil ${funnelId} Etapa ${stageId} - Erro HTTP:`, errorMsg);
+            
+            // Se erro 400 e estava usando modifiedSince, tentar novamente sem ele
+            if (response.status === 400 && useModifiedSince && errorBody.includes('modifiedSince')) {
+                console.warn(`     ⚠️ Etapa ${stageId} do funil ${funnelId} não aceita modifiedSince, tentando sem ele...`);
+                delete payloadObject.modifiedSince;
+                const retryPostData = JSON.stringify(payloadObject);
+                response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json; charset=utf-8',
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${SPRINTHUB_CONFIG.apiToken}`,
+                        'apitoken': SPRINTHUB_CONFIG.apiToken
+                    },
+                    body: Buffer.from(retryPostData)
+                });
+                
+                if (!response.ok) {
+                    const retryErrorBody = await response.text().catch(() => '');
+                    const retryErrorMsg = `HTTP ${response.status}: ${response.statusText}${retryErrorBody ? ` - ${retryErrorBody}` : ''}`;
+                    if (funnelId === 34 || funnelId === 38) {
+                        console.error(`     ❌ DEBUG Funil ${funnelId} Etapa ${stageId} - Erro HTTP após retry:`, retryErrorMsg);
+                    }
+                    throw new Error(retryErrorMsg);
+                }
+            } else {
+                if (funnelId === 34 || funnelId === 38) {
+                    console.error(`     ❌ DEBUG Funil ${funnelId} Etapa ${stageId} - Erro HTTP:`, errorMsg);
+                }
+                throw new Error(errorMsg);
             }
-            throw new Error(errorMsg);
         }
 
         const data = await response.json();
@@ -1509,29 +1538,68 @@ function mapOpportunityFields(opportunity, funnelId) {
 // Upsert em lote otimizado (batches maiores)
 async function upsertBatch(opportunitiesBatch) {
     try {
+        // Deduplicar por ID antes de processar (evita erro "cannot affect row a second time")
+        const seen = new Map();
+        const deduplicated = [];
+        for (const item of opportunitiesBatch) {
+            if (!item.id) {
+                console.warn('⚠️ Oportunidade sem ID ignorada:', item);
+                continue;
+            }
+            if (!seen.has(item.id)) {
+                seen.set(item.id, true);
+                deduplicated.push(item);
+            }
+        }
+        
+        if (deduplicated.length === 0) {
+            return { success: true, skipped: true, reason: 'Nenhuma oportunidade válida após deduplicação' };
+        }
+        
+        if (deduplicated.length < opportunitiesBatch.length) {
+            console.log(`   🔍 Deduplicação: ${opportunitiesBatch.length} -> ${deduplicated.length} oportunidades`);
+        }
+
         // Dividir em chunks de UPSERT_BATCH_SIZE se necessário
         const chunks = [];
-        for (let i = 0; i < opportunitiesBatch.length; i += UPSERT_BATCH_SIZE) {
-            chunks.push(opportunitiesBatch.slice(i, i + UPSERT_BATCH_SIZE));
+        for (let i = 0; i < deduplicated.length; i += UPSERT_BATCH_SIZE) {
+            chunks.push(deduplicated.slice(i, i + UPSERT_BATCH_SIZE));
         }
 
-        // Processar chunks em paralelo (otimização)
-        const results = await Promise.all(
-            chunks.map(chunk => 
-                supabase
+        // Processar chunks sequencialmente para evitar conflitos (mais seguro que paralelo)
+        for (let i = 0; i < chunks.length; i++) {
+            const chunk = chunks[i];
+            try {
+                const { error } = await supabase
                     .from('oportunidade_sprint')
-                    .upsert(chunk, { onConflict: 'id', ignoreDuplicates: false })
-                    .then(({ error }) => ({ success: !error, error: error?.message }))
-                    .catch(error => ({ success: false, error: error.message }))
-            )
-        );
-
-        // Verificar se algum chunk falhou
-        const failed = results.find(r => !r.success);
-        if (failed) {
-            return { success: false, error: failed.error };
+                    .upsert(chunk, { onConflict: 'id', ignoreDuplicates: false });
+                
+                if (error) {
+                    // Se o erro for de duplicação dentro do chunk, tentar upsert individual
+                    if (error.message && error.message.includes('cannot affect row a second time')) {
+                        console.warn(`   ⚠️ Duplicação detectada no chunk ${i + 1}, fazendo upsert individual...`);
+                        let successCount = 0;
+                        for (const item of chunk) {
+                            try {
+                                const { error: itemError } = await supabase
+                                    .from('oportunidade_sprint')
+                                    .upsert(item, { onConflict: 'id', ignoreDuplicates: false });
+                                if (!itemError) successCount++;
+                            } catch (e) {
+                                console.error(`   ❌ Erro ao upsert individual ID ${item.id}:`, e.message);
+                            }
+                        }
+                        console.log(`   ✅ Upsert individual: ${successCount}/${chunk.length} sucesso`);
+                    } else {
+                        return { success: false, error: error.message, chunkIndex: i };
+                    }
+                }
+            } catch (chunkError) {
+                return { success: false, error: chunkError.message, chunkIndex: i };
+            }
         }
-        return { success: true };
+
+        return { success: true, processed: deduplicated.length };
     } catch (error) {
         return { success: false, error: error.message };
     }
@@ -1562,14 +1630,49 @@ async function processStage(funnelId, stageId, stageLastUpdateCache, stats) {
                 }
                 console.log(`     📄 Página ${page + 1}: ${opportunities.length} oportunidades`);
 
-                // Mapear e acumular para batch maior
+                // Mapear e acumular para batch maior (deduplicar imediatamente para evitar acúmulo)
                 const mapped = opportunities.map((o) => mapOpportunityFields(o, funnelId));
-                mappedBatch.push(...mapped);
-                etapaStats.processed += mapped.length;
+                
+                // Deduplicar antes de adicionar ao batch acumulado
+                const seenInBatch = new Map();
+                for (const item of mappedBatch) {
+                    if (item.id) seenInBatch.set(item.id, true);
+                }
+                
+                const newItems = mapped.filter(item => item.id && !seenInBatch.has(item.id));
+                mappedBatch.push(...newItems);
+                etapaStats.processed += newItems.length;
+                
+                if (newItems.length < mapped.length) {
+                    console.log(`     🔍 Deduplicação na página ${page + 1}: ${mapped.length} -> ${newItems.length} novas oportunidades`);
+                }
 
                 // Se acumulou suficiente ou é a última página, fazer upsert
                 if (mappedBatch.length >= UPSERT_BATCH_SIZE || opportunities.length < PAGE_LIMIT) {
-                    const batchToUpsert = mappedBatch.splice(0, UPSERT_BATCH_SIZE);
+                    // Deduplicar novamente por ID antes do upsert (segurança extra)
+                    const seen = new Map();
+                    const deduplicated = [];
+                    for (const item of mappedBatch) {
+                        if (!item.id) {
+                            console.warn(`     ⚠️ Oportunidade sem ID ignorada na página ${page + 1}`);
+                            continue;
+                        }
+                        if (!seen.has(item.id)) {
+                            seen.set(item.id, true);
+                            deduplicated.push(item);
+                        }
+                    }
+                    
+                    if (deduplicated.length < mappedBatch.length) {
+                        console.log(`     🔍 Deduplicação final antes do upsert: ${mappedBatch.length} -> ${deduplicated.length}`);
+                    }
+                    
+                    // Pegar o batch para upsert (primeiros UPSERT_BATCH_SIZE)
+                    const batchToUpsert = deduplicated.slice(0, UPSERT_BATCH_SIZE);
+                    // Manter o que sobrou no mappedBatch para o próximo ciclo
+                    mappedBatch.length = 0;
+                    mappedBatch.push(...deduplicated.slice(UPSERT_BATCH_SIZE));
+                    
                     const upsertRes = await upsertBatch(batchToUpsert);
                     if (!upsertRes.success) {
                         etapaStats.errors += batchToUpsert.length;
