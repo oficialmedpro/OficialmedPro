@@ -1844,6 +1844,364 @@ export const getOrcamentosVendedoresPorRonda = async (userIds = null, date = nul
   }
 };
 
+// ============================================================================
+// FUNÇÕES PARA BUSCAR VENDAS (CADASTRO OU STATUS='gain')
+// ============================================================================
+
+/**
+ * Busca vendas por vendedor para uma data específica
+ * Uma venda é contabilizada quando:
+ * - status='gain' OU
+ * - campo cadastro_* está preenchido
+ * Retorna objeto com contagem, valorTotal e ticketMedio por vendedor
+ */
+export const getVendasVendedoresHoje = async (userIds = null, date = null, funilIdsMap = null) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    console.log(`🔍 [getVendasVendedoresHoje] Buscando vendas para data: ${date || 'hoje'}`);
+    
+    // Processar data: garantir que seja sempre interpretada como data local
+    let dataStr;
+    if (date instanceof Date) {
+      const ano = date.getFullYear();
+      const mes = String(date.getMonth() + 1).padStart(2, '0');
+      const dia = String(date.getDate()).padStart(2, '0');
+      dataStr = `${ano}-${mes}-${dia}`;
+    } else if (typeof date === 'string' && date.length >= 10) {
+      // Se já vem no formato YYYY-MM-DD, usar diretamente
+      dataStr = date.substring(0, 10);
+    } else {
+      // Usar hoje no timezone de São Paulo
+      const hoje = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      const ano = hoje.getFullYear();
+      const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+      const dia = String(hoje.getDate()).padStart(2, '0');
+      dataStr = `${ano}-${mes}-${dia}`;
+    }
+    
+    // Para comparar com as datas do banco, precisamos converter para Date object
+    // Mas usar apenas para logs, a comparação será feita com strings
+    const [ano, mes, dia] = dataStr.split('-').map(Number);
+    const baseDate = new Date(ano, mes - 1, dia, 0, 0, 0, 0); // Local time
+    const inicioISO = baseDate.toISOString();
+    const fim = new Date(ano, mes - 1, dia, 23, 59, 59, 999);
+    const fimISO = fim.toISOString();
+    
+    // Mapeamento de funil_id para campo de cadastro
+    const funilParaCampo = {
+      6: 'cadastro_compra',
+      14: 'cadastro_recompra',
+      33: 'cadastro_ativacao',
+      41: 'cadastro_monitoramento',
+      38: 'cadastro_reativacao'
+    };
+    
+    const allOpportunities = [];
+    const oportunidadesProcessadas = new Set();
+
+    if (funilIdsMap && typeof funilIdsMap === 'object') {
+      const funisAgrupados = {};
+      Object.entries(funilIdsMap).forEach(([userId, funilId]) => {
+        const funilIdNum = parseInt(funilId);
+        if (!funisAgrupados[funilIdNum]) {
+          funisAgrupados[funilIdNum] = [];
+        }
+        funisAgrupados[funilIdNum].push(parseInt(userId));
+      });
+      
+      for (const [funilId, userIdsList] of Object.entries(funisAgrupados)) {
+        const campoCadastro = funilParaCampo[parseInt(funilId)];
+        if (!campoCadastro) {
+          console.warn(`⚠️ [getVendasVendedoresHoje] Funil ID ${funilId} não mapeado`);
+          continue;
+        }
+        
+        const funilUserIdsFilter = `&user_id=in.(${userIdsList.join(',')})`;
+        const funilFilter = `&funil_id=eq.${funilId}`;
+        
+        // Buscar vendas: status='gain' OU campo cadastro_* preenchido
+        // Fazer duas queries separadas para ganhar performance e evitar problemas com OR complexo
+        // Query 1: Vendas com gain_date na data específica
+        const urlGainDate = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,value,status,gain_date,${campoCadastro},create_date${funilUserIdsFilter}${funilFilter}&status=eq.gain&value=gt.0&gain_date=gte.${dataStr}T00:00:00&gain_date=lt.${dataStr}T23:59:59.999`;
+        
+        // Query 2: Vendas com cadastro_* na data específica (mas sem gain_date na data)
+        const urlCadastro = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,value,status,gain_date,${campoCadastro},create_date${funilUserIdsFilter}${funilFilter}&${campoCadastro}=not.is.null&${campoCadastro}=gte.${dataStr}T00:00:00&${campoCadastro}=lt.${dataStr}T23:59:59.999&value=gt.0`;
+        // URL removida dos logs para reduzir poluição
+        
+        try {
+          // Buscar dados de ambas as queries em paralelo
+          const [responseGain, responseCadastro] = await Promise.all([
+            fetch(urlGainDate, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${supabaseAnonKey}`,
+                'apikey': supabaseAnonKey,
+                'Accept-Profile': 'api',
+                'Content-Profile': 'api',
+                'Prefer': 'count=exact'
+              }
+            }),
+            fetch(urlCadastro, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${supabaseAnonKey}`,
+                'apikey': supabaseAnonKey,
+                'Accept-Profile': 'api',
+                'Content-Profile': 'api',
+                'Prefer': 'count=exact'
+              }
+            })
+          ]);
+          
+          let data = [];
+          
+          if (responseGain.ok) {
+            const dataGain = await responseGain.json();
+            data = data.concat(dataGain);
+          } else {
+            console.warn(`⚠️ [getVendasVendedoresHoje] Erro ao buscar gain_date funil ${funilId}:`, responseGain.status);
+          }
+          
+          if (responseCadastro.ok) {
+            const dataCadastro = await responseCadastro.json();
+            // Adicionar apenas se não estiver na lista (evitar duplicatas)
+            const idsGain = new Set(data.map(d => d.id));
+            data = data.concat(dataCadastro.filter(d => !idsGain.has(d.id)));
+          } else {
+            console.warn(`⚠️ [getVendasVendedoresHoje] Erro ao buscar cadastro funil ${funilId}:`, responseCadastro.status);
+          }
+          
+          let incluidosCount = 0;
+          let excluidosCount = 0;
+          
+          data.forEach(opp => {
+            const chaveUnica = `${opp.user_id}-${opp.id}`;
+            if (oportunidadesProcessadas.has(chaveUnica)) return;
+            
+            // Como já filtramos por data na query, todas as oportunidades aqui já são da data correta
+            // Apenas precisamos garantir que não há duplicatas e adicionar ao array
+            incluidosCount++;
+            allOpportunities.push({
+              ...opp,
+              dataVenda: opp.gain_date ? new Date(opp.gain_date) : (opp[campoCadastro] ? new Date(opp[campoCadastro]) : new Date(opp.create_date)),
+              funil_id: parseInt(funilId)
+            });
+            oportunidadesProcessadas.add(chaveUnica);
+          });
+          
+          console.log(`📊 [getVendasVendedoresHoje] Funil ${funilId}: ${data.length} oportunidades recebidas para ${dataStr}`);
+        } catch (error) {
+          console.warn(`⚠️ [getVendasVendedoresHoje] Erro ao buscar funil ${funilId}:`, error);
+        }
+      }
+    }
+    
+    // Agrupar por vendedor: contagem, valor total, ticket médio
+    const vendasPorVendedor = {};
+    
+    allOpportunities.forEach(opp => {
+      if (opp.user_id !== null && opp.user_id !== undefined && opp.value && opp.value > 0) {
+        if (!vendasPorVendedor[opp.user_id]) {
+          vendasPorVendedor[opp.user_id] = {
+            contagem: 0,
+            valorTotal: 0,
+            ticketMedio: 0
+          };
+        }
+        vendasPorVendedor[opp.user_id].contagem++;
+        vendasPorVendedor[opp.user_id].valorTotal += parseFloat(opp.value) || 0;
+      }
+    });
+    
+    // Calcular ticket médio para cada vendedor
+    Object.keys(vendasPorVendedor).forEach(userId => {
+      const vendedor = vendasPorVendedor[userId];
+      vendedor.ticketMedio = vendedor.contagem > 0 ? vendedor.valorTotal / vendedor.contagem : 0;
+    });
+    
+    console.log(`✅ [getVendasVendedoresHoje] ${Object.keys(vendasPorVendedor).length} vendedores com vendas. Total de oportunidades processadas: ${allOpportunities.length}`);
+    return vendasPorVendedor;
+  } catch (error) {
+    console.error('❌ [getVendasVendedoresHoje] Erro:', error);
+    return {};
+  }
+};
+
+/**
+ * Busca vendas agrupadas por ronda (horários específicos)
+ */
+export const getVendasVendedoresPorRonda = async (userIds = null, date = null, funilIdsMap = null) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    console.log('🔍 [getVendasVendedoresPorRonda] Buscando vendas por ronda...');
+
+    // Processar data: garantir que seja sempre interpretada como data local
+    let dataStr;
+    if (date instanceof Date) {
+      const ano = date.getFullYear();
+      const mes = String(date.getMonth() + 1).padStart(2, '0');
+      const dia = String(date.getDate()).padStart(2, '0');
+      dataStr = `${ano}-${mes}-${dia}`;
+    } else if (typeof date === 'string' && date.length >= 10) {
+      // Se já vem no formato YYYY-MM-DD, usar diretamente
+      dataStr = date.substring(0, 10);
+    } else {
+      // Usar hoje no timezone de São Paulo
+      const hoje = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      const ano = hoje.getFullYear();
+      const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+      const dia = String(hoje.getDate()).padStart(2, '0');
+      dataStr = `${ano}-${mes}-${dia}`;
+    }
+    
+    // Para comparar com as datas do banco, precisamos converter para Date object
+    // Mas usar apenas para logs, a comparação será feita com strings
+    const [ano, mes, dia] = dataStr.split('-').map(Number);
+    const baseDate = new Date(ano, mes - 1, dia, 0, 0, 0, 0); // Local time
+    const inicioISO = baseDate.toISOString();
+    const fim = new Date(ano, mes - 1, dia, 23, 59, 59, 999);
+    const fimISO = fim.toISOString();
+
+    const funilParaCampo = {
+      6: 'cadastro_compra',
+      14: 'cadastro_recompra',
+      33: 'cadastro_ativacao',
+      41: 'cadastro_monitoramento',
+      38: 'cadastro_reativacao'
+    };
+
+    const allOpportunities = [];
+    const oportunidadesProcessadas = new Set();
+
+    if (funilIdsMap && typeof funilIdsMap === 'object') {
+      const funisAgrupados = {};
+      Object.entries(funilIdsMap).forEach(([userId, funilId]) => {
+        const funilIdNum = parseInt(funilId);
+        if (!funisAgrupados[funilIdNum]) {
+          funisAgrupados[funilIdNum] = [];
+        }
+        funisAgrupados[funilIdNum].push(parseInt(userId));
+      });
+      
+      for (const [funilId, userIdsList] of Object.entries(funisAgrupados)) {
+        const campoCadastro = funilParaCampo[parseInt(funilId)];
+        if (!campoCadastro) continue;
+        
+        const funilUserIdsFilter = `&user_id=in.(${userIdsList.join(',')})`;
+        const funilFilter = `&funil_id=eq.${funilId}`;
+        
+        // Buscar vendas: status='gain' OU campo cadastro_* preenchido
+        // Fazer duas queries separadas para ganhar performance e evitar problemas com OR complexo
+        // Query 1: Vendas com gain_date na data específica
+        const urlGainDate = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,value,status,gain_date,${campoCadastro},create_date${funilUserIdsFilter}${funilFilter}&status=eq.gain&value=gt.0&gain_date=gte.${dataStr}T00:00:00&gain_date=lt.${dataStr}T23:59:59.999`;
+        
+        // Query 2: Vendas com cadastro_* na data específica (mas sem gain_date na data)
+        const urlCadastro = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,value,status,gain_date,${campoCadastro},create_date${funilUserIdsFilter}${funilFilter}&${campoCadastro}=not.is.null&${campoCadastro}=gte.${dataStr}T00:00:00&${campoCadastro}=lt.${dataStr}T23:59:59.999&value=gt.0`;
+        
+        try {
+          // Buscar dados de ambas as queries em paralelo
+          const [responseGain, responseCadastro] = await Promise.all([
+            fetch(urlGainDate, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${supabaseAnonKey}`,
+                'apikey': supabaseAnonKey,
+                'Accept-Profile': 'api',
+                'Content-Profile': 'api'
+              }
+            }),
+            fetch(urlCadastro, {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${supabaseAnonKey}`,
+                'apikey': supabaseAnonKey,
+                'Accept-Profile': 'api',
+                'Content-Profile': 'api'
+              }
+            })
+          ]);
+          
+          let data = [];
+          
+          if (responseGain.ok) {
+            const dataGain = await responseGain.json();
+            data = data.concat(dataGain);
+          }
+          
+          if (responseCadastro.ok) {
+            const dataCadastro = await responseCadastro.json();
+            // Adicionar apenas se não estiver na lista (evitar duplicatas)
+            const idsGain = new Set(data.map(d => d.id));
+            data = data.concat(dataCadastro.filter(d => !idsGain.has(d.id)));
+          }
+          
+          data.forEach(opp => {
+            const chaveUnica = `${opp.user_id}-${opp.id}`;
+            if (oportunidadesProcessadas.has(chaveUnica)) return;
+            
+            // Como já filtramos por data na query, todas as oportunidades aqui já são da data correta
+            allOpportunities.push({
+              ...opp,
+              dataVenda: opp.gain_date ? new Date(opp.gain_date) : (opp[campoCadastro] ? new Date(opp[campoCadastro]) : new Date(opp.create_date)),
+              funil_id: parseInt(funilId)
+            });
+            oportunidadesProcessadas.add(chaveUnica);
+          });
+        } catch (error) {
+          console.warn(`⚠️ [getVendasVendedoresPorRonda] Erro ao buscar funil ${funilId}:`, error);
+        }
+      }
+    }
+
+    const vendasPorVendedorPorRonda = {};
+    const rondasHorarios = {
+      '10h': { start: 0, end: 10 * 60 },
+      '12h': { start: 10 * 60 + 1, end: 12 * 60 },
+      '14h': { start: 12 * 60 + 1, end: 14 * 60 },
+      '16h': { start: 14 * 60 + 1, end: 16 * 60 },
+      '18h': { start: 16 * 60 + 1, end: 18 * 60 },
+    };
+
+    allOpportunities.forEach(opp => {
+      if (opp.user_id !== null && opp.user_id !== undefined && opp.dataVenda) {
+        const localTime = new Date(opp.dataVenda.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+        const minutesOfDay = localTime.getHours() * 60 + localTime.getMinutes();
+        const valor = parseFloat(opp.value) || 0;
+
+        if (!vendasPorVendedorPorRonda[opp.user_id]) {
+          vendasPorVendedorPorRonda[opp.user_id] = {
+            '10h': { contagem: 0, valorTotal: 0 },
+            '12h': { contagem: 0, valorTotal: 0 },
+            '14h': { contagem: 0, valorTotal: 0 },
+            '16h': { contagem: 0, valorTotal: 0 },
+            '18h': { contagem: 0, valorTotal: 0 }
+          };
+        }
+
+        for (const ronda in rondasHorarios) {
+          const { start, end } = rondasHorarios[ronda];
+          if (minutesOfDay >= start && minutesOfDay <= end) {
+            vendasPorVendedorPorRonda[opp.user_id][ronda].contagem++;
+            vendasPorVendedorPorRonda[opp.user_id][ronda].valorTotal += valor;
+            break;
+          }
+        }
+      }
+    });
+
+    console.log(`✅ [getVendasVendedoresPorRonda] Vendas por ronda encontradas:`, vendasPorVendedorPorRonda);
+    return vendasPorVendedorPorRonda;
+  } catch (error) {
+    console.error('❌ [getVendasVendedoresPorRonda] Erro:', error);
+    return {};
+  }
+};
+
 export const getFunilEtapas = async (idFunilSprint) => {
   try {
     console.log('🔍 Buscando etapas do funil ID:', idFunilSprint)

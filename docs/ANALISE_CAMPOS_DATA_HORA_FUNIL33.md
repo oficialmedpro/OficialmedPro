@@ -100,3 +100,4 @@ A função `mapStageDateTimeFields` procura por variações dos seguintes nomes:
 Após analisar as oportunidades reais, ajustar o mapeamento conforme necessário e testar a sincronização.
 
 
+

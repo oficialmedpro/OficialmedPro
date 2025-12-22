@@ -93,3 +93,4 @@ No NocoDB, após importar, você pode:
 **Tabela principal de respostas:** `Answer` e `AnswerV2`
 
 
+

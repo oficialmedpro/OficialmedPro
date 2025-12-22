@@ -111,3 +111,4 @@ docker exec typebot_typebot-db.1.ylvzixcqru6rwfsxsuqfqquiv pg_dump -U postgres t
 **Status:** ✅ Configuração do PostgreSQL concluída. Aguardando exposição da porta no EasyPanel.
 
 
+

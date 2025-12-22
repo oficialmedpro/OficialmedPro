@@ -1,0 +1,6 @@
+# 🔄 COMANDO EM UMA LINHA PARA ATUALIZAR API (CORRIGIDO)
+# Copie e cole este comando completo:
+
+cd /tmp && rm -rf /tmp/sprint-sync-build && git clone https://github.com/oficialmedpro/OficialmedPro.git /tmp/sprint-sync-build && cd /tmp/sprint-sync-build && docker service scale sprint-sync_sincronizacao=0 && sleep 5 && docker build --no-cache -f Dockerfile.sync-opportunities-easypanel -t easypanel/sprint-sync/sincronizacao:latest . && docker service update --image easypanel/sprint-sync/sincronizacao:latest sprint-sync_sincronizacao --force && docker service scale sprint-sync_sincronizacao=1 && echo "✅ API atualizada para última versão!"
+
+

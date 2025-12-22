@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './CockpitVendedores.css';
 import LogoOficialmed from '../../icones/icone_oficialmed.svg';
-import { getVendedoresPorIds, getFunisPorIds, getCockpitVendedoresConfig, getTiposSecao, getMetasVendedores, getMetaVendedorPorDia, getMetasRondas, getNomesMetas, getEntradasVendedoresHoje, getEntradasVendedoresPorRonda, getOrcamentosVendedoresHoje, getOrcamentosVendedoresPorRonda } from '../service/supabase';
+import { getVendedoresPorIds, getFunisPorIds, getCockpitVendedoresConfig, getTiposSecao, getMetasVendedores, getMetaVendedorPorDia, getMetasRondas, getNomesMetas, getEntradasVendedoresHoje, getEntradasVendedoresPorRonda, getOrcamentosVendedoresHoje, getOrcamentosVendedoresPorRonda, getVendasVendedoresHoje, getVendasVendedoresPorRonda } from '../service/supabase';
 import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Settings, MoreVertical, Target } from 'lucide-react';
+import { LayoutDashboard, Settings, MoreVertical, Target, AlertCircle, X } from 'lucide-react';
 
 const CockpitVendedores = () => {
   const navigate = useNavigate();
@@ -18,6 +18,8 @@ const CockpitVendedores = () => {
   const [entradasPorRonda, setEntradasPorRonda] = useState({}); // { user_id: { '10h': count, '12h': count, ... } }
   const [orcamentosHoje, setOrcamentosHoje] = useState({}); // { user_id: count }
   const [orcamentosPorRonda, setOrcamentosPorRonda] = useState({}); // { user_id: { '10h': count, '12h': count, ... } }
+  const [vendasHoje, setVendasHoje] = useState({}); // { user_id: { contagem, valorTotal, ticketMedio } }
+  const [vendasPorRonda, setVendasPorRonda] = useState({}); // { user_id: { '10h': { contagem, valorTotal }, '12h': { contagem, valorTotal }, ... } }
   const [dataSelecionada, setDataSelecionada] = useState(() => {
     // Data padrão = hoje na timezone Brasil em formato YYYY-MM-DD
     const hoje = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
@@ -28,6 +30,7 @@ const CockpitVendedores = () => {
   });
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
+  const [modalAlerta, setModalAlerta] = useState(null); // { vendedor, dados }
   const menuRef = useRef(null);
 
   // Fechar menu ao clicar fora
@@ -124,16 +127,20 @@ const CockpitVendedores = () => {
         });
         
         // Buscar entradas e orçamentos de hoje e por ronda inicialmente (filtrando por funil_id)
-        const [entradasHojeInicial, entradasPorRondaInicial, orcamentosHojeInicial, orcamentosPorRondaInicial] = await Promise.all([
+        const [entradasHojeInicial, entradasPorRondaInicial, orcamentosHojeInicial, orcamentosPorRondaInicial, vendasHojeInicial, vendasPorRondaInicial] = await Promise.all([
           getEntradasVendedoresHoje(todosIds, null, funilIdsMap),
           getEntradasVendedoresPorRonda(todosIds, null, funilIdsMap),
           getOrcamentosVendedoresHoje(todosIds, null, funilIdsMap),
-          getOrcamentosVendedoresPorRonda(todosIds, null, funilIdsMap)
+          getOrcamentosVendedoresPorRonda(todosIds, null, funilIdsMap),
+          getVendasVendedoresHoje(todosIds, null, funilIdsMap),
+          getVendasVendedoresPorRonda(todosIds, null, funilIdsMap)
         ]);
         setEntradasHoje(entradasHojeInicial);
         setEntradasPorRonda(entradasPorRondaInicial);
         setOrcamentosHoje(orcamentosHojeInicial);
         setOrcamentosPorRonda(orcamentosPorRondaInicial);
+        setVendasHoje(vendasHojeInicial);
+        setVendasPorRonda(vendasPorRondaInicial);
         
         console.log('✅ [CockpitVendedores] Dados carregados:', {
           configs: configsAtivas.length,
@@ -177,17 +184,21 @@ const CockpitVendedores = () => {
         });
 
         // Buscar entradas e orçamentos do dia e por ronda (filtrando por funil_id)
-        const [entradasDia, entradasRonda, orcamentosDia, orcamentosRonda] = await Promise.all([
-          getEntradasVendedoresHoje(todosIds, dataSelecionada, funilIdsMap),
-          getEntradasVendedoresPorRonda(todosIds, dataSelecionada, funilIdsMap),
-          getOrcamentosVendedoresHoje(todosIds, dataSelecionada, funilIdsMap),
-          getOrcamentosVendedoresPorRonda(todosIds, dataSelecionada, funilIdsMap)
-        ]);
-        
-        setEntradasHoje(entradasDia);
-        setEntradasPorRonda(entradasRonda);
-        setOrcamentosHoje(orcamentosDia);
-        setOrcamentosPorRonda(orcamentosRonda);
+          const [entradasDia, entradasRonda, orcamentosDia, orcamentosRonda, vendasDia, vendasRonda] = await Promise.all([
+            getEntradasVendedoresHoje(todosIds, dataSelecionada, funilIdsMap),
+            getEntradasVendedoresPorRonda(todosIds, dataSelecionada, funilIdsMap),
+            getOrcamentosVendedoresHoje(todosIds, dataSelecionada, funilIdsMap),
+            getOrcamentosVendedoresPorRonda(todosIds, dataSelecionada, funilIdsMap),
+            getVendasVendedoresHoje(todosIds, dataSelecionada, funilIdsMap),
+            getVendasVendedoresPorRonda(todosIds, dataSelecionada, funilIdsMap)
+          ]);
+          
+          setEntradasHoje(entradasDia);
+          setEntradasPorRonda(entradasRonda);
+          setOrcamentosHoje(orcamentosDia);
+          setOrcamentosPorRonda(orcamentosRonda);
+          setVendasHoje(vendasDia);
+          setVendasPorRonda(vendasRonda);
 
         console.log('📊 [CockpitVendedores] Entradas e orçamentos carregados para data', dataSelecionada, {
           entradasDia,
@@ -297,15 +308,40 @@ const CockpitVendedores = () => {
           const orcamentoVariacaoRonda = metaOrcamentoRonda && metaOrcamentoRonda > 0
             ? Math.round(((orcamentoAtualRonda - metaOrcamentoRonda) / metaOrcamentoRonda) * 100)
             : 0;
+          
+          // Buscar vendas reais por ronda para este vendedor (agora retorna { contagem, valorTotal })
+          const vendasDataRonda = vendasPorRonda[config.idVendedor]?.[horario] || { contagem: 0, valorTotal: 0 };
+          const vendasAtualRonda = typeof vendasDataRonda === 'number' ? vendasDataRonda : (vendasDataRonda.contagem || 0);
+          const valorAtualRonda = typeof vendasDataRonda === 'number' ? 0 : (vendasDataRonda.valorTotal || 0);
+          const ticketMedioAtualRonda = vendasAtualRonda > 0 ? valorAtualRonda / vendasAtualRonda : 0;
+          const conversaoAtualRonda = orcamentoAtualRonda > 0 
+            ? Math.round((vendasAtualRonda / orcamentoAtualRonda) * 100 * 10) / 10 
+            : 0;
+          
+          const vendasVariacaoRonda = metaVendasRonda && metaVendasRonda > 0
+            ? Math.round(((vendasAtualRonda - metaVendasRonda) / metaVendasRonda) * 100)
+            : 0;
+          
+          const valorVariacaoRonda = metaValorRonda && metaValorRonda > 0
+            ? Math.round(((valorAtualRonda - metaValorRonda) / metaValorRonda) * 100)
+            : 0;
+          
+          const ticketMedioVariacaoRonda = metaTicketMedioRonda && metaTicketMedioRonda > 0
+            ? Math.round(((ticketMedioAtualRonda - metaTicketMedioRonda) / metaTicketMedioRonda) * 100)
+            : 0;
+          
+          const conversaoVariacaoRonda = metaConversaoRonda && metaConversaoRonda > 0
+            ? Math.round(((conversaoAtualRonda - metaConversaoRonda) / metaConversaoRonda) * 100)
+            : 0;
 
           return {
             horario: horario,
             entrada: { atual: entradaAtualRonda, meta: metaEntradaRonda, variacao: entradaVariacaoRonda },
             orcamento: { atual: orcamentoAtualRonda, meta: metaOrcamentoRonda, variacao: orcamentoVariacaoRonda },
-            vendas: { atual: 0, meta: metaVendasRonda, variacao: 0 },
-            valor: { atual: 0, meta: metaValorRonda, variacao: 0 },
-            ticketMedio: { atual: 0, meta: metaTicketMedioRonda, variacao: 0 },
-            conversao: { atual: 0, meta: metaConversaoRonda, variacao: 0 }
+            vendas: { atual: vendasAtualRonda, meta: metaVendasRonda, variacao: vendasVariacaoRonda },
+            valor: { atual: valorAtualRonda, meta: metaValorRonda, variacao: valorVariacaoRonda },
+            ticketMedio: { atual: ticketMedioAtualRonda, meta: metaTicketMedioRonda, variacao: ticketMedioVariacaoRonda },
+            conversao: { atual: conversaoAtualRonda, meta: metaConversaoRonda, variacao: conversaoVariacaoRonda }
           };
         });
 
@@ -322,18 +358,60 @@ const CockpitVendedores = () => {
           ? Math.round(((orcamentoAtual - metaOrcamentos) / metaOrcamentos) * 100)
           : 0;
         
+        // Buscar dados de vendas de hoje para este vendedor
+        const vendasData = vendasHoje[config.idVendedor] || { contagem: 0, valorTotal: 0, ticketMedio: 0 };
+        const vendasAtual = vendasData.contagem || 0;
+        const valorAtual = vendasData.valorTotal || 0;
+        const ticketMedioAtual = vendasData.ticketMedio || 0;
+        
+        const vendasVariacao = metaVendas && metaVendas > 0
+          ? Math.round(((vendasAtual - metaVendas) / metaVendas) * 100)
+          : 0;
+        
+        const valorVariacao = metaValor && metaValor > 0
+          ? Math.round(((valorAtual - metaValor) / metaValor) * 100)
+          : 0;
+        
+        const ticketMedioVariacao = metaTicketMedio && metaTicketMedio > 0
+          ? Math.round(((ticketMedioAtual - metaTicketMedio) / metaTicketMedio) * 100)
+          : 0;
+        
+        // CALCULAR QUALIFICAÇÃO (Entrada → Orçamento/Negociação)
+        // Qualificação = Quantos leads que entraram geraram orçamento ou negociação
+        const qualificacaoAtual = orcamentoAtual; // Já contabiliza orçamento ou negociação
+        const qualificacaoTotal = entradaAtual;
+        const qualificacaoTaxa = qualificacaoTotal > 0 
+          ? Math.round((qualificacaoAtual / qualificacaoTotal) * 100 * 10) / 10 // 1 casa decimal
+          : 0;
+        
+        // CALCULAR CONVERSÃO 1: Entrada → Venda
+        const conversaoEntradaVendaAtual = vendasAtual;
+        const conversaoEntradaVendaTotal = entradaAtual;
+        const conversaoEntradaVendaTaxa = conversaoEntradaVendaTotal > 0
+          ? Math.round((conversaoEntradaVendaAtual / conversaoEntradaVendaTotal) * 100 * 10) / 10
+          : 0;
+        const conversaoEntradaVendaTaxaAlvo = metaConversao ? conversaoEntradaVendaTaxa >= metaConversao : false;
+        
+        // CALCULAR CONVERSÃO 2: Orçamento → Venda
+        const conversaoOrcVendaAtual = vendasAtual;
+        const conversaoOrcVendaTotal = orcamentoAtual;
+        const conversaoOrcVendaTaxa = conversaoOrcVendaTotal > 0
+          ? Math.round((conversaoOrcVendaAtual / conversaoOrcVendaTotal) * 100 * 10) / 10
+          : 0;
+        const conversaoOrcVendaTaxaAlvo = metaConversao ? conversaoOrcVendaTaxa >= metaConversao : false;
+        
         return {
           idVendedor: config.idVendedor,
           idFunil: config.idFunil,
           nome: vendedoresNomes[config.idVendedor] || `Vendedor ${index + 1}`,
           entrada: { atual: entradaAtual, meta: metaEntrada, variacao: entradaVariacao },
           orcamentos: { atual: orcamentoAtual, meta: metaOrcamentos, variacao: orcamentoVariacao },
-          vendas: { atual: 0, meta: metaVendas, variacao: 0 },
-          valor: { atual: 0, meta: metaValor, variacao: 0 },
-          ticketMedio: { atual: 0, meta: metaTicketMedio, variacao: 0 },
-          conversao: { atual: 0, meta: metaConversao, variacao: 0 },
-          qualificacao: { taxa: 0, atual: 0, total: 0, taxaAlvo: false },
-          conversaoOrcVenda: { taxa: 0, atual: 0, total: 0, taxaAlvo: false },
+          vendas: { atual: vendasAtual, meta: metaVendas, variacao: vendasVariacao },
+          valor: { atual: valorAtual, meta: metaValor, variacao: valorVariacao },
+          ticketMedio: { atual: ticketMedioAtual, meta: metaTicketMedio, variacao: ticketMedioVariacao },
+          conversao: { taxa: conversaoEntradaVendaTaxa, atual: conversaoEntradaVendaTaxa, total: conversaoEntradaVendaTotal, taxaAlvo: conversaoEntradaVendaTaxaAlvo, vendas: conversaoEntradaVendaAtual, meta: metaConversao },
+          qualificacao: { taxa: qualificacaoTaxa, atual: qualificacaoAtual, total: qualificacaoTotal, taxaAlvo: false },
+          conversaoOrcVenda: { taxa: conversaoOrcVendaTaxa, atual: conversaoOrcVendaAtual, total: conversaoOrcVendaTotal, taxaAlvo: conversaoOrcVendaTaxaAlvo },
           rondas: rondasComMetas,
           botao: funisNomes[config.idFunil] || tipo.label.split(' ')[0] || tipo.label // Nome do funil ou primeira palavra do label
         };
@@ -341,7 +419,7 @@ const CockpitVendedores = () => {
     });
 
     return dados;
-  }, [vendedoresNomes, funisNomes, configVendedoresPorTipo, tiposSecao, metas, metasRondas, entradasHoje, entradasPorRonda, orcamentosHoje, orcamentosPorRonda]);
+  }, [vendedoresNomes, funisNomes, configVendedoresPorTipo, tiposSecao, metas, metasRondas, entradasHoje, entradasPorRonda, orcamentosHoje, orcamentosPorRonda, vendasHoje, vendasPorRonda]);
 
   /**
    * Formata a porcentagem realizada e o que falta (se aplicável)
@@ -441,16 +519,63 @@ const CockpitVendedores = () => {
     return getClassePorPorcentagem(porcentagem);
   };
 
+  /**
+   * Calcula alertas de jornada incompleta para um vendedor
+   */
+  const calcularAlertas = (vendedor) => {
+    const alertas = [];
+    
+    // Alerta 1: Tem orçamento mas não tem entrada
+    if (vendedor.orcamentos.atual > 0 && vendedor.entrada.atual === 0) {
+      alertas.push({
+        tipo: 'sem_entrada',
+        descricao: `${vendedor.orcamentos.atual} oportunidade(s) com orçamento mas sem entrada registrada`
+      });
+    }
+    
+    // Alerta 2: Tem venda mas não tem entrada
+    if (vendedor.vendas.atual > 0 && vendedor.entrada.atual === 0) {
+      alertas.push({
+        tipo: 'sem_entrada_venda',
+        descricao: `${vendedor.vendas.atual} venda(s) sem entrada registrada`
+      });
+    }
+    
+    // Alerta 3: Tem venda mas não tem qualificação (orçamento/negociação)
+    if (vendedor.vendas.atual > 0 && vendedor.orcamentos.atual === 0) {
+      alertas.push({
+        tipo: 'sem_qualificacao',
+        descricao: `${vendedor.vendas.atual} venda(s) sem qualificação (orçamento/negociação) registrada`
+      });
+    }
+    
+    return alertas;
+  };
+
   const renderCardVendedor = (vendedor, index) => {
     // Calcular classe baseada na porcentagem da entrada (para manter compatibilidade com código antigo)
     const classeEntrada = getClasseMetrica(vendedor.entrada.atual, vendedor.entrada.meta);
     const isBad = classeEntrada === 'bad'; // Mantido para compatibilidade, mas vamos usar classes específicas
+    
+    // Calcular alertas para este vendedor
+    const alertas = calcularAlertas(vendedor);
+    const temAlertas = alertas.length > 0;
 
     return (
       <div key={index} className="cockpit-vendedores-card">
         <div className="cockpit-vendedores-card-header">
           <h3 className="cockpit-vendedores-card-nome">{vendedor.nome}</h3>
-          <span className="cockpit-vendedores-btn">{vendedor.botao}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="cockpit-vendedores-btn">{vendedor.botao}</span>
+            {temAlertas && (
+              <AlertCircle 
+                className="cockpit-vendedores-alerta-icon"
+                size={18}
+                style={{ cursor: 'pointer', color: '#ff9800' }}
+                onClick={() => setModalAlerta({ vendedor, alertas })}
+              />
+            )}
+          </div>
         </div>
 
         {/* SUMMARY TOP - 6 widgets */}
@@ -503,9 +628,11 @@ const CockpitVendedores = () => {
           <div className="cockpit-vendedores-metrica">
             <div className="cockpit-vendedores-metrica-label">Valor</div>
             <div className="cockpit-vendedores-metrica-valor">
+              <div className="cockpit-vendedores-metrica-row-meta">
+                <span className="cockpit-vendedores-metrica-meta">{vendedor.valor.meta !== null && vendedor.valor.meta !== undefined ? formatarMoeda(vendedor.valor.meta) : '—'}</span>
+              </div>
               <div className="cockpit-vendedores-metrica-row-main">
-                <span className="cockpit-vendedores-metrica-meta">{vendedor.valor.meta ?? '—'}</span>
-                <span className={`cockpit-vendedores-metrica-real ${getClasseMetrica(vendedor.valor.atual, vendedor.valor.meta)}`}>/ {vendedor.valor.atual}</span>
+                <span className={`cockpit-vendedores-metrica-real ${getClasseMetrica(vendedor.valor.atual, vendedor.valor.meta)}`}>{formatarMoeda(vendedor.valor.atual)}</span>
               </div>
               <div className="cockpit-vendedores-metrica-row-diff">
                 <span className={`cockpit-vendedores-metrica-variacao ${getClasseMetrica(vendedor.valor.atual, vendedor.valor.meta)}`}>
@@ -518,9 +645,11 @@ const CockpitVendedores = () => {
           <div className="cockpit-vendedores-metrica">
             <div className="cockpit-vendedores-metrica-label">Ticket Médio</div>
             <div className="cockpit-vendedores-metrica-valor">
+              <div className="cockpit-vendedores-metrica-row-meta">
+                <span className="cockpit-vendedores-metrica-meta">{vendedor.ticketMedio.meta !== null && vendedor.ticketMedio.meta !== undefined ? formatarMoeda(vendedor.ticketMedio.meta) : '—'}</span>
+              </div>
               <div className="cockpit-vendedores-metrica-row-main">
-                <span className="cockpit-vendedores-metrica-meta">{vendedor.ticketMedio.meta ?? '—'}</span>
-                <span className={`cockpit-vendedores-metrica-real ${getClasseMetrica(vendedor.ticketMedio.atual, vendedor.ticketMedio.meta)}`}>/ {vendedor.ticketMedio.atual}</span>
+                <span className={`cockpit-vendedores-metrica-real ${getClasseMetrica(vendedor.ticketMedio.atual, vendedor.ticketMedio.meta)}`}>{formatarMoeda(vendedor.ticketMedio.atual)}</span>
               </div>
               <div className="cockpit-vendedores-metrica-row-diff">
                 <span className={`cockpit-vendedores-metrica-variacao ${getClasseMetrica(vendedor.ticketMedio.atual, vendedor.ticketMedio.meta)}`}>
@@ -533,17 +662,19 @@ const CockpitVendedores = () => {
           <div className="cockpit-vendedores-metrica">
             <div className="cockpit-vendedores-metrica-label">Conversão</div>
             <div className="cockpit-vendedores-metrica-valor">
-              <div className="cockpit-vendedores-metrica-row-main">
+              <div className="cockpit-vendedores-metrica-row-meta">
                 <span className="cockpit-vendedores-metrica-meta">
                   {vendedor.conversao.meta !== null && vendedor.conversao.meta !== undefined 
                     ? formatarConversao(vendedor.conversao.meta) 
                     : '—'}
                 </span>
-                <span className={`cockpit-vendedores-metrica-real ${getClasseMetrica(vendedor.conversao.atual, vendedor.conversao.meta)}`}>/ {formatarConversao(vendedor.conversao.atual)}</span>
+              </div>
+              <div className="cockpit-vendedores-metrica-row-main">
+                <span className={`cockpit-vendedores-metrica-real ${getClasseMetrica(vendedor.conversao.taxa, vendedor.conversao.meta)}`}>{formatarConversao(vendedor.conversao.taxa)}</span>
               </div>
               <div className="cockpit-vendedores-metrica-row-diff">
-                <span className={`cockpit-vendedores-metrica-variacao ${getClasseMetrica(vendedor.conversao.atual, vendedor.conversao.meta)}`}>
-                  {formatarPorcentagemRealizado(vendedor.conversao.atual, vendedor.conversao.meta)}
+                <span className={`cockpit-vendedores-metrica-variacao ${getClasseMetrica(vendedor.conversao.taxa, vendedor.conversao.meta)}`}>
+                  {formatarPorcentagemRealizado(vendedor.conversao.taxa, vendedor.conversao.meta)}
                 </span>
               </div>
             </div>
@@ -762,6 +893,45 @@ const CockpitVendedores = () => {
           );
         })}
       </div>
+
+      {/* Modal de Alertas */}
+      {modalAlerta && (
+        <div className="cockpit-vendedores-modal-overlay" onClick={() => setModalAlerta(null)}>
+          <div className="cockpit-vendedores-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="cockpit-vendedores-modal-header">
+              <h2>Alertas - {modalAlerta.vendedor.nome}</h2>
+              <button 
+                className="cockpit-vendedores-modal-close"
+                onClick={() => setModalAlerta(null)}
+                aria-label="Fechar modal"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="cockpit-vendedores-modal-body">
+              <div className="cockpit-vendedores-modal-info">
+                <p><strong>Funil:</strong> {modalAlerta.vendedor.botao}</p>
+                <p><strong>Data:</strong> {new Date(dataSelecionada).toLocaleDateString('pt-BR')}</p>
+              </div>
+              <div className="cockpit-vendedores-modal-alertas">
+                <h3>Jornadas Incompletas:</h3>
+                {modalAlerta.alertas.length > 0 ? (
+                  <ul>
+                    {modalAlerta.alertas.map((alerta, idx) => (
+                      <li key={idx} className="cockpit-vendedores-modal-alerta-item">
+                        <AlertCircle size={16} style={{ marginRight: '8px', color: '#ff9800' }} />
+                        {alerta.descricao}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>Nenhum alerta encontrado.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

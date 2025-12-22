@@ -92,3 +92,4 @@ docker ps | grep typebot-db
    - SSL: Desligado
 
 
+

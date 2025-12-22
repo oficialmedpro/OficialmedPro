@@ -94,3 +94,4 @@ postgres://postgres:9acf019d669f6ab91d86@72.60.61.40:5432/typebot?sslmode=disabl
 **Próximo passo:** Configurar no NocoDB usando a Connection URL acima
 
 
+

@@ -1,18 +1,18 @@
-# 📋 PAYLOADS PARA WEBHOOKS DE ORÇAMENTO - SPRINTHUB
+# 📋 PAYLOADS PARA WEBHOOKS DE CADASTRO (VENDAS) - SPRINTHUB
 
-## 🎯 LÓGICA DE ORÇAMENTO
+## 🎯 LÓGICA DE VENDAS (CADASTRO)
 
-Um orçamento é contabilizado quando o lead passa pela etapa **ORÇAMENTO** OU pela etapa **NEGOCIAÇÃO**.
+Uma venda é contabilizada quando:
+- ✅ O lead está na etapa **CADASTRO** (`cadastro_*` preenchido)
+- ✅ OU o `status` é **'gain'** ou **'won'**
 
-- ✅ Se passar pelas duas etapas → conta apenas **1 orçamento** (usar a data mais antiga)
-- ✅ Se passar direto para Negociação (sem passar por Orçamento) → conta como **1 orçamento**
-- ✅ O objetivo é evitar duplicação e garantir que qualquer interação nessa fase seja contabilizada
+O webhook deve ser disparado quando qualquer uma dessas condições for verdadeira.
 
 ---
 
-## 📤 1. ORÇAMENTO COMPRA (Funil 6)
+## 📤 1. CADASTRO COMPRA (Funil 6)
 
-**Etapas:** Orçamento Realizado (207) OU Negociação (83)
+**Etapa:** CADASTRO (232) OU status='gain'
 
 ### Campos no SprintHub:
 ```
@@ -35,7 +35,9 @@ Cadastro Compra: {op=Cadastro Compra}
   "status": "{op=status}",
   "create_date": "{op=createDate}",
   "update_date": "{op=updateDate}",
+  "gain_date": "{op=gainDate}",
   "etapa": "{op=etapa}",
+  "crm_column": "{op=crm_column}",
   "entrada_compra": "{op=Entrada Compra}",
   "acolhimento_compra": "{op=Acolhimento Compra}",
   "qualificado_compra": "{op=Qualificado Compra}",
@@ -61,11 +63,13 @@ Cadastro Compra: {op=Cadastro Compra}
 }
 ```
 
+**Quando disparar:** Quando `cadastro_compra` for preenchido OU `status='gain'`
+
 ---
 
-## 📤 2. ORÇAMENTO RECOMPRA (Funil 14)
+## 📤 2. CADASTRO RECOMPRA (Funil 14)
 
-**Etapas:** Orçamentos (206) OU Negociação (203)
+**Etapa:** CADASTRO (230) OU status='gain'
 
 ### Campos no SprintHub:
 ```
@@ -88,7 +92,9 @@ Cadastro Recompra: {op=Cadastro Recompra}
   "status": "{op=status}",
   "create_date": "{op=createDate}",
   "update_date": "{op=updateDate}",
+  "gain_date": "{op=gainDate}",
   "etapa": "{op=etapa}",
+  "crm_column": "{op=crm_column}",
   "entrada_recompra": "{op=Entrada Recompra}",
   "acolhimento_recompra": "{op=Acolhimento Recompra}",
   "qualificado_recompra": "{op=Qualificado Recompra}",
@@ -114,11 +120,13 @@ Cadastro Recompra: {op=Cadastro Recompra}
 }
 ```
 
+**Quando disparar:** Quando `cadastro_recompra` for preenchido OU `status='gain'`
+
 ---
 
-## 📤 3. ORÇAMENTO ATIVAÇÃO (Funil 33)
+## 📤 3. CADASTRO ATIVAÇÃO (Funil 33)
 
-**Etapas:** Orçamento Realizado (316) OU Negociação (318)
+**Etapa:** CADASTRO (320) OU status='gain'
 
 ### Campos no SprintHub:
 ```
@@ -141,7 +149,9 @@ Cadastro Ativacao: {op=Cadastro Ativacao}
   "status": "{op=status}",
   "create_date": "{op=createDate}",
   "update_date": "{op=updateDate}",
+  "gain_date": "{op=gainDate}",
   "etapa": "{op=etapa}",
+  "crm_column": "{op=crm_column}",
   "entrada_ativacao": "{op=Entrada Ativacao}",
   "acolhimento_ativacao": "{op=Acolhimento Ativacao}",
   "qualificado_ativacao": "{op=Qualificado Ativacao}",
@@ -167,11 +177,13 @@ Cadastro Ativacao: {op=Cadastro Ativacao}
 }
 ```
 
+**Quando disparar:** Quando `cadastro_ativacao` for preenchido OU `status='gain'`
+
 ---
 
-## 📤 4. ORÇAMENTO MONITORAMENTO (Funil 41)
+## 📤 4. CADASTRO MONITORAMENTO (Funil 41)
 
-**Etapas:** Orçamento Realizado (356) OU Negociação (357)
+**Etapa:** CADASTRO (359) OU status='gain'
 
 ### Campos no SprintHub:
 ```
@@ -194,7 +206,9 @@ Cadastro Monitoramento: {op=Cadastro Monitoramento}
   "status": "{op=status}",
   "create_date": "{op=createDate}",
   "update_date": "{op=updateDate}",
+  "gain_date": "{op=gainDate}",
   "etapa": "{op=etapa}",
+  "crm_column": "{op=crm_column}",
   "entrada_monitoramento": "{op=Entrada Monitoramento}",
   "acolhimento_monitoramento": "{op=Acolhimento Monitoramento}",
   "qualificado_monitoramento": "{op=Qualificado Monitoramento}",
@@ -220,11 +234,13 @@ Cadastro Monitoramento: {op=Cadastro Monitoramento}
 }
 ```
 
+**Quando disparar:** Quando `cadastro_monitoramento` for preenchido OU `status='gain'`
+
 ---
 
-## 📤 5. ORÇAMENTO REATIVAÇÃO (Funil 38)
+## 📤 5. CADASTRO REATIVAÇÃO (Funil 38)
 
-**Etapas:** Orçamento Realizado (336) OU Negociação (337)
+**Etapa:** CADASTRO (339) OU status='gain'
 
 ### Campos no SprintHub:
 ```
@@ -247,7 +263,9 @@ Cadastro Reativacao: {op=Cadastro Reativacao}
   "status": "{op=status}",
   "create_date": "{op=createDate}",
   "update_date": "{op=updateDate}",
+  "gain_date": "{op=gainDate}",
   "etapa": "{op=etapa}",
+  "crm_column": "{op=crm_column}",
   "entrada_reativacao": "{op=Entrada Reativacao}",
   "acolhimento_reativacao": "{op=Acolhimento Reativacao}",
   "qualificado_reativacao": "{op=Qualificado Reativacao}",
@@ -273,6 +291,8 @@ Cadastro Reativacao: {op=Cadastro Reativacao}
 }
 ```
 
+**Quando disparar:** Quando `cadastro_reativacao` for preenchido OU `status='gain'`
+
 ---
 
 ## 🔧 CONFIGURAÇÃO NO SPRINTHUB
@@ -289,17 +309,23 @@ Content-Type: application/json
 
 ---
 
-## 📊 MAPEAMENTO DE ETAPAS
+## 📊 MAPEAMENTO DE ETAPAS CADASTRO
 
-| Funil | Funil ID | Etapa Orçamento | ID Orçamento | Etapa Negociação | ID Negociação |
-|-------|----------|-----------------|--------------|------------------|---------------|
-| Compra | 6 | ORÇAMENTO REALIZADO | 207 | NEGOCIAÇÃO | 83 |
-| Recompra | 14 | ORÇAMENTOS | 206 | NEGOCIAÇÃO | 203 |
-| Ativacao | 33 | [3] ORÇAMENTO REALIZADO | 316 | [4] NEGOCIAÇÃO | 318 |
-| Monitoramento | 41 | [3] ORÇAMENTO REALIZADO | 356 | [4] NEGOCIAÇÃO | 357 |
-| Reativacao | 38 | [3] ORÇAMENTO REALIZADO | 336 | [4] NEGOCIAÇÃO | 337 |
+| Funil | Funil ID | Etapa CADASTRO | ID CADASTRO |
+|-------|----------|----------------|-------------|
+| Compra | 6 | CADASTRO | 232 |
+| Recompra | 14 | CADASTRO | 230 |
+| Ativacao | 33 | CADASTRO | 320 |
+| Monitoramento | 41 | CADASTRO | 359 |
+| Reativacao | 38 | CADASTRO | 339 |
 
 ---
 
-**Nota:** O n8n irá identificar automaticamente o funil baseado no campo preenchido (`orcamento_compra`, `orcamento_recompra`, etc.) e configurar o `crm_column` apropriado (207, 206, 316, 356 ou 336 respectivamente). Se o lead passar direto para Negociação, o n8n também identificará e configurará corretamente.
+## 🎯 IMPORTANTE
+
+- **Mesmo webhook URL:** Todos os 5 funis usam a **mesma URL do n8n** - ele identifica automaticamente qual funil é
+- **Status 'gain' ou 'won':** Se o `status` for 'gain' ou 'won', o n8n irá identificar automaticamente como CADASTRO
+- **Campo cadastro_*:** Se o campo `cadastro_*` estiver preenchido, conta como venda
+- **Crm_column:** O n8n irá definir automaticamente o `crm_column` correto baseado no funil identificado
+- **Todos os campos:** Sempre envie TODOS os campos da jornada completa para garantir que o histórico fique completo no banco
 

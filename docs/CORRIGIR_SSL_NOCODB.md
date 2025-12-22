@@ -77,3 +77,4 @@ Após configurar, teste a conexão. Se ainda der erro SSL, tente:
 **Status:** Erro SSL identificado - use `sslmode=disable` na URL ou nos parâmetros
 
 
+

@@ -137,3 +137,4 @@ docker exec nocodb_nocodb.1.vmhlovvb6dwjzomdywaw60bxr sh -c "apk add postgresql-
 **Status da conexão:** ✅ Funcionando (testado com sucesso)
 
 
+

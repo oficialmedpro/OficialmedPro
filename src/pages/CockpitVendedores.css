@@ -275,6 +275,15 @@
   cursor: pointer;
 }
 
+.cockpit-vendedores-alerta-icon {
+  transition: all 0.2s ease;
+}
+
+.cockpit-vendedores-alerta-icon:hover {
+  color: #fb8500 !important;
+  transform: scale(1.1);
+}
+
 /* SUMMARY TOP - 4 widgets em grid */
 .cockpit-vendedores-metricas-gerais {
   display: grid;
@@ -312,14 +321,21 @@
   gap: 4px;
 }
 
+.cockpit-vendedores-metrica-row-meta {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 2px;
+}
+
 .cockpit-vendedores-metrica-meta {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 500;
   color: var(--meta);
 }
 
 .cockpit-vendedores-metrica-real {
-  font-size: 12px;
+  font-size: 15px;
+  font-weight: 600;
 }
 
 .cockpit-vendedores-metrica-real.good {
@@ -559,4 +575,110 @@
   .cockpit-vendedores-metricas-gerais {
     grid-template-columns: 1fr;
   }
+}
+
+/* Modal de Alertas */
+.cockpit-vendedores-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.cockpit-vendedores-modal {
+  background: var(--card-soft);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.cockpit-vendedores-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cockpit-vendedores-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cockpit-vendedores-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.cockpit-vendedores-modal-close:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.cockpit-vendedores-modal-body {
+  padding: 24px;
+}
+
+.cockpit-vendedores-modal-info {
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cockpit-vendedores-modal-info p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.cockpit-vendedores-modal-info strong {
+  color: var(--accent);
+  margin-right: 8px;
+}
+
+.cockpit-vendedores-modal-alertas h3 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.cockpit-vendedores-modal-alertas ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.cockpit-vendedores-modal-alerta-item {
+  display: flex;
+  align-items: flex-start;
+  padding: 12px;
+  margin-bottom: 8px;
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--text);
+  line-height: 1.5;
 }

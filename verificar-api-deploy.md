@@ -73,3 +73,4 @@ docker service logs sprint-sync_sincronizacao 2>&1 | grep -i "funil.*33\|ativaca
 4. Comparar os nomes dos campos no SprintHub com o mapeamento na API
 
 
+

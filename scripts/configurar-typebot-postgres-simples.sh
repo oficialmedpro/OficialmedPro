@@ -142,3 +142,4 @@ echo "      Database: typebot"
 echo "      SSL: Desligado"
 
 
+

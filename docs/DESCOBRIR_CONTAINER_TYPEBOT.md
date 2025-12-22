@@ -68,3 +68,4 @@ chmod +x scripts/configurar-typebot-postgres.sh
 O script vai pedir o nome do container se não encontrar automaticamente.
 
 
+

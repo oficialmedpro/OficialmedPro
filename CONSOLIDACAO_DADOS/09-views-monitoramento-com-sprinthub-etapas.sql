@@ -358,3 +358,4 @@ GRANT SELECT ON api.vw_monitoramento_d90 TO anon, authenticated, service_role;
 
 
 
+
