@@ -382,9 +382,12 @@ const CockpitMetasRondasPage = ({ onLogout }) => {
     return vendedor?.nome || `ID: ${vendedorIdSprint}`;
   };
 
-  // Agrupar metas por vendedor
+  // Separar metas gerais (vendedor_id_sprint = 0)
+  const metasGerais = metas.filter(m => m.vendedor_id_sprint === 0);
+
+  // Agrupar metas por vendedor (excluindo metas gerais)
   const metasPorVendedor = vendedores.reduce((acc, vendedor) => {
-    const metasVendedor = metas.filter(m => m.vendedor_id_sprint === vendedor.id_sprint);
+    const metasVendedor = metas.filter(m => m.vendedor_id_sprint === vendedor.id_sprint && m.vendedor_id_sprint !== 0);
     if (metasVendedor.length > 0 || true) { // Mostrar todos os vendedores mesmo sem metas
       acc[vendedor.id_sprint] = {
         vendedor: vendedor,
@@ -505,6 +508,139 @@ const CockpitMetasRondasPage = ({ onLogout }) => {
 
         {/* Lista de vendedores com suas metas */}
         <div className="cockpit-metas-rondas-sections">
+          {/* Seção de Metas Gerais */}
+          {metasGerais.length > 0 && (
+            <div className="cockpit-metas-rondas-section" style={{ borderTop: '3px solid #10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)' }}>
+              <h2 style={{ color: '#10b981' }}>Metas Gerais (Todos Vendedores)</h2>
+              
+              {(() => {
+                const renderTabela = (diaSemana, horariosLista, titulo) => {
+                  const metasFiltradas = metasGerais.filter(m => m.dia_semana === diaSemana);
+                  return (
+                    <div key={`geral-${diaSemana}`} style={{ marginBottom: '32px' }}>
+                      <h3 style={{ fontSize: '18px', marginBottom: '16px', color: 'var(--text)' }}>{titulo}</h3>
+                      <table className="cockpit-metas-rondas-table">
+                        <thead>
+                          <tr>
+                            <th>Nome da Meta</th>
+                            <th>Tipo</th>
+                            {horariosLista.map(h => <th key={h}>{h}</th>)}
+                            <th>Ações</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {nomesMetasParaExibicao.map(nomeMeta => {
+                            const nomeMetaObj = nomesMetas.find(n => n.nome === nomeMeta);
+                            const isPercentual = nomeMetaObj?.is_percentual || nomeMeta === 'Conversão';
+                            
+                            return (
+                              <tr key={nomeMeta}>
+                                <td>{nomeMetaObj?.label || nomeMeta}</td>
+                                <td>{diaSemana === 'sabado' ? 'Ronda Sábado' : 'Ronda Semanal'}</td>
+                                {horariosLista.map(horario => {
+                                  const metaHorario = metasFiltradas.find(m => m.nome_meta === nomeMeta && m.horario === horario);
+                                  
+                                  return (
+                                    <td key={horario}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' }}>
+                                        {metaHorario ? (
+                                          <span className="cockpit-metas-rondas-valor">
+                                            {isPercentual ? `${metaHorario.valor_meta}%` : metaHorario.valor_meta}
+                                          </span>
+                                        ) : (
+                                          <span className="cockpit-metas-rondas-sem-meta">—</span>
+                                        )}
+                                        <button
+                                          className="cockpit-metas-rondas-btn-edit"
+                                          onClick={() => {
+                                            if (metaHorario) {
+                                              handleOpenModal(metaHorario);
+                                            } else {
+                                              const novaMeta = {
+                                                vendedor_id_sprint: 0,
+                                                nome_meta: nomeMeta,
+                                                tipo_meta: diaSemana === 'sabado' ? 'ronda_sabado' : 'ronda_semanal',
+                                                valor_meta: '',
+                                                horario: horario,
+                                                dia_semana: diaSemana,
+                                                ativo: true
+                                              };
+                                              handleOpenModal(novaMeta, diaSemana);
+                                            }
+                                          }}
+                                          title={metaHorario ? `Editar meta geral ${horario}` : `Adicionar meta geral ${horario}`}
+                                          style={{ padding: '4px 8px', fontSize: '12px' }}
+                                        >
+                                          {metaHorario ? <Edit size={12} /> : <Plus size={12} />}
+                                        </button>
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                                <td className="cockpit-metas-rondas-actions">
+                                  {horariosLista.map(horario => {
+                                    const metaHorario = metasFiltradas.find(m => m.nome_meta === nomeMeta && m.horario === horario);
+                                    return metaHorario ? (
+                                      <button
+                                        key={horario}
+                                        className="cockpit-metas-rondas-btn-delete"
+                                        onClick={() => handleDelete(metaHorario.id)}
+                                        title={`Excluir meta geral ${horario}`}
+                                        style={{ padding: '4px 6px', marginRight: '4px' }}
+                                      >
+                                        <Trash2 size={10} />
+                                      </button>
+                                    ) : null;
+                                  })}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                };
+
+                return (
+                  <>
+                    {renderTabela('seg_sex', horariosSegSex, 'Segunda a Sexta')}
+                    {renderTabela('sabado', horariosSabado, 'Sábado')}
+                  </>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* Botão para adicionar meta geral se não existir nenhuma */}
+          {metasGerais.length === 0 && (
+            <div className="cockpit-metas-rondas-section" style={{ borderTop: '3px solid #10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ color: '#10b981' }}>Metas Gerais (Todos Vendedores)</h2>
+                <button
+                  className="cockpit-metas-rondas-btn-add"
+                  onClick={() => {
+                    const novaMeta = {
+                      vendedor_id_sprint: 0,
+                      nome_meta: 'Entrada',
+                      tipo_meta: 'ronda_semanal',
+                      valor_meta: '',
+                      horario: '10h',
+                      dia_semana: 'seg_sex',
+                      ativo: true
+                    };
+                    handleOpenModal(novaMeta, 'seg_sex');
+                  }}
+                >
+                  + Adicionar Meta Geral
+                </button>
+              </div>
+              <p style={{ textAlign: 'center', color: 'var(--muted)', padding: '20px' }}>
+                Nenhuma meta geral cadastrada. As metas gerais são calculadas automaticamente pela soma das metas dos vendedores, mas você pode criar metas gerais explícitas para sobrescrever esse cálculo. Clique no botão acima para criar a primeira meta geral.
+              </p>
+            </div>
+          )}
+
           {Object.values(metasPorVendedor).map(({ vendedor, metas: metasVendedor }) => {
             const renderTabela = (diaSemana, horariosLista, titulo) => {
               const metasFiltradas = metasVendedor.filter(m => m.dia_semana === diaSemana);
@@ -640,6 +776,7 @@ const CockpitMetasRondasPage = ({ onLogout }) => {
                     required
                   >
                     <option value="">Selecione um vendedor</option>
+                    <option value="0">Geral (Todos Vendedores)</option>
                     {vendedores
                       .sort((a, b) => (a.nome || '').localeCompare(b.nome || ''))
                       .map(v => (

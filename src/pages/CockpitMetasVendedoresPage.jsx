@@ -368,7 +368,10 @@ const CockpitMetasVendedoresPage = ({ onLogout }) => {
     return diaSemana === 'seg_sex' ? 'Segunda a Sexta' : 'Sábado';
   };
 
-  // Agrupar metas por vendedor
+  // Separar metas gerais (vendedor_id_sprint = 0)
+  const metasGerais = metas.filter(m => m.vendedor_id_sprint === 0);
+
+  // Agrupar metas por vendedor (excluindo metas gerais)
   const metasPorVendedor = vendedores.reduce((acc, vendedor) => {
     const metasVendedor = metas.filter(m => m.vendedor_id_sprint === vendedor.id_sprint);
     if (metasVendedor.length > 0) {
@@ -491,6 +494,158 @@ const CockpitMetasVendedoresPage = ({ onLogout }) => {
 
         {/* Lista de vendedores com suas metas */}
         <div className="cockpit-metas-vendedores-sections">
+          {/* Seção de Metas Gerais */}
+          {metasGerais.length > 0 && (
+            <div className="cockpit-metas-vendedores-section" style={{ borderTop: '3px solid #10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)' }}>
+              <h2 style={{ color: '#10b981' }}>Metas Gerais (Todos Vendedores)</h2>
+              
+              {/* Tabela de metas gerais */}
+              <table className="cockpit-metas-vendedores-table">
+                <thead>
+                  <tr>
+                    <th>Nome da Meta</th>
+                    <th>Tipo</th>
+                    <th>Segunda a Sexta</th>
+                    <th>Sábado</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nomesMetasParaExibicao.map(nomeMeta => {
+                    const nomeMetaObj = nomesMetas.find(n => n.nome === nomeMeta);
+                    const isPercentual = nomeMetaObj?.is_percentual || nomeMeta === 'Conversão';
+                    const metaSegSex = metasGerais.find(m => m.nome_meta === nomeMeta && m.dia_semana === 'seg_sex');
+                    const metaSabado = metasGerais.find(m => m.nome_meta === nomeMeta && m.dia_semana === 'sabado');
+                    
+                    return (
+                      <tr key={nomeMeta}>
+                        <td>{nomeMetaObj?.label || nomeMeta}</td>
+                        <td>{tiposMetas.find(t => t.nome === (metaSegSex?.tipo_meta || metaSabado?.tipo_meta || 'diaria'))?.label || 'Diária'}</td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' }}>
+                            {metaSegSex ? (
+                              <span className="cockpit-metas-vendedores-valor">
+                                {isPercentual ? `${metaSegSex.valor_meta}%` : metaSegSex.valor_meta}
+                              </span>
+                            ) : (
+                              <span className="cockpit-metas-vendedores-sem-meta">—</span>
+                            )}
+                            <button
+                              className="cockpit-metas-vendedores-btn-edit"
+                              onClick={() => {
+                                if (metaSegSex) {
+                                  handleOpenModal(metaSegSex);
+                                } else {
+                                  const tipoPadrao = tiposMetas.find(t => t.ativo)?.nome || 'diaria';
+                                  const novaMeta = {
+                                    vendedor_id_sprint: 0,
+                                    nome_meta: nomeMeta,
+                                    tipo_meta: tipoPadrao,
+                                    valor_meta: '',
+                                    dia_semana: 'seg_sex',
+                                    ativo: true
+                                  };
+                                  handleOpenModal(novaMeta);
+                                }
+                              }}
+                              title={metaSegSex ? "Editar meta geral Seg-Sex" : "Adicionar meta geral Seg-Sex"}
+                              style={{ padding: '4px 8px', fontSize: '12px' }}
+                            >
+                              {metaSegSex ? <Edit size={12} /> : <Plus size={12} />}
+                            </button>
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between' }}>
+                            {metaSabado ? (
+                              <span className="cockpit-metas-vendedores-valor">
+                                {isPercentual ? `${metaSabado.valor_meta}%` : metaSabado.valor_meta}
+                              </span>
+                            ) : (
+                              <span className="cockpit-metas-vendedores-sem-meta">—</span>
+                            )}
+                            <button
+                              className="cockpit-metas-vendedores-btn-edit"
+                              onClick={() => {
+                                if (metaSabado) {
+                                  handleOpenModal(metaSabado);
+                                } else {
+                                  const novaMeta = {
+                                    vendedor_id_sprint: 0,
+                                    nome_meta: nomeMeta,
+                                    tipo_meta: 'diaria',
+                                    valor_meta: '',
+                                    dia_semana: 'sabado',
+                                    ativo: true
+                                  };
+                                  handleOpenModal(novaMeta);
+                                }
+                              }}
+                              title={metaSabado ? "Editar meta geral Sábado" : "Adicionar meta geral Sábado"}
+                              style={{ padding: '4px 8px', fontSize: '12px' }}
+                            >
+                              {metaSabado ? <Edit size={12} /> : <Plus size={12} />}
+                            </button>
+                          </div>
+                        </td>
+                        <td className="cockpit-metas-vendedores-actions">
+                          {metaSegSex && (
+                            <button
+                              className="cockpit-metas-vendedores-btn-delete"
+                              onClick={() => handleDelete(metaSegSex.id)}
+                              title="Excluir meta geral Seg-Sex"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                          {metaSabado && (
+                            <button
+                              className="cockpit-metas-vendedores-btn-delete"
+                              onClick={() => handleDelete(metaSabado.id)}
+                              title="Excluir meta geral Sábado"
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {/* Botão para adicionar meta geral se não existir nenhuma */}
+          {metasGerais.length === 0 && (
+            <div className="cockpit-metas-vendedores-section" style={{ borderTop: '3px solid #10b981', backgroundColor: 'rgba(16, 185, 129, 0.05)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ color: '#10b981' }}>Metas Gerais (Todos Vendedores)</h2>
+                <button
+                  className="cockpit-metas-vendedores-btn-add"
+                  onClick={() => {
+                    const tipoPadrao = tiposMetas.find(t => t.ativo)?.nome || 'diaria';
+                    const nomePadrao = nomesMetas.find(n => n.ativo)?.nome || 'Entrada';
+                    const novaMeta = {
+                      vendedor_id_sprint: 0,
+                      nome_meta: nomePadrao,
+                      tipo_meta: tipoPadrao,
+                      valor_meta: '',
+                      dia_semana: 'seg_sex',
+                      ativo: true
+                    };
+                    handleOpenModal(novaMeta);
+                  }}
+                >
+                  + Adicionar Meta Geral
+                </button>
+              </div>
+              <p style={{ textAlign: 'center', color: 'var(--muted)', padding: '20px' }}>
+                Nenhuma meta geral cadastrada. Clique no botão acima para criar a primeira meta geral.
+              </p>
+            </div>
+          )}
+
           {Object.values(metasPorVendedor).map(({ vendedor, metas: metasVendedor }) => (
             <div key={vendedor.id_sprint} className="cockpit-metas-vendedores-section">
               <h2>{vendedor.nome}</h2>
@@ -612,7 +767,7 @@ const CockpitMetasVendedoresPage = ({ onLogout }) => {
             </div>
           ))}
           
-          {Object.keys(metasPorVendedor).length === 0 && (
+          {Object.keys(metasPorVendedor).length === 0 && metasGerais.length === 0 && (
             <div className="cockpit-metas-vendedores-section">
               <p style={{ textAlign: 'center', color: 'var(--muted)', padding: '40px' }}>
                 Nenhuma meta cadastrada. Clique em "Adicionar Meta" para criar a primeira.

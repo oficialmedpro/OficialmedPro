@@ -1193,6 +1193,129 @@ export const deleteMetaRonda = async (id) => {
   }
 };
 
+// 🎯 FUNÇÕES PARA METAS DE TEMPO DA JORNADA
+export const getMetasTempo = async () => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_tempo?select=*&ativo=eq.true&order=vendedor_id_sprint.asc,dia_semana.asc,nome_etapa.asc`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [getMetasTempo] Erro ao buscar metas de tempo:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data || [];
+  } catch (error) {
+    console.error('❌ [getMetasTempo] Erro:', error);
+    throw error;
+  }
+};
+
+export const createMetaTempo = async (meta) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_tempo`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify(meta)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [createMetaTempo] Erro ao criar meta de tempo:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [createMetaTempo] Erro:', error);
+    throw error;
+  }
+};
+
+export const updateMetaTempo = async (id, updates) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_tempo?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({ ...updates, updated_at: new Date().toISOString() })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [updateMetaTempo] Erro ao atualizar meta de tempo:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [updateMetaTempo] Erro:', error);
+    throw error;
+  }
+};
+
+export const deleteMetaTempo = async (id) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_tempo?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=minimal'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [deleteMetaTempo] Erro ao deletar meta de tempo:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ [deleteMetaTempo] Erro:', error);
+    throw error;
+  }
+};
+
 // 🎯 FUNÇÃO PARA BUSCAR ETAPAS DINÂMICAS DO FUNIL
 /**
  * 🎯 Buscar entradas por dia e vendedor (user_id)

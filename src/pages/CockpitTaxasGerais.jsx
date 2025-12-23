@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './CockpitVendedores.css';
 import LogoOficialmed from '../../icones/icone_oficialmed.svg';
-import { getCockpitVendedoresConfig, getMetasVendedores, getEntradasVendedoresHoje, getOrcamentosVendedoresHoje, getVendasVendedoresHoje } from '../service/supabase';
+import { getCockpitVendedoresConfig, getMetasVendedores, getMetasRondas, getEntradasVendedoresHoje, getEntradasVendedoresPorRonda, getOrcamentosVendedoresHoje, getOrcamentosVendedoresPorRonda, getVendasVendedoresHoje, getVendasVendedoresPorRonda } from '../service/supabase';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, SlidersHorizontal, Sun, Moon, Plus, Minus } from 'lucide-react';
 
@@ -33,6 +33,10 @@ const CockpitTaxasGerais = ({ onLogout }) => {
     ticketMedio: 0,
     conversao: 0
   });
+  const [entradasPorRonda, setEntradasPorRonda] = useState({});
+  const [orcamentosPorRonda, setOrcamentosPorRonda] = useState({});
+  const [vendasPorRonda, setVendasPorRonda] = useState({});
+  const [metasRondas, setMetasRondas] = useState([]);
   
   // Controles de tema e fonte
   const [isLightTheme, setIsLightTheme] = useState(() => {
@@ -65,12 +69,21 @@ const CockpitTaxasGerais = ({ onLogout }) => {
           }
         });
 
-        // Buscar dados agregados
-        const [entradasData, orcamentosData, vendasData] = await Promise.all([
+        // Buscar dados agregados (diário e por ronda)
+        const [entradasData, entradasRondaData, orcamentosData, orcamentosRondaData, vendasData, vendasRondaData, metasRondasData] = await Promise.all([
           getEntradasVendedoresHoje(todosIds, dataSelecionada, funilIdsMap),
+          getEntradasVendedoresPorRonda(todosIds, dataSelecionada, funilIdsMap),
           getOrcamentosVendedoresHoje(todosIds, dataSelecionada, funilIdsMap),
-          getVendasVendedoresHoje(todosIds, dataSelecionada, funilIdsMap)
+          getOrcamentosVendedoresPorRonda(todosIds, dataSelecionada, funilIdsMap),
+          getVendasVendedoresHoje(todosIds, dataSelecionada, funilIdsMap),
+          getVendasVendedoresPorRonda(todosIds, dataSelecionada, funilIdsMap),
+          getMetasRondas()
         ]);
+
+        setEntradasPorRonda(entradasRondaData);
+        setOrcamentosPorRonda(orcamentosRondaData);
+        setVendasPorRonda(vendasRondaData);
+        setMetasRondas(metasRondasData || []);
 
         // Somar entradas
         const totalEntradas = Object.values(entradasData).reduce((sum, count) => sum + (typeof count === 'number' ? count : 0), 0);
@@ -256,12 +269,12 @@ const CockpitTaxasGerais = ({ onLogout }) => {
   };
 
   const getClasseMetrica = (atual, meta) => {
-    if (!meta || meta === 0) return '';
+    if (!meta || meta === 0 || meta === null || meta === undefined) return '';
     const porcentagem = (atual / meta) * 100;
-    if (porcentagem >= 100) return 'cockpit-vendedores-good';
-    if (porcentagem >= 81) return 'cockpit-vendedores-warning-light';
-    if (porcentagem >= 51) return 'cockpit-vendedores-warning';
-    return 'cockpit-vendedores-bad';
+    if (porcentagem >= 100) return 'good';
+    if (porcentagem >= 81) return 'warning-light';
+    if (porcentagem >= 51) return 'warning';
+    return 'bad';
   };
 
   const formatarPorcentagemRealizado = (atual, meta) => {
@@ -270,6 +283,113 @@ const CockpitTaxasGerais = ({ onLogout }) => {
     const falta = 100 - porcentagem;
     return `${porcentagem.toFixed(1).replace('.', ',')}% (falta ${falta.toFixed(1).replace('.', ',')}%)`;
   };
+
+  // Função para obter meta geral de ronda (vendedor_id_sprint = 0 ou soma das metas dos vendedores)
+  const getMetaGeralRonda = (nomeMeta, horario) => {
+    const dataSelecionadaObj = new Date(dataSelecionada + 'T00:00:00');
+    const diaSemana = dataSelecionadaObj.getDay();
+    const diaSemanaMeta = (diaSemana === 6 || diaSemana === 0) ? 'sabado' : 'seg_sex';
+    
+    // Primeiro tentar buscar meta geral explícita (vendedor_id_sprint = 0)
+    const metaGeral = metasRondas.find(m => 
+      m.vendedor_id_sprint === 0 &&
+      m.nome_meta === nomeMeta &&
+      m.horario === horario &&
+      m.dia_semana === diaSemanaMeta &&
+      m.ativo === true
+    );
+    
+    if (metaGeral?.valor_meta) {
+      return parseFloat(metaGeral.valor_meta);
+    }
+    
+    // Se não existe meta geral, calcular soma das metas dos vendedores
+    const metasVendedores = metasRondas.filter(m => 
+      m.vendedor_id_sprint !== 0 &&
+      m.vendedor_id_sprint !== null &&
+      m.nome_meta === nomeMeta &&
+      m.horario === horario &&
+      m.dia_semana === diaSemanaMeta &&
+      m.ativo === true
+    );
+    
+    if (metasVendedores.length === 0) {
+      return null;
+    }
+    
+    // Para metas numéricas (Entrada, Orçamentos, Vendas, Valor): somar
+    // Para Ticket_Medio e Conversão: calcular média
+    if (nomeMeta === 'Ticket_Medio' || nomeMeta === 'Conversão') {
+      const soma = metasVendedores.reduce((sum, m) => sum + (parseFloat(m.valor_meta) || 0), 0);
+      const media = soma / metasVendedores.length;
+      return media;
+    } else {
+      // Para outras metas: somar
+      const soma = metasVendedores.reduce((sum, m) => sum + (parseFloat(m.valor_meta) || 0), 0);
+      return soma;
+    }
+  };
+
+  // Calcular rondas agregadas
+  const rondasAgregadas = React.useMemo(() => {
+    const hoje = new Date(dataSelecionada);
+    const diaSemana = hoje.getDay();
+    const isSabado = diaSemana === 6 || diaSemana === 0;
+    const horariosRondas = isSabado ? ['10h', '12h'] : ['10h', '12h', '14h', '16h', '18h'];
+
+    return horariosRondas.map(horario => {
+      // Somar entradas por ronda
+      let totalEntradas = 0;
+      Object.values(entradasPorRonda).forEach(porVendedor => {
+        if (porVendedor && porVendedor[horario]) {
+          totalEntradas += porVendedor[horario] || 0;
+        }
+      });
+
+      // Somar orçamentos por ronda
+      let totalOrcamentos = 0;
+      Object.values(orcamentosPorRonda).forEach(porVendedor => {
+        if (porVendedor && porVendedor[horario]) {
+          totalOrcamentos += porVendedor[horario] || 0;
+        }
+      });
+
+      // Somar vendas e valor por ronda
+      let totalVendas = 0;
+      let totalValor = 0;
+      Object.keys(vendasPorRonda).forEach(userId => {
+        const porVendedor = vendasPorRonda[userId];
+        if (porVendedor && typeof porVendedor === 'object') {
+          const rondaData = porVendedor[horario];
+          if (rondaData && typeof rondaData === 'object') {
+            totalVendas += rondaData.contagem || 0;
+            totalValor += rondaData.valorTotal || 0;
+          }
+        }
+      });
+
+      const ticketMedio = totalVendas > 0 ? totalValor / totalVendas : 0;
+      const conversao = totalEntradas > 0 ? (totalVendas / totalEntradas) * 100 : 0;
+
+      // Buscar metas gerais de ronda ou calcular
+      const metaEntrada = getMetaGeralRonda('Entrada', horario);
+      const metaOrcamento = getMetaGeralRonda('Orçamentos', horario);
+      const metaVendas = getMetaGeralRonda('Vendas', horario);
+      const metaValor = getMetaGeralRonda('Valor', horario);
+      const metaTicketMedio = getMetaGeralRonda('Ticket_Medio', horario);
+      const metaConversao = getMetaGeralRonda('Conversão', horario);
+
+      return {
+        horario,
+        entrada: { atual: totalEntradas, meta: metaEntrada },
+        orcamento: { atual: totalOrcamentos, meta: metaOrcamento },
+        vendas: { atual: totalVendas, meta: metaVendas },
+        valor: { atual: totalValor, meta: metaValor },
+        ticketMedio: { atual: ticketMedio, meta: metaTicketMedio },
+        conversao: { atual: conversao, meta: metaConversao }
+      };
+    });
+  }, [entradasPorRonda, orcamentosPorRonda, vendasPorRonda, metasRondas, dataSelecionada]);
 
   if (loading) {
     return (
@@ -469,6 +589,99 @@ const CockpitTaxasGerais = ({ onLogout }) => {
                 <div className="cockpit-vendedores-taxa-detail">Orçamento → Venda</div>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Tabela de Rondas */}
+        <div className="cockpit-vendedores-secao">
+          <h2 className="cockpit-vendedores-secao-titulo">Métricas por Ronda</h2>
+          <div className="cockpit-vendedores-tabela-rondas">
+            <table>
+              <thead>
+                <tr>
+                  <th>Horário</th>
+                  <th>Entrada</th>
+                  <th>Orçamento</th>
+                  <th>Vendas</th>
+                  <th>Valor</th>
+                  <th>Ticket Médio</th>
+                  <th>Conversão</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rondasAgregadas.map((ronda, rondaIndex) => (
+                  <tr key={rondaIndex}>
+                    <td>{ronda.horario}</td>
+                    <td>
+                      <div className="cockpit-vendedores-pair">
+                        <div className="cockpit-vendedores-pair-main">
+                          <span className="cockpit-vendedores-pair-meta">{ronda.entrada.meta ?? '—'}</span>
+                          <span className={`cockpit-vendedores-pair-real ${getClasseMetrica(ronda.entrada.atual, ronda.entrada.meta)}`}>/ {ronda.entrada.atual}</span>
+                        </div>
+                        <div className={`cockpit-vendedores-pair-diff ${getClasseMetrica(ronda.entrada.atual, ronda.entrada.meta)}`}>
+                          {formatarPorcentagemRealizado(ronda.entrada.atual, ronda.entrada.meta)}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="cockpit-vendedores-pair">
+                        <div className="cockpit-vendedores-pair-main">
+                          <span className="cockpit-vendedores-pair-meta">{ronda.orcamento.meta ?? '—'}</span>
+                          <span className={`cockpit-vendedores-pair-real ${getClasseMetrica(ronda.orcamento.atual, ronda.orcamento.meta)}`}>/ {ronda.orcamento.atual}</span>
+                        </div>
+                        <div className={`cockpit-vendedores-pair-diff ${getClasseMetrica(ronda.orcamento.atual, ronda.orcamento.meta)}`}>
+                          {formatarPorcentagemRealizado(ronda.orcamento.atual, ronda.orcamento.meta)}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="cockpit-vendedores-pair">
+                        <div className="cockpit-vendedores-pair-main">
+                          <span className="cockpit-vendedores-pair-meta">{ronda.vendas.meta ?? '—'}</span>
+                          <span className={`cockpit-vendedores-pair-real ${getClasseMetrica(ronda.vendas.atual, ronda.vendas.meta)}`}>/ {ronda.vendas.atual}</span>
+                        </div>
+                        <div className={`cockpit-vendedores-pair-diff ${getClasseMetrica(ronda.vendas.atual, ronda.vendas.meta)}`}>
+                          {formatarPorcentagemRealizado(ronda.vendas.atual, ronda.vendas.meta)}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="cockpit-vendedores-pair">
+                        <div className="cockpit-vendedores-pair-main">
+                          <span className="cockpit-vendedores-pair-meta">{ronda.valor?.meta !== null && ronda.valor?.meta !== undefined ? formatarMoeda(ronda.valor.meta) : '—'}</span>
+                          <span className={`cockpit-vendedores-pair-real ${getClasseMetrica(ronda.valor?.atual || 0, ronda.valor?.meta)}`}>/ {formatarMoeda(ronda.valor?.atual || 0)}</span>
+                        </div>
+                        <div className={`cockpit-vendedores-pair-diff ${getClasseMetrica(ronda.valor?.atual || 0, ronda.valor?.meta)}`}>
+                          {formatarPorcentagemRealizado(ronda.valor?.atual || 0, ronda.valor?.meta)}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="cockpit-vendedores-pair">
+                        <div className="cockpit-vendedores-pair-main">
+                          <span className="cockpit-vendedores-pair-meta">{ronda.ticketMedio?.meta !== null && ronda.ticketMedio?.meta !== undefined ? formatarMoeda(ronda.ticketMedio.meta) : '—'}</span>
+                          <span className={`cockpit-vendedores-pair-real ${getClasseMetrica(ronda.ticketMedio?.atual || 0, ronda.ticketMedio?.meta)}`}>/ {formatarMoeda(ronda.ticketMedio?.atual || 0)}</span>
+                        </div>
+                        <div className={`cockpit-vendedores-pair-diff ${getClasseMetrica(ronda.ticketMedio?.atual || 0, ronda.ticketMedio?.meta)}`}>
+                          {formatarPorcentagemRealizado(ronda.ticketMedio?.atual || 0, ronda.ticketMedio?.meta)}
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="cockpit-vendedores-pair">
+                        <div className="cockpit-vendedores-pair-main">
+                          <span className="cockpit-vendedores-pair-meta">{ronda.conversao?.meta !== null && ronda.conversao?.meta !== undefined ? formatarConversao(ronda.conversao.meta) : '—'}</span>
+                          <span className={`cockpit-vendedores-pair-real ${getClasseMetrica(ronda.conversao?.atual || 0, ronda.conversao?.meta)}`}>/ {formatarConversao(ronda.conversao?.atual || 0)}</span>
+                        </div>
+                        <div className={`cockpit-vendedores-pair-diff ${getClasseMetrica(ronda.conversao?.atual || 0, ronda.conversao?.meta)}`}>
+                          {formatarPorcentagemRealizado(ronda.conversao?.atual || 0, ronda.conversao?.meta)}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

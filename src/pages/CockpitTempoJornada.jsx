@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './CockpitVendedores.css';
 import LogoOficialmed from '../../icones/icone_oficialmed.svg';
-import { getCockpitVendedoresConfig, getVendedoresPorIds } from '../service/supabase';
+import { getCockpitVendedoresConfig, getVendedoresPorIds, getMetasTempo } from '../service/supabase';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, SlidersHorizontal, Sun, Moon, Plus, Minus } from 'lucide-react';
+import { ArrowLeft, SlidersHorizontal, Sun, Moon, Plus, Minus, Target } from 'lucide-react';
 import { getSupabaseConfig } from '../config/supabase.js';
 
 const CockpitTempoJornada = ({ onLogout }) => {
@@ -21,6 +21,7 @@ const CockpitTempoJornada = ({ onLogout }) => {
   const [vendedores, setVendedores] = useState([]);
   const [temposGerais, setTemposGerais] = useState({});
   const [temposPorVendedor, setTemposPorVendedor] = useState({});
+  const [metasTempo, setMetasTempo] = useState([]);
   
   // Controles de tema e fonte
   const [isLightTheme, setIsLightTheme] = useState(() => {
@@ -87,7 +88,13 @@ const CockpitTempoJornada = ({ onLogout }) => {
     const carregarDados = async () => {
       try {
         setLoading(true);
-        const configs = await getCockpitVendedoresConfig();
+        const [configs, metasTempoData] = await Promise.all([
+          getCockpitVendedoresConfig(),
+          getMetasTempo()
+        ]);
+        
+        setMetasTempo(metasTempoData || []);
+        
         const configsAtivas = configs.filter(c => c.ativo);
         
         const todosIds = [...new Set(configsAtivas.map(c => c.vendedor_id_sprint))].filter(id => id !== null && id !== undefined);
@@ -362,6 +369,73 @@ const CockpitTempoJornada = ({ onLogout }) => {
 
   const temposExibicao = visualizacao === 'geral' ? temposGerais : (vendedorSelecionado ? temposPorVendedor[vendedorSelecionado] : {});
 
+  // Função para obter o dia da semana (seg_sex ou sabado)
+  const getDiaSemana = () => {
+    const data = new Date(dataSelecionada + 'T00:00:00');
+    const diaSemana = data.getDay(); // 0 = domingo, 6 = sábado
+    return diaSemana === 6 ? 'sabado' : 'seg_sex';
+  };
+
+  // Mapeamento de campos para nomes de etapas
+  const campoParaNomeEtapa = {
+    entradaCadastro: 'entradaCadastro',
+    entradaAcolhimento: 'entradaAcolhimento',
+    entradaQualificacao: 'entradaQualificacao',
+    qualificacaoOrcamento: 'qualificacaoOrcamento',
+    orcamentoNegociacao: 'orcamentoNegociacao',
+    negociacaoFollowUp: 'negociacaoFollowUp',
+    followUpCadastro: 'followUpCadastro',
+    negociacaoCadastro: 'negociacaoCadastro'
+  };
+
+  // Função para obter a meta de uma etapa específica
+  const getMetaTempo = (campo) => {
+    const nomeEtapa = campoParaNomeEtapa[campo];
+    if (!nomeEtapa) return null;
+    
+    const diaSemana = getDiaSemana();
+    const vendedorIdParaBusca = visualizacao === 'vendedor' && vendedorSelecionado ? parseInt(vendedorSelecionado) : 0;
+    
+    // Primeiro tentar buscar meta específica do vendedor, depois meta geral (0)
+    let meta = metasTempo.find(m => 
+      m.nome_etapa === nomeEtapa && 
+      m.dia_semana === diaSemana && 
+      m.vendedor_id_sprint === vendedorIdParaBusca &&
+      m.ativo
+    );
+    
+    // Se não encontrou e não é geral, buscar meta geral
+    if (!meta && vendedorIdParaBusca !== 0) {
+      meta = metasTempo.find(m => 
+        m.nome_etapa === nomeEtapa && 
+        m.dia_semana === diaSemana && 
+        m.vendedor_id_sprint === 0 &&
+        m.ativo
+      );
+    }
+    
+    return meta ? parseFloat(meta.valor_meta_horas) : null;
+  };
+
+  // Função para calcular porcentagem da meta (menor tempo = melhor)
+  const calcularPorcentagemMeta = (tempoReal, metaHoras) => {
+    if (!tempoReal || !metaHoras || tempoReal === null || metaHoras === null || metaHoras === 0) return null;
+    // Se o tempo real é menor que a meta, está melhor (porcentagem > 100%)
+    // Se é maior, está pior (porcentagem < 100%)
+    const porcentagem = (metaHoras / tempoReal) * 100;
+    return porcentagem;
+  };
+
+  // Obter classe de cor baseada na porcentagem da meta
+  const getClasseMeta = (porcentagem) => {
+    if (porcentagem === null || porcentagem === undefined) return '';
+    // >= 100% significa que o tempo está dentro da meta (melhor ou igual)
+    if (porcentagem >= 100) return 'good'; // Verde - dentro da meta
+    if (porcentagem >= 81) return 'warning-light'; // Amarelo claro - próximo da meta
+    if (porcentagem >= 51) return 'warning'; // Laranja - acima da meta
+    return 'bad'; // Vermelho - muito acima da meta
+  };
+
   // Função auxiliar para renderizar métrica de tempo com comparativo
   const renderizarMetricaTempo = (label, campo, descricao = '') => {
     const tempoExibicao = temposExibicao[campo];
@@ -376,11 +450,11 @@ const CockpitTempoJornada = ({ onLogout }) => {
           <div className="cockpit-vendedores-metrica-label">{label}</div>
           <div className="cockpit-vendedores-metrica-valor">
             <div className="cockpit-vendedores-metrica-row-meta">
-              <span className="cockpit-vendedores-metrica-meta-label">Geral:</span>
+              <span className="cockpit-vendedores-metrica-meta-label">Geral: </span>
               <span className="cockpit-vendedores-metrica-meta">{formatarTempo(tempoGeral)}</span>
             </div>
             <div className="cockpit-vendedores-metrica-row-real">
-              <span className="cockpit-vendedores-metrica-real-label">Vendedor:</span>
+              <span className="cockpit-vendedores-metrica-real-label">Vendedor: </span>
               <span className={`cockpit-vendedores-metrica-real ${classe}`}>
                 {formatarTempo(tempoExibicao)}
               </span>
@@ -394,19 +468,48 @@ const CockpitTempoJornada = ({ onLogout }) => {
         </div>
       );
     } else {
+      // Mostrar meta se existir
+      const metaHoras = getMetaTempo(campo);
+      const porcentagemMeta = metaHoras !== null ? calcularPorcentagemMeta(tempoExibicao, metaHoras) : null;
+      const classeMeta = porcentagemMeta !== null ? getClasseMeta(porcentagemMeta) : '';
+      
       return (
         <div className="cockpit-vendedores-metrica">
           <div className="cockpit-vendedores-metrica-label">{label}</div>
           <div className="cockpit-vendedores-metrica-valor">
-            <div className="cockpit-vendedores-metrica-row-real">
-              <span className="cockpit-vendedores-metrica-real" style={{ fontSize: '28px' }}>
-                {formatarTempo(tempoExibicao)}
-              </span>
-            </div>
-            {descricao && (
-              <div className="cockpit-vendedores-metrica-row-diff">
-                <span className="cockpit-vendedores-metrica-variacao">{descricao}</span>
-              </div>
+            {metaHoras !== null ? (
+              <>
+                <div className="cockpit-vendedores-metrica-row-meta">
+                  <span className="cockpit-vendedores-metrica-meta-label">Meta: </span>
+                  <span className="cockpit-vendedores-metrica-meta">{formatarTempo(metaHoras)}</span>
+                </div>
+                <div className="cockpit-vendedores-metrica-row-real">
+                  <span className="cockpit-vendedores-metrica-real-label">Realizado: </span>
+                  <span className={`cockpit-vendedores-metrica-real ${classeMeta}`}>
+                    {formatarTempo(tempoExibicao)}
+                  </span>
+                </div>
+                {porcentagemMeta !== null && (
+                  <div className="cockpit-vendedores-metrica-row-diff">
+                    <span className={`cockpit-vendedores-metrica-variacao ${classeMeta}`}>
+                      {formatarPorcentagemComparativo(porcentagemMeta)} vs Meta
+                    </span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <div className="cockpit-vendedores-metrica-row-real">
+                  <span className="cockpit-vendedores-metrica-real" style={{ fontSize: '28px' }}>
+                    {formatarTempo(tempoExibicao)}
+                  </span>
+                </div>
+                {descricao && (
+                  <div className="cockpit-vendedores-metrica-row-diff">
+                    <span className="cockpit-vendedores-metrica-variacao">{descricao}</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -444,6 +547,14 @@ const CockpitTempoJornada = ({ onLogout }) => {
             >
               <ArrowLeft size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
               Voltar
+            </button>
+            <button
+              className="cockpit-vendedores-header-btn"
+              onClick={() => navigate('/cockpit-metas-tempo')}
+              style={{ marginLeft: '8px' }}
+            >
+              <Target size={16} style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+              Metas por Tempo
             </button>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <button
@@ -502,11 +613,11 @@ const CockpitTempoJornada = ({ onLogout }) => {
                   {visualizacao === 'vendedor' && temposGerais.entradaCadastro && temposExibicao.entradaCadastro ? (
                     <>
                       <div className="cockpit-vendedores-metrica-row-meta">
-                        <span className="cockpit-vendedores-metrica-meta-label">Geral:</span>
+                        <span className="cockpit-vendedores-metrica-meta-label">Geral: </span>
                         <span className="cockpit-vendedores-metrica-meta">{formatarTempo(temposGerais.entradaCadastro)}</span>
                       </div>
                       <div className="cockpit-vendedores-metrica-row-real">
-                        <span className="cockpit-vendedores-metrica-real-label">Vendedor:</span>
+                        <span className="cockpit-vendedores-metrica-real-label">Vendedor: </span>
                         <span className={`cockpit-vendedores-metrica-real ${getClasseTempoComparativo(calcularPorcentagemComparativo(temposExibicao.entradaCadastro, temposGerais.entradaCadastro))}`}>
                           {formatarTempo(temposExibicao.entradaCadastro)}
                         </span>
@@ -519,14 +630,51 @@ const CockpitTempoJornada = ({ onLogout }) => {
                     </>
                   ) : (
                     <>
-                      <div className="cockpit-vendedores-metrica-row-real">
-                        <span className="cockpit-vendedores-metrica-real" style={{ fontSize: '28px' }}>
-                          {formatarTempo(temposExibicao.entradaCadastro)}
-                        </span>
-                      </div>
-                      <div className="cockpit-vendedores-metrica-row-diff">
-                        <span className="cockpit-vendedores-metrica-variacao">Entrada → Cadastro</span>
-                      </div>
+                      {(() => {
+                        const metaHoras = getMetaTempo('entradaCadastro');
+                        const porcentagemMeta = metaHoras !== null ? calcularPorcentagemMeta(temposExibicao.entradaCadastro, metaHoras) : null;
+                        const classeMeta = porcentagemMeta !== null ? getClasseMeta(porcentagemMeta) : '';
+                        
+                        if (metaHoras !== null) {
+                          return (
+                            <>
+                              <div className="cockpit-vendedores-metrica-row-meta">
+                                <span className="cockpit-vendedores-metrica-meta-label">Meta: </span>
+                                <span className="cockpit-vendedores-metrica-meta">{formatarTempo(metaHoras)}</span>
+                              </div>
+                              <div className="cockpit-vendedores-metrica-row-real">
+                                <span className="cockpit-vendedores-metrica-real-label">Realizado: </span>
+                                <span className={`cockpit-vendedores-metrica-real ${classeMeta}`}>
+                                  {formatarTempo(temposExibicao.entradaCadastro)}
+                                </span>
+                              </div>
+                              {porcentagemMeta !== null && (
+                                <div className="cockpit-vendedores-metrica-row-diff">
+                                  <span className={`cockpit-vendedores-metrica-variacao ${classeMeta}`}>
+                                    {formatarPorcentagemComparativo(porcentagemMeta)} vs Meta
+                                  </span>
+                                </div>
+                              )}
+                              <div className="cockpit-vendedores-metrica-row-diff">
+                                <span className="cockpit-vendedores-metrica-variacao">Entrada → Cadastro</span>
+                              </div>
+                            </>
+                          );
+                        } else {
+                          return (
+                            <>
+                              <div className="cockpit-vendedores-metrica-row-real">
+                                <span className="cockpit-vendedores-metrica-real" style={{ fontSize: '28px' }}>
+                                  {formatarTempo(temposExibicao.entradaCadastro)}
+                                </span>
+                              </div>
+                              <div className="cockpit-vendedores-metrica-row-diff">
+                                <span className="cockpit-vendedores-metrica-variacao">Entrada → Cadastro</span>
+                              </div>
+                            </>
+                          );
+                        }
+                      })()}
                     </>
                   )}
                 </div>

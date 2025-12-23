@@ -25,6 +25,7 @@ import UserManagementPage from './pages/UserManagementPage'
 import CockpitVendedoresConfigPage from './pages/CockpitVendedoresConfigPage'
 import CockpitMetasVendedoresPage from './pages/CockpitMetasVendedoresPage'
 import CockpitMetasRondasPage from './pages/CockpitMetasRondasPage'
+import CockpitMetasTempoPage from './pages/CockpitMetasTempoPage'
 import Login from './components/Login'
 import autoSyncService from './service/autoSyncService'
 import Callix from './pages/callix'
@@ -239,6 +240,7 @@ function App() {
         <Route path="/cockpit-vendedores-config" element={<CockpitVendedoresConfigPage onLogout={handleLogout} />} />
         <Route path="/cockpit-metas-vendedores" element={<CockpitMetasVendedoresPage onLogout={handleLogout} />} />
         <Route path="/cockpit-metas-rondas" element={<CockpitMetasRondasPage onLogout={handleLogout} />} />
+        <Route path="/cockpit-metas-tempo" element={<CockpitMetasTempoPage onLogout={handleLogout} />} />
         <Route path="/callix" element={<Callix onLogout={handleLogout} />} />
         <Route path="/clientes-consolidados" element={<ClientesConsolidados onLogout={handleLogout} />} />
         <Route path="/cockpit-vendedores" element={<CockpitVendedores onLogout={handleLogout} />} />
