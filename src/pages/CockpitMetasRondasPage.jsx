@@ -40,6 +40,8 @@ const CockpitMetasRondasPage = ({ onLogout }) => {
   const [novoNomeIsPercentual, setNovoNomeIsPercentual] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
+  // Ref para manter a posição do scroll
+  const scrollPositionRef = useRef(0);
   const [formData, setFormData] = useState({
     vendedor_id_sprint: '',
     nome_meta: 'Entrada',
@@ -74,9 +76,15 @@ const CockpitMetasRondasPage = ({ onLogout }) => {
     };
   }, [showMenu]);
 
-  const loadData = async () => {
+  const loadData = async (preserveScroll = false) => {
     try {
       setLoading(true);
+      
+      // Salvar posição do scroll antes de recarregar (se preserveScroll for true)
+      if (preserveScroll) {
+        scrollPositionRef.current = window.pageYOffset || document.documentElement.scrollTop;
+      }
+      
       const [metasData, vendedoresData, tiposData, nomesData, configsData] = await Promise.all([
         getMetasRondas(),
         getVendedores(),
@@ -103,6 +111,14 @@ const CockpitMetasRondasPage = ({ onLogout }) => {
       setVendedores(vendedoresConfigurados);
       setTiposMetas(tiposData || []);
       setNomesMetas(nomesData || []);
+      
+      // Restaurar posição do scroll após atualizar os dados
+      if (preserveScroll) {
+        // Usar setTimeout para garantir que o DOM foi atualizado
+        setTimeout(() => {
+          window.scrollTo(0, scrollPositionRef.current);
+        }, 0);
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       alert('Erro ao carregar dados: ' + error.message);
@@ -176,7 +192,7 @@ const CockpitMetasRondasPage = ({ onLogout }) => {
       }
       
       handleCloseModal();
-      loadData();
+      loadData(true);
     } catch (error) {
       console.error('Erro ao salvar meta:', error);
       alert('Erro ao salvar meta: ' + error.message);
@@ -191,7 +207,7 @@ const CockpitMetasRondasPage = ({ onLogout }) => {
     try {
       await deleteMetaRonda(id);
       alert('Meta excluída com sucesso!');
-      loadData();
+      loadData(true);
     } catch (error) {
       console.error('Erro ao excluir meta:', error);
       alert('Erro ao excluir meta: ' + error.message);
@@ -263,7 +279,7 @@ const CockpitMetasRondasPage = ({ onLogout }) => {
       }
       
       handleCloseTiposModal();
-      loadData();
+      loadData(true);
     } catch (error) {
       console.error('Erro ao salvar tipo de meta:', error);
       alert('Erro ao salvar tipo de meta: ' + error.message);
@@ -278,7 +294,7 @@ const CockpitMetasRondasPage = ({ onLogout }) => {
     try {
       await deleteTipoMeta(id);
       alert('Tipo de meta excluído com sucesso!');
-      loadData();
+      loadData(true);
     } catch (error) {
       console.error('Erro ao excluir tipo de meta:', error);
       alert('Erro ao excluir tipo de meta: ' + error.message);
@@ -355,7 +371,7 @@ const CockpitMetasRondasPage = ({ onLogout }) => {
       }
       
       handleCloseNomesModal();
-      loadData();
+      loadData(true);
     } catch (error) {
       console.error('Erro ao salvar nome de meta:', error);
       alert('Erro ao salvar nome de meta: ' + error.message);
@@ -370,7 +386,7 @@ const CockpitMetasRondasPage = ({ onLogout }) => {
     try {
       await deleteNomeMeta(id);
       alert('Nome de meta excluído com sucesso!');
-      loadData();
+      loadData(true);
     } catch (error) {
       console.error('Erro ao excluir nome de meta:', error);
       alert('Erro ao excluir nome de meta: ' + error.message);

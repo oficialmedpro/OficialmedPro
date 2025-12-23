@@ -48,6 +48,10 @@ const CockpitMetasVendedoresPage = ({ onLogout }) => {
     ativo: true
   });
 
+  // Ref para manter a posição do scroll
+  const scrollPositionRef = useRef(0);
+  const containerRef = useRef(null);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -69,9 +73,15 @@ const CockpitMetasVendedoresPage = ({ onLogout }) => {
     };
   }, [showMenu]);
 
-  const loadData = async () => {
+  const loadData = async (preserveScroll = false) => {
     try {
       setLoading(true);
+      
+      // Salvar posição do scroll antes de recarregar (se preserveScroll for true)
+      if (preserveScroll) {
+        scrollPositionRef.current = window.pageYOffset || document.documentElement.scrollTop;
+      }
+      
       const [metasData, vendedoresData, tiposData, nomesData] = await Promise.all([
         getMetasVendedores(),
         getVendedores(),
@@ -90,6 +100,17 @@ const CockpitMetasVendedoresPage = ({ onLogout }) => {
       setVendedores(vendedoresData || []);
       setTiposMetas(tiposData || []);
       setNomesMetas(nomesData || []);
+      
+      // Restaurar posição do scroll após atualizar os dados
+      if (preserveScroll && scrollPositionRef.current > 0) {
+        // Usar setTimeout com delay maior para garantir que o DOM foi completamente atualizado
+        setTimeout(() => {
+          window.scrollTo({
+            top: scrollPositionRef.current,
+            behavior: 'instant'
+          });
+        }, 200);
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       alert('Erro ao carregar dados: ' + error.message);
@@ -149,6 +170,9 @@ const CockpitMetasVendedoresPage = ({ onLogout }) => {
         valor_meta: parseFloat(formData.valor_meta) || 0
       };
 
+      // Salvar posição do scroll antes do alerta
+      const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
+      
       if (editingMeta) {
         await updateMetaVendedor(editingMeta.id, metaData);
         alert('Meta atualizada com sucesso!');
@@ -158,7 +182,15 @@ const CockpitMetasVendedoresPage = ({ onLogout }) => {
       }
       
       handleCloseModal();
-      loadData();
+      
+      // Restaurar scroll imediatamente após o alerta
+      setTimeout(() => {
+        window.scrollTo(0, scrollPos);
+        scrollPositionRef.current = scrollPos;
+      }, 100);
+      
+      // Preservar scroll ao recarregar dados
+      loadData(true);
     } catch (error) {
       console.error('Erro ao salvar meta:', error);
       alert('Erro ao salvar meta: ' + error.message);
@@ -171,9 +203,20 @@ const CockpitMetasVendedoresPage = ({ onLogout }) => {
     }
 
     try {
+      // Salvar posição do scroll antes do alerta
+      const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
+      
       await deleteMetaVendedor(id);
       alert('Meta excluída com sucesso!');
-      loadData();
+      
+      // Restaurar scroll imediatamente após o alerta
+      setTimeout(() => {
+        window.scrollTo(0, scrollPos);
+        scrollPositionRef.current = scrollPos;
+      }, 100);
+      
+      // Preservar scroll ao recarregar dados
+      loadData(true);
     } catch (error) {
       console.error('Erro ao excluir meta:', error);
       alert('Erro ao excluir meta: ' + error.message);
@@ -210,6 +253,9 @@ const CockpitMetasVendedoresPage = ({ onLogout }) => {
     }
 
     try {
+      // Salvar posição do scroll antes do alerta
+      const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
+      
       if (editingTipo) {
         await updateTipoMeta(editingTipo.id, {
           label: novoTipoLabel,
@@ -244,8 +290,14 @@ const CockpitMetasVendedoresPage = ({ onLogout }) => {
         alert('Tipo de meta criado com sucesso!');
       }
       
+      // Restaurar scroll imediatamente após o alerta
+      setTimeout(() => {
+        window.scrollTo(0, scrollPos);
+        scrollPositionRef.current = scrollPos;
+      }, 100);
+      
       handleCloseTiposModal();
-      loadData();
+      loadData(true);
     } catch (error) {
       console.error('Erro ao salvar tipo de meta:', error);
       alert('Erro ao salvar tipo de meta: ' + error.message);
@@ -258,9 +310,19 @@ const CockpitMetasVendedoresPage = ({ onLogout }) => {
     }
 
     try {
+      // Salvar posição do scroll antes do alerta
+      const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
+      
       await deleteTipoMeta(id);
       alert('Tipo de meta excluído com sucesso!');
-      loadData();
+      
+      // Restaurar scroll imediatamente após o alerta
+      setTimeout(() => {
+        window.scrollTo(0, scrollPos);
+        scrollPositionRef.current = scrollPos;
+      }, 100);
+      
+      loadData(true);
     } catch (error) {
       console.error('Erro ao excluir tipo de meta:', error);
       alert('Erro ao excluir tipo de meta: ' + error.message);
@@ -300,6 +362,9 @@ const CockpitMetasVendedoresPage = ({ onLogout }) => {
     }
 
     try {
+      // Salvar posição do scroll antes do alerta
+      const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
+      
       if (editingNome) {
         await updateNomeMeta(editingNome.id, {
           label: novoNomeLabel,
@@ -336,8 +401,14 @@ const CockpitMetasVendedoresPage = ({ onLogout }) => {
         alert('Nome de meta criado com sucesso!');
       }
       
+      // Restaurar scroll imediatamente após o alerta
+      setTimeout(() => {
+        window.scrollTo(0, scrollPos);
+        scrollPositionRef.current = scrollPos;
+      }, 100);
+      
       handleCloseNomesModal();
-      loadData();
+      loadData(true);
     } catch (error) {
       console.error('Erro ao salvar nome de meta:', error);
       alert('Erro ao salvar nome de meta: ' + error.message);
@@ -350,9 +421,19 @@ const CockpitMetasVendedoresPage = ({ onLogout }) => {
     }
 
     try {
+      // Salvar posição do scroll antes do alerta
+      const scrollPos = window.pageYOffset || document.documentElement.scrollTop;
+      
       await deleteNomeMeta(id);
       alert('Nome de meta excluído com sucesso!');
-      loadData();
+      
+      // Restaurar scroll imediatamente após o alerta
+      setTimeout(() => {
+        window.scrollTo(0, scrollPos);
+        scrollPositionRef.current = scrollPos;
+      }, 100);
+      
+      loadData(true);
     } catch (error) {
       console.error('Erro ao excluir nome de meta:', error);
       alert('Erro ao excluir nome de meta: ' + error.message);

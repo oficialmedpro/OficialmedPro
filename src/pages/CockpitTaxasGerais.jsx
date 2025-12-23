@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './CockpitVendedores.css';
 import LogoOficialmed from '../../icones/icone_oficialmed.svg';
-import { getCockpitVendedoresConfig, getMetasVendedores, getMetasRondas, getEntradasVendedoresHoje, getEntradasVendedoresPorRonda, getOrcamentosVendedoresHoje, getOrcamentosVendedoresPorRonda, getVendasVendedoresHoje, getVendasVendedoresPorRonda } from '../service/supabase';
+import { getCockpitVendedoresConfig, getMetasVendedores, getMetasRondas, getEntradasVendedoresHoje, getEntradasVendedoresPorRonda, getOrcamentosVendedoresHoje, getOrcamentosVendedoresPorRonda, getVendasVendedoresHoje, getVendasVendedoresPorRonda, getAllFunis, getAllVendedores } from '../service/supabase';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, SlidersHorizontal, Sun, Moon, Plus, Minus } from 'lucide-react';
+import CockpitFiltros from '../components/CockpitFiltros';
 
 const CockpitTaxasGerais = ({ onLogout }) => {
   const navigate = useNavigate();
@@ -38,6 +39,11 @@ const CockpitTaxasGerais = ({ onLogout }) => {
   const [vendasPorRonda, setVendasPorRonda] = useState({});
   const [metasRondas, setMetasRondas] = useState([]);
   
+  // Filtros (apenas funil - agrupa vendedores daquele funil)
+  const [funilSelecionado, setFunilSelecionado] = useState(null); // null = todos
+  const [todosFunis, setTodosFunis] = useState([]);
+  const [configVendedores, setConfigVendedores] = useState([]);
+  
   // Controles de tema e fonte
   const [isLightTheme, setIsLightTheme] = useState(() => {
     const saved = localStorage.getItem('cockpit-theme');
@@ -54,12 +60,22 @@ const CockpitTaxasGerais = ({ onLogout }) => {
     const carregarDados = async () => {
       try {
         setLoading(true);
-        const [configs, metasData] = await Promise.all([
+        const [configs, metasData, funisData] = await Promise.all([
           getCockpitVendedoresConfig(),
-          getMetasVendedores()
+          getMetasVendedores(),
+          getAllFunis()
         ]);
 
-        const configsAtivas = configs.filter(c => c.ativo);
+        setTodosFunis(funisData || []);
+        setConfigVendedores(configs.filter(c => c.ativo));
+
+        let configsAtivas = configs.filter(c => c.ativo);
+        
+        // Aplicar filtro de funil se selecionado (agrupa todos os vendedores daquele funil)
+        if (funilSelecionado !== null) {
+          configsAtivas = configsAtivas.filter(c => c.funil_id === funilSelecionado);
+        }
+        
         const todosIds = [...new Set(configsAtivas.map(c => c.vendedor_id_sprint))].filter(id => id !== null && id !== undefined);
         
         const funilIdsMap = {};
@@ -68,6 +84,9 @@ const CockpitTaxasGerais = ({ onLogout }) => {
             funilIdsMap[c.vendedor_id_sprint] = c.funil_id;
           }
         });
+        
+        // Armazenar IDs dos vendedores filtrados para usar nas metas
+        const vendedoresFiltradosSet = new Set(todosIds);
 
         // Buscar dados agregados (diário e por ronda)
         const [entradasData, entradasRondaData, orcamentosData, orcamentosRondaData, vendasData, vendasRondaData, metasRondasData] = await Promise.all([
@@ -138,11 +157,12 @@ const CockpitTaxasGerais = ({ onLogout }) => {
             conversao: metasObj['Conversão'] || 0
           });
         } else {
-          // Caso contrário, calcular somando todas as metas individuais
+          // Caso contrário, calcular somando todas as metas individuais dos vendedores filtrados
           const metasPorVendedor = {};
           metasData.forEach(meta => {
             const vendedorId = meta.vendedor_id_sprint;
-            if (vendedorId !== 0) { // Ignorar metas gerais (0)
+            // Filtrar apenas vendedores que estão nos configs filtrados
+            if (vendedorId !== 0 && todosIds.includes(vendedorId)) { // Ignorar metas gerais (0) e apenas vendedores filtrados
               if (!metasPorVendedor[vendedorId]) {
                 metasPorVendedor[vendedorId] = {};
               }
@@ -196,7 +216,7 @@ const CockpitTaxasGerais = ({ onLogout }) => {
     };
 
     carregarDados();
-  }, [dataSelecionada]);
+  }, [dataSelecionada, funilSelecionado]);
 
   // Fechar menu ao clicar fora
   useEffect(() => {
@@ -284,11 +304,18 @@ const CockpitTaxasGerais = ({ onLogout }) => {
     return `${porcentagem.toFixed(1).replace('.', ',')}% (falta ${falta.toFixed(1).replace('.', ',')}%)`;
   };
 
-  // Função para obter meta geral de ronda (vendedor_id_sprint = 0 ou soma das metas dos vendedores)
+  // Função para obter meta geral de ronda (vendedor_id_sprint = 0 ou soma das metas dos vendedores filtrados)
   const getMetaGeralRonda = (nomeMeta, horario) => {
     const dataSelecionadaObj = new Date(dataSelecionada + 'T00:00:00');
     const diaSemana = dataSelecionadaObj.getDay();
     const diaSemanaMeta = (diaSemana === 6 || diaSemana === 0) ? 'sabado' : 'seg_sex';
+    
+    // Obter IDs dos vendedores filtrados
+    const vendedoresFiltradosIds = [...new Set(configVendedores
+      .filter(c => funilSelecionado === null || c.funil_id === funilSelecionado)
+      .map(c => c.vendedor_id_sprint)
+      .filter(id => id !== null && id !== undefined)
+    )];
     
     // Primeiro tentar buscar meta geral explícita (vendedor_id_sprint = 0)
     const metaGeral = metasRondas.find(m => 
@@ -303,10 +330,11 @@ const CockpitTaxasGerais = ({ onLogout }) => {
       return parseFloat(metaGeral.valor_meta);
     }
     
-    // Se não existe meta geral, calcular soma das metas dos vendedores
+    // Se não existe meta geral, calcular soma das metas dos vendedores FILTRADOS
     const metasVendedores = metasRondas.filter(m => 
       m.vendedor_id_sprint !== 0 &&
       m.vendedor_id_sprint !== null &&
+      vendedoresFiltradosIds.includes(m.vendedor_id_sprint) &&
       m.nome_meta === nomeMeta &&
       m.horario === horario &&
       m.dia_semana === diaSemanaMeta &&
@@ -389,7 +417,7 @@ const CockpitTaxasGerais = ({ onLogout }) => {
         conversao: { atual: conversao, meta: metaConversao }
       };
     });
-  }, [entradasPorRonda, orcamentosPorRonda, vendasPorRonda, metasRondas, dataSelecionada]);
+  }, [entradasPorRonda, orcamentosPorRonda, vendasPorRonda, metasRondas, dataSelecionada, funilSelecionado, configVendedores]);
 
   if (loading) {
     return (
@@ -433,6 +461,22 @@ const CockpitTaxasGerais = ({ onLogout }) => {
             </div>
           </div>
         </div>
+
+        {/* Filtros de Funis (agrupa vendedores daquele funil) */}
+        <CockpitFiltros
+          funis={todosFunis.filter(f => 
+            configVendedores.some(c => c.funil_id === (f.id_funil_sprint || f.id))
+          )}
+          vendedores={[]}
+          funilSelecionado={funilSelecionado}
+          vendedorSelecionado={null}
+          onFunilChange={setFunilSelecionado}
+          onVendedorChange={() => {}}
+          labelFunil="Funil"
+          labelVendedor=""
+          mostrarTodos={true}
+          ocultarVendedor={true}
+        />
 
         <div className="cockpit-vendedores-grid" style={{ gridTemplateColumns: '1fr' }}>
           <div className="cockpit-vendedores-card">

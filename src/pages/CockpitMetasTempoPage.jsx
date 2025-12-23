@@ -34,6 +34,8 @@ const CockpitMetasTempoPage = ({ onLogout }) => {
   });
   const [showFloatingControls, setShowFloatingControls] = useState(false);
   const floatingControlsRef = useRef(null);
+  // Ref para manter a posição do scroll
+  const scrollPositionRef = useRef(0);
 
   const [formData, setFormData] = useState({
     vendedor_id_sprint: '',
@@ -122,9 +124,15 @@ const CockpitMetasTempoPage = ({ onLogout }) => {
     }
   };
 
-  const loadData = async () => {
+  const loadData = async (preserveScroll = false) => {
     try {
       setLoading(true);
+      
+      // Salvar posição do scroll antes de recarregar (se preserveScroll for true)
+      if (preserveScroll) {
+        scrollPositionRef.current = window.pageYOffset || document.documentElement.scrollTop;
+      }
+      
       const [metasData, vendedoresData, configsData] = await Promise.all([
         getMetasTempo(),
         getVendedores(),
@@ -145,6 +153,14 @@ const CockpitMetasTempoPage = ({ onLogout }) => {
       
       setMetas(metasData || []);
       setVendedores(vendedoresConfigurados || []);
+      
+      // Restaurar posição do scroll após atualizar os dados
+      if (preserveScroll) {
+        // Usar setTimeout para garantir que o DOM foi atualizado
+        setTimeout(() => {
+          window.scrollTo(0, scrollPositionRef.current);
+        }, 0);
+      }
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
       alert('Erro ao carregar dados: ' + error.message);
@@ -206,7 +222,7 @@ const CockpitMetasTempoPage = ({ onLogout }) => {
       }
       
       handleCloseModal();
-      loadData();
+      loadData(true);
     } catch (error) {
       console.error('Erro ao salvar meta:', error);
       alert('Erro ao salvar meta: ' + error.message);
@@ -221,7 +237,7 @@ const CockpitMetasTempoPage = ({ onLogout }) => {
     try {
       await deleteMetaTempo(id);
       alert('Meta excluída com sucesso!');
-      loadData();
+      loadData(true);
     } catch (error) {
       console.error('Erro ao excluir meta:', error);
       alert('Erro ao excluir meta: ' + error.message);

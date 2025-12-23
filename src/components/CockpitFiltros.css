@@ -1,0 +1,113 @@
+.cockpit-filtros {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: var(--card-soft, #020b1f);
+  border-radius: 8px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border, #1f2937);
+}
+
+.cockpit-filtros-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cockpit-filtros-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text, #e5e7eb);
+  margin-bottom: 4px;
+}
+
+.cockpit-filtros-botoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cockpit-filtros-botao {
+  padding: 8px 16px;
+  background: var(--card, #020617);
+  border: 1px solid var(--border, #1f2937);
+  border-radius: 6px;
+  color: var(--text, #e5e7eb);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cockpit-filtros-botao:hover {
+  background: var(--card-soft, #020b1f);
+  border-color: var(--accent, #38bdf8);
+  color: var(--accent, #38bdf8);
+}
+
+.cockpit-filtros-botao.ativo {
+  background: var(--accent, #38bdf8);
+  border-color: var(--accent, #38bdf8);
+  color: #020617;
+  font-weight: 600;
+}
+
+.cockpit-filtros-botao.ativo:hover {
+  background: #60a5fa;
+  border-color: #60a5fa;
+  color: #020617;
+}
+
+/* Tema Light */
+.cockpit-vendedores-page.light-theme .cockpit-filtros {
+  background: var(--card-soft, #f1f5f9);
+  border-color: var(--border, #cbd5e1);
+}
+
+.cockpit-vendedores-page.light-theme .cockpit-filtros-label {
+  color: var(--text, #1e293b);
+}
+
+.cockpit-vendedores-page.light-theme .cockpit-filtros-botao {
+  background: var(--card, #ffffff);
+  border-color: var(--border, #cbd5e1);
+  color: var(--text, #1e293b);
+}
+
+.cockpit-vendedores-page.light-theme .cockpit-filtros-botao:hover {
+  background: var(--card-soft, #f1f5f9);
+  border-color: var(--accent, #38bdf8);
+  color: var(--accent, #38bdf8);
+}
+
+.cockpit-vendedores-page.light-theme .cockpit-filtros-botao.ativo {
+  background: var(--accent, #38bdf8);
+  border-color: var(--accent, #38bdf8);
+  color: #ffffff;
+}
+
+.cockpit-vendedores-page.light-theme .cockpit-filtros-botao.ativo:hover {
+  background: #60a5fa;
+  border-color: #60a5fa;
+  color: #ffffff;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .cockpit-filtros {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .cockpit-filtros-botoes {
+    gap: 6px;
+  }
+
+  .cockpit-filtros-botao {
+    padding: 6px 12px;
+    font-size: 13px;
+  }
+}
+

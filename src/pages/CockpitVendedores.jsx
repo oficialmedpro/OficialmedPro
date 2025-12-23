@@ -1,15 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './CockpitVendedores.css';
 import LogoOficialmed from '../../icones/icone_oficialmed.svg';
-import { getVendedoresPorIds, getFunisPorIds, getCockpitVendedoresConfig, getTiposSecao, getMetasVendedores, getMetaVendedorPorDia, getMetasRondas, getNomesMetas, getEntradasVendedoresHoje, getEntradasVendedoresPorRonda, getOrcamentosVendedoresHoje, getOrcamentosVendedoresPorRonda, getVendasVendedoresHoje, getVendasVendedoresPorRonda } from '../service/supabase';
+import { getVendedoresPorIds, getFunisPorIds, getAllFunis, getAllVendedores, getCockpitVendedoresConfig, getTiposSecao, getMetasVendedores, getMetaVendedorPorDia, getMetasRondas, getNomesMetas, getEntradasVendedoresHoje, getEntradasVendedoresPorRonda, getOrcamentosVendedoresHoje, getOrcamentosVendedoresPorRonda, getVendasVendedoresHoje, getVendasVendedoresPorRonda } from '../service/supabase';
 import { useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Settings, MoreVertical, Target, AlertCircle, X, SlidersHorizontal, Sun, Moon, Type, Plus, Minus } from 'lucide-react';
+import CockpitFiltros from '../components/CockpitFiltros';
 
 const CockpitVendedores = () => {
   const navigate = useNavigate();
   const [vendedoresNomes, setVendedoresNomes] = useState({});
   const [funisNomes, setFunisNomes] = useState({});
   const [configVendedores, setConfigVendedores] = useState([]);
+  const [configVendedoresFiltrados, setConfigVendedoresFiltrados] = useState([]);
+  
+  // Filtros
+  const [funilSelecionado, setFunilSelecionado] = useState(null); // null = todos
+  const [vendedorSelecionado, setVendedorSelecionado] = useState(null); // null = todos
+  const [todosFunis, setTodosFunis] = useState([]);
+  const [todosVendedores, setTodosVendedores] = useState([]);
   const [tiposSecao, setTiposSecao] = useState([]);
   const [metas, setMetas] = useState([]);
   const [metasRondas, setMetasRondas] = useState([]);
@@ -112,14 +120,19 @@ const CockpitVendedores = () => {
   useEffect(() => {
     const buscarDados = async () => {
       try {
-        // Buscar configuração do cockpit, tipos de seção, metas, metas por ronda e nomes de metas
-        const [configs, tipos, metasData, metasRondasData, nomesMetasData] = await Promise.all([
+        // Buscar configuração do cockpit, tipos de seção, metas, metas por ronda, nomes de metas, todos os funis e vendedores
+        const [configs, tipos, metasData, metasRondasData, nomesMetasData, funisData, vendedoresData] = await Promise.all([
           getCockpitVendedoresConfig(),
           getTiposSecao(),
           getMetasVendedores(),
           getMetasRondas(),
-          getNomesMetas()
+          getNomesMetas(),
+          getAllFunis(),
+          getAllVendedores()
         ]);
+        
+        setTodosFunis(funisData || []);
+        setTodosVendedores(vendedoresData || []);
         
         // Filtrar apenas configurações ativas
         const configsAtivas = configs.filter(c => c.ativo);
@@ -131,6 +144,7 @@ const CockpitVendedores = () => {
 
         setTiposSecao(tiposOrdenados);
         setConfigVendedores(configsAtivas);
+        setConfigVendedoresFiltrados(configsAtivas); // Inicialmente mostrar todos
         setMetas(metasData || []);
         setMetasRondas(metasRondasData || []);
         setNomesMetas(nomesMetasData || []);
@@ -220,22 +234,39 @@ const CockpitVendedores = () => {
     buscarDados();
   }, []);
 
+  // Filtrar configurações baseado nos filtros selecionados
+  useEffect(() => {
+    let filtradas = configVendedores;
+
+    // Filtrar por funil se selecionado
+    if (funilSelecionado !== null) {
+      filtradas = filtradas.filter(c => c.funil_id === funilSelecionado);
+    }
+
+    // Filtrar por vendedor se selecionado
+    if (vendedorSelecionado !== null) {
+      filtradas = filtradas.filter(c => c.vendedor_id_sprint === vendedorSelecionado);
+    }
+
+    setConfigVendedoresFiltrados(filtradas);
+  }, [configVendedores, funilSelecionado, vendedorSelecionado]);
+
   // Buscar entradas (Entrada) para a data selecionada
   useEffect(() => {
     const carregarEntradas = async () => {
       try {
-        if (!configVendedores || configVendedores.length === 0) return;
+        if (!configVendedoresFiltrados || configVendedoresFiltrados.length === 0) return;
 
-        // Coletar todos os IDs de vendedores únicos a partir da config
+        // Coletar todos os IDs de vendedores únicos a partir da config filtrada
         const todosIds = [...new Set(
-          configVendedores.map(c => c.vendedor_id_sprint)
+          configVendedoresFiltrados.map(c => c.vendedor_id_sprint)
         )].filter(id => id !== null && id !== undefined);
 
         if (todosIds.length === 0) return;
 
         // Criar mapeamento de user_id -> funil_id para filtrar corretamente
         const funilIdsMap = {};
-        configVendedores.forEach(c => {
+        configVendedoresFiltrados.forEach(c => {
           if (c.vendedor_id_sprint && c.funil_id) {
             funilIdsMap[c.vendedor_id_sprint] = c.funil_id;
           }
@@ -270,7 +301,7 @@ const CockpitVendedores = () => {
     };
 
     carregarEntradas();
-  }, [configVendedores, dataSelecionada]);
+  }, [configVendedoresFiltrados, dataSelecionada]);
 
   // Função para obter o label de um tipo de seção
   const getTipoSecaoLabel = (tipoNome) => {
@@ -304,22 +335,22 @@ const CockpitVendedores = () => {
     return meta?.valor_meta || null;
   };
 
-  // Agrupar configurações por tipo de seção dinamicamente
+  // Agrupar configurações por tipo de seção dinamicamente (usando configurações filtradas)
   const configVendedoresPorTipo = React.useMemo(() => {
-    if (!configVendedores || configVendedores.length === 0 || !tiposSecao || tiposSecao.length === 0) {
+    if (!configVendedoresFiltrados || configVendedoresFiltrados.length === 0 || !tiposSecao || tiposSecao.length === 0) {
       return {};
     }
 
     const agrupado = {};
     tiposSecao.forEach(tipo => {
-      agrupado[tipo.nome] = configVendedores
+      agrupado[tipo.nome] = configVendedoresFiltrados
         .filter(c => c.tipo_secao === tipo.nome)
         .sort((a, b) => a.ordem_exibicao - b.ordem_exibicao)
         .map(c => ({ idVendedor: c.vendedor_id_sprint, idFunil: c.funil_id }));
     });
 
     return agrupado;
-  }, [configVendedores, tiposSecao]);
+  }, [configVendedoresFiltrados, tiposSecao]);
 
   // Criar dados por tipo de seção dinamicamente
   const dadosPorTipo = React.useMemo(() => {
@@ -948,6 +979,23 @@ const CockpitVendedores = () => {
             </div>
           </div>
         </div>
+
+        {/* Filtros de Funis e Vendedores */}
+        <CockpitFiltros
+          funis={todosFunis.filter(f => 
+            configVendedores.some(c => c.funil_id === (f.id_funil_sprint || f.id))
+          )}
+          vendedores={todosVendedores.filter(v => 
+            configVendedores.some(c => c.vendedor_id_sprint === (v.id_sprint || v.id))
+          )}
+          funilSelecionado={funilSelecionado}
+          vendedorSelecionado={vendedorSelecionado}
+          onFunilChange={setFunilSelecionado}
+          onVendedorChange={setVendedorSelecionado}
+          labelFunil="Funil"
+          labelVendedor="Vendedor"
+          mostrarTodos={true}
+        />
 
         {tiposSecao.map(tipo => {
           const vendedoresTipo = dadosPorTipo[tipo.nome] || [];

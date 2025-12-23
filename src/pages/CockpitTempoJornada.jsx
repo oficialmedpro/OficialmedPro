@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './CockpitVendedores.css';
 import LogoOficialmed from '../../icones/icone_oficialmed.svg';
-import { getCockpitVendedoresConfig, getVendedoresPorIds, getMetasTempo } from '../service/supabase';
+import { getCockpitVendedoresConfig, getVendedoresPorIds, getMetasTempo, getAllFunis, getAllVendedores } from '../service/supabase';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, SlidersHorizontal, Sun, Moon, Plus, Minus, Target } from 'lucide-react';
 import { getSupabaseConfig } from '../config/supabase.js';
+import CockpitFiltros from '../components/CockpitFiltros';
 
 const CockpitTempoJornada = ({ onLogout }) => {
   const navigate = useNavigate();
@@ -17,11 +18,18 @@ const CockpitTempoJornada = ({ onLogout }) => {
     return `${ano}-${mes}-${dia}`;
   });
   const [visualizacao, setVisualizacao] = useState('geral'); // 'geral' ou 'vendedor'
-  const [vendedorSelecionado, setVendedorSelecionado] = useState(null);
+  const [vendedorSelecionadoVisualizacao, setVendedorSelecionadoVisualizacao] = useState(null); // Para visualização (geral vs vendedor)
   const [vendedores, setVendedores] = useState([]);
   const [temposGerais, setTemposGerais] = useState({});
   const [temposPorVendedor, setTemposPorVendedor] = useState({});
   const [metasTempo, setMetasTempo] = useState([]);
+  
+  // Filtros
+  const [funilSelecionado, setFunilSelecionado] = useState(null); // null = todos
+  const [vendedorSelecionado, setVendedorSelecionado] = useState(null); // null = todos
+  const [todosFunis, setTodosFunis] = useState([]);
+  const [todosVendedores, setTodosVendedores] = useState([]);
+  const [configVendedores, setConfigVendedores] = useState([]);
   
   // Controles de tema e fonte
   const [isLightTheme, setIsLightTheme] = useState(() => {
@@ -88,24 +96,49 @@ const CockpitTempoJornada = ({ onLogout }) => {
     const carregarDados = async () => {
       try {
         setLoading(true);
-        const [configs, metasTempoData] = await Promise.all([
+        const [configs, metasTempoData, funisData, vendedoresData] = await Promise.all([
           getCockpitVendedoresConfig(),
-          getMetasTempo()
+          getMetasTempo(),
+          getAllFunis(),
+          getAllVendedores()
         ]);
         
+        setTodosFunis(funisData || []);
+        setTodosVendedores(vendedoresData || []);
         setMetasTempo(metasTempoData || []);
         
-        const configsAtivas = configs.filter(c => c.ativo);
+        let configsAtivas = configs.filter(c => c.ativo);
+        
+        // Aplicar filtros se selecionados
+        if (funilSelecionado !== null) {
+          configsAtivas = configsAtivas.filter(c => c.funil_id === funilSelecionado);
+        }
+        if (vendedorSelecionado !== null) {
+          configsAtivas = configsAtivas.filter(c => c.vendedor_id_sprint === vendedorSelecionado);
+        }
+        
+        setConfigVendedores(configsAtivas);
         
         const todosIds = [...new Set(configsAtivas.map(c => c.vendedor_id_sprint))].filter(id => id !== null && id !== undefined);
-        const vendedoresData = await getVendedoresPorIds(todosIds);
-        setVendedores(vendedoresData);
+        const vendedoresPorIdsData = await getVendedoresPorIds(todosIds);
+        setVendedores(vendedoresPorIdsData);
+
+        console.log('🔍 [CockpitTempoJornada] Filtros aplicados:', {
+          funilSelecionado,
+          vendedorSelecionado,
+          todosIds,
+          configsCount: configsAtivas.length
+        });
 
         // Buscar oportunidades com vendas (tem cadastro ou status='gain')
         const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
         
         // Construir query para buscar oportunidades com cadastro ou gain_date
-        const funis = [6, 14, 33, 41, 38];
+        // Filtrar funis baseado no filtro selecionado
+        let funis = [6, 14, 33, 41, 38];
+        if (funilSelecionado !== null) {
+          funis = [funilSelecionado];
+        }
         let todasOportunidades = [];
 
         for (const funilId of funis) {
@@ -114,9 +147,14 @@ const CockpitTempoJornada = ({ onLogout }) => {
 
           const selectFields = `id,user_id,funil_id,${campos.entrada},${campos.acolhimento},${campos.qualificado},${campos.orcamento},${campos.negociacao},${campos.followUp},${campos.cadastro},gain_date,status,value`;
 
+          // Filtrar por vendedores filtrados (baseado nos configs)
+          const userFilter = todosIds.length > 0 ? `&user_id=in.(${todosIds.join(',')})` : '';
+          
+          console.log(`🔍 [CockpitTempoJornada] Buscando funil ${funilId} com filtros:`, { userFilter, todosIds });
+          
           // Buscar oportunidades com cadastro preenchido OU status='gain'
-          const url1 = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=${selectFields}&funil_id=eq.${funilId}&${campos.cadastro}=not.is.null`;
-          const url2 = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=${selectFields}&funil_id=eq.${funilId}&status=eq.gain&gain_date=not.is.null`;
+          const url1 = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=${selectFields}&funil_id=eq.${funilId}&${campos.cadastro}=not.is.null${userFilter}`;
+          const url2 = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=${selectFields}&funil_id=eq.${funilId}&status=eq.gain&gain_date=not.is.null${userFilter}`;
 
           const [res1, res2] = await Promise.all([
             fetch(url1, {
@@ -151,11 +189,13 @@ const CockpitTempoJornada = ({ onLogout }) => {
           todasOportunidades = todasOportunidades.concat(dados);
         }
 
-        // Calcular tempos
+        console.log(`✅ [CockpitTempoJornada] Total de oportunidades encontradas: ${todasOportunidades.length}`);
+
+        // Calcular tempos gerais (usar todas as oportunidades filtradas)
         const temposGeral = calcularTempos(todasOportunidades);
         setTemposGerais(temposGeral);
 
-        // Calcular tempos por vendedor
+        // Calcular tempos por vendedor (para cada vendedor filtrado)
         const temposPorVend = {};
         todosIds.forEach(userId => {
           const oppsVendedor = todasOportunidades.filter(o => o.user_id === userId);
@@ -164,6 +204,8 @@ const CockpitTempoJornada = ({ onLogout }) => {
           }
         });
         setTemposPorVendedor(temposPorVend);
+        
+        console.log(`✅ [CockpitTempoJornada] Tempos calculados para ${Object.keys(temposPorVend).length} vendedores`);
 
       } catch (error) {
         console.error('❌ [CockpitTempoJornada] Erro ao carregar dados:', error);
@@ -173,7 +215,7 @@ const CockpitTempoJornada = ({ onLogout }) => {
     };
 
     carregarDados();
-  }, []);
+  }, [funilSelecionado, vendedorSelecionado]);
 
   // Fechar menu ao clicar fora
   useEffect(() => {
@@ -367,7 +409,7 @@ const CockpitTempoJornada = ({ onLogout }) => {
     return `${porcentagemFormatada}%`;
   };
 
-  const temposExibicao = visualizacao === 'geral' ? temposGerais : (vendedorSelecionado ? temposPorVendedor[vendedorSelecionado] : {});
+  const temposExibicao = visualizacao === 'geral' ? temposGerais : (vendedorSelecionadoVisualizacao ? temposPorVendedor[vendedorSelecionadoVisualizacao] : {});
 
   // Função para obter o dia da semana (seg_sex ou sabado)
   const getDiaSemana = () => {
@@ -394,7 +436,7 @@ const CockpitTempoJornada = ({ onLogout }) => {
     if (!nomeEtapa) return null;
     
     const diaSemana = getDiaSemana();
-    const vendedorIdParaBusca = visualizacao === 'vendedor' && vendedorSelecionado ? parseInt(vendedorSelecionado) : 0;
+    const vendedorIdParaBusca = visualizacao === 'vendedor' && vendedorSelecionadoVisualizacao ? parseInt(vendedorSelecionadoVisualizacao) : 0;
     
     // Primeiro tentar buscar meta específica do vendedor, depois meta geral (0)
     let meta = metasTempo.find(m => 
@@ -573,11 +615,28 @@ const CockpitTempoJornada = ({ onLogout }) => {
           </div>
         </div>
 
+        {/* Filtros de Funis e Vendedores */}
+        <CockpitFiltros
+          funis={todosFunis.filter(f => 
+            configVendedores.some(c => c.funil_id === (f.id_funil_sprint || f.id))
+          )}
+          vendedores={todosVendedores.filter(v => 
+            configVendedores.some(c => c.vendedor_id_sprint === (v.id_sprint || v.id))
+          )}
+          funilSelecionado={funilSelecionado}
+          vendedorSelecionado={vendedorSelecionado}
+          onFunilChange={setFunilSelecionado}
+          onVendedorChange={setVendedorSelecionado}
+          labelFunil="Funil"
+          labelVendedor="Vendedor"
+          mostrarTodos={true}
+        />
+
         {visualizacao === 'vendedor' && (
           <div style={{ marginBottom: '20px', padding: '0 24px' }}>
             <select
-              value={vendedorSelecionado || ''}
-              onChange={(e) => setVendedorSelecionado(e.target.value || null)}
+              value={vendedorSelecionadoVisualizacao || ''}
+              onChange={(e) => setVendedorSelecionadoVisualizacao(e.target.value || null)}
               style={{
                 padding: '8px 12px',
                 backgroundColor: 'var(--card-soft)',
@@ -602,7 +661,7 @@ const CockpitTempoJornada = ({ onLogout }) => {
           <div className="cockpit-vendedores-card">
             <div className="cockpit-vendedores-card-header">
               <h3 className="cockpit-vendedores-card-nome">
-                {visualizacao === 'geral' ? 'Tempos Gerais' : (vendedorSelecionado ? vendedores.find(v => v.id_sprint === parseInt(vendedorSelecionado))?.nome || 'Vendedor' : 'Selecione um vendedor')}
+                {visualizacao === 'geral' ? 'Tempos Gerais' : (vendedorSelecionadoVisualizacao ? vendedores.find(v => v.id_sprint === parseInt(vendedorSelecionadoVisualizacao))?.nome || 'Vendedor' : 'Selecione um vendedor')}
               </h3>
             </div>
 

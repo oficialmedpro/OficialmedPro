@@ -426,6 +426,54 @@ export const getVendedoresPorIds = async (ids) => {
   }
 };
 
+// 🎯 FUNÇÃO PARA BUSCAR TODOS OS FUNIS ATIVOS (para filtros)
+export const getAllFunis = async () => {
+  try {
+    const client = getSupabaseWithSchema('api');
+    
+    const { data, error } = await client
+      .from('funis')
+      .select('id_funil_sprint, nome_funil')
+      .or('status.eq.ativo,status.is.null')
+      .order('nome_funil', { ascending: true });
+
+    if (error) {
+      console.error('❌ [getAllFunis] Erro ao buscar funis:', error);
+      throw error;
+    }
+
+    console.log(`✅ [getAllFunis] ${data?.length || 0} funis encontrados`);
+    return data || [];
+  } catch (error) {
+    console.error('❌ [getAllFunis] Erro ao buscar funis:', error);
+    throw error;
+  }
+};
+
+// 🎯 FUNÇÃO PARA BUSCAR TODOS OS VENDEDORES ATIVOS (para filtros)
+export const getAllVendedores = async () => {
+  try {
+    const client = getSupabaseWithSchema('api');
+    
+    const { data, error } = await client
+      .from('vendedores')
+      .select('id, nome, id_sprint, id_unidade, status')
+      .eq('status', 'ativo')
+      .order('nome', { ascending: true });
+
+    if (error) {
+      console.error('❌ [getAllVendedores] Erro ao buscar vendedores:', error);
+      throw error;
+    }
+
+    console.log(`✅ [getAllVendedores] ${data?.length || 0} vendedores encontrados`);
+    return data || [];
+  } catch (error) {
+    console.error('❌ [getAllVendedores] Erro ao buscar vendedores:', error);
+    throw error;
+  }
+};
+
 // 🎯 FUNÇÕES PARA CONFIGURAÇÃO DO COCKPIT VENDEDORES
 export const getCockpitVendedoresConfig = async () => {
   try {
