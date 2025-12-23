@@ -3,7 +3,7 @@ import './CockpitVendedores.css';
 import LogoOficialmed from '../../icones/icone_oficialmed.svg';
 import { getVendedoresPorIds, getFunisPorIds, getCockpitVendedoresConfig, getTiposSecao, getMetasVendedores, getMetaVendedorPorDia, getMetasRondas, getNomesMetas, getEntradasVendedoresHoje, getEntradasVendedoresPorRonda, getOrcamentosVendedoresHoje, getOrcamentosVendedoresPorRonda, getVendasVendedoresHoje, getVendasVendedoresPorRonda } from '../service/supabase';
 import { useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Settings, MoreVertical, Target, AlertCircle, X } from 'lucide-react';
+import { LayoutDashboard, Settings, MoreVertical, Target, AlertCircle, X, SlidersHorizontal, Sun, Moon, Type, Plus, Minus } from 'lucide-react';
 
 const CockpitVendedores = () => {
   const navigate = useNavigate();
@@ -32,6 +32,18 @@ const CockpitVendedores = () => {
   const [showMenu, setShowMenu] = useState(false);
   const [modalAlerta, setModalAlerta] = useState(null); // { vendedor, dados }
   const menuRef = useRef(null);
+  
+  // Controles de tema e fonte
+  const [isLightTheme, setIsLightTheme] = useState(() => {
+    const saved = localStorage.getItem('cockpit-theme');
+    return saved === 'light';
+  });
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem('cockpit-font-size');
+    return saved || 'md'; // 'xs', 'sm', 'md', 'lg', 'xl', 'xxl', 'xxxl', 'xxxxl', 'xxxxxl'
+  });
+  const [showFloatingControls, setShowFloatingControls] = useState(false);
+  const floatingControlsRef = useRef(null);
 
   // Fechar menu ao clicar fora
   useEffect(() => {
@@ -39,16 +51,62 @@ const CockpitVendedores = () => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setShowMenu(false);
       }
+      if (floatingControlsRef.current && !floatingControlsRef.current.contains(event.target)) {
+        setShowFloatingControls(false);
+      }
     };
 
-    if (showMenu) {
+    if (showMenu || showFloatingControls) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showMenu]);
+  }, [showMenu, showFloatingControls]);
+
+  // Aplicar tema
+  useEffect(() => {
+    const page = document.querySelector('.cockpit-vendedores-page');
+    if (isLightTheme) {
+      page?.classList.add('light-theme');
+      localStorage.setItem('cockpit-theme', 'light');
+    } else {
+      page?.classList.remove('light-theme');
+      localStorage.setItem('cockpit-theme', 'dark');
+    }
+  }, [isLightTheme]);
+
+  // Aplicar tamanho de fonte
+  useEffect(() => {
+    const page = document.querySelector('.cockpit-vendedores-page');
+    if (page) {
+      page.classList.remove('font-xs', 'font-sm', 'font-md', 'font-lg', 'font-xl', 'font-xxl', 'font-xxxl', 'font-xxxxl', 'font-xxxxxl');
+      page.classList.add(`font-${fontSize}`);
+      localStorage.setItem('cockpit-font-size', fontSize);
+    }
+  }, [fontSize]);
+
+  // Handlers para controles flutuantes
+  const toggleTheme = () => {
+    setIsLightTheme(!isLightTheme);
+  };
+
+  const increaseFontSize = () => {
+    const sizes = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl', 'xxxl', 'xxxxl', 'xxxxxl'];
+    const currentIndex = sizes.indexOf(fontSize);
+    if (currentIndex < sizes.length - 1) {
+      setFontSize(sizes[currentIndex + 1]);
+    }
+  };
+
+  const decreaseFontSize = () => {
+    const sizes = ['xs', 'sm', 'md', 'lg', 'xl', 'xxl', 'xxxl', 'xxxxl', 'xxxxxl'];
+    const currentIndex = sizes.indexOf(fontSize);
+    if (currentIndex > 0) {
+      setFontSize(sizes[currentIndex - 1]);
+    }
+  };
 
   // Buscar configuração e nomes dos vendedores do banco de dados
   useEffect(() => {
@@ -817,6 +875,18 @@ const CockpitVendedores = () => {
             </div>
           </div>
           <div className="cockpit-vendedores-header-right">
+            <button
+              className="cockpit-vendedores-header-btn"
+              onClick={() => navigate('/cockpit-taxas-gerais')}
+            >
+              Taxas Gerais
+            </button>
+            <button
+              className="cockpit-vendedores-header-btn"
+              onClick={() => navigate('/cockpit-tempo-jornada')}
+            >
+              Tempo da Jornada
+            </button>
             <div className="cockpit-vendedores-date-filter">
               <label htmlFor="data-filtro">Data:</label>
               <input
@@ -932,6 +1002,44 @@ const CockpitVendedores = () => {
           </div>
         </div>
       )}
+
+      {/* Controle Flutuante */}
+      <div className="cockpit-vendedores-floating-controls" ref={floatingControlsRef}>
+        <button
+          className="cockpit-vendedores-floating-controls-toggle"
+          onClick={() => setShowFloatingControls(!showFloatingControls)}
+          aria-label="Abrir controles"
+        >
+          <SlidersHorizontal size={18} />
+        </button>
+        {showFloatingControls && (
+          <div className="cockpit-vendedores-floating-controls-menu">
+            <button
+              className="cockpit-vendedores-floating-controls-option"
+              onClick={toggleTheme}
+              aria-label={isLightTheme ? 'Alternar para tema escuro' : 'Alternar para tema claro'}
+            >
+              {isLightTheme ? <Moon size={18} /> : <Sun size={18} />}
+            </button>
+            <button
+              className="cockpit-vendedores-floating-controls-option"
+              onClick={increaseFontSize}
+              disabled={fontSize === 'xxxxxl'}
+              aria-label="Aumentar tamanho da fonte"
+            >
+              <Plus size={18} />
+            </button>
+            <button
+              className="cockpit-vendedores-floating-controls-option"
+              onClick={decreaseFontSize}
+              disabled={fontSize === 'xs'}
+              aria-label="Diminuir tamanho da fonte"
+            >
+              <Minus size={18} />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

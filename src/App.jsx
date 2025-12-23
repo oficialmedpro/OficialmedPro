@@ -31,6 +31,8 @@ import Callix from './pages/callix'
 import ClientesConsolidados from './pages/clientes-consolidados'
 import HistoricoCompras from './pages/HistoricoCompras'
 import CockpitVendedores from './pages/CockpitVendedores'
+import CockpitTaxasGerais from './pages/CockpitTaxasGerais'
+import CockpitTempoJornada from './pages/CockpitTempoJornada'
 import HistoricoComprasReativacao from './pages/reativacao/HistoricoComprasReativacao'
 import VendasPage from './pages/vendas/VendasPage'
 import ReativacaoDashboard from './pages/reativacao/ReativacaoDashboard'
@@ -240,6 +242,8 @@ function App() {
         <Route path="/callix" element={<Callix onLogout={handleLogout} />} />
         <Route path="/clientes-consolidados" element={<ClientesConsolidados onLogout={handleLogout} />} />
         <Route path="/cockpit-vendedores" element={<CockpitVendedores onLogout={handleLogout} />} />
+        <Route path="/cockpit-taxas-gerais" element={<CockpitTaxasGerais onLogout={handleLogout} />} />
+        <Route path="/cockpit-tempo-jornada" element={<CockpitTempoJornada onLogout={handleLogout} />} />
         {/* /historico-compras agora está protegida pelo sistema de reativação acima */}
         <Route path="/vendas" element={<VendasPage onLogout={handleLogout} />} />
         

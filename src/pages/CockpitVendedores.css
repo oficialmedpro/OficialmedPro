@@ -13,6 +13,299 @@
   --meta: #64748b;
 }
 
+/* Tema Light */
+.cockpit-vendedores-page.light-theme {
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --card-soft: #f1f5f9;
+  --text: #1e293b;
+  --muted: #64748b;
+  --border: #cbd5e1;
+  background: linear-gradient(to bottom, #f8fafc 0%, #e2e8f0 100%);
+}
+
+/* Override completo dos cards no tema light */
+.cockpit-vendedores-page.light-theme .cockpit-vendedores-card {
+  background: #ffffff !important;
+  background-image: none !important;
+  border: 1px solid var(--border) !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Override dos elementos internos dos cards no tema light */
+.cockpit-vendedores-page.light-theme .cockpit-vendedores-metrica {
+  background: var(--card-soft) !important;
+  border-color: var(--border) !important;
+}
+
+.cockpit-vendedores-page.light-theme .cockpit-vendedores-taxa {
+  background: var(--card-soft) !important;
+  border-color: var(--border) !important;
+}
+
+.cockpit-vendedores-page.light-theme .cockpit-vendedores-tabela-rondas tbody tr:nth-child(even) {
+  background: var(--card-soft) !important;
+}
+
+.cockpit-vendedores-page.light-theme .cockpit-vendedores-tabela-rondas tbody tr:nth-child(odd) {
+  background: var(--card) !important;
+}
+
+.cockpit-vendedores-page.light-theme .cockpit-vendedores-tabela-rondas th,
+.cockpit-vendedores-page.light-theme .cockpit-vendedores-tabela-rondas td {
+  border-bottom-color: var(--border) !important;
+}
+
+.cockpit-vendedores-page.light-theme .cockpit-vendedores-logo {
+  /* Preto simples - mais compatível */
+  filter: brightness(0);
+}
+
+/* Tamanhos de Fonte - 6 Níveis */
+/* XS - Extra Small */
+.cockpit-vendedores-page.font-xs {
+  font-size: 0.75rem;
+}
+
+.cockpit-vendedores-page.font-xs .cockpit-vendedores-card-nome {
+  font-size: 18px;
+}
+
+.cockpit-vendedores-page.font-xs .cockpit-vendedores-metrica-real,
+.cockpit-vendedores-page.font-xs .cockpit-vendedores-metrica-meta {
+  font-size: 22px;
+}
+
+.cockpit-vendedores-page.font-xs .cockpit-vendedores-taxa-valor {
+  font-size: 18px;
+}
+
+.cockpit-vendedores-page.font-xs .cockpit-vendedores-pair-meta,
+.cockpit-vendedores-page.font-xs .cockpit-vendedores-pair-real {
+  font-size: 18px;
+}
+
+.cockpit-vendedores-page.font-xs .cockpit-vendedores-metrica-label {
+  font-size: 14px;
+}
+
+/* SM - Small */
+.cockpit-vendedores-page.font-sm {
+  font-size: 0.875rem;
+}
+
+.cockpit-vendedores-page.font-sm .cockpit-vendedores-card-nome {
+  font-size: 20px;
+}
+
+.cockpit-vendedores-page.font-sm .cockpit-vendedores-metrica-real,
+.cockpit-vendedores-page.font-sm .cockpit-vendedores-metrica-meta {
+  font-size: 24px;
+}
+
+.cockpit-vendedores-page.font-sm .cockpit-vendedores-taxa-valor {
+  font-size: 20px;
+}
+
+.cockpit-vendedores-page.font-sm .cockpit-vendedores-pair-meta,
+.cockpit-vendedores-page.font-sm .cockpit-vendedores-pair-real {
+  font-size: 20px;
+}
+
+.cockpit-vendedores-page.font-sm .cockpit-vendedores-metrica-label {
+  font-size: 15px;
+}
+
+/* MD - Medium (Padrão) */
+.cockpit-vendedores-page.font-md {
+  font-size: 1rem;
+}
+
+.cockpit-vendedores-page.font-md .cockpit-vendedores-card-nome {
+  font-size: 24px;
+}
+
+.cockpit-vendedores-page.font-md .cockpit-vendedores-metrica-real,
+.cockpit-vendedores-page.font-md .cockpit-vendedores-metrica-meta {
+  font-size: 28px;
+}
+
+.cockpit-vendedores-page.font-md .cockpit-vendedores-taxa-valor {
+  font-size: 24px;
+}
+
+.cockpit-vendedores-page.font-md .cockpit-vendedores-pair-meta,
+.cockpit-vendedores-page.font-md .cockpit-vendedores-pair-real {
+  font-size: 22px;
+}
+
+.cockpit-vendedores-page.font-md .cockpit-vendedores-metrica-label {
+  font-size: 16px;
+}
+
+/* LG - Large */
+.cockpit-vendedores-page.font-lg {
+  font-size: 1.125rem;
+}
+
+.cockpit-vendedores-page.font-lg .cockpit-vendedores-card-nome {
+  font-size: 28px;
+}
+
+.cockpit-vendedores-page.font-lg .cockpit-vendedores-metrica-real,
+.cockpit-vendedores-page.font-lg .cockpit-vendedores-metrica-meta {
+  font-size: 32px;
+}
+
+.cockpit-vendedores-page.font-lg .cockpit-vendedores-taxa-valor {
+  font-size: 28px;
+}
+
+.cockpit-vendedores-page.font-lg .cockpit-vendedores-pair-meta,
+.cockpit-vendedores-page.font-lg .cockpit-vendedores-pair-real {
+  font-size: 24px;
+}
+
+.cockpit-vendedores-page.font-lg .cockpit-vendedores-metrica-label {
+  font-size: 17px;
+}
+
+/* XL - Extra Large */
+.cockpit-vendedores-page.font-xl {
+  font-size: 1.25rem;
+}
+
+.cockpit-vendedores-page.font-xl .cockpit-vendedores-card-nome {
+  font-size: 32px;
+}
+
+.cockpit-vendedores-page.font-xl .cockpit-vendedores-metrica-real,
+.cockpit-vendedores-page.font-xl .cockpit-vendedores-metrica-meta {
+  font-size: 36px;
+}
+
+.cockpit-vendedores-page.font-xl .cockpit-vendedores-taxa-valor {
+  font-size: 32px;
+}
+
+.cockpit-vendedores-page.font-xl .cockpit-vendedores-pair-meta,
+.cockpit-vendedores-page.font-xl .cockpit-vendedores-pair-real {
+  font-size: 26px;
+}
+
+.cockpit-vendedores-page.font-xl .cockpit-vendedores-metrica-label {
+  font-size: 18px;
+}
+
+/* XXL - Extra Extra Large */
+.cockpit-vendedores-page.font-xxl {
+  font-size: 1.375rem;
+}
+
+.cockpit-vendedores-page.font-xxl .cockpit-vendedores-card-nome {
+  font-size: 36px;
+}
+
+.cockpit-vendedores-page.font-xxl .cockpit-vendedores-metrica-real,
+.cockpit-vendedores-page.font-xxl .cockpit-vendedores-metrica-meta {
+  font-size: 40px;
+}
+
+.cockpit-vendedores-page.font-xxl .cockpit-vendedores-taxa-valor {
+  font-size: 36px;
+}
+
+.cockpit-vendedores-page.font-xxl .cockpit-vendedores-pair-meta,
+.cockpit-vendedores-page.font-xxl .cockpit-vendedores-pair-real {
+  font-size: 28px;
+}
+
+.cockpit-vendedores-page.font-xxl .cockpit-vendedores-metrica-label {
+  font-size: 19px;
+}
+
+/* XXXL - Extra Extra Extra Large */
+.cockpit-vendedores-page.font-xxxl {
+  font-size: 1.5rem;
+}
+
+.cockpit-vendedores-page.font-xxxl .cockpit-vendedores-card-nome {
+  font-size: 40px;
+}
+
+.cockpit-vendedores-page.font-xxxl .cockpit-vendedores-metrica-real,
+.cockpit-vendedores-page.font-xxxl .cockpit-vendedores-metrica-meta {
+  font-size: 44px;
+}
+
+.cockpit-vendedores-page.font-xxxl .cockpit-vendedores-taxa-valor {
+  font-size: 40px;
+}
+
+.cockpit-vendedores-page.font-xxxl .cockpit-vendedores-pair-meta,
+.cockpit-vendedores-page.font-xxxl .cockpit-vendedores-pair-real {
+  font-size: 30px;
+}
+
+.cockpit-vendedores-page.font-xxxl .cockpit-vendedores-metrica-label {
+  font-size: 20px;
+}
+
+/* XXXXL - Extra Extra Extra Extra Large */
+.cockpit-vendedores-page.font-xxxxl {
+  font-size: 1.625rem;
+}
+
+.cockpit-vendedores-page.font-xxxxl .cockpit-vendedores-card-nome {
+  font-size: 44px;
+}
+
+.cockpit-vendedores-page.font-xxxxl .cockpit-vendedores-metrica-real,
+.cockpit-vendedores-page.font-xxxxl .cockpit-vendedores-metrica-meta {
+  font-size: 48px;
+}
+
+.cockpit-vendedores-page.font-xxxxl .cockpit-vendedores-taxa-valor {
+  font-size: 44px;
+}
+
+.cockpit-vendedores-page.font-xxxxl .cockpit-vendedores-pair-meta,
+.cockpit-vendedores-page.font-xxxxl .cockpit-vendedores-pair-real {
+  font-size: 32px;
+}
+
+.cockpit-vendedores-page.font-xxxxl .cockpit-vendedores-metrica-label {
+  font-size: 21px;
+}
+
+/* XXXXXL - Extra Extra Extra Extra Extra Large */
+.cockpit-vendedores-page.font-xxxxxl {
+  font-size: 1.75rem;
+}
+
+.cockpit-vendedores-page.font-xxxxxl .cockpit-vendedores-card-nome {
+  font-size: 48px;
+}
+
+.cockpit-vendedores-page.font-xxxxxl .cockpit-vendedores-metrica-real,
+.cockpit-vendedores-page.font-xxxxxl .cockpit-vendedores-metrica-meta {
+  font-size: 52px;
+}
+
+.cockpit-vendedores-page.font-xxxxxl .cockpit-vendedores-taxa-valor {
+  font-size: 48px;
+}
+
+.cockpit-vendedores-page.font-xxxxxl .cockpit-vendedores-pair-meta,
+.cockpit-vendedores-page.font-xxxxxl .cockpit-vendedores-pair-real {
+  font-size: 34px;
+}
+
+.cockpit-vendedores-page.font-xxxxxl .cockpit-vendedores-metrica-label {
+  font-size: 22px;
+}
+
 
 .cockpit-vendedores-page {
   min-height: 100vh;
@@ -24,6 +317,7 @@
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
   overflow-x: hidden;
   box-sizing: border-box;
+  font-size: 1rem; /* Tamanho padrão (md) */
 }
 
 .cockpit-vendedores-container {
@@ -80,6 +374,32 @@
   justify-content: flex-end;
   flex: 1;
   gap: 16px;
+}
+
+.cockpit-vendedores-header-btn {
+  padding: 8px 16px;
+  background-color: var(--card-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.cockpit-vendedores-header-btn:hover {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.cockpit-vendedores-header-btn.active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
 }
 
 .cockpit-vendedores-date-filter {
@@ -688,4 +1008,105 @@
   font-size: 14px;
   color: var(--text);
   line-height: 1.5;
+}
+
+/* =================== CONTROLE FLUTUANTE =================== */
+.cockpit-vendedores-floating-controls {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.cockpit-vendedores-floating-controls-toggle {
+  width: 36px;
+  height: 48px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.cockpit-vendedores-floating-controls-toggle:hover {
+  background: var(--card-soft);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.cockpit-vendedores-floating-controls-toggle:active {
+  transform: scale(0.95);
+}
+
+.cockpit-vendedores-floating-controls-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  animation: slideIn 0.2s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.cockpit-vendedores-floating-controls-option {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cockpit-vendedores-floating-controls-option:hover:not(:disabled) {
+  background: var(--card-soft);
+  transform: scale(1.1);
+}
+
+.cockpit-vendedores-floating-controls-option:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.cockpit-vendedores-floating-controls-option:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Tema Light - Ajustes do controle flutuante */
+.cockpit-vendedores-page.light-theme .cockpit-vendedores-floating-controls-toggle,
+.cockpit-vendedores-page.light-theme .cockpit-vendedores-floating-controls-menu {
+  background: var(--card);
+  border-color: var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.cockpit-vendedores-page.light-theme .cockpit-vendedores-floating-controls-toggle:hover {
+  background: var(--card-soft);
 }
