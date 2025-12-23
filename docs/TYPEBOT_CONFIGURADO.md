@@ -1,5 +1,9 @@
 # ✅ Typebot PostgreSQL - Configurado com Sucesso!
 
+> ⚠️ **SEGURANÇA:** Este arquivo foi atualizado para usar variáveis de ambiente.  
+> Configure as credenciais no arquivo `.env` (que não é commitado no Git).  
+> **NUNCA** coloque senhas diretamente neste arquivo ou em qualquer código!
+
 ## 📅 Data da Configuração
 2025-01-XX
 
@@ -32,8 +36,8 @@
 Após expor a porta, teste:
 
 ```bash
-# Teste básico
-psql -h 72.60.61.40 -p 5432 -U postgres -d typebot
+# Teste básico (substitua as variáveis pelos valores do .env)
+psql -h ${TYPEBOT_DB_HOST} -p ${TYPEBOT_DB_PORT} -U ${TYPEBOT_DB_USER} -d ${TYPEBOT_DB_NAME}
 
 # Ou usando o script
 node scripts/test-typebot-connection.js
@@ -43,11 +47,11 @@ node scripts/test-typebot-connection.js
 
 Use estas credenciais:
 
-- **Host address:** `72.60.61.40`
-- **Port number:** `5432`
-- **Username:** `postgres`
-- **Password:** `9acf019d669f6ab91d86`
-- **Database:** `typebot`
+- **Host address:** Configure no `.env` como `TYPEBOT_DB_HOST`
+- **Port number:** Configure no `.env` como `TYPEBOT_DB_PORT`
+- **Username:** Configure no `.env` como `TYPEBOT_DB_USER`
+- **Password:** Configure no `.env` como `TYPEBOT_DB_PASSWORD`
+- **Database:** Configure no `.env` como `TYPEBOT_DB_NAME`
 - **Use SSL:** Desligado
 
 ## 🔍 Verificar Status

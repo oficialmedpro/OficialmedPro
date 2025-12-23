@@ -1,5 +1,9 @@
 # 🧪 Comandos Simples para Testar Typebot
 
+> ⚠️ **SEGURANÇA:** Este arquivo foi atualizado para usar variáveis de ambiente.  
+> Configure as credenciais no arquivo `.env` (que não é commitado no Git).  
+> **NUNCA** coloque senhas diretamente neste arquivo ou em qualquer código!
+
 Execute estes comandos **um por vez** no servidor:
 
 ## Teste 1: Verificar Container
@@ -46,12 +50,12 @@ docker exec typebot_typebot-db.1.ylvzixcqru6rwfsxsuqfqquiv psql -U postgres -d t
 
 ## ✅ Se Todos os Testes Passarem
 
-Configure no NocoDB:
-- Host: `72.60.61.40`
-- Port: `5432`
-- Database: `typebot`
-- Username: `postgres`
-- Password: `9acf019d669f6ab91d86`
+Configure no NocoDB (obtenha os valores do arquivo `.env`):
+- Host: `${TYPEBOT_DB_HOST}`
+- Port: `${TYPEBOT_DB_PORT}`
+- Database: `${TYPEBOT_DB_NAME}`
+- Username: `${TYPEBOT_DB_USER}`
+- Password: `${TYPEBOT_DB_PASSWORD}` (configure no `.env`)
 - SSL: Desligado
 
 

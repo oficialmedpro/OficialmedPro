@@ -6,20 +6,20 @@
 
 ### Método 1: Connection URL com sslmode=disable
 
-Use esta URL completa (com `sslmode=disable`):
+Use esta URL completa (com `sslmode=disable` - substitua as variáveis pelos valores do `.env`):
 
 ```
-postgres://postgres:9acf019d669f6ab91d86@72.60.61.40:5432/typebot?sslmode=disable
+postgres://${TYPEBOT_DB_USER}:${TYPEBOT_DB_PASSWORD}@${TYPEBOT_DB_HOST}:${TYPEBOT_DB_PORT}/${TYPEBOT_DB_NAME}?sslmode=disable
 ```
 
 ### Método 2: Campos Separados + Connection Parameters
 
-1. **Preencha os campos:**
-   - Host: `72.60.61.40`
-   - Port: `5432`
-   - Username: `postgres`
-   - Password: `9acf019d669f6ab91d86`
-   - Database: `typebot`
+1. **Preencha os campos (obtenha os valores do arquivo `.env`):**
+   - Host: `${TYPEBOT_DB_HOST}`
+   - Port: `${TYPEBOT_DB_PORT}`
+   - Username: `${TYPEBOT_DB_USER}`
+   - Password: `${TYPEBOT_DB_PASSWORD}`
+   - Database: `${TYPEBOT_DB_NAME}`
 
 2. **IMPORTANTE: Use SSL deve estar DESLIGADO** ❌
 
@@ -55,7 +55,7 @@ docker restart $CONTAINER
 
 **Connection URL:**
 ```
-postgres://postgres:9acf019d669f6ab91d86@72.60.61.40:5432/typebot?sslmode=disable&ssl=false
+postgres://${TYPEBOT_DB_USER}:${TYPEBOT_DB_PASSWORD}@${TYPEBOT_DB_HOST}:${TYPEBOT_DB_PORT}/${TYPEBOT_DB_NAME}?sslmode=disable&ssl=false
 ```
 
 **Ou campos separados:**

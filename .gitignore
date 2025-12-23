@@ -32,3 +32,13 @@ scripts/*-error.txt
 scripts/*-log.txt
 data/*.csv
 data/*.json
+
+# Environment variables - NUNCA commitar arquivos .env!
+.env
+.env.local
+.env.production
+.env.development
+.env.*.local
+*.env
+!.env.example
+!n8n.env.example

@@ -1,5 +1,9 @@
 # 🔧 Troubleshooting NocoDB - Conexão Typebot
 
+> ⚠️ **SEGURANÇA:** Este arquivo foi atualizado para usar variáveis de ambiente.  
+> Configure as credenciais no arquivo `.env` (que não é commitado no Git).  
+> **NUNCA** coloque senhas diretamente neste arquivo ou em qualquer código!
+
 ## ✅ Confirmação: Banco Está Funcionando!
 
 Teste executado com sucesso:
@@ -19,8 +23,9 @@ Teste executado com sucesso:
 
 1. **Usar Connection URL ao invés de campos separados:**
    ```
-   postgres://postgres:9acf019d669f6ab91d86@72.60.61.40:5432/typebot
+   postgres://${TYPEBOT_DB_USER}:${TYPEBOT_DB_PASSWORD}@${TYPEBOT_DB_HOST}:${TYPEBOT_DB_PORT}/${TYPEBOT_DB_NAME}
    ```
+   *Nota: Substitua as variáveis de ambiente pelos valores reais do seu arquivo `.env`*
 
 2. **Verificar se está selecionando PostgreSQL (não outro tipo):**
    - Certifique-se de selecionar "PostgreSQL" no tipo de conexão
@@ -50,7 +55,7 @@ Teste executado com sucesso:
 **Soluções:**
 
 1. **Verificar senha:**
-   - Certifique-se de copiar exatamente: `9acf019d669f6ab91d86`
+   - Use a senha configurada na variável de ambiente `TYPEBOT_DB_PASSWORD`
    - Sem espaços antes ou depois
 
 2. **Testar senha diretamente:**
@@ -64,11 +69,11 @@ Teste executado com sucesso:
 ### Opção 1: Campos Separados
 
 - **Connection name:** `typebot`
-- **Host address:** `72.60.61.40`
-- **Port number:** `5432`
-- **Username:** `postgres`
-- **Password:** `9acf019d669f6ab91d86`
-- **Database:** `typebot`
+- **Host address:** `${TYPEBOT_DB_HOST}` (ex: 72.60.61.40)
+- **Port number:** `${TYPEBOT_DB_PORT}` (ex: 5432)
+- **Username:** `${TYPEBOT_DB_USER}` (ex: postgres)
+- **Password:** `${TYPEBOT_DB_PASSWORD}` (obtenha do arquivo `.env`)
+- **Database:** `${TYPEBOT_DB_NAME}` (ex: typebot)
 - **Use SSL:** ❌ **Desligado**
 - **Connection parameters:** 
   - `sslmode` = `disable`
@@ -77,9 +82,9 @@ Teste executado com sucesso:
 ### Opção 2: Connection URL
 
 1. Clique em "Use Connection URL"
-2. Cole esta URL:
+2. Cole esta URL (substitua as variáveis pelos valores reais do seu `.env`):
    ```
-   postgres://postgres:9acf019d669f6ab91d86@72.60.61.40:5432/typebot?sslmode=disable
+   postgres://${TYPEBOT_DB_USER}:${TYPEBOT_DB_PASSWORD}@${TYPEBOT_DB_HOST}:${TYPEBOT_DB_PORT}/${TYPEBOT_DB_NAME}?sslmode=disable
    ```
 
 ## 🔍 Verificar se NocoDB Consegue Acessar
@@ -98,17 +103,17 @@ Execute este comando no servidor onde o NocoDB está rodando:
 
 ```bash
 # Se NocoDB estiver em container
-docker exec nocodb_nocodb.1.vmhlovvb6dwjzomdywaw60bxr sh -c "apk add postgresql-client && psql -h 72.60.61.40 -p 5432 -U postgres -d typebot -c 'SELECT 1;'"
+docker exec nocodb_nocodb.1.vmhlovvb6dwjzomdywaw60bxr sh -c "apk add postgresql-client && psql -h \${TYPEBOT_DB_HOST} -p \${TYPEBOT_DB_PORT} -U \${TYPEBOT_DB_USER} -d \${TYPEBOT_DB_NAME} -c 'SELECT 1;'"
 ```
 
 ## 📋 Checklist Final
 
 - [ ] Tipo de conexão: PostgreSQL (não Generic)
-- [ ] Host: `72.60.61.40`
-- [ ] Port: `5432`
-- [ ] Username: `postgres`
-- [ ] Password: `9acf019d669f6ab91d86` (sem espaços)
-- [ ] Database: `typebot`
+- [ ] Host: Configurado no `.env` como `TYPEBOT_DB_HOST`
+- [ ] Port: Configurado no `.env` como `TYPEBOT_DB_PORT`
+- [ ] Username: Configurado no `.env` como `TYPEBOT_DB_USER`
+- [ ] Password: Configurado no `.env` como `TYPEBOT_DB_PASSWORD` (sem espaços)
+- [ ] Database: Configurado no `.env` como `TYPEBOT_DB_NAME`
 - [ ] SSL: Desligado
 - [ ] Connection parameters: `sslmode=disable`
 - [ ] Testou Connection URL também?

@@ -1,5 +1,9 @@
 # ✅ SOLUÇÃO FINAL - NocoDB + Typebot
 
+> ⚠️ **SEGURANÇA:** Este arquivo foi atualizado para usar variáveis de ambiente.  
+> Configure as credenciais no arquivo `.env` (que não é commitado no Git).  
+> **NUNCA** coloque senhas diretamente neste arquivo ou em qualquer código!
+
 ## 🎉 CONFIRMADO: Banco Está Funcionando!
 
 Teste executado com **SUCESSO**:
@@ -16,9 +20,9 @@ Teste executado com **SUCESSO**:
 ### Método 1: Connection URL (RECOMENDADO)
 
 1. No NocoDB, clique em **"Use Connection URL"**
-2. Cole esta URL completa:
+2. Cole esta URL completa (substitua as variáveis pelos valores reais do seu `.env`):
    ```
-   postgres://postgres:9acf019d669f6ab91d86@72.60.61.40:5432/typebot?sslmode=disable
+   postgres://${TYPEBOT_DB_USER}:${TYPEBOT_DB_PASSWORD}@${TYPEBOT_DB_HOST}:${TYPEBOT_DB_PORT}/${TYPEBOT_DB_NAME}?sslmode=disable
    ```
 3. Clique em **"Test connection"**
 4. Se funcionar, clique em **"Create connection"**
@@ -28,11 +32,11 @@ Teste executado com **SUCESSO**:
 Preencha exatamente assim:
 
 - **Connection name:** `typebot`
-- **Host address:** `72.60.61.40`
-- **Port number:** `5432`
-- **Username:** `postgres`
-- **Password:** `9acf019d669f6ab91d86` (sem espaços!)
-- **Database:** `typebot`
+- **Host address:** `${TYPEBOT_DB_HOST}` (obtenha do arquivo `.env`)
+- **Port number:** `${TYPEBOT_DB_PORT}` (obtenha do arquivo `.env`)
+- **Username:** `${TYPEBOT_DB_USER}` (obtenha do arquivo `.env`)
+- **Password:** `${TYPEBOT_DB_PASSWORD}` (obtenha do arquivo `.env`, sem espaços!)
+- **Database:** `${TYPEBOT_DB_NAME}` (obtenha do arquivo `.env`)
 - **Use SSL:** ❌ **DESLIGADO**
 - **Connection parameters:** Clique em "+ Add" e adicione:
   - Nome: `sslmode`
@@ -69,24 +73,26 @@ Se quiser testar a conexão do próprio NocoDB:
 
 ```bash
 # No servidor, testar do container do NocoDB
-docker exec nocodb_nocodb.1.vmhlovvb6dwjzomdywaw60bxr sh -c "apk add -q postgresql-client 2>/dev/null && psql -h 72.60.61.40 -p 5432 -U postgres -d typebot -c 'SELECT 1;'"
+docker exec nocodb_nocodb.1.vmhlovvb6dwjzomdywaw60bxr sh -c "apk add -q postgresql-client 2>/dev/null && psql -h \${TYPEBOT_DB_HOST} -p \${TYPEBOT_DB_PORT} -U \${TYPEBOT_DB_USER} -d \${TYPEBOT_DB_NAME} -c 'SELECT 1;'"
 ```
 
 ## 📋 Resumo das Credenciais
 
 ```
-Host: 72.60.61.40
-Port: 5432
-User: postgres
-Password: 9acf019d669f6ab91d86
-Database: typebot
+Host: ${TYPEBOT_DB_HOST} (configurar no .env)
+Port: ${TYPEBOT_DB_PORT} (configurar no .env)
+User: ${TYPEBOT_DB_USER} (configurar no .env)
+Password: ${TYPEBOT_DB_PASSWORD} (configurar no .env)
+Database: ${TYPEBOT_DB_NAME} (configurar no .env)
 SSL: disable
 ```
 
 **Connection URL:**
 ```
-postgres://postgres:9acf019d669f6ab91d86@72.60.61.40:5432/typebot?sslmode=disable
+postgres://${TYPEBOT_DB_USER}:${TYPEBOT_DB_PASSWORD}@${TYPEBOT_DB_HOST}:${TYPEBOT_DB_PORT}/${TYPEBOT_DB_NAME}?sslmode=disable
 ```
+
+**⚠️ IMPORTANTE:** Configure todas as variáveis no arquivo `.env` antes de usar!
 
 ---
 
