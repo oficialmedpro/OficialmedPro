@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './CockpitVendedores.css';
 import LogoOficialmed from '../../icones/icone_oficialmed.svg';
-import { getVendedoresPorIds, getFunisPorIds, getAllFunis, getAllVendedores, getCockpitVendedoresConfig, getTiposSecao, getMetasVendedores, getMetaVendedorPorDia, getMetasRondas, getNomesMetas, getEntradasVendedoresHoje, getEntradasVendedoresPorRonda, getOrcamentosVendedoresHoje, getOrcamentosVendedoresPorRonda, getVendasVendedoresHoje, getVendasVendedoresPorRonda } from '../service/supabase';
+import { getVendedoresPorIds, getFunisPorIds, getAllFunis, getAllVendedores, getCockpitVendedoresConfig, getTiposSecao, getMetasVendedores, getMetaVendedorPorDia, getMetasRondas, getNomesMetas, getEntradasVendedoresHoje, getEntradasVendedoresPorRonda, getOrcamentosVendedoresHoje, getOrcamentosVendedoresPorRonda, getVendasVendedoresHoje, getVendasVendedoresPorRonda, getDiasUteis } from '../service/supabase';
 import { useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Settings, MoreVertical, Target, AlertCircle, X, SlidersHorizontal, Sun, Moon, Type, Plus, Minus } from 'lucide-react';
 import CockpitFiltros from '../components/CockpitFiltros';
@@ -28,6 +28,7 @@ const CockpitVendedores = () => {
   const [orcamentosPorRonda, setOrcamentosPorRonda] = useState({}); // { user_id: { '10h': count, '12h': count, ... } }
   const [vendasHoje, setVendasHoje] = useState({}); // { user_id: { contagem, valorTotal, ticketMedio } }
   const [vendasPorRonda, setVendasPorRonda] = useState({}); // { user_id: { '10h': { contagem, valorTotal }, '12h': { contagem, valorTotal }, ... } }
+  const [diasUteisMes, setDiasUteisMes] = useState(null); // { dias_uteis_total, dias_uteis_restantes }
   const [dataSelecionada, setDataSelecionada] = useState(() => {
     // Data padrão = hoje na timezone Brasil em formato YYYY-MM-DD
     const hoje = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
@@ -148,6 +149,18 @@ const CockpitVendedores = () => {
         setMetas(metasData || []);
         setMetasRondas(metasRondasData || []);
         setNomesMetas(nomesMetasData || []);
+        
+        // Buscar dias úteis do mês atual
+        const hoje = new Date();
+        const anoAtual = hoje.getFullYear();
+        const mesAtual = hoje.getMonth() + 1;
+        try {
+          const diasUteis = await getDiasUteis(anoAtual, mesAtual);
+          setDiasUteisMes(diasUteis);
+        } catch (error) {
+          console.warn('⚠️ [CockpitVendedores] Erro ao buscar dias úteis:', error);
+          // Continuar sem dias úteis se não conseguir buscar
+        }
 
         // Coletar todos os IDs de vendedores únicos
         const todosIds = [...new Set(
@@ -307,6 +320,28 @@ const CockpitVendedores = () => {
   const getTipoSecaoLabel = (tipoNome) => {
     const tipo = tiposSecao.find(t => t.nome === tipoNome);
     return tipo?.label || tipoNome;
+  };
+
+  // Função para calcular meta acumulada (meta diária necessária nos dias úteis restantes)
+  const calcularMetaAcumulada = (metaTotal, realizadoAtual) => {
+    if (!diasUteisMes || !diasUteisMes.dias_uteis_restantes || diasUteisMes.dias_uteis_restantes <= 0) {
+      return null;
+    }
+    
+    if (!metaTotal || metaTotal <= 0) {
+      return null;
+    }
+    
+    // Se já atingiu a meta, retornar 0
+    if (realizadoAtual >= metaTotal) {
+      return 0;
+    }
+    
+    // Calcular meta diária necessária = (meta total - realizado atual) / dias úteis restantes
+    const metaRestante = metaTotal - realizadoAtual;
+    const metaDiariaNecessaria = metaRestante / diasUteisMes.dias_uteis_restantes;
+    
+    return Math.ceil(metaDiariaNecessaria); // Arredondar para cima
   };
 
   // Função para obter meta de ronda baseado no dia da semana e horário
@@ -489,26 +524,53 @@ const CockpitVendedores = () => {
           : 0;
         const conversaoOrcVendaTaxaAlvo = metaConversao ? conversaoOrcVendaTaxa >= metaConversao : false;
         
+        // Calcular metas acumuladas (meta diária necessária nos dias úteis restantes)
+        const metaAcumuladaEntrada = calcularMetaAcumulada(metaEntrada, entradaAtual);
+        const metaAcumuladaOrcamentos = calcularMetaAcumulada(metaOrcamentos, orcamentoAtual);
+        const metaAcumuladaVendas = calcularMetaAcumulada(metaVendas, vendasAtual);
+        const metaAcumuladaValor = calcularMetaAcumulada(metaValor, valorAtual);
+        
         return {
           idVendedor: config.idVendedor,
           idFunil: config.idFunil,
           nome: vendedoresNomes[config.idVendedor] || `Vendedor ${index + 1}`,
-          entrada: { atual: entradaAtual, meta: metaEntrada, variacao: entradaVariacao },
-          orcamentos: { atual: orcamentoAtual, meta: metaOrcamentos, variacao: orcamentoVariacao },
-          vendas: { atual: vendasAtual, meta: metaVendas, variacao: vendasVariacao },
-          valor: { atual: valorAtual, meta: metaValor, variacao: valorVariacao },
+          entrada: { 
+            atual: entradaAtual, 
+            meta: metaEntrada, 
+            variacao: entradaVariacao,
+            metaAcumulada: metaAcumuladaEntrada
+          },
+          orcamentos: { 
+            atual: orcamentoAtual, 
+            meta: metaOrcamentos, 
+            variacao: orcamentoVariacao,
+            metaAcumulada: metaAcumuladaOrcamentos
+          },
+          vendas: { 
+            atual: vendasAtual, 
+            meta: metaVendas, 
+            variacao: vendasVariacao,
+            metaAcumulada: metaAcumuladaVendas
+          },
+          valor: { 
+            atual: valorAtual, 
+            meta: metaValor, 
+            variacao: valorVariacao,
+            metaAcumulada: metaAcumuladaValor
+          },
           ticketMedio: { atual: ticketMedioAtual, meta: metaTicketMedio, variacao: ticketMedioVariacao },
           conversao: { taxa: conversaoEntradaVendaTaxa, atual: conversaoEntradaVendaTaxa, total: conversaoEntradaVendaTotal, taxaAlvo: conversaoEntradaVendaTaxaAlvo, vendas: conversaoEntradaVendaAtual, meta: metaConversao },
           qualificacao: { taxa: qualificacaoTaxa, atual: qualificacaoAtual, total: qualificacaoTotal, taxaAlvo: false },
           conversaoOrcVenda: { taxa: conversaoOrcVendaTaxa, atual: conversaoOrcVendaAtual, total: conversaoOrcVendaTotal, taxaAlvo: conversaoOrcVendaTaxaAlvo },
           rondas: rondasComMetas,
-          botao: funisNomes[config.idFunil] || tipo.label.split(' ')[0] || tipo.label // Nome do funil ou primeira palavra do label
+          botao: funisNomes[config.idFunil] || tipo.label.split(' ')[0] || tipo.label, // Nome do funil ou primeira palavra do label
+          diasUteisRestantes: diasUteisMes?.dias_uteis_restantes || null
         };
       });
     });
 
     return dados;
-  }, [vendedoresNomes, funisNomes, configVendedoresPorTipo, tiposSecao, metas, metasRondas, entradasHoje, entradasPorRonda, orcamentosHoje, orcamentosPorRonda, vendasHoje, vendasPorRonda]);
+  }, [vendedoresNomes, funisNomes, configVendedoresPorTipo, tiposSecao, metas, metasRondas, entradasHoje, entradasPorRonda, orcamentosHoje, orcamentosPorRonda, vendasHoje, vendasPorRonda, diasUteisMes]);
 
   /**
    * Formata a porcentagem realizada e o que falta (se aplicável)
@@ -653,7 +715,24 @@ const CockpitVendedores = () => {
     return (
       <div key={index} className="cockpit-vendedores-card">
         <div className="cockpit-vendedores-card-header">
-          <h3 className="cockpit-vendedores-card-nome">{vendedor.nome}</h3>
+          <h3 className="cockpit-vendedores-card-nome">
+            {vendedor.nome}
+            <button
+              onClick={() => navigate(`/cockpit-resumo-individual/${vendedor.idVendedor}`)}
+              style={{
+                marginLeft: '12px',
+                padding: '4px 12px',
+                fontSize: '12px',
+                backgroundColor: 'var(--card-soft)',
+                border: '1px solid var(--border)',
+                borderRadius: '4px',
+                color: 'var(--text)',
+                cursor: 'pointer'
+              }}
+            >
+              Ver Resumo
+            </button>
+          </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="cockpit-vendedores-btn">{vendedor.botao}</span>
             {temAlertas && (
@@ -681,6 +760,11 @@ const CockpitVendedores = () => {
                   {formatarPorcentagemRealizado(vendedor.entrada.atual, vendedor.entrada.meta)}
                 </span>
               </div>
+              {vendedor.entrada.metaAcumulada !== null && vendedor.entrada.metaAcumulada !== undefined && vendedor.diasUteisRestantes !== null && (
+                <div className="cockpit-vendedores-metrica-row-acumulada" style={{ fontSize: '0.85em', opacity: 0.8, marginTop: '4px' }}>
+                  Meta dia: {vendedor.entrada.metaAcumulada} (restam {vendedor.diasUteisRestantes} dias úteis)
+                </div>
+              )}
             </div>
           </div>
 
@@ -696,6 +780,11 @@ const CockpitVendedores = () => {
                   {formatarPorcentagemRealizado(vendedor.orcamentos.atual, vendedor.orcamentos.meta)}
                 </span>
               </div>
+              {vendedor.orcamentos.metaAcumulada !== null && vendedor.orcamentos.metaAcumulada !== undefined && vendedor.diasUteisRestantes !== null && (
+                <div className="cockpit-vendedores-metrica-row-acumulada" style={{ fontSize: '0.85em', opacity: 0.8, marginTop: '4px' }}>
+                  Meta dia: {vendedor.orcamentos.metaAcumulada} (restam {vendedor.diasUteisRestantes} dias úteis)
+                </div>
+              )}
             </div>
           </div>
 
@@ -711,6 +800,11 @@ const CockpitVendedores = () => {
                   {formatarPorcentagemRealizado(vendedor.vendas.atual, vendedor.vendas.meta)}
                 </span>
               </div>
+              {vendedor.vendas.metaAcumulada !== null && vendedor.vendas.metaAcumulada !== undefined && vendedor.diasUteisRestantes !== null && (
+                <div className="cockpit-vendedores-metrica-row-acumulada" style={{ fontSize: '0.85em', opacity: 0.8, marginTop: '4px' }}>
+                  Meta dia: {vendedor.vendas.metaAcumulada} (restam {vendedor.diasUteisRestantes} dias úteis)
+                </div>
+              )}
             </div>
           </div>
 
@@ -728,6 +822,11 @@ const CockpitVendedores = () => {
                   {formatarPorcentagemRealizado(vendedor.valor.atual, vendedor.valor.meta)}
                 </span>
               </div>
+              {vendedor.valor.metaAcumulada !== null && vendedor.valor.metaAcumulada !== undefined && vendedor.diasUteisRestantes !== null && (
+                <div className="cockpit-vendedores-metrica-row-acumulada" style={{ fontSize: '0.85em', opacity: 0.8, marginTop: '4px' }}>
+                  Meta dia: {formatarMoeda(vendedor.valor.metaAcumulada)} (restam {vendedor.diasUteisRestantes} dias úteis)
+                </div>
+              )}
             </div>
           </div>
 
@@ -918,6 +1017,18 @@ const CockpitVendedores = () => {
             >
               Tempo da Jornada
             </button>
+            <button
+              className="cockpit-vendedores-header-btn"
+              onClick={() => navigate('/cockpit-faturamento-geral')}
+            >
+              Faturamento Geral
+            </button>
+            <button
+              className="cockpit-vendedores-header-btn"
+              onClick={() => navigate('/cockpit-comparativo-meses')}
+            >
+              Comparativo Meses
+            </button>
             <div className="cockpit-vendedores-date-filter">
               <label htmlFor="data-filtro">Data:</label>
               <input
@@ -974,6 +1085,26 @@ const CockpitVendedores = () => {
                     <Target size={18} />
                     <span>Metas por Ronda</span>
                   </button>
+                  <button
+                    className="cockpit-vendedores-menu-item"
+                    onClick={() => {
+                      navigate('/cockpit-dias-uteis');
+                      setShowMenu(false);
+                    }}
+                  >
+                    <Target size={18} />
+                    <span>Dias Úteis</span>
+                  </button>
+                  <button
+                    className="cockpit-vendedores-menu-item"
+                    onClick={() => {
+                      navigate('/cockpit-metas-faturamento-mensal');
+                      setShowMenu(false);
+                    }}
+                  >
+                    <Target size={18} />
+                    <span>Metas Faturamento Mensal</span>
+                  </button>
                 </div>
               )}
             </div>
@@ -985,12 +1116,30 @@ const CockpitVendedores = () => {
           funis={todosFunis.filter(f => 
             configVendedores.some(c => c.funil_id === (f.id_funil_sprint || f.id))
           )}
-          vendedores={todosVendedores.filter(v => 
-            configVendedores.some(c => c.vendedor_id_sprint === (v.id_sprint || v.id))
-          )}
+          vendedores={React.useMemo(() => {
+            // Se um funil estiver selecionado, mostrar apenas vendedores daquele funil
+            if (funilSelecionado !== null) {
+              const vendedoresDoFunil = configVendedores
+                .filter(c => c.funil_id === funilSelecionado)
+                .map(c => c.vendedor_id_sprint);
+              
+              return todosVendedores.filter(v => 
+                vendedoresDoFunil.includes(v.id_sprint || v.id)
+              );
+            }
+            
+            // Se nenhum funil selecionado, mostrar todos os vendedores que têm configuração
+            return todosVendedores.filter(v => 
+              configVendedores.some(c => c.vendedor_id_sprint === (v.id_sprint || v.id))
+            );
+          }, [todosVendedores, configVendedores, funilSelecionado])}
           funilSelecionado={funilSelecionado}
           vendedorSelecionado={vendedorSelecionado}
-          onFunilChange={setFunilSelecionado}
+          onFunilChange={(funilId) => {
+            setFunilSelecionado(funilId);
+            // Resetar vendedor selecionado quando mudar funil, pois os vendedores disponíveis mudam
+            setVendedorSelecionado(null);
+          }}
           onVendedorChange={setVendedorSelecionado}
           labelFunil="Funil"
           labelVendedor="Vendedor"

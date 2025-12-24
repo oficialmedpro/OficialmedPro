@@ -26,14 +26,20 @@ import CockpitVendedoresConfigPage from './pages/CockpitVendedoresConfigPage'
 import CockpitMetasVendedoresPage from './pages/CockpitMetasVendedoresPage'
 import CockpitMetasRondasPage from './pages/CockpitMetasRondasPage'
 import CockpitMetasTempoPage from './pages/CockpitMetasTempoPage'
+import CockpitDiasUteisPage from './pages/CockpitDiasUteisPage'
+import CockpitMetasFaturamentoMensalPage from './pages/CockpitMetasFaturamentoMensalPage'
 import Login from './components/Login'
 import autoSyncService from './service/autoSyncService'
 import Callix from './pages/callix'
 import ClientesConsolidados from './pages/clientes-consolidados'
 import HistoricoCompras from './pages/HistoricoCompras'
 import CockpitVendedores from './pages/CockpitVendedores'
+import CockpitOrcamentos from './pages/CockpitOrcamentos'
 import CockpitTaxasGerais from './pages/CockpitTaxasGerais'
 import CockpitTempoJornada from './pages/CockpitTempoJornada'
+import CockpitResumoIndividualPage from './pages/CockpitResumoIndividualPage'
+import CockpitFaturamentoGeralPage from './pages/CockpitFaturamentoGeralPage'
+import CockpitComparativoMesesPage from './pages/CockpitComparativoMesesPage'
 import HistoricoComprasReativacao from './pages/reativacao/HistoricoComprasReativacao'
 import VendasPage from './pages/vendas/VendasPage'
 import ReativacaoDashboard from './pages/reativacao/ReativacaoDashboard'
@@ -241,11 +247,17 @@ function App() {
         <Route path="/cockpit-metas-vendedores" element={<CockpitMetasVendedoresPage onLogout={handleLogout} />} />
         <Route path="/cockpit-metas-rondas" element={<CockpitMetasRondasPage onLogout={handleLogout} />} />
         <Route path="/cockpit-metas-tempo" element={<CockpitMetasTempoPage onLogout={handleLogout} />} />
+        <Route path="/cockpit-dias-uteis" element={<CockpitDiasUteisPage onLogout={handleLogout} />} />
+        <Route path="/cockpit-metas-faturamento-mensal" element={<CockpitMetasFaturamentoMensalPage onLogout={handleLogout} />} />
         <Route path="/callix" element={<Callix onLogout={handleLogout} />} />
         <Route path="/clientes-consolidados" element={<ClientesConsolidados onLogout={handleLogout} />} />
         <Route path="/cockpit-vendedores" element={<CockpitVendedores onLogout={handleLogout} />} />
+        <Route path="/cockpit-orcamentos" element={<CockpitOrcamentos />} />
         <Route path="/cockpit-taxas-gerais" element={<CockpitTaxasGerais onLogout={handleLogout} />} />
         <Route path="/cockpit-tempo-jornada" element={<CockpitTempoJornada onLogout={handleLogout} />} />
+        <Route path="/cockpit-resumo-individual/:vendedorId" element={<CockpitResumoIndividualPage onLogout={handleLogout} />} />
+        <Route path="/cockpit-faturamento-geral" element={<CockpitFaturamentoGeralPage onLogout={handleLogout} />} />
+        <Route path="/cockpit-comparativo-meses" element={<CockpitComparativoMesesPage onLogout={handleLogout} />} />
         {/* /historico-compras agora está protegida pelo sistema de reativação acima */}
         <Route path="/vendas" element={<VendasPage onLogout={handleLogout} />} />
         

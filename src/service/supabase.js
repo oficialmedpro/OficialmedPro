@@ -427,13 +427,18 @@ export const getVendedoresPorIds = async (ids) => {
 };
 
 // 🎯 FUNÇÃO PARA BUSCAR TODOS OS FUNIS ATIVOS (para filtros)
+// Filtra apenas funis comerciais da unidade Apucarana ('[1]')
+// Funis comerciais: 6, 14, 33, 41, 38
 export const getAllFunis = async () => {
   try {
+    const { FUNIS_COMERCIAIS_APUCARANA } = await import('./cockpitConstants');
     const client = getSupabaseWithSchema('api');
     
     const { data, error } = await client
       .from('funis')
       .select('id_funil_sprint, nome_funil')
+      .eq('unidade', '[1]') // Apenas unidade Apucarana
+      .in('id_funil_sprint', FUNIS_COMERCIAIS_APUCARANA) // Apenas funis comerciais
       .or('status.eq.ativo,status.is.null')
       .order('nome_funil', { ascending: true });
 
@@ -442,7 +447,7 @@ export const getAllFunis = async () => {
       throw error;
     }
 
-    console.log(`✅ [getAllFunis] ${data?.length || 0} funis encontrados`);
+    console.log(`✅ [getAllFunis] ${data?.length || 0} funis comerciais encontrados (unidade Apucarana)`);
     return data || [];
   } catch (error) {
     console.error('❌ [getAllFunis] Erro ao buscar funis:', error);
@@ -2621,3 +2626,473 @@ export const getOportunidadesPorEtapaFunil = async (etapas, startDate = null, en
 
 // Re-exports para compatibilidade (funções movidas para FilterBarService.js)
 export { getUnidades, getFunisPorUnidade, getVendedores, getOrigens } from './FilterBarService.js'
+
+// ============================================================================
+// FUNÇÕES PARA CONFIGURAÇÃO DE DIAS ÚTEIS
+// ============================================================================
+
+/**
+ * Buscar configuração de dias úteis para um mês/ano específico
+ */
+export const getDiasUteis = async (ano, mes) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_dias_uteis?ano=eq.${ano}&mes=eq.${mes}&select=*`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [getDiasUteis] Erro ao buscar dias úteis:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data && data.length > 0 ? data[0] : null;
+  } catch (error) {
+    console.error('❌ [getDiasUteis] Erro:', error);
+    throw error;
+  }
+};
+
+/**
+ * Buscar todas as configurações de dias úteis
+ */
+export const getAllDiasUteis = async () => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_dias_uteis?select=*&order=ano.desc,mes.desc`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [getAllDiasUteis] Erro ao buscar dias úteis:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data || [];
+  } catch (error) {
+    console.error('❌ [getAllDiasUteis] Erro:', error);
+    throw error;
+  }
+};
+
+/**
+ * Criar ou atualizar configuração de dias úteis
+ */
+export const upsertDiasUteis = async (ano, mes, diasUteisTotal, diasUteisRestantes = null) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    // Se diasUteisRestantes não foi fornecido, calcular automaticamente
+    let diasRestantes = diasUteisRestantes;
+    if (diasRestantes === null) {
+      const hoje = new Date();
+      const hojeBrasil = new Date(hoje.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      const anoAtual = hojeBrasil.getFullYear();
+      const mesAtual = hojeBrasil.getMonth() + 1;
+      
+      // Se for o mês atual, calcular dias restantes
+      if (ano === anoAtual && mes === mesAtual) {
+        // Contar dias úteis restantes do mês (excluindo fins de semana)
+        const ultimoDia = new Date(ano, mes, 0).getDate();
+        let diasUteisRestantesCont = 0;
+        for (let dia = hojeBrasil.getDate(); dia <= ultimoDia; dia++) {
+          const data = new Date(ano, mes - 1, dia);
+          const diaSemana = data.getDay();
+          if (diaSemana !== 0 && diaSemana !== 6) { // Não é domingo (0) nem sábado (6)
+            diasUteisRestantesCont++;
+          }
+        }
+        diasRestantes = diasUteisRestantesCont;
+      } else {
+        diasRestantes = null; // Não calcular para meses futuros/passados
+      }
+    }
+    
+    const payload = {
+      ano,
+      mes,
+      dias_uteis_total: diasUteisTotal,
+      dias_uteis_restantes: diasRestantes,
+      updated_at: new Date().toISOString()
+    };
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_dias_uteis`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'resolution=merge-duplicates'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [upsertDiasUteis] Erro ao salvar dias úteis:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [upsertDiasUteis] Erro:', error);
+    throw error;
+  }
+};
+
+/**
+ * Atualizar dias úteis restantes (permite edição manual)
+ */
+export const updateDiasUteisRestantes = async (id, diasUteisRestantes) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_dias_uteis?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation'
+      },
+      body: JSON.stringify({
+        dias_uteis_restantes: diasUteisRestantes,
+        updated_at: new Date().toISOString()
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [updateDiasUteisRestantes] Erro ao atualizar dias úteis restantes:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [updateDiasUteisRestantes] Erro:', error);
+    throw error;
+  }
+};
+
+/**
+ * Deletar configuração de dias úteis
+ */
+export const deleteDiasUteis = async (id) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_dias_uteis?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=minimal'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [deleteDiasUteis] Erro ao deletar dias úteis:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ [deleteDiasUteis] Erro:', error);
+    throw error;
+  }
+};
+
+// ============================================================================
+// FUNÇÕES PARA FATURAMENTO GERAL E COMPARATIVO MENSAL
+// ============================================================================
+
+/**
+ * Buscar faturamento mensal por funil e vendedor
+ * @param {number} ano - Ano (ex: 2025)
+ * @param {number} mes - Mês (1-12)
+ * @param {number|null} funilId - ID do funil (null = todos)
+ * @param {number|null} vendedorId - ID do vendedor (null = todos)
+ * @returns {Object} { porFunil: {...}, porVendedor: {...}, total: { contagem, valorTotal } }
+ */
+export const getFaturamentoMensal = async (ano, mes, funilId = null, vendedorId = null) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    // Calcular intervalo do mês
+    const dataInicio = new Date(ano, mes - 1, 1);
+    const dataFim = new Date(ano, mes, 0, 23, 59, 59, 999);
+    const inicioISO = dataInicio.toISOString();
+    const fimISO = dataFim.toISOString();
+    
+    // Construir filtros
+    let funilFilter = '';
+    if (funilId !== null) {
+      funilFilter = `&funil_id=eq.${funilId}`;
+    } else {
+      // Se não houver funil específico, usar funis comerciais de Apucarana
+      const { FUNIS_COMERCIAIS_APUCARANA } = await import('./cockpitConstants');
+      funilFilter = `&funil_id=in.(${FUNIS_COMERCIAIS_APUCARANA.join(',')})`;
+    }
+    
+    let vendedorFilter = '';
+    if (vendedorId !== null) {
+      vendedorFilter = `&user_id=eq.${vendedorId}`;
+    }
+    
+    // Buscar vendas do mês: apenas unidade Apucarana e status='gain'
+    // Usar gain_date para filtrar pelo mês
+    const unidadeFilter = `&unidade_id=eq.%5B1%5D`; // [1] codificado para URL
+    const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,funil_id,value,gain_date&status=eq.gain&unidade_id=eq.%5B1%5D&gain_date=gte.${inicioISO}&gain_date=lte.${fimISO}${funilFilter}${vendedorFilter}`;
+    
+    const res = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    });
+    
+    let todasVendas = [];
+    if (res.ok) {
+      todasVendas = await res.json();
+    }
+    
+    // Agrupar por funil e vendedor
+    const porFunil = {};
+    const porVendedor = {};
+    let totalContagem = 0;
+    let totalValor = 0;
+    
+    todasVendas.forEach(venda => {
+      const valor = parseFloat(venda.value) || 0;
+      const funil = venda.funil_id || 'desconhecido';
+      const vendedor = venda.user_id || 'desconhecido';
+      
+      // Por funil
+      if (!porFunil[funil]) {
+        porFunil[funil] = { contagem: 0, valorTotal: 0 };
+      }
+      porFunil[funil].contagem++;
+      porFunil[funil].valorTotal += valor;
+      
+      // Por vendedor
+      if (!porVendedor[vendedor]) {
+        porVendedor[vendedor] = { contagem: 0, valorTotal: 0 };
+      }
+      porVendedor[vendedor].contagem++;
+      porVendedor[vendedor].valorTotal += valor;
+      
+      // Total
+      totalContagem++;
+      totalValor += valor;
+    });
+    
+    return {
+      porFunil,
+      porVendedor,
+      total: {
+        contagem: totalContagem,
+        valorTotal: totalValor
+      }
+    };
+  } catch (error) {
+    console.error('❌ [getFaturamentoMensal] Erro:', error);
+    throw error;
+  }
+};
+
+// ============================================================================
+// FUNÇÕES PARA METAS MENSais DE FATURAMENTO
+// ============================================================================
+
+/**
+ * Buscar meta mensal de faturamento
+ */
+export const getMetaFaturamentoMensal = async (ano, mes) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_faturamento_mensal?ano=eq.${ano}&mes=eq.${mes}&select=*`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [getMetaFaturamentoMensal] Erro ao buscar meta:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data && data.length > 0 ? data[0] : null;
+  } catch (error) {
+    console.error('❌ [getMetaFaturamentoMensal] Erro:', error);
+    throw error;
+  }
+};
+
+/**
+ * Buscar todas as metas mensais de faturamento
+ */
+export const getAllMetasFaturamentoMensal = async () => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_faturamento_mensal?select=*&order=ano.desc,mes.desc`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [getAllMetasFaturamentoMensal] Erro ao buscar metas:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    return data || [];
+  } catch (error) {
+    console.error('❌ [getAllMetasFaturamentoMensal] Erro:', error);
+    throw error;
+  }
+};
+
+/**
+ * Criar ou atualizar meta mensal de faturamento
+ */
+export const upsertMetaFaturamentoMensal = async (ano, mes, valorMeta) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const payload = {
+      ano,
+      mes,
+      valor_meta: valorMeta,
+      updated_at: new Date().toISOString()
+    };
+
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_faturamento_mensal?ano=eq.${ano}&mes=eq.${mes}`, {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Content-Type': 'application/json',
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=representation,resolution=merge-duplicates'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      // Se não encontrou, criar novo
+      const createResponse = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_faturamento_mensal`, {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'apikey': supabaseAnonKey,
+          'Content-Type': 'application/json',
+          'Accept-Profile': 'api',
+          'Content-Profile': 'api',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!createResponse.ok) {
+        const errorText = await createResponse.text();
+        console.error('❌ [upsertMetaFaturamentoMensal] Erro ao criar meta:', createResponse.status, errorText);
+        throw new Error(`Erro ${createResponse.status}: ${errorText}`);
+      }
+
+      const createData = await createResponse.json();
+      return Array.isArray(createData) ? createData[0] : createData;
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data[0] : data;
+  } catch (error) {
+    console.error('❌ [upsertMetaFaturamentoMensal] Erro:', error);
+    throw error;
+  }
+};
+
+/**
+ * Deletar meta mensal de faturamento
+ */
+export const deleteMetaFaturamentoMensal = async (id) => {
+  try {
+    const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+    
+    const response = await fetch(`${supabaseUrl}/rest/v1/cockpit_metas_faturamento_mensal?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'apikey': supabaseAnonKey,
+        'Accept-Profile': 'api',
+        'Content-Profile': 'api',
+        'Prefer': 'return=minimal'
+      }
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ [deleteMetaFaturamentoMensal] Erro ao deletar meta:', response.status, errorText);
+      throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+
+    return true;
+  } catch (error) {
+    console.error('❌ [deleteMetaFaturamentoMensal] Erro:', error);
+    throw error;
+  }
+};

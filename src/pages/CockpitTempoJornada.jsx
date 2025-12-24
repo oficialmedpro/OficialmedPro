@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './CockpitVendedores.css';
 import LogoOficialmed from '../../icones/icone_oficialmed.svg';
 import { getCockpitVendedoresConfig, getVendedoresPorIds, getMetasTempo, getAllFunis, getAllVendedores } from '../service/supabase';
+import { FUNIS_COMERCIAIS_APUCARANA } from '../service/cockpitConstants';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, SlidersHorizontal, Sun, Moon, Plus, Minus, Target } from 'lucide-react';
 import { getSupabaseConfig } from '../config/supabase.js';
@@ -135,7 +136,7 @@ const CockpitTempoJornada = ({ onLogout }) => {
         
         // Construir query para buscar oportunidades com cadastro ou gain_date
         // Filtrar funis baseado no filtro selecionado
-        let funis = [6, 14, 33, 41, 38];
+        let funis = FUNIS_COMERCIAIS_APUCARANA;
         if (funilSelecionado !== null) {
           funis = [funilSelecionado];
         }

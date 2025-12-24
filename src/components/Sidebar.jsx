@@ -108,6 +108,7 @@ const Sidebar = ({
         { icon: 'dashboard-meta', label: 'Dashboard MetaAds', active: false },
         { icon: 'dashboard-google', label: 'Dashboard GoogleAds', active: false },
         { icon: 'funil-compra', label: 'Cockpit Vendedores', path: '/cockpit-vendedores', active: false },
+        { icon: 'funil-compra', label: 'Cockpit Orçamentos', path: '/cockpit-orcamentos', active: false },
         { icon: 'funil-compra', label: 'Config Cockpit Vendedores', path: '/cockpit-vendedores-config', active: false },
         { icon: 'funil-compra', label: 'Metas Vendedores', path: '/cockpit-metas-vendedores', active: false },
         { icon: 'funil-compra', label: 'Metas por Ronda', path: '/cockpit-metas-rondas', active: false },
