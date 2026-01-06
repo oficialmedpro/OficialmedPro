@@ -1,9 +1,12 @@
-// Configuração (carrega de config.js ou usa valores padrão)
-// NOTA: window.CONFIG é definido por config.js
-const SUPABASE_URL = (window.CONFIG && window.CONFIG.SUPABASE_URL) || 'https://agdffspstbxeqhqtltvb.supabase.co';
-const SUPABASE_KEY = (window.CONFIG && window.CONFIG.SUPABASE_KEY) || '';
-const SUPABASE_SCHEMA = (window.CONFIG && window.CONFIG.SUPABASE_SCHEMA) || 'api';
-const API_URL = (window.CONFIG && window.CONFIG.API_URL) || window.location.origin;
+// Configuração (carrega de variáveis de ambiente injetadas ou config.js ou valores padrão)
+// As variáveis de ambiente são injetadas pelo script entrypoint.sh no HTML
+const ENV_CONFIG = window.ENV_CONFIG || {};
+const CONFIG_FALLBACK = window.CONFIG || {};
+
+const SUPABASE_URL = ENV_CONFIG.VITE_SUPABASE_URL || CONFIG_FALLBACK.SUPABASE_URL || 'https://agdffspstbxeqhqtltvb.supabase.co';
+const SUPABASE_KEY = ENV_CONFIG.VITE_SUPABASE_KEY || CONFIG_FALLBACK.SUPABASE_KEY || '';
+const SUPABASE_SCHEMA = ENV_CONFIG.VITE_SUPABASE_SCHEMA || CONFIG_FALLBACK.SUPABASE_SCHEMA || 'api';
+const API_URL = ENV_CONFIG.VITE_API_URL || CONFIG_FALLBACK.API_URL || window.location.origin;
 
 // Validar configuração
 if (!SUPABASE_KEY || SUPABASE_KEY === 'COLE_SUA_CHAVE_ANON_AQUI') {
