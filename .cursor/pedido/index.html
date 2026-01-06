@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pré-Checkout - OFICIALMED FARMACÊUTICA</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="root">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-capsule">O<span class="logo-d">D</span></span>
+                    <span class="logo-text">OFICIALMED FARMACÊUTICA</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Loading -->
+        <div class="loading-container" id="loading">
+            <div class="spinner"></div>
+            <p>Carregando orçamento...</p>
+        </div>
+
+        <!-- Error -->
+        <div class="error-container" id="error" style="display: none;">
+            <h2>Erro</h2>
+            <p id="error-message"></p>
+            <p>O link pode ter expirado ou ser inválido.</p>
+        </div>
+
+        <!-- Content -->
+        <div class="content" id="content" style="display: none;">
+            <!-- Orçamento Info -->
+            <div class="orcamento-info">
+                <div class="info-line">
+                    <span class="info-label">Orçamento:</span>
+                    <span class="info-value" id="codigo-orcamento"></span>
+                </div>
+                <div class="info-line">
+                    <span class="info-label">Cliente:</span>
+                    <span class="info-value" id="nome-cliente"></span>
+                </div>
+            </div>
+
+            <!-- Fórmulas -->
+            <div class="formulas-container" id="formulas-container">
+                <!-- Fórmulas serão inseridas aqui dinamicamente -->
+            </div>
+
+            <!-- Resumo -->
+            <div class="resumo-container">
+                <div class="resumo-line">
+                    <div class="resumo-icon">📋</div>
+                    <span class="resumo-label">1 Produto</span>
+                    <span class="resumo-value" id="resumo-produtos"></span>
+                </div>
+                <div class="resumo-line">
+                    <div class="resumo-icon">🚚</div>
+                    <span class="resumo-label">Frete</span>
+                    <span class="resumo-value frete-gratis">Grátis</span>
+                </div>
+                <div class="resumo-total" id="resumo-total">
+                    <span class="total-label">Total</span>
+                    <span class="total-value" id="total-value">R$ 0,00</span>
+                </div>
+            </div>
+
+            <!-- Botão Finalizar -->
+            <div class="finalizar-container">
+                <button class="btn-finalizar" id="btn-finalizar" disabled>
+                    Finalizar Compra
+                </button>
+            </div>
+
+            <!-- Mensagem de Validade -->
+            <div class="validade-message">
+                Este orçamento é válido por 24 horas a partir da data de envio.
+            </div>
+
+            <!-- Badges -->
+            <div class="badges-container">
+                <div class="badge badge-opinioes">
+                    <div class="badge-icon">😊</div>
+                    <div class="badge-content">
+                        <div class="badge-title">OPINIÕES VERDADEIRAS</div>
+                        <div class="badge-subtitle">Verificada</div>
+                    </div>
+                </div>
+                <div class="badge badge-gptw">
+                    <div class="badge-content">
+                        <div class="badge-title">Great Place To Work</div>
+                        <div class="badge-subtitle">Certificada Out/2024 - Out/2025 BRASIL</div>
+                    </div>
+                </div>
+                <div class="badge badge-abf">
+                    <div class="badge-content">
+                        <div class="badge-title">ABF</div>
+                        <div class="badge-subtitle">ASSOCIAÇÃO BRASILEIRA DE FRANCHISING ASSOCIADO</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Configuração -->
+    <script src="config.js"></script>
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="app.js"></script>
+</body>
+</html>

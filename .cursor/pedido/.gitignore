@@ -1,0 +1,15 @@
+# Ignorar arquivos temporários
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Ignorar node_modules (se houver)
+node_modules/
+
+# Ignorar arquivos de configuração local
+.env
+.env.local
+
+# Manter config.js mas criar um exemplo
+# config.example.js será commitado
