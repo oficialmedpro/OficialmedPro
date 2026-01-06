@@ -1,9 +1,9 @@
 // Configuração (carrega de config.js ou usa valores padrão)
-const CONFIG = window.CONFIG || {};
-const SUPABASE_URL = CONFIG.SUPABASE_URL || 'https://agdffspstbxeqhqtltvb.supabase.co';
-const SUPABASE_KEY = CONFIG.SUPABASE_KEY || '';
-const SUPABASE_SCHEMA = CONFIG.SUPABASE_SCHEMA || 'api';
-const API_URL = CONFIG.API_URL || window.location.origin;
+// NOTA: window.CONFIG é definido por config.js
+const SUPABASE_URL = (window.CONFIG && window.CONFIG.SUPABASE_URL) || 'https://agdffspstbxeqhqtltvb.supabase.co';
+const SUPABASE_KEY = (window.CONFIG && window.CONFIG.SUPABASE_KEY) || '';
+const SUPABASE_SCHEMA = (window.CONFIG && window.CONFIG.SUPABASE_SCHEMA) || 'api';
+const API_URL = (window.CONFIG && window.CONFIG.API_URL) || window.location.origin;
 
 // Validar configuração
 if (!SUPABASE_KEY || SUPABASE_KEY === 'COLE_SUA_CHAVE_ANON_AQUI') {
