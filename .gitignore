@@ -43,8 +43,7 @@ data/*.json
 !.env.example
 !n8n.env.example
 
-# Arquivos n8n - workflows e templates
-# Mantidos no repositório para documentação e versionamento
-# N8N_*.md
-# N8N_*.js
-# n8n-*.json
+# Arquivos n8n - workflows e templates (contêm credenciais)
+N8N_*.md
+N8N_*.js
+n8n-*.json
