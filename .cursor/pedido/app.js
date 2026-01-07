@@ -337,6 +337,8 @@
         function aplicarFonte() {
             const base = 16 * Math.max(0.85, Math.min(fontScale, 1.4));
             document.documentElement.style.setProperty('--base-font-size', `${base}px`);
+            // Forçar atualização do body também
+            document.body.style.fontSize = `${base}px`;
         }
         aplicarFonte();
 
