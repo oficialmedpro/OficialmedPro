@@ -7,10 +7,10 @@ COPY .cursor/pedido/styles.css /usr/share/nginx/html/
 COPY .cursor/pedido/app.js /usr/share/nginx/html/
 COPY .cursor/pedido/config.js /usr/share/nginx/html/
 
-# Copiar imagens/logos
+# Copiar imagens/logos (usar aspas para arquivos com espaços)
 COPY .cursor/pedido/IMAGOTIPO_WHITE.png /usr/share/nginx/html/
-COPY .cursor/pedido/Great\ Place\ to\ Work.png /usr/share/nginx/html/
-COPY .cursor/pedido/Reclame\ Aqui\ OV.png /usr/share/nginx/html/
+COPY ".cursor/pedido/Great Place to Work.png" "/usr/share/nginx/html/Great Place to Work.png"
+COPY ".cursor/pedido/Reclame Aqui OV.png" "/usr/share/nginx/html/Reclame Aqui OV.png"
 COPY .cursor/pedido/ABF_LOGO2023_ASSOCIADO_V_RGB_Positivo_Final.png /usr/share/nginx/html/
 
 # Copiar script de entrypoint para injetar variáveis de ambiente
