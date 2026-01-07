@@ -17,11 +17,15 @@ if (!SUPABASE_KEY || SUPABASE_KEY === 'COLE_SUA_CHAVE_ANON_AQUI') {
 }
 
 // Inicializar Supabase (usando schema configurado)
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-    db: {
-        schema: SUPABASE_SCHEMA
-    }
-});
+// Verificar se já foi inicializado para evitar redeclaração
+if (typeof window.supabaseClient === 'undefined') {
+    window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        db: {
+            schema: SUPABASE_SCHEMA
+        }
+    });
+}
+const supabase = window.supabaseClient;
 
 // Estados
 let orcamentoData = null;
