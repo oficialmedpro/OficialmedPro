@@ -257,7 +257,12 @@
             });
 
             if (!response.ok) {
-                throw new Error(`Erro ao gerar checkout: ${response.statusText}`);
+                let detalhe = '';
+                try {
+                    // tenta extrair detalhes de erro do n8n
+                    detalhe = await response.text();
+                } catch {}
+                throw new Error(`Erro ao gerar checkout: ${response.status} ${detalhe || response.statusText || ''}`.trim());
             }
 
             const data = await response.json();
