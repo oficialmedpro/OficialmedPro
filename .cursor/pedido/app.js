@@ -309,6 +309,86 @@
         if (btnFinalizar) {
             btnFinalizar.addEventListener('click', finalizarCompra);
         }
+
+        // Controles de fonte
+        let fontScale = parseFloat(localStorage.getItem('precheckout_font_scale') || '1');
+        function aplicarFonte() {
+            const base = 16 * Math.max(0.85, Math.min(fontScale, 1.4));
+            document.documentElement.style.setProperty('--base-font-size', `${base}px`);
+        }
+        aplicarFonte();
+
+        const btnMinus = document.getElementById('decrease-font');
+        const btnPlus = document.getElementById('increase-font');
+        if (btnMinus) {
+            btnMinus.addEventListener('click', () => {
+                fontScale = Math.max(0.85, fontScale - 0.05);
+                localStorage.setItem('precheckout_font_scale', String(fontScale));
+                aplicarFonte();
+            });
+        }
+        if (btnPlus) {
+            btnPlus.addEventListener('click', () => {
+                fontScale = Math.min(1.4, fontScale + 0.05);
+                localStorage.setItem('precheckout_font_scale', String(fontScale));
+                aplicarFonte();
+            });
+        }
+
+        // Exportar imagem
+        async function baixarImagem() {
+            const alvo = document.getElementById('content') || document.getElementById('root') || document.body;
+            const canvas = await html2canvas(alvo, { scale: 2, useCORS: true });
+            const dataURL = canvas.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = dataURL;
+            const nome = (orcamentoData?.codigo_orcamento || 'orcamento').toString();
+            a.download = `pre-checkout-${nome}.png`;
+            a.click();
+        }
+
+        // Exportar PDF
+        async function baixarPDF() {
+            const alvo = document.getElementById('content') || document.getElementById('root') || document.body;
+            const canvas = await html2canvas(alvo, { scale: 2, useCORS: true });
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            const pdf = new window.jspdf.jsPDF('p', 'pt', 'a4');
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+
+            const imgWidth = pageWidth - 40;
+            const imgHeight = canvas.height * (imgWidth / canvas.width);
+
+            let y = 20;
+            let remaining = imgHeight;
+            let position = y;
+
+            pdf.addImage(imgData, 'JPEG', 20, position, imgWidth, Math.min(imgHeight, pageHeight - 40));
+            remaining -= (pageHeight - 40);
+            position = y + (pageHeight - 40);
+
+            while (remaining > 0) {
+                pdf.addPage();
+                const h = Math.min(remaining, pageHeight - 40);
+                pdf.addImage(imgData, 'JPEG', 20, 20, imgWidth, imgHeight);
+                remaining -= (pageHeight - 40);
+            }
+
+            const nome = (orcamentoData?.codigo_orcamento || 'orcamento').toString();
+            pdf.save(`pre-checkout-${nome}.pdf`);
+        }
+
+        // Imprimir
+        function imprimir() {
+            window.print();
+        }
+
+        const btnImg = document.getElementById('download-image');
+        if (btnImg) btnImg.addEventListener('click', baixarImagem);
+        const btnPdf = document.getElementById('download-pdf');
+        if (btnPdf) btnPdf.addEventListener('click', baixarPDF);
+        const btnPrint = document.getElementById('print-page');
+        if (btnPrint) btnPrint.addEventListener('click', imprimir);
     });
 
     // Expor funções globalmente se necessário
