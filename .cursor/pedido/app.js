@@ -310,7 +310,7 @@
             btnFinalizar.addEventListener('click', finalizarCompra);
         }
 
-        // Controles de fonte
+        // Controles de fonte (usa rem via --base-font-size)
         let fontScale = parseFloat(localStorage.getItem('precheckout_font_scale') || '1');
         function aplicarFonte() {
             const base = 16 * Math.max(0.85, Math.min(fontScale, 1.4));
@@ -335,38 +335,37 @@
             });
         }
 
-        // Aplicar/retirar zoom no container para exportar sempre em 100%
-        function aplicarZoomVisual(scale) {
-            const rootEl = document.getElementById('root');
-            if (!rootEl) return;
-            rootEl.style.transform = `scale(${scale})`;
-            rootEl.style.width = `${(100 / scale)}%`;
-        }
-
         // Exportar imagem
         async function baixarImagem() {
             const alvo = document.getElementById('root') || document.body;
-            // Congelar zoom visual e exportar em 1x
-            const scaleAtual = fontScale;
-            aplicarZoomVisual(1);
+            document.body.classList.add('exportando');
             window.scrollTo(0, 0);
-            const canvas = await html2canvas(alvo, { scale: 2, useCORS: true, backgroundColor: null });
+            const canvas = await html2canvas(alvo, { 
+                scale: 2, 
+                useCORS: true, 
+                backgroundColor: '#ffffff',
+                ignoreElements: (el) => el.classList?.contains('hide-export') || el.classList?.contains('no-print')
+            });
             const dataURL = canvas.toDataURL('image/png');
             const a = document.createElement('a');
             a.href = dataURL;
             const nome = (orcamentoData?.codigo_orcamento || 'orcamento').toString();
             a.download = `pre-checkout-${nome}.png`;
             a.click();
-            aplicarZoomVisual(scaleAtual);
+            document.body.classList.remove('exportando');
         }
 
         // Exportar PDF
         async function baixarPDF() {
             const alvo = document.getElementById('root') || document.body;
-            const scaleAtual = fontScale;
-            aplicarZoomVisual(1);
+            document.body.classList.add('exportando');
             window.scrollTo(0, 0);
-            const canvas = await html2canvas(alvo, { scale: 2, useCORS: true, backgroundColor: null });
+            const canvas = await html2canvas(alvo, { 
+                scale: 2, 
+                useCORS: true, 
+                backgroundColor: '#ffffff',
+                ignoreElements: (el) => el.classList?.contains('hide-export') || el.classList?.contains('no-print')
+            });
             const imgData = canvas.toDataURL('image/jpeg', 0.95);
             const pdf = new window.jspdf.jsPDF('p', 'pt', 'a4');
             const pageWidth = pdf.internal.pageSize.getWidth();
@@ -390,18 +389,12 @@
 
             const nome = (orcamentoData?.codigo_orcamento || 'orcamento').toString();
             pdf.save(`pre-checkout-${nome}.pdf`);
-            aplicarZoomVisual(scaleAtual);
+            document.body.classList.remove('exportando');
         }
 
         // Imprimir
         function imprimir() {
-            // Remover zoom antes de imprimir para evitar recortes
-            const scaleAtual = fontScale;
-            aplicarZoomVisual(1);
-            setTimeout(() => {
-                window.print();
-                setTimeout(() => aplicarZoomVisual(scaleAtual), 300);
-            }, 50);
+            window.print();
         }
 
         const btnImg = document.getElementById('download-image');
@@ -411,8 +404,7 @@
         const btnPrint = document.getElementById('print-page');
         if (btnPrint) btnPrint.addEventListener('click', imprimir);
 
-        // Aplicar zoom inicial (para refletir valor salvo)
-        aplicarZoomVisual(fontScale);
+        // nada a fazer além do font-size base
     });
 
     // Expor funções globalmente se necessário

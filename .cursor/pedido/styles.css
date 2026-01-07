@@ -36,7 +36,7 @@ body {
     margin: 0 auto;
     padding: 0 20px;
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
 }
 
@@ -50,11 +50,6 @@ body {
     max-height: 64px; /* aumento do tamanho da logo no topo */
     width: auto;
     object-fit: contain;
-}
-
-.header-actions {
-    display: flex;
-    gap: 10px;
 }
 
 .action-btn {
@@ -119,6 +114,18 @@ body {
     border-bottom: 2px solid #e5e7eb;
 }
 
+.info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.toolbar-actions {
+    display: flex;
+    gap: 10px;
+}
+
 .info-line {
     display: flex;
     align-items: center;
@@ -129,12 +136,12 @@ body {
 .info-label {
     font-weight: 700;
     color: var(--text-color);
-    font-size: 16px;
+    font-size: 1rem;
 }
 
 .info-value {
     color: var(--brand-text);
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 600;
 }
 
@@ -213,13 +220,13 @@ body {
 }
 
 .formula-numero {
-    font-size: 18px;
+    font-size: 1.125rem;
     font-weight: 700;
     color: var(--text-color);
 }
 
 .formula-valor {
-    font-size: 18px;
+    font-size: 1.125rem;
     font-weight: 700;
     color: var(--brand-text);
     white-space: nowrap;
@@ -227,13 +234,13 @@ body {
 
 .formula-quantidade {
     color: var(--muted-color);
-    font-size: 14px;
+    font-size: 0.875rem;
     margin-bottom: 8px;
 }
 
 .formula-descricao {
     color: #374151;
-    font-size: 14px;
+    font-size: 0.875rem;
     line-height: 1.6;
 }
 
@@ -263,11 +270,11 @@ body {
 .resumo-label {
     flex: 1;
     color: var(--muted-color);
-    font-size: 16px;
+    font-size: 1rem;
 }
 
 .resumo-value {
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 600;
     color: var(--text-color);
 }
@@ -289,12 +296,12 @@ body {
 }
 
 .total-label {
-    font-size: 20px;
+    font-size: 1.25rem;
     font-weight: 700;
 }
 
 .total-value {
-    font-size: 24px;
+    font-size: 1.5rem;
     font-weight: 700;
 }
 
@@ -309,7 +316,7 @@ body {
     color: white;
     border: none;
     padding: 18px 60px;
-    font-size: 18px;
+    font-size: 1.125rem;
     font-weight: 700;
     border-radius: 8px;
     cursor: pointer;
@@ -417,9 +424,8 @@ body {
 }
 
 /* Zoom do conteúdo (A-/A+) */
-#root {
-    transform-origin: top center;
-}
+.no-print { }
+.hide-export { }
 
 /* Impressão: manter cores de fundo e garantir visibilidade da logo */
 @media print {
@@ -430,10 +436,11 @@ body {
     .header {
         background: linear-gradient(135deg, var(--brand-blue-start) 0%, var(--brand-blue-end) 100%) !important;
     }
-    /* Fallback: se o navegador suprimir o fundo, aplica filtro azul na logo */
-    .logo-image {
-        filter: brightness(0) saturate(100%) invert(16%) sepia(88%) saturate(2777%) hue-rotate(206deg) brightness(85%) contrast(96%);
-    }
+    /* Não imprimir toolbar e botão */
+    .no-print { display: none !important; }
+    .hide-export { display: none !important; }
+    /* Logo branca sobre fundo azul */
+    .logo-image { filter: none; }
 }
 
 /* Responsivo */
