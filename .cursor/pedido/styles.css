@@ -74,6 +74,7 @@ html {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex: 0 0 auto; /* manter em linha única no flex container */
 }
 
 .action-btn:hover {
@@ -137,15 +138,16 @@ html {
 .toolbar-actions-row {
     display: flex;
     gap: 10px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;            /* manter em uma linha */
+    white-space: nowrap;          /* evitar quebra dos botões */
+    overflow-x: auto;             /* rolagem lateral se faltar espaço */
+    -webkit-overflow-scrolling: touch;
     margin-top: 10px;
 }
 
 .info-line {
-    display: flex;
-    align-items: center;
+    display: block;               /* orçamento e cliente em linhas separadas */
     margin-bottom: 10px;
-    gap: 10px;
 }
 
 .info-label {
@@ -462,7 +464,7 @@ html {
 }
 
 .qrcode-image {
-    max-height: 160px; /* dobrado */
+    max-height: 110px; /* ~30% menor que 160px */
     max-width: 100%;  /* não estoura o container */
     width: auto;
     height: auto;
@@ -685,6 +687,15 @@ body.exportando .header {
 @media (max-width: 480px) {
     .header-content {
         padding: 0 15px;
+    }
+
+    .toolbar-actions-row {
+        gap: 8px;
+    }
+
+    .action-btn {
+        min-width: 36px;
+        padding: 6px 10px;
     }
 
     .logo {
