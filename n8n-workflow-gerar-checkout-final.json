@@ -177,7 +177,7 @@
       "name": "Responder Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [176, 304],
+      "position": [400, 112],
       "id": "de5eedf4-0b59-4e69-a38d-e9e5590ca0d8"
     }
   ],
@@ -230,6 +230,11 @@
       "main": [
         [
           {
+            "node": "Responder Webhook",
+            "type": "main",
+            "index": 0
+          },
+          {
             "node": "Atualizar Sprinthub",
             "type": "main",
             "index": 0
@@ -244,24 +249,12 @@
     },
     "Atualizar Sprinthub": {
       "main": [
-        [
-          {
-            "node": "Responder Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "Atualizar Supabase": {
       "main": [
-        [
-          {
-            "node": "Responder Webhook",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     }
   },
