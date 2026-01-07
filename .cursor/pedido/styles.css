@@ -119,6 +119,7 @@ html {
     padding: 30px 20px;
     background: white;
     min-height: calc(100vh - 200px);
+    padding-bottom: 120px; /* espaço para o botão flutuante */
 }
 
 /* Orçamento Info */
@@ -129,15 +130,15 @@ html {
 }
 
 .info-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    display: block;
 }
 
-.toolbar-actions {
+.toolbar-actions,
+.toolbar-actions-row {
     display: flex;
     gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 10px;
 }
 
 .info-line {
@@ -343,6 +344,15 @@ html {
 .finalizar-container {
     margin: 30px 0;
     text-align: center;
+}
+
+.finalizar-flutuante {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    width: min(640px, calc(100% - 32px));
+    z-index: 1000;
 }
 
 .btn-finalizar {
@@ -636,6 +646,40 @@ body.exportando .header {
         width: 100%;
         max-width: 300px;
     }
+}
+
+/* Splash */
+.splash-container {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
+}
+
+.splash-card {
+    background: linear-gradient(135deg, var(--brand-blue-start) 0%, var(--brand-blue-end) 100%);
+    color: #fff;
+    border-radius: 12px;
+    padding: 40px 24px;
+    text-align: center;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+}
+
+.splash-logo-image {
+    max-height: 64px;
+    width: auto;
+    object-fit: contain;
+    margin-bottom: 16px;
+}
+
+.splash-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.splash-description {
+    font-size: 1rem;
+    opacity: 0.95;
 }
 
 @media (max-width: 480px) {

@@ -13,6 +13,7 @@ COPY .cursor/pedido/great-place-to-work.png /usr/share/nginx/html/
 COPY .cursor/pedido/reclame-aqui-ov.png /usr/share/nginx/html/
 COPY .cursor/pedido/abf-logo.png /usr/share/nginx/html/
 COPY .cursor/pedido/qrcode.png /usr/share/nginx/html/
+COPY .cursor/pedido/favicon.png /usr/share/nginx/html/
 
 # Copiar script de entrypoint para injetar variáveis de ambiente
 COPY .cursor/pedido/entrypoint.sh /entrypoint.sh

@@ -76,17 +76,22 @@
         const loadingEl = document.getElementById('loading');
         const errorEl = document.getElementById('error');
         const contentEl = document.getElementById('content');
+        const splashEl = document.getElementById('splash');
         const errorMessageEl = document.getElementById('error-message');
 
         try {
             loadingEl.style.display = 'block';
             errorEl.style.display = 'none';
             contentEl.style.display = 'none';
+            if (splashEl) splashEl.style.display = 'none';
 
             const linkId = obterLinkIdDaUrl();
             
             if (!linkId) {
-                throw new Error('Link ID não encontrado na URL');
+                // Sem linkId: mostrar splash de apresentação
+                loadingEl.style.display = 'none';
+                if (splashEl) splashEl.style.display = 'block';
+                return;
             }
 
             // Buscar dados do Supabase (schema configurado)
@@ -131,6 +136,7 @@
         } catch (err) {
             console.error('Erro ao carregar pré-checkout:', err);
             loadingEl.style.display = 'none';
+            // Em caso de erro (ex.: link inválido/expirado), mantém mensagem de erro
             errorEl.style.display = 'block';
             errorMessageEl.textContent = err.message;
         }
