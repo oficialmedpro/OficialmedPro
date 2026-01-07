@@ -438,8 +438,17 @@ const CockpitVendedores = () => {
           const vendasAtualRonda = typeof vendasDataRonda === 'number' ? vendasDataRonda : (vendasDataRonda.contagem || 0);
           const valorAtualRonda = typeof vendasDataRonda === 'number' ? 0 : (vendasDataRonda.valorTotal || 0);
           const ticketMedioAtualRonda = vendasAtualRonda > 0 ? valorAtualRonda / vendasAtualRonda : 0;
-          const conversaoAtualRonda = orcamentoAtualRonda > 0 
-            ? Math.round((vendasAtualRonda / orcamentoAtualRonda) * 100 * 10) / 10 
+          
+          // CALCULAR QUALIFICAÇÃO POR RONDA (Entrada/Acolhimento → Orçamento)
+          const qualificacaoAtualRonda = orcamentoAtualRonda;
+          const qualificacaoTotalRonda = entradaAtualRonda;
+          const qualificacaoTaxaRonda = qualificacaoTotalRonda > 0
+            ? Math.round((qualificacaoAtualRonda / qualificacaoTotalRonda) * 100 * 10) / 10
+            : 0;
+          
+          // CALCULAR CONVERSÃO POR RONDA (Entrada/Acolhimento → Venda)
+          const conversaoAtualRonda = entradaAtualRonda > 0 
+            ? Math.round((vendasAtualRonda / entradaAtualRonda) * 100 * 10) / 10 
             : 0;
           
           const vendasVariacaoRonda = metaVendasRonda && metaVendasRonda > 0
@@ -465,6 +474,7 @@ const CockpitVendedores = () => {
             vendas: { atual: vendasAtualRonda, meta: metaVendasRonda, variacao: vendasVariacaoRonda },
             valor: { atual: valorAtualRonda, meta: metaValorRonda, variacao: valorVariacaoRonda },
             ticketMedio: { atual: ticketMedioAtualRonda, meta: metaTicketMedioRonda, variacao: ticketMedioVariacaoRonda },
+            qualificacao: { taxa: qualificacaoTaxaRonda, atual: qualificacaoAtualRonda, total: qualificacaoTotalRonda },
             conversao: { atual: conversaoAtualRonda, meta: metaConversaoRonda, variacao: conversaoVariacaoRonda }
           };
         });
@@ -500,17 +510,17 @@ const CockpitVendedores = () => {
           ? Math.round(((ticketMedioAtual - metaTicketMedio) / metaTicketMedio) * 100)
           : 0;
         
-        // CALCULAR QUALIFICAÇÃO (Entrada → Orçamento/Negociação)
-        // Qualificação = Quantos leads que entraram geraram orçamento ou negociação
+        // CALCULAR QUALIFICAÇÃO (Entrada/Acolhimento → Orçamento/Negociação)
+        // Qualificação = Quantos leads que entraram ou foram acolhidos geraram orçamento ou negociação
         const qualificacaoAtual = orcamentoAtual; // Já contabiliza orçamento ou negociação
-        const qualificacaoTotal = entradaAtual;
+        const qualificacaoTotal = entradaAtual; // entradaAtual já considera entrada_* OU acolhimento_*
         const qualificacaoTaxa = qualificacaoTotal > 0 
           ? Math.round((qualificacaoAtual / qualificacaoTotal) * 100 * 10) / 10 // 1 casa decimal
           : 0;
         
-        // CALCULAR CONVERSÃO 1: Entrada → Venda
+        // CALCULAR CONVERSÃO: Entrada/Acolhimento → Venda
         const conversaoEntradaVendaAtual = vendasAtual;
-        const conversaoEntradaVendaTotal = entradaAtual;
+        const conversaoEntradaVendaTotal = entradaAtual; // entradaAtual já considera entrada_* OU acolhimento_*
         const conversaoEntradaVendaTaxa = conversaoEntradaVendaTotal > 0
           ? Math.round((conversaoEntradaVendaAtual / conversaoEntradaVendaTotal) * 100 * 10) / 10
           : 0;
@@ -880,7 +890,7 @@ const CockpitVendedores = () => {
               <span>({vendedor.qualificacao.atual} / {vendedor.qualificacao.total})</span>
             </div>
             <div className="cockpit-vendedores-taxa-detail">
-              {vendedor.qualificacao.taxaAlvo ? 'taxa alvo' : 'Entrada → Orçamento'}
+              {vendedor.qualificacao.taxaAlvo ? 'taxa alvo' : 'Entrada/Acolhimento → Orçamento'}
             </div>
           </div>
 

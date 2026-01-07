@@ -621,16 +621,16 @@ const CockpitTaxasGerais = ({ onLogout }) => {
                   {formatarConversao(dadosAgregados.qualificacao)}
                   <span>({dadosAgregados.orcamentos}/{dadosAgregados.entradas})</span>
                 </div>
-                <div className="cockpit-vendedores-taxa-detail">Entrada → Orçamento</div>
+                <div className="cockpit-vendedores-taxa-detail">Entrada/Acolhimento → Orçamento</div>
               </div>
 
               <div className="cockpit-vendedores-taxa">
                 <div className="cockpit-vendedores-taxa-label">Conversão</div>
                 <div className="cockpit-vendedores-taxa-valor">
-                  {formatarConversao(dadosAgregados.conversaoOrcVenda)}
-                  <span>({dadosAgregados.vendas}/{dadosAgregados.orcamentos})</span>
+                  {formatarConversao(dadosAgregados.conversao)}
+                  <span>({dadosAgregados.vendas}/{dadosAgregados.entradas})</span>
                 </div>
-                <div className="cockpit-vendedores-taxa-detail">Orçamento → Venda</div>
+                <div className="cockpit-vendedores-taxa-detail">Entrada/Acolhimento → Venda</div>
               </div>
             </div>
           </div>
