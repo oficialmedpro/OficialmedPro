@@ -32,14 +32,16 @@ Ou configure como variável de ambiente no Easypanel:
 VITE_N8N_WEBHOOK_URL=https://seu-n8n.com/webhook-pagina-precheckout
 ```
 
-### 3. Verificar campos do Sprinthub
+### 3. Campos do Sprinthub
 
 O workflow atualiza os seguintes campos no Sprinthub:
 - `value`: Valor total das fórmulas selecionadas
-- `fields.checkout`: Link do checkout gerado
-- `fields.descricao_formula`: Descrição formatada das fórmulas selecionadas
+- `fields.link-checkout`: Link do checkout gerado
+- `fields.Descricao da Formula`: Descrição formatada das fórmulas selecionadas
 
-**IMPORTANTE**: Confirme se o campo `descricao_formula` está correto. Se for outro nome, ajuste no nó "Atualizar Sprinthub".
+**Campos configurados**: Os nomes dos campos customizados no Sprinthub são:
+- `{op=link-checkout}` - Link do checkout
+- `{op=Descricao da Formula}` - Descrição das fórmulas selecionadas
 
 ## Payload do Webhook
 
@@ -109,9 +111,17 @@ A página redireciona automaticamente para `checkout_url`.
     "checkout_url": "...",
     "checkout_external_id": "...",
     "status": "checkout_gerado",
+    "checkout_gerado_at": "...",
     "updated_at": "..."
   }
   ```
+  
+**Campos salvos no Supabase**:
+- `checkout_url`: Link do checkout gerado
+- `checkout_external_id`: ID externo do checkout (da API Clubecerto)
+- `status`: Atualizado para `checkout_gerado`
+- `checkout_gerado_at`: Timestamp de quando o checkout foi gerado
+- `updated_at`: Timestamp da última atualização
 
 ### Atualizar Sprinthub
 - **Método**: PUT
@@ -121,11 +131,16 @@ A página redireciona automaticamente para `checkout_url`.
   {
     "value": "213.20",
     "fields": {
-      "checkout": "https://checkout.clubecerto.com.br/...",
-      "descricao_formula": "Fórmula nº 1: ...\nValor R$ 75,29\n\n..."
+      "link-checkout": "https://checkout.clubecerto.com.br/...",
+      "Descricao da Formula": "Fórmula nº 1: ...\nValor R$ 75,29\n\n..."
     }
   }
   ```
+  
+**Campos atualizados no Sprinthub**:
+- `value`: Valor total das fórmulas selecionadas (formato: "213.20")
+- `fields.link-checkout`: Link do checkout para redirecionamento
+- `fields.Descricao da Formula`: Descrição formatada das fórmulas selecionadas
 
 ## Troubleshooting
 
@@ -137,6 +152,9 @@ A página redireciona automaticamente para `checkout_url`.
 - Verifique se a API do Clubecerto retornou `checkout_url`
 - Ajuste a extração do link no nó "Montar Pedido" conforme a resposta da API
 
-### Campo `descricao_formula` não atualiza no Sprinthub
-- Confirme o nome exato do campo customizado no Sprinthub
-- Ajuste no nó "Atualizar Sprinthub"
+### Campo não atualiza no Sprinthub
+- Verifique se os campos customizados existem no Sprinthub:
+  - `{op=link-checkout}` - Link do checkout
+  - `{op=Descricao da Formula}` - Descrição das fórmulas
+- Confirme que os nomes estão exatamente como configurados no Sprinthub
+- Ajuste no nó "Atualizar Sprinthub" se necessário

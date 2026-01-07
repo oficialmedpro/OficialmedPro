@@ -135,7 +135,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"checkout_url\": \"{{ $json.checkoutUrl }}\",\n  \"checkout_external_id\": \"{{ $json.checkoutExternalId }}\",\n  \"status\": \"checkout_gerado\",\n  \"updated_at\": \"{{ $now.toISO() }}\"\n}",
+        "jsonBody": "={\n  \"checkout_url\": \"{{ $json.checkoutUrl }}\",\n  \"checkout_external_id\": \"{{ $json.checkoutExternalId }}\",\n  \"status\": \"checkout_gerado\",\n  \"checkout_gerado_at\": \"{{ $now.toISO() }}\",\n  \"updated_at\": \"{{ $now.toISO() }}\"\n}",
         "options": {}
       },
       "name": "Atualizar Supabase",
@@ -159,7 +159,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"value\": \"{{ Number($('Montar Pedido').item.json.total).toFixed(2) }}\",\n  \"fields\": {\n    \"checkout\": \"{{ $('Montar Pedido').item.json.checkoutUrl }}\",\n    \"descricao_formula\": \"{{ $('Montar Pedido').item.json.descricaoFormulas }}\"\n  }\n}",
+        "jsonBody": "={\n  \"value\": \"{{ Number($('Montar Pedido').item.json.total).toFixed(2) }}\",\n  \"fields\": {\n    \"link-checkout\": \"{{ $('Montar Pedido').item.json.checkoutUrl }}\",\n    \"Descricao da Formula\": \"{{ $('Montar Pedido').item.json.descricaoFormulas }}\"\n  }\n}",
         "options": {}
       },
       "name": "Atualizar Sprinthub",
