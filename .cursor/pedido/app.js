@@ -42,6 +42,10 @@
     let formulasSelecionadas = new Set();
 
     // Funções
+    // Garantir título correto da página
+    if (document && document.title !== 'Orçamento OficialMed') {
+        document.title = 'Orçamento OficialMed';
+    }
     function formatarValor(valor) {
         return new Intl.NumberFormat('pt-BR', {
             style: 'currency',
