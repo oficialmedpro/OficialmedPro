@@ -1410,13 +1410,13 @@ export const getEntradasVendedoresPorRonda = async (userIds = null, date = null,
     fim.setHours(23, 59, 59, 999);
     const fimISO = fim.toISOString();
     
-    // Mapeamento de funil_id para campo de entrada
-    const funilParaCampo = {
-      6: 'entrada_compra',
-      14: 'entrada_recompra',
-      33: 'entrada_ativacao',
-      41: 'entrada_monitoramento',
-      38: 'entrada_reativacao'
+    // Mapeamento de funil_id para campos de entrada (entrada OU acolhimento)
+    const funilParaCampos = {
+      6: { entrada: 'entrada_compra', acolhimento: 'acolhimento_compra' },
+      14: { entrada: 'entrada_recompra', acolhimento: 'acolhimento_recompra' },
+      33: { entrada: 'entrada_ativacao', acolhimento: 'acolhimento_ativacao' },
+      41: { entrada: 'entrada_monitoramento', acolhimento: 'acolhimento_monitoramento' },
+      38: { entrada: 'entrada_reativacao', acolhimento: 'acolhimento_reativacao' }
     };
     
     let promises = [];
@@ -1433,20 +1433,21 @@ export const getEntradasVendedoresPorRonda = async (userIds = null, date = null,
         funisAgrupados[funilIdNum].push(parseInt(userId));
       });
       
-      // Buscar cada funil separadamente
+      // Buscar cada funil separadamente (entrada OU acolhimento)
       Object.entries(funisAgrupados).forEach(([funilId, userIdsList]) => {
-        const campoNome = funilParaCampo[parseInt(funilId)];
-        if (!campoNome) {
+        const campos = funilParaCampos[parseInt(funilId)];
+        if (!campos) {
           console.warn(`⚠️ [getEntradasVendedoresPorRonda] Funil ID ${funilId} não mapeado, ignorando`);
           return;
         }
         
         const funilUserIdsFilter = `&user_id=in.(${userIdsList.join(',')})`;
         const funilFilter = `&funil_id=eq.${funilId}`;
-        const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,${campoNome}&${campoNome}=gte.${inicioISO}&${campoNome}=lt.${fimISO}&${campoNome}=not.is.null${funilUserIdsFilter}${funilFilter}`;
         
-        promises.push(
-          fetch(url, {
+        // Buscar entrada E acolhimento separadamente, depois combinar
+        const promisesEntradaAcolhimento = [
+          // Buscar por entrada
+          fetch(`${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,${campos.entrada},${campos.acolhimento}&${campos.entrada}=gte.${inicioISO}&${campos.entrada}=lt.${fimISO}&${campos.entrada}=not.is.null${funilUserIdsFilter}${funilFilter}`, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
@@ -1457,45 +1458,104 @@ export const getEntradasVendedoresPorRonda = async (userIds = null, date = null,
             }
           }).then(response => {
             if (!response.ok) {
-              console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${campoNome} (funil ${funilId}):`, response.status);
+              console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${campos.entrada} (funil ${funilId}):`, response.status);
               return [];
             }
             return response.json();
           }).catch(error => {
-            console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${campoNome} (funil ${funilId}):`, error);
+            console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${campos.entrada} (funil ${funilId}):`, error);
+            return [];
+          }),
+          // Buscar por acolhimento
+          fetch(`${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,${campos.entrada},${campos.acolhimento}&${campos.acolhimento}=gte.${inicioISO}&${campos.acolhimento}=lt.${fimISO}&${campos.acolhimento}=not.is.null${funilUserIdsFilter}${funilFilter}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'apikey': supabaseAnonKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api'
+            }
+          }).then(response => {
+            if (!response.ok) {
+              console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${campos.acolhimento} (funil ${funilId}):`, response.status);
+              return [];
+            }
+            return response.json();
+          }).catch(error => {
+            console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${campos.acolhimento} (funil ${funilId}):`, error);
             return [];
           })
-        );
+        ];
+        
+        promises.push(Promise.all(promisesEntradaAcolhimento).then(results => {
+          // Combinar resultados e remover duplicatas
+          const oportunidadesUnicas = new Map();
+          results.forEach(data => {
+            if (Array.isArray(data)) {
+              data.forEach(opp => {
+                if (opp.id && !oportunidadesUnicas.has(opp.id)) {
+                  oportunidadesUnicas.set(opp.id, opp);
+                }
+              });
+            }
+          });
+          return Array.from(oportunidadesUnicas.values());
+        }));
       });
     } else {
-      // Se não há funilIdsMap, buscar TODOS os campos (comportamento anterior)
-      const camposEntrada = Object.values(funilParaCampo);
+      // Se não há funilIdsMap, buscar TODOS os campos (entrada OU acolhimento)
       const userIdsFilter = userIds && Array.isArray(userIds) && userIds.length > 0 
         ? `&user_id=in.(${userIds.join(',')})` 
         : '';
       
-      promises = camposEntrada.map(nome => {
-        const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,${nome}&${nome}=gte.${inicioISO}&${nome}=lt.${fimISO}&${nome}=not.is.null${userIdsFilter}`;
-        
-        return fetch(url, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseAnonKey}`,
-            'apikey': supabaseAnonKey,
-            'Accept-Profile': 'api',
-            'Content-Profile': 'api'
-          }
-        }).then(response => {
-          if (!response.ok) {
-            console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${nome}:`, response.status);
+      // Criar promises para cada campo (entrada e acolhimento de cada funil)
+      promises = [];
+      Object.values(funilParaCampos).forEach(campos => {
+        // Buscar por entrada
+        promises.push(
+          fetch(`${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,${campos.entrada},${campos.acolhimento}&${campos.entrada}=gte.${inicioISO}&${campos.entrada}=lt.${fimISO}&${campos.entrada}=not.is.null${userIdsFilter}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'apikey': supabaseAnonKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api'
+            }
+          }).then(response => {
+            if (!response.ok) {
+              console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${campos.entrada}:`, response.status);
+              return [];
+            }
+            return response.json();
+          }).catch(error => {
+            console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${campos.entrada}:`, error);
             return [];
-          }
-          return response.json();
-        }).catch(error => {
-          console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${nome}:`, error);
-          return [];
-        });
+          })
+        );
+        // Buscar por acolhimento
+        promises.push(
+          fetch(`${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id,${campos.entrada},${campos.acolhimento}&${campos.acolhimento}=gte.${inicioISO}&${campos.acolhimento}=lt.${fimISO}&${campos.acolhimento}=not.is.null${userIdsFilter}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'apikey': supabaseAnonKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api'
+            }
+          }).then(response => {
+            if (!response.ok) {
+              console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${campos.acolhimento}:`, response.status);
+              return [];
+            }
+            return response.json();
+          }).catch(error => {
+            console.warn(`⚠️ [getEntradasVendedoresPorRonda] Erro ao buscar ${campos.acolhimento}:`, error);
+            return [];
+          })
+        );
       });
     }
     
@@ -1516,15 +1576,16 @@ export const getEntradasVendedoresPorRonda = async (userIds = null, date = null,
           if (oportunidadesProcessadas.has(chaveUnica)) return;
           oportunidadesProcessadas.add(chaveUnica);
           
-          // Buscar o campo de entrada preenchido (verificar todos os campos)
+          // Buscar o campo de entrada OU acolhimento preenchido (verificar todos os campos)
           let dataEntrada = null;
-          const campos = Object.values(funilParaCampo);
-          for (const campo of campos) {
-            if (opp[campo]) {
-              dataEntrada = opp[campo];
-              break;
+          Object.values(funilParaCampos).forEach(campos => {
+            // Priorizar entrada, mas aceitar acolhimento se entrada não estiver preenchida
+            if (opp[campos.entrada]) {
+              dataEntrada = opp[campos.entrada];
+            } else if (opp[campos.acolhimento] && !dataEntrada) {
+              dataEntrada = opp[campos.acolhimento];
             }
-          }
+          });
           if (!dataEntrada) return;
           
           const entradaDate = new Date(dataEntrada);
@@ -1606,13 +1667,13 @@ export const getEntradasVendedoresHoje = async (userIds = null, date = null, fun
       ? `&user_id=in.(${userIds.join(',')})` 
       : '';
     
-    // Mapeamento de funil_id para campo de entrada
-    const funilParaCampo = {
-      6: 'entrada_compra',
-      14: 'entrada_recompra',
-      33: 'entrada_ativacao',
-      41: 'entrada_monitoramento',
-      38: 'entrada_reativacao'
+    // Mapeamento de funil_id para campos de entrada (entrada OU acolhimento)
+    const funilParaCampos = {
+      6: { entrada: 'entrada_compra', acolhimento: 'acolhimento_compra' },
+      14: { entrada: 'entrada_recompra', acolhimento: 'acolhimento_recompra' },
+      33: { entrada: 'entrada_ativacao', acolhimento: 'acolhimento_ativacao' },
+      41: { entrada: 'entrada_monitoramento', acolhimento: 'acolhimento_monitoramento' },
+      38: { entrada: 'entrada_reativacao', acolhimento: 'acolhimento_reativacao' }
     };
     
     let promises = [];
@@ -1629,20 +1690,21 @@ export const getEntradasVendedoresHoje = async (userIds = null, date = null, fun
         funisAgrupados[funilIdNum].push(parseInt(userId));
       });
       
-      // Buscar cada funil separadamente
+      // Buscar cada funil separadamente (entrada OU acolhimento)
       Object.entries(funisAgrupados).forEach(([funilId, userIdsList]) => {
-        const campo = funilParaCampo[parseInt(funilId)];
-        if (!campo) {
+        const campos = funilParaCampos[parseInt(funilId)];
+        if (!campos) {
           console.warn(`⚠️ [getEntradasVendedoresHoje] Funil ID ${funilId} não mapeado, ignorando`);
           return;
         }
         
         const funilUserIdsFilter = `&user_id=in.(${userIdsList.join(',')})`;
         const funilFilter = `&funil_id=eq.${funilId}`;
-        const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id&${campo}=gte.${inicioISO}&${campo}=lt.${fimISO}&${campo}=not.is.null${funilUserIdsFilter}${funilFilter}`;
         
-        promises.push(
-          fetch(url, {
+        // Buscar entrada E acolhimento separadamente, depois combinar
+        const promisesEntradaAcolhimento = [
+          // Buscar por entrada
+          fetch(`${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id&${campos.entrada}=gte.${inicioISO}&${campos.entrada}=lt.${fimISO}&${campos.entrada}=not.is.null${funilUserIdsFilter}${funilFilter}`, {
             method: 'GET',
             headers: {
               'Accept': 'application/json',
@@ -1654,43 +1716,102 @@ export const getEntradasVendedoresHoje = async (userIds = null, date = null, fun
             }
           }).then(response => {
             if (!response.ok) {
-              console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campo} (funil ${funilId}):`, response.status);
+              console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campos.entrada} (funil ${funilId}):`, response.status);
               return [];
             }
             return response.json();
           }).catch(error => {
-            console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campo} (funil ${funilId}):`, error);
+            console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campos.entrada} (funil ${funilId}):`, error);
+            return [];
+          }),
+          // Buscar por acolhimento
+          fetch(`${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id&${campos.acolhimento}=gte.${inicioISO}&${campos.acolhimento}=lt.${fimISO}&${campos.acolhimento}=not.is.null${funilUserIdsFilter}${funilFilter}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'apikey': supabaseAnonKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api',
+              'Prefer': 'count=exact'
+            }
+          }).then(response => {
+            if (!response.ok) {
+              console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campos.acolhimento} (funil ${funilId}):`, response.status);
+              return [];
+            }
+            return response.json();
+          }).catch(error => {
+            console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campos.acolhimento} (funil ${funilId}):`, error);
+            return [];
+          })
+        ];
+        
+        promises.push(Promise.all(promisesEntradaAcolhimento).then(results => {
+          // Combinar resultados e remover duplicatas
+          const oportunidadesUnicas = new Map();
+          results.forEach(data => {
+            if (Array.isArray(data)) {
+              data.forEach(opp => {
+                if (opp.id && !oportunidadesUnicas.has(opp.id)) {
+                  oportunidadesUnicas.set(opp.id, opp);
+                }
+              });
+            }
+          });
+          return Array.from(oportunidadesUnicas.values());
+        }));
+      });
+    } else {
+      // Se não há funilIdsMap, buscar TODOS os campos (entrada OU acolhimento)
+      promises = [];
+      Object.values(funilParaCampos).forEach(campos => {
+        // Buscar por entrada
+        promises.push(
+          fetch(`${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id&${campos.entrada}=gte.${inicioISO}&${campos.entrada}=lt.${fimISO}&${campos.entrada}=not.is.null${userIdsFilter}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'apikey': supabaseAnonKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api',
+              'Prefer': 'count=exact'
+            }
+          }).then(response => {
+            if (!response.ok) {
+              console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campos.entrada}:`, response.status);
+              return [];
+            }
+            return response.json();
+          }).catch(error => {
+            console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campos.entrada}:`, error);
             return [];
           })
         );
-      });
-    } else {
-      // Se não há funilIdsMap, buscar TODOS os campos (comportamento anterior)
-      const camposEntrada = Object.values(funilParaCampo);
-      
-      promises = camposEntrada.map(campo => {
-        const url = `${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id&${campo}=gte.${inicioISO}&${campo}=lt.${fimISO}&${campo}=not.is.null${userIdsFilter}`;
-        
-        return fetch(url, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'Authorization': `Bearer ${supabaseAnonKey}`,
-            'apikey': supabaseAnonKey,
-            'Accept-Profile': 'api',
-            'Content-Profile': 'api',
-            'Prefer': 'count=exact'
-          }
-        }).then(response => {
-          if (!response.ok) {
-            console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campo}:`, response.status);
+        // Buscar por acolhimento
+        promises.push(
+          fetch(`${supabaseUrl}/rest/v1/oportunidade_sprint?select=id,user_id&${campos.acolhimento}=gte.${inicioISO}&${campos.acolhimento}=lt.${fimISO}&${campos.acolhimento}=not.is.null${userIdsFilter}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'apikey': supabaseAnonKey,
+              'Accept-Profile': 'api',
+              'Content-Profile': 'api',
+              'Prefer': 'count=exact'
+            }
+          }).then(response => {
+            if (!response.ok) {
+              console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campos.acolhimento}:`, response.status);
+              return [];
+            }
+            return response.json();
+          }).catch(error => {
+            console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campos.acolhimento}:`, error);
             return [];
-          }
-          return response.json();
-        }).catch(error => {
-          console.warn(`⚠️ [getEntradasVendedoresHoje] Erro ao buscar ${campo}:`, error);
-          return [];
-        });
+          })
+        );
       });
     }
     
