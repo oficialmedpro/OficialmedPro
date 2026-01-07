@@ -36,10 +36,13 @@ html {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.header-content {
+.header-wrapper {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
+}
+
+.header-content {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -499,16 +502,74 @@ html {
         filter: none !important;
     }
     
-    /* Garantir que badges não quebrem */
+    /* Header com mesma largura do content */
+    .header {
+        max-width: 1200px !important;
+        margin: 0 auto !important;
+        padding: 24px 20px 16px !important;
+    }
+    
+    .header-wrapper {
+        max-width: 100% !important;
+        padding: 0 !important;
+    }
+    
+    /* Garantir que badges fiquem em linha na impressão */
     .badges-container {
         display: flex !important;
-        flex-wrap: wrap !important;
+        flex-wrap: nowrap !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 15px !important;
         page-break-inside: avoid;
     }
     
     .badge {
         page-break-inside: avoid;
+        flex-shrink: 1;
+        flex-grow: 0;
     }
+    
+    .badge-image {
+        max-height: 80px !important;
+        max-width: 150px !important;
+    }
+    
+    .qrcode-image {
+        max-height: 100px !important;
+        max-width: 100px !important;
+    }
+}
+
+/* Estilos durante exportação (imagem/PDF) */
+body.exportando .badges-container {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 15px !important;
+}
+
+body.exportando .badge {
+    flex-shrink: 1;
+    flex-grow: 0;
+}
+
+body.exportando .badge-image {
+    max-height: 80px !important;
+    max-width: 150px !important;
+}
+
+body.exportando .qrcode-image {
+    max-height: 100px !important;
+    max-width: 100px !important;
+}
+
+body.exportando .header {
+    max-width: 1200px !important;
+    margin: 0 auto !important;
+    padding: 24px 20px 16px !important;
+}
     
     /* Remover fundos cinzas */
     .formula-item {
