@@ -47,7 +47,7 @@ body {
 }
 
 .logo-image {
-    max-height: 42px; /* aproxima do layout de referência */
+    max-height: 64px; /* aumento do tamanho da logo no topo */
     width: auto;
     object-fit: contain;
 }
@@ -443,7 +443,7 @@ body {
     }
 
     .logo-image {
-        max-height: 36px;
+        max-height: 52px;
     }
 
     .logo-capsule {
