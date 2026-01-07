@@ -19,7 +19,11 @@ const CONFIG = {
     API_URL: 'https://api.oficialmed.com.br',
     
     // URL base do pré-checkout (para construir URLs)
-    BASE_URL: 'https://pedido.oficialmed.com.br'
+    BASE_URL: 'https://pedido.oficialmed.com.br',
+    
+    // URL do webhook do n8n para gerar checkout
+    // Ajuste para a URL do seu n8n: https://seu-n8n.com/webhook-pagina-precheckout
+    N8N_WEBHOOK_URL: 'https://seu-n8n.com/webhook-pagina-precheckout'
 };
 
 // Tornar disponível globalmente

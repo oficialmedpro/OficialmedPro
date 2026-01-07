@@ -10,6 +10,7 @@
     const SUPABASE_KEY = ENV_CONFIG.VITE_SUPABASE_KEY || CONFIG_FALLBACK.SUPABASE_KEY || '';
     const SUPABASE_SCHEMA = ENV_CONFIG.VITE_SUPABASE_SCHEMA || CONFIG_FALLBACK.SUPABASE_SCHEMA || 'api';
     const API_URL = ENV_CONFIG.VITE_API_URL || CONFIG_FALLBACK.API_URL || window.location.origin;
+    const N8N_WEBHOOK_URL = ENV_CONFIG.VITE_N8N_WEBHOOK_URL || CONFIG_FALLBACK.N8N_WEBHOOK_URL || 'https://seu-n8n.com/webhook-pagina-precheckout';
 
     // Validar configuração
     if (!SUPABASE_KEY || SUPABASE_KEY === 'COLE_SUA_CHAVE_ANON_AQUI') {
@@ -208,7 +209,7 @@
         try {
             if (btnFinalizar) {
                 btnFinalizar.disabled = true;
-                btnFinalizar.textContent = 'Processando...';
+                btnFinalizar.textContent = 'Gerando checkout...';
             }
 
             const linkId = obterLinkIdDaUrl();
@@ -223,7 +224,7 @@
                 .from('pre_checkout')
                 .update({
                     formulas_selecionadas: Array.from(formulasSelecionadas),
-                    status: 'finalizado',
+                    status: 'processando',
                     updated_at: new Date().toISOString()
                 })
                 .eq('link_pre_checkout', linkId);
@@ -232,9 +233,30 @@
                 throw new Error(updateError.message);
             }
 
-            // Redirecionar para gerar checkout
-            const checkoutUrl = `${API_URL}/api/pre-checkout/${linkId}/checkout`;
-            window.location.href = checkoutUrl;
+            // Chamar webhook do n8n para gerar checkout
+            const response = await fetch(N8N_WEBHOOK_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    linkId: linkId,
+                    formulasSelecionadas: Array.from(formulasSelecionadas)
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro ao gerar checkout: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            
+            if (!data.success || !data.checkout_url) {
+                throw new Error('Resposta inválida do servidor');
+            }
+
+            // Redirecionar para o checkout
+            window.location.href = data.checkout_url;
 
         } catch (err) {
             console.error('Erro ao finalizar:', err);
