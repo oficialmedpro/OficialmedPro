@@ -335,52 +335,73 @@
             });
         }
 
+        // Aplicar/retirar zoom no container para exportar sempre em 100%
+        function aplicarZoomVisual(scale) {
+            const rootEl = document.getElementById('root');
+            if (!rootEl) return;
+            rootEl.style.transform = `scale(${scale})`;
+            rootEl.style.width = `${(100 / scale)}%`;
+        }
+
         // Exportar imagem
         async function baixarImagem() {
-            const alvo = document.getElementById('content') || document.getElementById('root') || document.body;
-            const canvas = await html2canvas(alvo, { scale: 2, useCORS: true });
+            const alvo = document.getElementById('root') || document.body;
+            // Congelar zoom visual e exportar em 1x
+            const scaleAtual = fontScale;
+            aplicarZoomVisual(1);
+            window.scrollTo(0, 0);
+            const canvas = await html2canvas(alvo, { scale: 2, useCORS: true, backgroundColor: null });
             const dataURL = canvas.toDataURL('image/png');
             const a = document.createElement('a');
             a.href = dataURL;
             const nome = (orcamentoData?.codigo_orcamento || 'orcamento').toString();
             a.download = `pre-checkout-${nome}.png`;
             a.click();
+            aplicarZoomVisual(scaleAtual);
         }
 
         // Exportar PDF
         async function baixarPDF() {
-            const alvo = document.getElementById('content') || document.getElementById('root') || document.body;
-            const canvas = await html2canvas(alvo, { scale: 2, useCORS: true });
+            const alvo = document.getElementById('root') || document.body;
+            const scaleAtual = fontScale;
+            aplicarZoomVisual(1);
+            window.scrollTo(0, 0);
+            const canvas = await html2canvas(alvo, { scale: 2, useCORS: true, backgroundColor: null });
             const imgData = canvas.toDataURL('image/jpeg', 0.95);
             const pdf = new window.jspdf.jsPDF('p', 'pt', 'a4');
             const pageWidth = pdf.internal.pageSize.getWidth();
             const pageHeight = pdf.internal.pageSize.getHeight();
 
-            const imgWidth = pageWidth - 40;
+            const imgWidth = pageWidth;
             const imgHeight = canvas.height * (imgWidth / canvas.width);
 
-            let y = 20;
-            let remaining = imgHeight;
-            let position = y;
+            let heightLeft = imgHeight;
+            let position = 0;
 
-            pdf.addImage(imgData, 'JPEG', 20, position, imgWidth, Math.min(imgHeight, pageHeight - 40));
-            remaining -= (pageHeight - 40);
-            position = y + (pageHeight - 40);
+            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pageHeight;
 
-            while (remaining > 0) {
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight;
                 pdf.addPage();
-                const h = Math.min(remaining, pageHeight - 40);
-                pdf.addImage(imgData, 'JPEG', 20, 20, imgWidth, imgHeight);
-                remaining -= (pageHeight - 40);
+                pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
             }
 
             const nome = (orcamentoData?.codigo_orcamento || 'orcamento').toString();
             pdf.save(`pre-checkout-${nome}.pdf`);
+            aplicarZoomVisual(scaleAtual);
         }
 
         // Imprimir
         function imprimir() {
-            window.print();
+            // Remover zoom antes de imprimir para evitar recortes
+            const scaleAtual = fontScale;
+            aplicarZoomVisual(1);
+            setTimeout(() => {
+                window.print();
+                setTimeout(() => aplicarZoomVisual(scaleAtual), 300);
+            }, 50);
         }
 
         const btnImg = document.getElementById('download-image');
@@ -389,6 +410,9 @@
         if (btnPdf) btnPdf.addEventListener('click', baixarPDF);
         const btnPrint = document.getElementById('print-page');
         if (btnPrint) btnPrint.addEventListener('click', imprimir);
+
+        // Aplicar zoom inicial (para refletir valor salvo)
+        aplicarZoomVisual(fontScale);
     });
 
     // Expor funções globalmente se necessário

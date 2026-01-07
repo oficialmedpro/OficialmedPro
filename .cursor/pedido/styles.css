@@ -162,8 +162,8 @@ body {
 }
 
 .formula-item.selecionada {
-    border-color: var(--brand-text);
-    background: #eaf1f7;
+    border-color: #c4cee1;
+    background: #f3f6f9;
 }
 
 .formula-checkbox {
@@ -371,8 +371,8 @@ body {
 }
 
 .badge-image {
-    max-height: 60px;
-    max-width: 150px;
+    max-height: 120px; /* dobrado */
+    max-width: 300px;  /* dobrado */
     width: auto;
     height: auto;
     object-fit: contain;
@@ -409,11 +409,31 @@ body {
 }
 
 .qrcode-image {
-    max-height: 80px;
-    max-width: 80px;
+    max-height: 160px; /* dobrado */
+    max-width: 160px;  /* dobrado */
     width: auto;
     height: auto;
     object-fit: contain;
+}
+
+/* Zoom do conteúdo (A-/A+) */
+#root {
+    transform-origin: top center;
+}
+
+/* Impressão: manter cores de fundo e garantir visibilidade da logo */
+@media print {
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+    .header {
+        background: linear-gradient(135deg, var(--brand-blue-start) 0%, var(--brand-blue-end) 100%) !important;
+    }
+    /* Fallback: se o navegador suprimir o fundo, aplica filtro azul na logo */
+    .logo-image {
+        filter: brightness(0) saturate(100%) invert(16%) sepia(88%) saturate(2777%) hue-rotate(206deg) brightness(85%) contrast(96%);
+    }
 }
 
 /* Responsivo */
