@@ -333,9 +333,14 @@
         }
 
         // Controles de fonte (usa rem via --base-font-size)
+        // Limites: 0.75 (75%) a 2.0 (200%)
         let fontScale = parseFloat(localStorage.getItem('precheckout_font_scale') || '1');
+        
+        // Garantir que está dentro dos limites ao carregar
+        fontScale = Math.max(0.75, Math.min(fontScale, 2.0));
+        
         function aplicarFonte() {
-            const base = 16 * Math.max(0.85, Math.min(fontScale, 1.4));
+            const base = 16 * fontScale;
             document.documentElement.style.setProperty('--base-font-size', `${base}px`);
             // Forçar atualização do body também
             document.body.style.fontSize = `${base}px`;
@@ -344,16 +349,18 @@
 
         const btnMinus = document.getElementById('decrease-font');
         const btnPlus = document.getElementById('increase-font');
+        
         if (btnMinus) {
             btnMinus.addEventListener('click', () => {
-                fontScale = Math.max(0.85, fontScale - 0.05);
+                fontScale = Math.max(0.75, fontScale - 0.1);
                 localStorage.setItem('precheckout_font_scale', String(fontScale));
                 aplicarFonte();
             });
         }
+        
         if (btnPlus) {
             btnPlus.addEventListener('click', () => {
-                fontScale = Math.min(1.4, fontScale + 0.05);
+                fontScale = Math.min(2.0, fontScale + 0.1);
                 localStorage.setItem('precheckout_font_scale', String(fontScale));
                 aplicarFonte();
             });
