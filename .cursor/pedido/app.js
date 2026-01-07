@@ -234,7 +234,8 @@
                 .from('pre_checkout')
                 .update({
                     formulas_selecionadas: Array.from(formulasSelecionadas),
-                    status: 'processando',
+                    // Mantém status válido conforme constraint do banco
+                    status: 'pendente',
                     updated_at: new Date().toISOString()
                 })
                 .eq('link_pre_checkout', linkId);

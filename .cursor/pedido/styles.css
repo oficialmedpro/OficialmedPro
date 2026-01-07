@@ -464,7 +464,7 @@ html {
 }
 
 .qrcode-image {
-    max-height: 110px; /* ~30% menor que 160px */
+    max-height: 50px !important;
     max-width: 100%;  /* não estoura o container */
     width: auto;
     height: auto;
@@ -647,6 +647,16 @@ body.exportando .header {
     .badge {
         width: 100%;
         max-width: 300px;
+    }
+
+    /* Garantir botão flutuante também no mobile */
+    .finalizar-flutuante {
+        position: fixed !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+        width: calc(100% - 24px) !important;
+        z-index: 1000 !important;
     }
 }
 
