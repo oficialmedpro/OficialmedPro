@@ -182,9 +182,11 @@
     }
 
     function calcularFrete(subtotal) {
-        // Frete grátis para compras acima de R$ 300,00
+        // Garantir que subtotal é um número
+        const valor = Number(subtotal) || 0;
+        // Frete grátis para compras acima ou igual a R$ 300,00
         // Frete de R$ 30,00 para compras abaixo de R$ 300,00
-        return subtotal >= 300 ? 0 : 30;
+        return valor >= 300 ? 0 : 30;
     }
 
     function calcularEAtualizarTotal() {
@@ -197,7 +199,7 @@
         const resumoFreteValueEl = document.getElementById('resumo-frete-value');
         const btnFinalizar = document.getElementById('btn-finalizar');
         
-        // Atualizar total final
+        // Atualizar total final (sempre produtos + frete)
         if (totalValueEl) {
             totalValueEl.textContent = formatarValor(total);
         }
@@ -214,9 +216,15 @@
             }
         }
         
-        // Atualizar valor do frete
+        // Atualizar valor do frete (mostrar "Grátis" quando for 0)
         if (resumoFreteValueEl) {
-            resumoFreteValueEl.textContent = formatarValor(frete);
+            if (frete === 0) {
+                resumoFreteValueEl.textContent = 'Grátis';
+                resumoFreteValueEl.classList.add('frete-gratis');
+            } else {
+                resumoFreteValueEl.textContent = formatarValor(frete);
+                resumoFreteValueEl.classList.remove('frete-gratis');
+            }
         }
         
         // Habilitar/desabilitar botão de finalizar
