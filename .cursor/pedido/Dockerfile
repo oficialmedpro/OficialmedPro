@@ -6,6 +6,7 @@ COPY .cursor/pedido/index.html /usr/share/nginx/html/
 COPY .cursor/pedido/styles.css /usr/share/nginx/html/
 COPY .cursor/pedido/app.js /usr/share/nginx/html/
 COPY .cursor/pedido/config.js /usr/share/nginx/html/
+COPY .cursor/pedido/analytics.js /usr/share/nginx/html/
 
 # Copiar imagens/logos
 COPY .cursor/pedido/logo.png /usr/share/nginx/html/
