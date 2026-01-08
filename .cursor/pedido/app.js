@@ -269,6 +269,11 @@
                 throw new Error(updateError.message);
             }
 
+            // Calcular valores para enviar ao webhook
+            const subtotal = calcularSubtotal();
+            const frete = calcularFrete(subtotal);
+            const valorTotal = subtotal + frete; // Total com frete incluído
+
             // Chamar webhook do n8n para gerar checkout
             const response = await fetch(N8N_WEBHOOK_URL, {
                 method: 'POST',
@@ -277,7 +282,8 @@
                 },
                 body: JSON.stringify({
                     linkId: linkId,
-                    formulasSelecionadas: Array.from(formulasSelecionadas)
+                    formulasSelecionadas: Array.from(formulasSelecionadas),
+                    valor: valorTotal // Envia o valor total já com frete incluído
                 })
             });
 
