@@ -23,7 +23,16 @@ const CONFIG = {
     
     // URL do webhook do n8n para gerar checkout
     // Ajuste para a URL do seu n8n: https://seu-n8n.com/webhook-pagina-precheckout
-    N8N_WEBHOOK_URL: 'https://seu-n8n.com/webhook-pagina-precheckout'
+    N8N_WEBHOOK_URL: 'https://seu-n8n.com/webhook-pagina-precheckout',
+    
+    // Google Analytics 4 - Measurement ID
+    // Obtenha em: https://analytics.google.com → Admin → Data Streams
+    // Formato: G-XXXXXXXXXX
+    GA4_MEASUREMENT_ID: 'G-NCJG7F37CL',
+    
+    // Facebook Pixel ID (opcional)
+    // Obtenha em: https://business.facebook.com → Events Manager
+    FACEBOOK_PIXEL_ID: null
 };
 
 // Tornar disponível globalmente

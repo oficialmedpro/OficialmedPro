@@ -95,6 +95,12 @@
                 // Sem linkId: mostrar splash de apresentação
                 loadingEl.style.display = 'none';
                 if (splashEl) splashEl.style.display = 'block';
+                // Rastrear visualização do splash
+                if (typeof window.trackEvent === 'function') {
+                    window.trackEvent('splash_view', {
+                        page_location: window.location.href
+                    });
+                }
                 return;
             }
 
@@ -119,6 +125,13 @@
                 const expiresAt = new Date(data.expires_at);
                 const now = new Date();
                 if (now > expiresAt) {
+                    // Rastrear link expirado
+                    if (typeof window.trackEvent === 'function') {
+                        window.trackEvent('link_expired', {
+                            link_id: linkId,
+                            expires_at: data.expires_at
+                        });
+                    }
                     throw new Error('Este link de pré-checkout expirou');
                 }
             }
@@ -137,17 +150,42 @@
             loadingEl.style.display = 'none';
             contentEl.style.display = 'block';
 
+            // Rastrear visualização da página com dados do orçamento
+            if (typeof window.trackPageView === 'function') {
+                window.trackPageView({
+                    link_id: linkId,
+                    orcamento_codigo: data.dados_orcamento?.codigo || 'N/A',
+                    cliente: data.dados_orcamento?.cliente || 'N/A',
+                    quantidade_formulas: data.dados_orcamento?.formulas?.length || 0
+                });
+            }
+
         } catch (err) {
             console.error('Erro ao carregar pré-checkout:', err);
             loadingEl.style.display = 'none';
             // Em caso de erro (ex.: link inválido/expirado), mantém mensagem de erro
             errorEl.style.display = 'block';
             errorMessageEl.textContent = err.message;
+            
+            // Rastrear erro
+            if (typeof window.trackEvent === 'function') {
+                const errorType = err.message.includes('expirado') ? 'link_expirado' : 
+                                 err.message.includes('não encontrado') ? 'link_invalido' : 
+                                 'erro_carregamento';
+                window.trackEvent('page_load_error', {
+                    error_type: errorType,
+                    error_message: err.message,
+                    link_id: obterLinkIdDaUrl() || 'N/A'
+                });
+            }
         }
     }
 
     function toggleFormula(numero) {
-        if (formulasSelecionadas.has(numero)) {
+        const formula = orcamentoData?.dados_orcamento?.formulas?.find(f => f.numero === numero);
+        const wasSelected = formulasSelecionadas.has(numero);
+        
+        if (wasSelected) {
             formulasSelecionadas.delete(numero);
         } else {
             formulasSelecionadas.add(numero);
@@ -155,6 +193,17 @@
         
         atualizarCheckboxes();
         calcularEAtualizarTotal();
+        
+        // Rastrear seleção/deseleção
+        if (typeof window.trackEvent === 'function' && formula) {
+            const eventName = wasSelected ? 'formula_deselect' : 'formula_select';
+            window.trackEvent(eventName, {
+                formula_numero: numero,
+                formula_valor: formula.valor || 0,
+                total_formulas_selecionadas: formulasSelecionadas.size,
+                subtotal: calcularSubtotal()
+            });
+        }
     }
 
     function atualizarCheckboxes() {
@@ -189,10 +238,14 @@
         return valor >= 300 ? 0 : 30;
     }
 
+    // Variável para rastrear se frete grátis já foi atingido
+    let freteGratisJaRastreado = false;
+
     function calcularEAtualizarTotal() {
         const subtotal = calcularSubtotal();
         const frete = calcularFrete(subtotal);
         const total = subtotal + frete;
+        const qtdProdutos = formulasSelecionadas.size;
         
         const totalValueEl = document.getElementById('total-value');
         const resumoProdutosEl = document.getElementById('resumo-produtos');
@@ -206,7 +259,6 @@
         
         // Atualizar subtotal de produtos
         if (resumoProdutosEl) {
-            const qtdProdutos = formulasSelecionadas.size;
             resumoProdutosEl.textContent = formatarValor(subtotal);
             
             // Atualizar texto "1 Produto" para quantidade correta
@@ -224,6 +276,7 @@
             } else {
                 resumoFreteValueEl.textContent = formatarValor(frete);
                 resumoFreteValueEl.classList.remove('frete-gratis');
+                freteGratisJaRastreado = false; // Reset quando frete volta a ser pago
             }
         }
         
@@ -231,14 +284,66 @@
         if (btnFinalizar) {
             btnFinalizar.disabled = formulasSelecionadas.size === 0;
         }
+        
+        // Rastrear eventos de cálculo
+        if (typeof window.trackEvent === 'function') {
+            // Rastrear cálculo de frete
+            window.trackEvent('frete_calculated', {
+                subtotal: subtotal,
+                frete: frete,
+                frete_gratis: frete === 0,
+                total: total
+            });
+            
+            // Rastrear atualização de total
+            window.trackEvent('total_updated', {
+                subtotal: subtotal,
+                frete: frete,
+                total: total,
+                quantidade_produtos: qtdProdutos
+            });
+            
+            // Rastrear quando atinge frete grátis (apenas uma vez)
+            if (frete === 0 && !freteGratisJaRastreado && subtotal > 0) {
+                freteGratisJaRastreado = true;
+                window.trackEvent('frete_gratis_achieved', {
+                    subtotal: subtotal,
+                    total: total,
+                    quantidade_produtos: qtdProdutos
+                });
+            }
+        }
     }
 
     async function finalizarCompra() {
         const btnFinalizar = document.getElementById('btn-finalizar');
         
         if (formulasSelecionadas.size === 0) {
+            // Rastrear tentativa de finalizar sem produtos
+            if (typeof window.trackEvent === 'function') {
+                window.trackEvent('formula_selection_validation', {
+                    error: 'nenhuma_formula_selecionada',
+                    formulas_disponiveis: orcamentoData?.dados_orcamento?.formulas?.length || 0
+                });
+            }
             alert('Selecione pelo menos uma fórmula para continuar');
             return;
+        }
+
+        // Calcular valores antes de rastrear
+        const subtotal = calcularSubtotal();
+        const frete = calcularFrete(subtotal);
+        const valorTotal = subtotal + frete;
+
+        // Rastrear clique em finalizar
+        if (typeof window.trackEvent === 'function') {
+            window.trackEvent('finalizar_compra_click', {
+                subtotal: subtotal,
+                frete: frete,
+                total: valorTotal,
+                quantidade_produtos: formulasSelecionadas.size,
+                formulas_selecionadas: Array.from(formulasSelecionadas)
+            });
         }
 
         try {
@@ -302,11 +407,40 @@
                 throw new Error('Resposta inválida do servidor');
             }
 
+            // Rastrear sucesso na geração do checkout
+            if (typeof window.trackEvent === 'function') {
+                window.trackEvent('finalizar_compra_success', {
+                    checkout_url: data.checkout_url,
+                    subtotal: subtotal,
+                    frete: frete,
+                    total: valorTotal
+                });
+            }
+
+            // Rastrear redirecionamento
+            if (typeof window.trackEvent === 'function') {
+                window.trackEvent('checkout_redirect', {
+                    checkout_url: data.checkout_url,
+                    total: valorTotal
+                });
+            }
+
             // Redirecionar para o checkout
             window.location.href = data.checkout_url;
 
         } catch (err) {
             console.error('Erro ao finalizar:', err);
+            
+            // Rastrear erro ao finalizar
+            if (typeof window.trackEvent === 'function') {
+                window.trackEvent('finalizar_compra_error', {
+                    error_message: err.message,
+                    subtotal: subtotal,
+                    frete: frete,
+                    total: valorTotal
+                });
+            }
+            
             alert('Erro ao processar. Tente novamente.');
             
             if (btnFinalizar) {
@@ -402,6 +536,13 @@
                 fontScale = Math.max(0.75, fontScale - 0.1);
                 localStorage.setItem('precheckout_font_scale', String(fontScale));
                 aplicarFonte();
+                
+                // Rastrear diminuição de fonte
+                if (typeof window.trackEvent === 'function') {
+                    window.trackEvent('font_decrease', {
+                        font_scale: fontScale
+                    });
+                }
             });
         }
         
@@ -410,11 +551,26 @@
                 fontScale = Math.min(2.0, fontScale + 0.1);
                 localStorage.setItem('precheckout_font_scale', String(fontScale));
                 aplicarFonte();
+                
+                // Rastrear aumento de fonte
+                if (typeof window.trackEvent === 'function') {
+                    window.trackEvent('font_increase', {
+                        font_scale: fontScale
+                    });
+                }
             });
         }
 
         // Exportar imagem
         async function baixarImagem() {
+            // Rastrear download de imagem
+            if (typeof window.trackEvent === 'function') {
+                window.trackEvent('download_image', {
+                    orcamento_codigo: orcamentoData?.dados_orcamento?.codigo || 'N/A',
+                    cliente: orcamentoData?.dados_orcamento?.cliente || 'N/A'
+                });
+            }
+            
             const alvo = document.getElementById('root') || document.body;
             document.body.classList.add('exportando');
             window.scrollTo(0, 0);
@@ -427,7 +583,7 @@
             const dataURL = canvas.toDataURL('image/png');
             const a = document.createElement('a');
             a.href = dataURL;
-            const nome = (orcamentoData?.codigo_orcamento || 'orcamento').toString();
+            const nome = (orcamentoData?.dados_orcamento?.codigo || orcamentoData?.codigo_orcamento || 'orcamento').toString();
             a.download = `pre-checkout-${nome}.png`;
             a.click();
             document.body.classList.remove('exportando');
@@ -435,6 +591,14 @@
 
         // Exportar PDF
         async function baixarPDF() {
+            // Rastrear download de PDF
+            if (typeof window.trackEvent === 'function') {
+                window.trackEvent('download_pdf', {
+                    orcamento_codigo: orcamentoData?.dados_orcamento?.codigo || 'N/A',
+                    cliente: orcamentoData?.dados_orcamento?.cliente || 'N/A'
+                });
+            }
+            
             const alvo = document.getElementById('root') || document.body;
             document.body.classList.add('exportando');
             window.scrollTo(0, 0);
@@ -465,13 +629,20 @@
                 heightLeft -= pageHeight;
             }
 
-            const nome = (orcamentoData?.codigo_orcamento || 'orcamento').toString();
+            const nome = (orcamentoData?.dados_orcamento?.codigo || orcamentoData?.codigo_orcamento || 'orcamento').toString();
             pdf.save(`pre-checkout-${nome}.pdf`);
             document.body.classList.remove('exportando');
         }
 
         // Imprimir
         function imprimir() {
+            // Rastrear impressão
+            if (typeof window.trackEvent === 'function') {
+                window.trackEvent('print_page', {
+                    orcamento_codigo: orcamentoData?.dados_orcamento?.codigo || 'N/A',
+                    cliente: orcamentoData?.dados_orcamento?.cliente || 'N/A'
+                });
+            }
             window.print();
         }
 
@@ -482,7 +653,26 @@
         const btnPrint = document.getElementById('print-page');
         if (btnPrint) btnPrint.addEventListener('click', imprimir);
 
-        // nada a fazer além do font-size base
+        // Rastrear cliques em badges
+        document.querySelectorAll('.badge a, .qrcode-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                const badgeType = link.closest('.badge')?.className.match(/badge-(\w+)/)?.[1] || 'unknown';
+                const url = link.href || link.getAttribute('href');
+                
+                if (typeof window.trackEvent === 'function') {
+                    if (badgeType === 'qrcode') {
+                        window.trackEvent('franqueado_link_click', {
+                            link_url: url
+                        });
+                    } else {
+                        window.trackEvent('badge_click', {
+                            badge_type: badgeType,
+                            badge_url: url
+                        });
+                    }
+                }
+            });
+        });
     });
 
     // Expor funções globalmente se necessário

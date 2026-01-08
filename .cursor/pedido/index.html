@@ -6,6 +6,20 @@
     <title>Orçamento OficialMed</title>
     <link rel="icon" type="image/png" href="/favicon.png">
     <link rel="stylesheet" href="/styles.css">
+    
+    <!-- Google Analytics 4 -->
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-NCJG7F37CL"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        // Measurement ID configurado via config.js ou variável de ambiente
+        const GA4_ID = window.ENV_CONFIG?.VITE_GA4_MEASUREMENT_ID || 
+                       window.CONFIG?.GA4_MEASUREMENT_ID || 
+                       'G-NCJG7F37CL';
+        gtag('config', GA4_ID);
+    </script>
 </head>
 <body>
     <div id="root">
@@ -167,6 +181,8 @@
     <!-- libs para exportar imagem e PDF -->
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <!-- Analytics -->
+    <script src="/analytics.js"></script>
     <script src="/app.js"></script>
 </body>
 </html>
