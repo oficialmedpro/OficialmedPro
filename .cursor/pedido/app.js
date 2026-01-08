@@ -173,7 +173,7 @@
         });
     }
 
-    function calcularTotal() {
+    function calcularSubtotal() {
         if (!orcamentoData || !orcamentoData.dados_orcamento) return 0;
         
         return orcamentoData.dados_orcamento.formulas
@@ -181,25 +181,42 @@
             .reduce((sum, f) => sum + (f.valor || 0), 0);
     }
 
+    function calcularFrete(subtotal) {
+        // Frete grátis para compras acima de R$ 300,00
+        // Frete de R$ 30,00 para compras abaixo de R$ 300,00
+        return subtotal >= 300 ? 0 : 30;
+    }
+
     function calcularEAtualizarTotal() {
-        const total = calcularTotal();
+        const subtotal = calcularSubtotal();
+        const frete = calcularFrete(subtotal);
+        const total = subtotal + frete;
+        
         const totalValueEl = document.getElementById('total-value');
         const resumoProdutosEl = document.getElementById('resumo-produtos');
+        const resumoFreteValueEl = document.getElementById('resumo-frete-value');
         const btnFinalizar = document.getElementById('btn-finalizar');
         
+        // Atualizar total final
         if (totalValueEl) {
             totalValueEl.textContent = formatarValor(total);
         }
         
+        // Atualizar subtotal de produtos
         if (resumoProdutosEl) {
             const qtdProdutos = formulasSelecionadas.size;
-            resumoProdutosEl.textContent = formatarValor(total);
+            resumoProdutosEl.textContent = formatarValor(subtotal);
             
             // Atualizar texto "1 Produto" para quantidade correta
             const resumoLabelEl = resumoProdutosEl.previousElementSibling.previousElementSibling;
             if (resumoLabelEl && resumoLabelEl.textContent.includes('Produto')) {
                 resumoLabelEl.textContent = `${qtdProdutos} ${qtdProdutos === 1 ? 'Produto' : 'Produtos'}`;
             }
+        }
+        
+        // Atualizar valor do frete
+        if (resumoFreteValueEl) {
+            resumoFreteValueEl.textContent = formatarValor(frete);
         }
         
         // Habilitar/desabilitar botão de finalizar
@@ -456,6 +473,7 @@
 
     // Expor funções globalmente se necessário
     window.toggleFormula = toggleFormula;
-    window.calcularTotal = calcularTotal;
+    window.calcularSubtotal = calcularSubtotal;
+    window.calcularFrete = calcularFrete;
     window.finalizarCompra = finalizarCompra;
 })();
