@@ -55,9 +55,12 @@ html {
 }
 
 .logo-image {
-    max-height: 64px; /* aumento do tamanho da logo no topo */
+    max-width: 300px;
+    max-height: 70px;
     width: auto;
+    height: auto;
     object-fit: contain;
+    margin-top: 10px;
 }
 
 .action-btn {
