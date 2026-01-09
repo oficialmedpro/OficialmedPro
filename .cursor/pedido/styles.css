@@ -846,6 +846,20 @@ html {
     overflow: hidden;
 }
 
+/* Versão do Sistema */
+.version-footer {
+    text-align: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+}
+
+#version-text {
+    color: var(--muted-color);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
 .badge {
     display: flex;
     align-items: center;

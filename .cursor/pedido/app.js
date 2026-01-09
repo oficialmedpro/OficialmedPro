@@ -853,8 +853,17 @@
         }
     }
 
+    // Atualizar versão no rodapé
+    function atualizarVersao() {
+        const versionTextEl = document.getElementById('version-text');
+        if (versionTextEl && window.VERSION) {
+            versionTextEl.textContent = window.VERSION.getFullVersion();
+        }
+    }
+
     // Inicializar quando a página carregar
     document.addEventListener('DOMContentLoaded', () => {
+        atualizarVersao();
         carregarPreCheckout();
         
         // Event listeners para navegação entre etapas
