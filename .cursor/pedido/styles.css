@@ -185,6 +185,7 @@ html {
     font-size: 1rem;
     color: var(--text-color);
     line-height: 1.2;
+    transition: color 0.3s ease, font-weight 0.3s ease;
 }
 
 .step-subtitle {
@@ -192,6 +193,22 @@ html {
     font-size: 0.875rem;
     color: var(--muted-color);
     line-height: 1.2;
+}
+
+/* Estilos para etapas ativas */
+.progress-step.step-active .step-title {
+    color: var(--brand-text);
+    font-weight: 700;
+}
+
+.progress-step.step-completed .step-title {
+    color: var(--brand-text);
+    font-weight: 700;
+}
+
+.progress-step.step-pending .step-title {
+    color: var(--muted-color);
+    font-weight: 600;
 }
 
 .progress-step[data-step="1"] .step-title,
@@ -511,10 +528,20 @@ html {
     .progress-indicator {
         gap: 0;
         padding: 15px 10px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none; /* IE/Edge */
+    }
+    
+    .progress-indicator::-webkit-scrollbar {
+        display: none; /* Chrome/Safari */
     }
     
     .progress-step {
         gap: 8px;
+        min-width: fit-content;
+        flex-shrink: 0;
     }
     
     .step-icon {
@@ -523,18 +550,73 @@ html {
         flex-shrink: 0;
     }
     
+    .step-icon svg {
+        width: 18px;
+        height: 18px;
+    }
+    
+    .step-label {
+        min-width: fit-content;
+    }
+    
     .step-title {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
+        font-weight: 700;
+        white-space: nowrap;
     }
     
     .step-subtitle {
+        font-size: 0.7rem;
+        white-space: nowrap;
+        display: none; /* Esconder subtítulo no mobile para economizar espaço */
+    }
+    
+    .progress-line {
+        min-width: 20px;
+        max-width: 40px;
+        margin: 0 5px;
+        flex-shrink: 0;
+    }
+    
+    /* Destacar etapa ativa no mobile */
+    .progress-step[data-step] .step-icon.step-active {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 3px rgba(19, 60, 142, 0.2);
+    }
+    
+    .progress-step[data-step] .step-icon.step-completed {
+        transform: scale(1.05);
+    }
+}
+
+/* Mobile muito pequeno */
+@media (max-width: 480px) {
+    .progress-indicator {
+        padding: 12px 5px;
+    }
+    
+    .step-icon {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .step-icon svg {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .step-title {
         font-size: 0.75rem;
     }
     
     .progress-line {
-        min-width: 30px;
-        max-width: 60px;
-        margin: 0 8px;
+        min-width: 15px;
+        max-width: 30px;
+        margin: 0 3px;
+    }
+    
+    .progress-step {
+        gap: 6px;
     }
     
     .form-row {

@@ -525,20 +525,64 @@
 
     // Gerenciamento de etapas
     function atualizarIndicadorProgresso(etapa) {
-        // Atualizar ícones
+        // Atualizar ícones e linhas
         for (let i = 1; i <= 3; i++) {
-            const stepIcon = document.querySelector(`#step-indicator-${i} .step-icon`);
+            const stepEl = document.querySelector(`#step-indicator-${i}`);
+            const stepIcon = stepEl?.querySelector('.step-icon');
             const stepLine = document.querySelector(`#progress-line-${i}`);
+            const stepTitle = stepEl?.querySelector('.step-title');
+            
+            if (!stepIcon) continue;
+            
+            // Remover todas as classes de estado
+            stepIcon.classList.remove('step-completed', 'step-active', 'step-pending');
+            if (stepLine) stepLine.classList.remove('completed');
+            if (stepEl) stepEl.classList.remove('step-active', 'step-completed', 'step-pending');
             
             if (i < etapa) {
-                stepIcon.className = 'step-icon step-completed';
-                if (stepLine) stepLine.classList.add('completed');
+                // Etapa já completada
+                stepIcon.classList.add('step-completed');
+                stepEl?.classList.add('step-completed');
+                if (stepLine) {
+                    stepLine.classList.add('completed');
+                }
+                if (stepTitle) {
+                    stepTitle.style.color = 'var(--brand-text)';
+                    stepTitle.style.fontWeight = '700';
+                }
             } else if (i === etapa) {
-                stepIcon.className = 'step-icon step-active';
-                if (stepLine) stepLine.classList.remove('completed');
+                // Etapa atual (ativa)
+                stepIcon.classList.add('step-active');
+                stepEl?.classList.add('step-active');
+                if (stepLine) {
+                    stepLine.classList.remove('completed');
+                }
+                if (stepTitle) {
+                    stepTitle.style.color = 'var(--brand-text)';
+                    stepTitle.style.fontWeight = '700';
+                }
+                
+                // Scroll para etapa ativa no mobile
+                if (window.innerWidth <= 768 && stepEl) {
+                    setTimeout(() => {
+                        stepEl.scrollIntoView({ 
+                            behavior: 'smooth', 
+                            block: 'nearest',
+                            inline: 'center'
+                        });
+                    }, 100);
+                }
             } else {
-                stepIcon.className = 'step-icon step-pending';
-                if (stepLine) stepLine.classList.remove('completed');
+                // Etapa pendente
+                stepIcon.classList.add('step-pending');
+                stepEl?.classList.add('step-pending');
+                if (stepLine) {
+                    stepLine.classList.remove('completed');
+                }
+                if (stepTitle) {
+                    stepTitle.style.color = 'var(--muted-color)';
+                    stepTitle.style.fontWeight = '600';
+                }
             }
         }
     }
