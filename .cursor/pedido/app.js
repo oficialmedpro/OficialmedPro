@@ -973,26 +973,36 @@
             throw new Error('API Key do checkout não configurada');
         }
 
+        const payload = {
+            customerId: customerId,
+            billingType: 'PIX',
+            value: valor,
+            description: descricao || 'Pagamento OficialMed'
+        };
+
+        console.log('📤 Enviando requisição para criar pagamento PIX:');
+        console.log('URL:', `${CHECKOUT_API_URL}/api/payment`);
+        console.log('Payload:', payload);
+
         const response = await fetch(`${CHECKOUT_API_URL}/api/payment`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-API-Key': CHECKOUT_API_KEY
             },
-            body: JSON.stringify({
-                customerId: customerId,
-                billingType: 'PIX',
-                value: valor,
-                description: descricao || 'Pagamento OficialMed'
-            })
+            body: JSON.stringify(payload)
         });
+
+        console.log('📥 Resposta recebida:', response.status, response.statusText);
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `Erro ao criar pagamento PIX: ${response.status}`);
+            console.error('❌ Erro na resposta:', errorData);
+            throw new Error(errorData.error || `Erro ao criar pagamento PIX: ${response.status} - ${response.statusText}`);
         }
 
         const data = await response.json();
+        console.log('✅ Dados do pagamento recebidos:', data);
         return data.payment;
     }
 
@@ -1063,19 +1073,26 @@
             throw new Error('API Key do checkout não configurada');
         }
 
-        const response = await fetch(`${CHECKOUT_API_URL}/api/payment/${paymentId}/pix-qrcode`, {
+        const url = `${CHECKOUT_API_URL}/api/payment/${paymentId}/pix-qrcode`;
+        console.log('📤 Buscando QR Code PIX na URL:', url);
+
+        const response = await fetch(url, {
             method: 'GET',
             headers: {
                 'X-API-Key': CHECKOUT_API_KEY
             }
         });
 
+        console.log('📥 Resposta do QR Code:', response.status, response.statusText);
+
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `Erro ao buscar QR Code: ${response.status}`);
+            console.error('❌ Erro ao buscar QR Code:', errorData);
+            throw new Error(errorData.error || `Erro ao buscar QR Code: ${response.status} - ${response.statusText}`);
         }
 
         const data = await response.json();
+        console.log('✅ QR Code recebido:', data);
         return data.pixQrCode;
     }
 
@@ -1141,12 +1158,22 @@
             }
 
             // Verificar se API está configurada
+            console.log('🔍 Verificando configuração da API...');
+            console.log('CHECKOUT_API_URL:', CHECKOUT_API_URL);
+            console.log('CHECKOUT_API_KEY configurada:', CHECKOUT_API_KEY ? 'Sim' : 'Não');
+            
             if (!CHECKOUT_API_KEY || CHECKOUT_API_KEY === 'sua_chave_api_backend') {
-                throw new Error('API Key do checkout não configurada. Configure CHECKOUT_API_KEY no config.js');
+                const errorMsg = 'API Key do checkout não configurada. Configure CHECKOUT_API_KEY no config.js ou variáveis de ambiente.';
+                console.error('❌', errorMsg);
+                alert(errorMsg + '\n\nVerifique o console para mais detalhes.');
+                throw new Error(errorMsg);
             }
 
             // 1. Criar cliente no Asaas
             console.log('📝 Criando cliente no Asaas...');
+            console.log('Dados do cliente:', dadosCliente);
+            console.log('URL da API:', `${CHECKOUT_API_URL}/api/customers`);
+            
             const customer = await criarClienteAsaas(dadosCliente);
             console.log('✅ Cliente criado:', customer.id);
 
@@ -1154,21 +1181,32 @@
             let qrCodeData = null;
 
             // 2. Criar pagamento baseado no método escolhido
+            console.log('💳 Método de pagamento selecionado:', dadosPagamento.metodo);
+            console.log('💰 Valor total:', valorTotal);
+            
             if (dadosPagamento.metodo === 'pix') {
                 console.log('💳 Criando pagamento PIX...');
+                console.log('Customer ID:', customer.id);
+                console.log('Valor:', valorTotal);
+                
                 payment = await criarPagamentoPix(
                     customer.id,
                     valorTotal,
                     `Orçamento ${orcamentoData?.dados_orcamento?.codigo || 'N/A'} - OficialMed`
                 );
-                console.log('✅ Pagamento PIX criado:', payment.id);
+                console.log('✅ Pagamento PIX criado:', payment);
+                console.log('Payment ID:', payment.id);
+                console.log('Payment Status:', payment.status);
 
                 // 3. Buscar QR Code PIX
                 console.log('📱 Buscando QR Code PIX...');
+                console.log('Payment ID para buscar QR Code:', payment.id);
+                
                 qrCodeData = await buscarQrCodePix(payment.id);
-                console.log('✅ QR Code obtido');
+                console.log('✅ QR Code obtido:', qrCodeData);
 
                 // Exibir QR Code na tela
+                console.log('🖼️ Exibindo QR Code na tela...');
                 exibirQrCodePix(qrCodeData);
 
                 // Rastrear sucesso PIX
@@ -1262,11 +1300,25 @@
      * Exibe o QR Code PIX na tela
      */
     function exibirQrCodePix(qrCodeData) {
+        console.log('🖼️ Exibindo QR Code PIX na tela...');
+        console.log('Dados do QR Code:', qrCodeData);
+        
         const pixForm = document.getElementById('form-pix');
         const pixQrCode = pixForm?.querySelector('.pix-qr-code');
         const pixCodeInput = document.getElementById('pix-code');
 
-        if (pixQrCode && qrCodeData.encodedImage) {
+        if (!pixForm) {
+            console.error('❌ Formulário PIX não encontrado!');
+            return;
+        }
+
+        if (!pixQrCode) {
+            console.error('❌ Container do QR Code não encontrado!');
+            return;
+        }
+
+        if (qrCodeData && qrCodeData.encodedImage) {
+            console.log('✅ Criando imagem do QR Code...');
             // Criar imagem do QR Code
             const img = document.createElement('img');
             img.src = `data:image/png;base64,${qrCodeData.encodedImage}`;
@@ -1274,25 +1326,32 @@
             img.style.width = '100%';
             img.style.height = 'auto';
             img.style.maxWidth = '300px';
+            img.style.border = '2px solid #ddd';
+            img.style.borderRadius = '8px';
             
             // Limpar conteúdo anterior e adicionar imagem
             pixQrCode.innerHTML = '';
             pixQrCode.appendChild(img);
+            console.log('✅ Imagem do QR Code adicionada');
+        } else {
+            console.warn('⚠️ QR Code não possui imagem encodedImage');
         }
 
-        if (pixCodeInput && qrCodeData.payload) {
+        if (pixCodeInput && qrCodeData && qrCodeData.payload) {
             pixCodeInput.value = qrCodeData.payload;
+            console.log('✅ Código PIX copiado para o campo');
+        } else {
+            console.warn('⚠️ QR Code não possui payload');
         }
 
         // Mostrar formulário PIX
-        if (pixForm) {
-            pixForm.style.display = 'block';
-        }
+        pixForm.style.display = 'block';
+        console.log('✅ Formulário PIX exibido');
 
         // Scroll para o QR Code
-        if (pixForm) {
+        setTimeout(() => {
             pixForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+        }, 100);
     }
 
     /**
