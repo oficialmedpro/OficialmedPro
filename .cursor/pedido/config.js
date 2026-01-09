@@ -32,7 +32,16 @@ const CONFIG = {
     
     // Facebook Pixel ID (opcional)
     // Obtenha em: https://business.facebook.com → Events Manager
-    FACEBOOK_PIXEL_ID: null
+    FACEBOOK_PIXEL_ID: null,
+    
+    // API do Checkout Transparente (Asaas)
+    // URL base da API do backend que integra com Asaas
+    CHECKOUT_API_URL: 'http://localhost:3001',
+    
+    // API Key do backend (para autenticação)
+    // ⚠️ IMPORTANTE: Esta chave deve ser configurada no backend
+    // Configure no arquivo .env do backend ou variável de ambiente
+    CHECKOUT_API_KEY: 'sua_chave_api_backend'
 };
 
 // Tornar disponível globalmente

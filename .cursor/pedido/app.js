@@ -11,6 +11,10 @@
     const SUPABASE_SCHEMA = ENV_CONFIG.VITE_SUPABASE_SCHEMA || CONFIG_FALLBACK.SUPABASE_SCHEMA || 'api';
     const API_URL = ENV_CONFIG.VITE_API_URL || CONFIG_FALLBACK.API_URL || window.location.origin;
     const N8N_WEBHOOK_URL = ENV_CONFIG.VITE_N8N_WEBHOOK_URL || CONFIG_FALLBACK.N8N_WEBHOOK_URL || 'https://seu-n8n.com/webhook-pagina-precheckout';
+    
+    // Configuração da API de Checkout Transparente
+    const CHECKOUT_API_URL = ENV_CONFIG.VITE_CHECKOUT_API_URL || CONFIG_FALLBACK.CHECKOUT_API_URL || 'http://localhost:3001';
+    const CHECKOUT_API_KEY = ENV_CONFIG.VITE_CHECKOUT_API_KEY || CONFIG_FALLBACK.CHECKOUT_API_KEY || '';
 
     // Validar configuração
     if (!SUPABASE_KEY || SUPABASE_KEY === 'COLE_SUA_CHAVE_ANON_AQUI') {
@@ -615,8 +619,44 @@
         etapaAtual = etapa;
         atualizarIndicadorProgresso(etapa);
         
+        // Se for etapa 3 (pagamento), atualizar opções de parcelas
+        if (etapa === 3) {
+            atualizarOpcoesParcelas();
+        }
+        
         // Scroll para o topo
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /**
+     * Atualiza as opções de parcelas baseado no valor total
+     */
+    function atualizarOpcoesParcelas() {
+        const selectParcelas = document.getElementById('card-installments');
+        if (!selectParcelas) return;
+
+        const subtotal = calcularSubtotal();
+        const frete = calcularFrete(subtotal);
+        const valorTotal = subtotal + frete;
+        const maxParcelas = getMaxInstallments(valorTotal);
+
+        // Limpar opções existentes
+        selectParcelas.innerHTML = '';
+
+        // Adicionar opções baseadas no máximo permitido
+        for (let i = 1; i <= maxParcelas; i++) {
+            const option = document.createElement('option');
+            const valorParcela = valorTotal / i;
+            option.value = i;
+            
+            if (i === 1) {
+                option.textContent = `À vista - ${formatarValor(valorParcela)}`;
+            } else {
+                option.textContent = `${i}x de ${formatarValor(valorParcela)}`;
+            }
+            
+            selectParcelas.appendChild(option);
+        }
     }
 
     async function salvarEtapa1() {
@@ -880,6 +920,191 @@
         }
     }
 
+    // ============================================
+    // FUNÇÕES DE INTEGRAÇÃO COM API DE CHECKOUT
+    // ============================================
+
+    /**
+     * Cria um cliente no Asaas via API
+     */
+    async function criarClienteAsaas(dadosCliente) {
+        if (!CHECKOUT_API_KEY) {
+            throw new Error('API Key do checkout não configurada. Configure CHECKOUT_API_KEY no config.js');
+        }
+
+        const response = await fetch(`${CHECKOUT_API_URL}/api/customers`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': CHECKOUT_API_KEY
+            },
+            body: JSON.stringify({
+                name: dadosCliente.nome,
+                cpfCnpj: dadosCliente.cpf,
+                email: dadosCliente.email,
+                mobilePhone: dadosCliente.celular,
+                address: dadosCliente.endereco,
+                addressNumber: dadosCliente.numero || '',
+                complement: dadosCliente.complemento || '',
+                province: dadosCliente.bairro,
+                postalCode: dadosCliente.cep,
+                city: dadosCliente.cidade,
+                // Campos opcionais
+                ...(dadosCliente.data_nascimento && { 
+                    // Se necessário, adicionar campo de data de nascimento
+                })
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Erro ao criar cliente: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.customer;
+    }
+
+    /**
+     * Cria um pagamento via PIX
+     */
+    async function criarPagamentoPix(customerId, valor, descricao) {
+        if (!CHECKOUT_API_KEY) {
+            throw new Error('API Key do checkout não configurada');
+        }
+
+        const response = await fetch(`${CHECKOUT_API_URL}/api/payment`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': CHECKOUT_API_KEY
+            },
+            body: JSON.stringify({
+                customerId: customerId,
+                billingType: 'PIX',
+                value: valor,
+                description: descricao || 'Pagamento OficialMed'
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Erro ao criar pagamento PIX: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.payment;
+    }
+
+    /**
+     * Cria um pagamento via Cartão de Crédito
+     */
+    async function criarPagamentoCartao(customerId, valor, dadosCartao, dadosCliente, parcelas, descricao) {
+        if (!CHECKOUT_API_KEY) {
+            throw new Error('API Key do checkout não configurada');
+        }
+
+        // Separar mês e ano da validade (formato MM/AA)
+        const [expiryMonth, expiryYear] = dadosCartao.validade.split('/');
+        const expiryYearFull = `20${expiryYear}`; // Converter AA para AAAA
+
+        const paymentData = {
+            customerId: customerId,
+            billingType: 'CREDIT_CARD',
+            value: valor,
+            description: descricao || 'Pagamento OficialMed',
+            creditCard: {
+                holderName: dadosCartao.nome.toUpperCase(),
+                number: dadosCartao.numero.replace(/\D/g, ''),
+                expiryMonth: expiryMonth,
+                expiryYear: expiryYearFull,
+                ccv: dadosCartao.cvv
+            },
+            creditCardHolderInfo: {
+                name: dadosCliente.nome,
+                email: dadosCliente.email,
+                cpfCnpj: dadosCliente.cpf.replace(/\D/g, ''),
+                postalCode: dadosCliente.cep.replace(/\D/g, ''),
+                addressNumber: dadosCliente.numero || '',
+                phone: dadosCliente.celular.replace(/\D/g, '')
+            },
+            remoteIp: await obterIPCliente() || '127.0.0.1'
+        };
+
+        // Adicionar parcelas se for maior que 1
+        const parcelasNum = parseInt(parcelas) || 1;
+        if (parcelasNum > 1) {
+            paymentData.installmentCount = parcelasNum;
+        }
+
+        const response = await fetch(`${CHECKOUT_API_URL}/api/payment`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': CHECKOUT_API_KEY
+            },
+            body: JSON.stringify(paymentData)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Erro ao criar pagamento: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.payment;
+    }
+
+    /**
+     * Busca o QR Code de um pagamento PIX
+     */
+    async function buscarQrCodePix(paymentId) {
+        if (!CHECKOUT_API_KEY) {
+            throw new Error('API Key do checkout não configurada');
+        }
+
+        const response = await fetch(`${CHECKOUT_API_URL}/api/payment/${paymentId}/pix-qrcode`, {
+            method: 'GET',
+            headers: {
+                'X-API-Key': CHECKOUT_API_KEY
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Erro ao buscar QR Code: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return data.pixQrCode;
+    }
+
+    /**
+     * Obtém o IP do cliente (tenta via backend ou usa fallback)
+     */
+    async function obterIPCliente() {
+        try {
+            // Tentar obter IP via serviço externo
+            const response = await fetch('https://api.ipify.org?format=json');
+            const data = await response.json();
+            return data.ip;
+        } catch (err) {
+            console.warn('Não foi possível obter IP do cliente:', err);
+            return null;
+        }
+    }
+
+    /**
+     * Calcula o número máximo de parcelas baseado no valor
+     */
+    function getMaxInstallments(value) {
+        if (value <= 100) return 1;      // Até R$ 100: à vista (1x)
+        if (value <= 250) return 2;       // R$ 101 a 250: até 2x
+        if (value <= 600) return 4;       // R$ 251 a 600: até 4x
+        if (value <= 1000) return 6;     // R$ 601 a 1000: até 6x
+        return 8;                        // Acima de R$ 1000: até 8x
+    }
+
     async function finalizarCompra() {
         if (!validarEtapa3()) return;
 
@@ -899,7 +1124,7 @@
             // Salvar dados de pagamento
             await salvarEtapa3();
 
-            // Calcular valores
+            // Calcular valores (usando o valor total calculado)
             const subtotal = calcularSubtotal();
             const frete = calcularFrete(subtotal);
             const valorTotal = subtotal + frete;
@@ -915,32 +1140,197 @@
                 });
             }
 
-            // Aqui você pode chamar a API do Asaas ou n8n
-            // Por enquanto, vamos apenas mostrar uma mensagem
-            alert('Pedido processado com sucesso! Em breve você receberá as instruções de pagamento.');
-            
-            // TODO: Integrar com API do Asaas quando estiver pronta
-            // const response = await fetch(API_URL + '/criar-pagamento', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify({
-            //         linkId,
-            //         formulasSelecionadas: Array.from(formulasSelecionadas),
-            //         dadosCliente,
-            //         dadosPagamento,
-            //         valor: valorTotal
-            //     })
-            // });
+            // Verificar se API está configurada
+            if (!CHECKOUT_API_KEY || CHECKOUT_API_KEY === 'sua_chave_api_backend') {
+                throw new Error('API Key do checkout não configurada. Configure CHECKOUT_API_KEY no config.js');
+            }
+
+            // 1. Criar cliente no Asaas
+            console.log('📝 Criando cliente no Asaas...');
+            const customer = await criarClienteAsaas(dadosCliente);
+            console.log('✅ Cliente criado:', customer.id);
+
+            let payment = null;
+            let qrCodeData = null;
+
+            // 2. Criar pagamento baseado no método escolhido
+            if (dadosPagamento.metodo === 'pix') {
+                console.log('💳 Criando pagamento PIX...');
+                payment = await criarPagamentoPix(
+                    customer.id,
+                    valorTotal,
+                    `Orçamento ${orcamentoData?.dados_orcamento?.codigo || 'N/A'} - OficialMed`
+                );
+                console.log('✅ Pagamento PIX criado:', payment.id);
+
+                // 3. Buscar QR Code PIX
+                console.log('📱 Buscando QR Code PIX...');
+                qrCodeData = await buscarQrCodePix(payment.id);
+                console.log('✅ QR Code obtido');
+
+                // Exibir QR Code na tela
+                exibirQrCodePix(qrCodeData);
+
+                // Rastrear sucesso PIX
+                if (typeof window.trackEvent === 'function') {
+                    window.trackEvent('pagamento_pix_criado', {
+                        payment_id: payment.id,
+                        valor: valorTotal,
+                        customer_id: customer.id
+                    });
+                }
+
+            } else if (dadosPagamento.metodo === 'cartao') {
+                console.log('💳 Criando pagamento com cartão...');
+                const parcelas = dadosPagamento.dados_cartao?.parcelas || '1';
+                
+                payment = await criarPagamentoCartao(
+                    customer.id,
+                    valorTotal,
+                    dadosPagamento.dados_cartao,
+                    dadosCliente,
+                    parcelas,
+                    `Orçamento ${orcamentoData?.dados_orcamento?.codigo || 'N/A'} - OficialMed`
+                );
+                console.log('✅ Pagamento criado:', payment.id);
+
+                // Verificar status do pagamento
+                if (payment.status === 'CONFIRMED') {
+                    // Pagamento aprovado
+                    mostrarMensagemSucesso('Pagamento aprovado com sucesso!', payment);
+                    
+                    // Rastrear sucesso
+                    if (typeof window.trackEvent === 'function') {
+                        window.trackEvent('pagamento_cartao_aprovado', {
+                            payment_id: payment.id,
+                            valor: valorTotal,
+                            parcelas: parcelas,
+                            customer_id: customer.id
+                        });
+                    }
+                } else if (payment.status === 'PENDING') {
+                    // Pagamento pendente (aguardando confirmação)
+                    mostrarMensagemAguardando('Pagamento em processamento. Aguarde a confirmação.', payment);
+                    
+                    // Rastrear pendente
+                    if (typeof window.trackEvent === 'function') {
+                        window.trackEvent('pagamento_cartao_pendente', {
+                            payment_id: payment.id,
+                            valor: valorTotal,
+                            parcelas: parcelas,
+                            customer_id: customer.id
+                        });
+                    }
+                } else {
+                    throw new Error(`Status de pagamento inesperado: ${payment.status}`);
+                }
+            }
+
+            // Atualizar status no Supabase
+            await supabase
+                .schema(SUPABASE_SCHEMA)
+                .from('pre_checkout')
+                .update({
+                    status: payment?.status === 'CONFIRMED' ? 'pago' : 'aguardando_pagamento',
+                    payment_id: payment?.id || null,
+                    customer_id: customer.id,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('link_pre_checkout', linkId);
 
         } catch (err) {
-            console.error('Erro ao finalizar:', err);
-            alert('Erro ao processar. Tente novamente.');
+            console.error('❌ Erro ao finalizar:', err);
+            
+            // Rastrear erro
+            if (typeof window.trackEvent === 'function') {
+                window.trackEvent('pagamento_erro', {
+                    error_message: err.message,
+                    metodo_pagamento: dadosPagamento.metodo
+                });
+            }
+
+            alert(`Erro ao processar pagamento: ${err.message}`);
             
             if (btnFinalizar) {
                 btnFinalizar.disabled = false;
                 btnFinalizar.textContent = 'Finalizar Compra';
             }
         }
+    }
+
+    /**
+     * Exibe o QR Code PIX na tela
+     */
+    function exibirQrCodePix(qrCodeData) {
+        const pixForm = document.getElementById('form-pix');
+        const pixQrCode = pixForm?.querySelector('.pix-qr-code');
+        const pixCodeInput = document.getElementById('pix-code');
+
+        if (pixQrCode && qrCodeData.encodedImage) {
+            // Criar imagem do QR Code
+            const img = document.createElement('img');
+            img.src = `data:image/png;base64,${qrCodeData.encodedImage}`;
+            img.alt = 'QR Code PIX';
+            img.style.width = '100%';
+            img.style.height = 'auto';
+            img.style.maxWidth = '300px';
+            
+            // Limpar conteúdo anterior e adicionar imagem
+            pixQrCode.innerHTML = '';
+            pixQrCode.appendChild(img);
+        }
+
+        if (pixCodeInput && qrCodeData.payload) {
+            pixCodeInput.value = qrCodeData.payload;
+        }
+
+        // Mostrar formulário PIX
+        if (pixForm) {
+            pixForm.style.display = 'block';
+        }
+
+        // Scroll para o QR Code
+        if (pixForm) {
+            pixForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    /**
+     * Mostra mensagem de sucesso
+     */
+    function mostrarMensagemSucesso(mensagem, payment) {
+        // Criar modal de sucesso
+        const modal = document.createElement('div');
+        modal.className = 'payment-success-modal';
+        modal.innerHTML = `
+            <div class="payment-success-content">
+                <div class="success-icon">✓</div>
+                <h2>${mensagem}</h2>
+                <p>ID do Pagamento: ${payment.id}</p>
+                <p>Valor: ${formatarValor(payment.value)}</p>
+                <button class="btn-close-modal" onclick="this.closest('.payment-success-modal').remove()">Fechar</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+
+    /**
+     * Mostra mensagem de aguardando
+     */
+    function mostrarMensagemAguardando(mensagem, payment) {
+        const modal = document.createElement('div');
+        modal.className = 'payment-pending-modal';
+        modal.innerHTML = `
+            <div class="payment-pending-content">
+                <div class="pending-icon">⏳</div>
+                <h2>${mensagem}</h2>
+                <p>ID do Pagamento: ${payment.id}</p>
+                <p>Valor: ${formatarValor(payment.value)}</p>
+                <p>Você receberá uma confirmação por email assim que o pagamento for processado.</p>
+                <button class="btn-close-modal" onclick="this.closest('.payment-pending-modal').remove()">Fechar</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
     }
 
     function renderizarPagina() {
