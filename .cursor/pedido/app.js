@@ -1968,7 +1968,7 @@
         
         // Checkbox "Sem número" - desabilitar/habilitar campo número
         const semNumeroCheckbox = document.getElementById('sem-numero');
-        const numeroInput = document.getElementById('numero');
+        // numeroInput já foi declarado anteriormente
         if (semNumeroCheckbox && numeroInput) {
             semNumeroCheckbox.addEventListener('change', function() {
                 if (this.checked) {
