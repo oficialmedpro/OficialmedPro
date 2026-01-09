@@ -421,6 +421,95 @@
         return value;
     }
 
+    async function buscarEnderecoPorCEP(cep) {
+        const cepInput = document.getElementById('cep');
+        const enderecoInput = document.getElementById('endereco');
+        const bairroInput = document.getElementById('bairro');
+        const cidadeInput = document.getElementById('cidade');
+        const estadoInput = document.getElementById('estado');
+        
+        if (!cepInput || !enderecoInput || !bairroInput || !cidadeInput || !estadoInput) {
+            return;
+        }
+
+        // Remover classes de erro anteriores
+        cepInput.classList.remove('cep-error', 'cep-loading', 'cep-success');
+        
+        // Adicionar classe de loading
+        cepInput.classList.add('cep-loading');
+        cepInput.disabled = true;
+
+        try {
+            const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+            const data = await response.json();
+
+            if (data.erro) {
+                throw new Error('CEP não encontrado');
+            }
+
+            // Preencher campos automaticamente
+            enderecoInput.value = data.logradouro || '';
+            bairroInput.value = data.bairro || '';
+            cidadeInput.value = data.localidade || '';
+            estadoInput.value = data.uf || '';
+
+            // Adicionar classe de sucesso
+            cepInput.classList.remove('cep-loading');
+            cepInput.classList.add('cep-success');
+            
+            // Remover classe de sucesso após 2 segundos
+            setTimeout(() => {
+                cepInput.classList.remove('cep-success');
+            }, 2000);
+
+            // Rastrear busca de CEP bem-sucedida
+            if (typeof window.trackEvent === 'function') {
+                window.trackEvent('cep_busca_success', {
+                    cep: cep,
+                    cidade: data.localidade,
+                    estado: data.uf
+                });
+            }
+
+        } catch (err) {
+            console.error('Erro ao buscar CEP:', err);
+            
+            // Adicionar classe de erro
+            cepInput.classList.remove('cep-loading');
+            cepInput.classList.add('cep-error');
+            
+            // Mostrar mensagem de erro
+            const errorMsg = 'CEP não encontrado. Verifique e tente novamente.';
+            if (!cepInput.nextElementSibling || !cepInput.nextElementSibling.classList.contains('cep-error-message')) {
+                const errorEl = document.createElement('span');
+                errorEl.className = 'cep-error-message';
+                errorEl.textContent = errorMsg;
+                errorEl.style.color = '#ef4444';
+                errorEl.style.fontSize = '0.875rem';
+                errorEl.style.marginTop = '4px';
+                errorEl.style.display = 'block';
+                cepInput.parentElement.appendChild(errorEl);
+                
+                // Remover mensagem após 5 segundos
+                setTimeout(() => {
+                    if (errorEl.parentElement) {
+                        errorEl.remove();
+                    }
+                }, 5000);
+            }
+            
+            // Rastrear erro na busca de CEP
+            if (typeof window.trackEvent === 'function') {
+                window.trackEvent('cep_busca_error', {
+                    cep: cep,
+                    error: err.message
+                });
+            }
+        } finally {
+            cepInput.disabled = false;
+        }
+    }
+
     function formatarCartao(value) {
         const numbers = value.replace(/\D/g, '');
         return numbers.replace(/(\d{4})(?=\d)/g, '$1 ');
@@ -813,6 +902,19 @@
         if (cepInput) {
             cepInput.addEventListener('input', (e) => {
                 e.target.value = formatarCEP(e.target.value);
+                // Buscar CEP quando tiver 8 dígitos
+                const cepLimpo = e.target.value.replace(/\D/g, '');
+                if (cepLimpo.length === 8) {
+                    buscarEnderecoPorCEP(cepLimpo);
+                }
+            });
+            
+            // Também buscar quando o campo perder o foco e tiver CEP completo
+            cepInput.addEventListener('blur', (e) => {
+                const cepLimpo = e.target.value.replace(/\D/g, '');
+                if (cepLimpo.length === 8) {
+                    buscarEnderecoPorCEP(cepLimpo);
+                }
             });
         }
         
