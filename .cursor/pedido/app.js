@@ -843,6 +843,15 @@
             isValid = false;
         }
         
+        const numero = document.getElementById('numero');
+        const semNumero = document.getElementById('sem-numero');
+        if (!semNumero || !semNumero.checked) {
+            if (!numero.value.trim()) {
+                mostrarErroCampo(numero, 'Número é obrigatório ou marque "Sem número"');
+                isValid = false;
+            }
+        }
+        
         const bairro = document.getElementById('bairro');
         if (!bairro.value.trim()) {
             mostrarErroCampo(bairro, 'Bairro é obrigatório');
@@ -872,6 +881,7 @@
         }
         
         // Coletar dados do formulário
+        const numeroValue = semNumero && semNumero.checked ? 'S/N' : numero.value.trim();
         dadosCliente = {
             nome: nome.value.trim(),
             cpf: cpfLimpo,
@@ -881,7 +891,7 @@
             sexo: sexo.value,
             cep: cepLimpo,
             endereco: endereco.value.trim(),
-            numero: document.getElementById('numero').value.trim(),
+            numero: numeroValue,
             complemento: document.getElementById('complemento').value.trim(),
             bairro: bairro.value.trim(),
             cidade: cidade.value.trim(),
@@ -1394,7 +1404,13 @@
                 });
             }
 
-            alert(`Erro ao processar pagamento: ${err.message}`);
+            // Mostrar erro personalizado
+            const metodoTexto = dadosPagamento.metodo === 'pix' ? 'PIX' : 'Cartão de Crédito';
+            mostrarMensagemErro(
+                `Erro no Pagamento ${metodoTexto}`,
+                `Não foi possível processar seu pagamento. Por favor, verifique os dados e tente novamente.`,
+                err.message
+            );
             
             if (btnFinalizar) {
                 btnFinalizar.disabled = false;
@@ -1468,11 +1484,18 @@
         // Criar modal de sucesso
         const modal = document.createElement('div');
         modal.className = 'payment-success-modal';
+        
+        // Mensagem adicional para cartão de crédito
+        const mensagemAdicional = dadosPagamento.metodo === 'cartao' 
+            ? '<p style="margin-top: 16px; padding: 12px; background: #e0f2fe; border-left: 4px solid #0ea5e9; border-radius: 4px; color: #0c4a6e;"><strong>📦 Você receberá seu código de rastreio em breve!</strong></p>'
+            : '';
+        
         modal.innerHTML = `
             <div class="payment-success-content">
                 <div class="success-icon">✅</div>
                 <h2>${mensagem}</h2>
                 <p>Seu pagamento foi processado com sucesso. Obrigado pela sua compra!</p>
+                ${mensagemAdicional}
                 <div class="payment-info">
                     <p><strong>ID do Pagamento:</strong> ${payment.id}</p>
                     <p><strong>Status:</strong> ${payment.status}</p>
@@ -1483,6 +1506,37 @@
             </div>
         `;
         document.body.appendChild(modal);
+    }
+    
+    /**
+     * Mostra mensagem de erro personalizada
+     */
+    function mostrarMensagemErro(titulo, mensagem, detalhes = null) {
+        // Remover modais de erro existentes
+        const existingModal = document.querySelector('.payment-error-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+        
+        const modal = document.createElement('div');
+        modal.className = 'payment-error-modal';
+        modal.innerHTML = `
+            <div class="payment-error-content">
+                <div class="error-icon">❌</div>
+                <h2>${titulo}</h2>
+                <p>${mensagem}</p>
+                ${detalhes ? `<div class="error-details"><p><strong>Detalhes:</strong> ${detalhes}</p></div>` : ''}
+                <button class="btn-close-modal" onclick="this.closest('.payment-error-modal').remove()">Entendi</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        
+        // Fechar ao clicar fora do modal
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.remove();
+            }
+        });
     }
 
     /**
@@ -1850,7 +1904,13 @@
                     
                 } catch (err) {
                     console.error('❌ Erro ao gerar PIX:', err);
-                    alert(`Erro ao gerar QR Code PIX: ${err.message}`);
+                    
+                    // Mostrar erro personalizado
+                    mostrarMensagemErro(
+                        'Erro ao Gerar QR Code PIX',
+                        'Não foi possível gerar o QR Code PIX. Por favor, verifique sua conexão e tente novamente.',
+                        err.message
+                    );
                     
                     // Reverter estado
                     paymentPix.classList.remove('active', 'processing');
@@ -1903,6 +1963,26 @@
                     this.value = originalValue;
                     this.style.color = '';
                 }, 2000);
+            });
+        }
+        
+        // Checkbox "Sem número" - desabilitar/habilitar campo número
+        const semNumeroCheckbox = document.getElementById('sem-numero');
+        const numeroInput = document.getElementById('numero');
+        if (semNumeroCheckbox && numeroInput) {
+            semNumeroCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    numeroInput.disabled = true;
+                    numeroInput.value = '';
+                    numeroInput.required = false;
+                    numeroInput.style.opacity = '0.5';
+                    numeroInput.style.cursor = 'not-allowed';
+                } else {
+                    numeroInput.disabled = false;
+                    numeroInput.required = true;
+                    numeroInput.style.opacity = '1';
+                    numeroInput.style.cursor = 'text';
+                }
             });
         }
         
