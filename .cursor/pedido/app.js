@@ -427,17 +427,27 @@
         const bairroInput = document.getElementById('bairro');
         const cidadeInput = document.getElementById('cidade');
         const estadoInput = document.getElementById('estado');
+        const btnBuscarCep = document.getElementById('btn-buscar-cep');
         
         if (!cepInput || !enderecoInput || !bairroInput || !cidadeInput || !estadoInput) {
             return;
         }
 
         // Remover classes de erro anteriores
-        cepInput.classList.remove('cep-error', 'cep-loading', 'cep-success');
+        cepInput.classList.remove('cep-error', 'cep-loading', 'cep-success', 'error');
+        
+        // Remover mensagens de erro anteriores
+        const existingError = cepInput.parentElement.querySelector('.cep-error-message');
+        if (existingError) {
+            existingError.remove();
+        }
         
         // Adicionar classe de loading
         cepInput.classList.add('cep-loading');
         cepInput.disabled = true;
+        if (btnBuscarCep) {
+            btnBuscarCep.disabled = true;
+        }
 
         try {
             const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
@@ -480,23 +490,23 @@
             
             // Mostrar mensagem de erro
             const errorMsg = 'CEP não encontrado. Verifique e tente novamente.';
-            if (!cepInput.nextElementSibling || !cepInput.nextElementSibling.classList.contains('cep-error-message')) {
-                const errorEl = document.createElement('span');
-                errorEl.className = 'cep-error-message';
-                errorEl.textContent = errorMsg;
-                errorEl.style.color = '#ef4444';
-                errorEl.style.fontSize = '0.875rem';
-                errorEl.style.marginTop = '4px';
-                errorEl.style.display = 'block';
-                cepInput.parentElement.appendChild(errorEl);
-                
-                // Remover mensagem após 5 segundos
-                setTimeout(() => {
-                    if (errorEl.parentElement) {
-                        errorEl.remove();
-                    }
-                }, 5000);
+            // Remover mensagens anteriores
+            const existingError = cepInput.parentElement.querySelector('.cep-error-message');
+            if (existingError) {
+                existingError.remove();
             }
+            
+            const errorEl = document.createElement('span');
+            errorEl.className = 'cep-error-message';
+            errorEl.textContent = errorMsg;
+            cepInput.parentElement.appendChild(errorEl);
+            
+            // Remover mensagem após 5 segundos
+            setTimeout(() => {
+                if (errorEl.parentElement) {
+                    errorEl.remove();
+                }
+            }, 5000);
             
             // Rastrear erro na busca de CEP
             if (typeof window.trackEvent === 'function') {
@@ -507,6 +517,9 @@
             }
         } finally {
             cepInput.disabled = false;
+            if (btnBuscarCep) {
+                btnBuscarCep.disabled = false;
+            }
         }
     }
 
@@ -678,29 +691,123 @@
 
     function validarEtapa2() {
         const form = document.getElementById('form-dados');
-        if (!form.checkValidity()) {
-            form.reportValidity();
+        let isValid = true;
+        
+        // Remover erros anteriores
+        form.querySelectorAll('.error').forEach(el => {
+            el.classList.remove('error');
+        });
+        form.querySelectorAll('.form-error-message').forEach(el => {
+            el.remove();
+        });
+        
+        // Validar cada campo
+        const nome = document.getElementById('nome');
+        if (!nome.value.trim()) {
+            mostrarErroCampo(nome, 'Nome completo é obrigatório');
+            isValid = false;
+        }
+        
+        const cpf = document.getElementById('cpf');
+        const cpfLimpo = cpf.value.replace(/\D/g, '');
+        if (cpfLimpo.length !== 11) {
+            mostrarErroCampo(cpf, 'CPF deve ter 11 dígitos');
+            isValid = false;
+        }
+        
+        const email = document.getElementById('email');
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email.value)) {
+            mostrarErroCampo(email, 'Email inválido');
+            isValid = false;
+        }
+        
+        const celular = document.getElementById('celular');
+        const celularLimpo = celular.value.replace(/\D/g, '');
+        if (celularLimpo.length < 10 || celularLimpo.length > 11) {
+            mostrarErroCampo(celular, 'Celular deve ter 10 ou 11 dígitos');
+            isValid = false;
+        }
+        
+        const dataNascimento = document.getElementById('data-nascimento');
+        if (!dataNascimento.value) {
+            mostrarErroCampo(dataNascimento, 'Data de nascimento é obrigatória');
+            isValid = false;
+        }
+        
+        const sexo = document.getElementById('sexo');
+        if (!sexo.value) {
+            mostrarErroCampo(sexo, 'Selecione o sexo');
+            isValid = false;
+        }
+        
+        const cep = document.getElementById('cep');
+        const cepLimpo = cep.value.replace(/\D/g, '');
+        if (cepLimpo.length !== 8) {
+            mostrarErroCampo(cep, 'CEP deve ter 8 dígitos');
+            isValid = false;
+        }
+        
+        const endereco = document.getElementById('endereco');
+        if (!endereco.value.trim()) {
+            mostrarErroCampo(endereco, 'Endereço é obrigatório');
+            isValid = false;
+        }
+        
+        const bairro = document.getElementById('bairro');
+        if (!bairro.value.trim()) {
+            mostrarErroCampo(bairro, 'Bairro é obrigatório');
+            isValid = false;
+        }
+        
+        const cidade = document.getElementById('cidade');
+        if (!cidade.value.trim()) {
+            mostrarErroCampo(cidade, 'Cidade é obrigatória');
+            isValid = false;
+        }
+        
+        const estado = document.getElementById('estado');
+        if (estado.value.length !== 2) {
+            mostrarErroCampo(estado, 'Estado deve ter 2 letras (UF)');
+            isValid = false;
+        }
+        
+        if (!isValid) {
+            // Scroll para o primeiro erro
+            const firstError = form.querySelector('.error');
+            if (firstError) {
+                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                firstError.focus();
+            }
             return false;
         }
         
         // Coletar dados do formulário
         dadosCliente = {
-            nome: document.getElementById('nome').value,
-            cpf: document.getElementById('cpf').value.replace(/\D/g, ''),
-            email: document.getElementById('email').value,
-            celular: document.getElementById('celular').value.replace(/\D/g, ''),
-            data_nascimento: document.getElementById('data-nascimento').value,
-            sexo: document.getElementById('sexo').value,
-            cep: document.getElementById('cep').value.replace(/\D/g, ''),
-            endereco: document.getElementById('endereco').value,
-            numero: document.getElementById('numero').value,
-            complemento: document.getElementById('complemento').value,
-            bairro: document.getElementById('bairro').value,
-            cidade: document.getElementById('cidade').value,
-            estado: document.getElementById('estado').value.toUpperCase()
+            nome: nome.value.trim(),
+            cpf: cpfLimpo,
+            email: email.value.trim(),
+            celular: celularLimpo,
+            data_nascimento: dataNascimento.value,
+            sexo: sexo.value,
+            cep: cepLimpo,
+            endereco: endereco.value.trim(),
+            numero: document.getElementById('numero').value.trim(),
+            complemento: document.getElementById('complemento').value.trim(),
+            bairro: bairro.value.trim(),
+            cidade: cidade.value.trim(),
+            estado: estado.value.toUpperCase()
         };
         
         return true;
+    }
+    
+    function mostrarErroCampo(campo, mensagem) {
+        campo.classList.add('error');
+        const errorEl = document.createElement('span');
+        errorEl.className = 'form-error-message';
+        errorEl.textContent = mensagem;
+        campo.parentElement.appendChild(errorEl);
     }
 
     function validarEtapa3() {
@@ -940,33 +1047,108 @@
         const cpfInput = document.getElementById('cpf');
         if (cpfInput) {
             cpfInput.addEventListener('input', (e) => {
-                e.target.value = formatarCPF(e.target.value);
+                let value = e.target.value.replace(/\D/g, '');
+                // Limitar a 11 dígitos
+                if (value.length > 11) {
+                    value = value.substring(0, 11);
+                }
+                e.target.value = formatarCPF(value);
+                // Remover erro ao digitar
+                e.target.classList.remove('error');
             });
         }
         
         const celularInput = document.getElementById('celular');
         if (celularInput) {
             celularInput.addEventListener('input', (e) => {
-                e.target.value = formatarTelefone(e.target.value);
+                let value = e.target.value.replace(/\D/g, '');
+                // Limitar a 11 dígitos
+                if (value.length > 11) {
+                    value = value.substring(0, 11);
+                }
+                e.target.value = formatarTelefone(value);
+                e.target.classList.remove('error');
             });
         }
         
+        // Validação de email
+        const emailInput = document.getElementById('email');
+        if (emailInput) {
+            emailInput.addEventListener('input', (e) => {
+                e.target.classList.remove('error');
+            });
+        }
+        
+        // Validação de nome (apenas letras e espaços)
+        const nomeInput = document.getElementById('nome');
+        if (nomeInput) {
+            nomeInput.addEventListener('input', (e) => {
+                // Permitir apenas letras, espaços e acentos
+                e.target.value = e.target.value.replace(/[^a-zA-ZÀ-ÿ\s]/g, '');
+                e.target.classList.remove('error');
+            });
+        }
+        
+        // Validação de número (apenas números)
+        const numeroInput = document.getElementById('numero');
+        if (numeroInput) {
+            numeroInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/\D/g, '');
+            });
+        }
+        
+        // Validação de estado (apenas letras, maiúsculas)
+        const estadoInput = document.getElementById('estado');
+        if (estadoInput) {
+            estadoInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase();
+                e.target.classList.remove('error');
+            });
+        }
+        
+        // Validação de cidade, bairro, endereço (letras, números e alguns caracteres)
+        const enderecoInput = document.getElementById('endereco');
+        const bairroInput = document.getElementById('bairro');
+        const cidadeInput = document.getElementById('cidade');
+        
+        [enderecoInput, bairroInput, cidadeInput].forEach(input => {
+            if (input) {
+                input.addEventListener('input', (e) => {
+                    // Permitir letras, números, espaços e alguns caracteres comuns
+                    e.target.value = e.target.value.replace(/[^a-zA-ZÀ-ÿ0-9\s.,-]/g, '');
+                    e.target.classList.remove('error');
+                });
+            }
+        });
+        
         const cepInput = document.getElementById('cep');
+        const btnBuscarCep = document.getElementById('btn-buscar-cep');
+        
         if (cepInput) {
+            // Formatação e busca automática
             cepInput.addEventListener('input', (e) => {
                 e.target.value = formatarCEP(e.target.value);
-                // Buscar CEP quando tiver 8 dígitos
                 const cepLimpo = e.target.value.replace(/\D/g, '');
+                
+                // Buscar automaticamente quando tiver 8 dígitos
                 if (cepLimpo.length === 8) {
                     buscarEnderecoPorCEP(cepLimpo);
+                } else {
+                    // Remover estados quando CEP incompleto
+                    cepInput.classList.remove('cep-loading', 'cep-success', 'cep-error');
                 }
             });
-            
-            // Também buscar quando o campo perder o foco e tiver CEP completo
-            cepInput.addEventListener('blur', (e) => {
-                const cepLimpo = e.target.value.replace(/\D/g, '');
+        }
+        
+        // Botão buscar CEP
+        if (btnBuscarCep) {
+            btnBuscarCep.addEventListener('click', () => {
+                const cepLimpo = cepInput.value.replace(/\D/g, '');
                 if (cepLimpo.length === 8) {
                     buscarEnderecoPorCEP(cepLimpo);
+                } else {
+                    alert('CEP deve ter 8 dígitos');
+                    cepInput.focus();
                 }
             });
         }

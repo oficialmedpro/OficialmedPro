@@ -317,8 +317,22 @@ html {
     box-shadow: 0 0 0 3px rgba(19, 60, 142, 0.1);
 }
 
-.form-group input:invalid:not(:placeholder-shown) {
+/* Validação apenas quando tentar submeter */
+.form-group input.error,
+.form-group select.error {
     border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.form-group input.success {
+    border-color: #10b981;
+}
+
+.form-error-message {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 4px;
+    display: block;
 }
 
 /* Estados do campo CEP */
@@ -358,6 +372,37 @@ html {
     font-size: 0.875rem;
     margin-top: 4px;
     display: block;
+}
+
+/* Botão Buscar CEP */
+.btn-buscar-cep {
+    background: var(--brand-text);
+    color: white;
+    border: none;
+    padding: 12px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    min-width: 48px;
+}
+
+.btn-buscar-cep:hover {
+    background: var(--brand-blue-end);
+    transform: scale(1.05);
+}
+
+.btn-buscar-cep:active {
+    transform: scale(0.95);
+}
+
+.btn-buscar-cep:disabled {
+    background: #cbd5e0;
+    cursor: not-allowed;
+    opacity: 0.6;
 }
 
 /* Step Actions */
