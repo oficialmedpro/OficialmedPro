@@ -351,6 +351,11 @@
             }
         }
         
+        // Atualizar opções de parcelas se estiver na etapa 3
+        if (etapaAtual === 3) {
+            atualizarOpcoesParcelas();
+        }
+        
         // Atualizar valor do frete (mostrar "Grátis" quando for 0)
         if (resumoFreteValueEl) {
             if (frete === 0) {
@@ -633,12 +638,22 @@
      */
     function atualizarOpcoesParcelas() {
         const selectParcelas = document.getElementById('card-installments');
-        if (!selectParcelas) return;
+        if (!selectParcelas) {
+            console.warn('⚠️ Select de parcelas não encontrado');
+            return;
+        }
 
         const subtotal = calcularSubtotal();
         const frete = calcularFrete(subtotal);
         const valorTotal = subtotal + frete;
         const maxParcelas = getMaxInstallments(valorTotal);
+
+        console.log('💳 Atualizando opções de parcelas:', {
+            subtotal: subtotal,
+            frete: frete,
+            valorTotal: valorTotal,
+            maxParcelas: maxParcelas
+        });
 
         // Limpar opções existentes
         selectParcelas.innerHTML = '';
@@ -657,6 +672,13 @@
             
             selectParcelas.appendChild(option);
         }
+
+        // Selecionar primeira opção por padrão
+        if (selectParcelas.options.length > 0) {
+            selectParcelas.selectedIndex = 0;
+        }
+
+        console.log(`✅ ${maxParcelas} opção(ões) de parcela(s) gerada(s)`);
     }
 
     async function salvarEtapa1() {
@@ -928,9 +950,43 @@
      * Cria um cliente no Asaas via API
      */
     async function criarClienteAsaas(dadosCliente) {
-        if (!CHECKOUT_API_KEY) {
-            throw new Error('API Key do checkout não configurada. Configure CHECKOUT_API_KEY no config.js');
+        if (!CHECKOUT_API_KEY || CHECKOUT_API_KEY === 'sua_chave_api_backend') {
+            throw new Error('API Key do checkout não configurada. Configure CHECKOUT_API_KEY no config.js ou variáveis de ambiente.');
         }
+
+        // Construir payload apenas com campos preenchidos (igual ao React)
+        const customerPayload = {
+            name: dadosCliente.nome,
+            cpfCnpj: dadosCliente.cpf.replace(/\D/g, ''),
+            email: dadosCliente.email,
+            phone: dadosCliente.celular.replace(/\D/g, '')
+        };
+
+        // Adicionar campos opcionais apenas se preenchidos
+        if (dadosCliente.celular) {
+            customerPayload.mobilePhone = dadosCliente.celular.replace(/\D/g, '');
+        }
+        if (dadosCliente.endereco) {
+            customerPayload.address = dadosCliente.endereco;
+        }
+        if (dadosCliente.numero) {
+            customerPayload.addressNumber = dadosCliente.numero;
+        }
+        if (dadosCliente.complemento) {
+            customerPayload.complement = dadosCliente.complemento;
+        }
+        if (dadosCliente.bairro) {
+            customerPayload.province = dadosCliente.bairro;
+        }
+        if (dadosCliente.cep) {
+            customerPayload.postalCode = dadosCliente.cep.replace(/\D/g, '');
+        }
+        if (dadosCliente.cidade) {
+            customerPayload.city = dadosCliente.cidade;
+        }
+
+        console.log('📤 Criando cliente com payload:', customerPayload);
+        console.log('🔗 URL:', `${CHECKOUT_API_URL}/api/customers`);
 
         const response = await fetch(`${CHECKOUT_API_URL}/api/customers`, {
             method: 'POST',
@@ -938,30 +994,25 @@
                 'Content-Type': 'application/json',
                 'X-API-Key': CHECKOUT_API_KEY
             },
-            body: JSON.stringify({
-                name: dadosCliente.nome,
-                cpfCnpj: dadosCliente.cpf,
-                email: dadosCliente.email,
-                mobilePhone: dadosCliente.celular,
-                address: dadosCliente.endereco,
-                addressNumber: dadosCliente.numero || '',
-                complement: dadosCliente.complemento || '',
-                province: dadosCliente.bairro,
-                postalCode: dadosCliente.cep,
-                city: dadosCliente.cidade,
-                // Campos opcionais
-                ...(dadosCliente.data_nascimento && { 
-                    // Se necessário, adicionar campo de data de nascimento
-                })
-            })
+            body: JSON.stringify(customerPayload)
         });
+
+        console.log('📥 Resposta do servidor:', response.status, response.statusText);
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `Erro ao criar cliente: ${response.status}`);
+            console.error('❌ Erro na resposta:', errorData);
+            
+            // Tratar erro de cliente já existente
+            const errorMsg = errorData.error || errorData.details?.errors?.[0]?.description || `Erro ao criar cliente: ${response.status}`;
+            if (errorMsg.includes('já existe') || errorMsg.includes('already exists')) {
+                throw new Error('Cliente já cadastrado. Por favor, use outro CPF ou entre em contato.');
+            }
+            throw new Error(errorMsg);
         }
 
         const data = await response.json();
+        console.log('✅ Cliente criado:', data);
         return data.customer;
     }
 
@@ -969,8 +1020,13 @@
      * Cria um pagamento via PIX
      */
     async function criarPagamentoPix(customerId, valor, descricao) {
-        if (!CHECKOUT_API_KEY) {
+        if (!CHECKOUT_API_KEY || CHECKOUT_API_KEY === 'sua_chave_api_backend') {
             throw new Error('API Key do checkout não configurada');
+        }
+
+        // Validar valor mínimo
+        if (valor < 1.00) {
+            throw new Error('O valor mínimo é R$ 1,00');
         }
 
         const payload = {
@@ -982,28 +1038,61 @@
 
         console.log('📤 Enviando requisição para criar pagamento PIX:');
         console.log('URL:', `${CHECKOUT_API_URL}/api/payment`);
+        console.log('Headers:', {
+            'Content-Type': 'application/json',
+            'X-API-Key': CHECKOUT_API_KEY ? 'Configurada' : 'NÃO CONFIGURADA'
+        });
         console.log('Payload:', payload);
 
-        const response = await fetch(`${CHECKOUT_API_URL}/api/payment`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': CHECKOUT_API_KEY
-            },
-            body: JSON.stringify(payload)
-        });
+        try {
+            const response = await fetch(`${CHECKOUT_API_URL}/api/payment`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-Key': CHECKOUT_API_KEY
+                },
+                body: JSON.stringify(payload)
+            });
 
-        console.log('📥 Resposta recebida:', response.status, response.statusText);
+            console.log('📥 Resposta recebida:', response.status, response.statusText);
+            console.log('📥 Headers da resposta:', Object.fromEntries(response.headers.entries()));
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error('❌ Erro na resposta:', errorData);
-            throw new Error(errorData.error || `Erro ao criar pagamento PIX: ${response.status} - ${response.statusText}`);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ Erro na resposta (texto):', errorText);
+                
+                let errorData;
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch (e) {
+                    errorData = { error: errorText || `Erro ${response.status}` };
+                }
+                
+                console.error('❌ Erro na resposta (JSON):', errorData);
+                
+                // Tratar erros específicos
+                const errorMsg = errorData.error || 
+                                errorData.details?.errors?.[0]?.description || 
+                                errorData.message ||
+                                `Erro ao criar pagamento PIX: ${response.status} - ${response.statusText}`;
+                
+                throw new Error(errorMsg);
+            }
+
+            const data = await response.json();
+            console.log('✅ Dados do pagamento recebidos:', data);
+            
+            if (!data.payment) {
+                throw new Error('Resposta da API não contém dados do pagamento');
+            }
+            
+            return data.payment;
+        } catch (err) {
+            if (err.message.includes('Failed to fetch') || err.message.includes('NetworkError')) {
+                throw new Error(`Não foi possível conectar ao backend. Verifique se ${CHECKOUT_API_URL} está acessível.`);
+            }
+            throw err;
         }
-
-        const data = await response.json();
-        console.log('✅ Dados do pagamento recebidos:', data);
-        return data.payment;
     }
 
     /**
@@ -1160,13 +1249,21 @@
             // Verificar se API está configurada
             console.log('🔍 Verificando configuração da API...');
             console.log('CHECKOUT_API_URL:', CHECKOUT_API_URL);
-            console.log('CHECKOUT_API_KEY configurada:', CHECKOUT_API_KEY ? 'Sim' : 'Não');
+            console.log('CHECKOUT_API_KEY configurada:', CHECKOUT_API_KEY && CHECKOUT_API_KEY !== 'sua_chave_api_backend' ? 'Sim' : 'Não');
+            console.log('CHECKOUT_API_KEY valor:', CHECKOUT_API_KEY ? (CHECKOUT_API_KEY.substring(0, 10) + '...') : 'NÃO CONFIGURADA');
             
             if (!CHECKOUT_API_KEY || CHECKOUT_API_KEY === 'sua_chave_api_backend') {
-                const errorMsg = 'API Key do checkout não configurada. Configure CHECKOUT_API_KEY no config.js ou variáveis de ambiente.';
+                const errorMsg = 'API Key do checkout não configurada. Configure CHECKOUT_API_KEY no config.js ou variáveis de ambiente.\n\n' +
+                               `URL da API: ${CHECKOUT_API_URL}\n` +
+                               'Verifique o console para mais detalhes.';
                 console.error('❌', errorMsg);
-                alert(errorMsg + '\n\nVerifique o console para mais detalhes.');
-                throw new Error(errorMsg);
+                alert(errorMsg);
+                throw new Error('API Key do checkout não configurada');
+            }
+
+            // Verificar se a URL da API está acessível
+            if (CHECKOUT_API_URL === 'http://localhost:3001') {
+                console.warn('⚠️ Usando localhost:3001. Certifique-se de que o backend está rodando.');
             }
 
             // 1. Criar cliente no Asaas

@@ -5,7 +5,7 @@
 const VERSION = {
     major: 1,
     minor: 2,
-    patch: 7,
+    patch: 8,
     toString: function() {
         return `${this.major}.${this.minor}.${this.patch}`;
     },
