@@ -35,14 +35,32 @@ Configure as seguintes variáveis de ambiente no Easypanel para a página de pr�
 - **Exemplo**: `https://api.oficialmed.com.br`
 - **Padrão**: Usa `window.location.origin` se não configurado
 
+### 6. `VITE_CHECKOUT_API_URL` ⚠️ **OBRIGATÓRIA PARA CHECKOUT**
+- **Descrição**: URL do backend que integra com Asaas
+- **Exemplo**: `https://api.oficialmed.com.br`
+- **Onde encontrar**: URL do seu backend de checkout transparente
+
+### 7. `VITE_CHECKOUT_API_KEY` ⚠️ **OBRIGATÓRIA PARA CHECKOUT**
+- **Descrição**: Chave de autenticação do backend
+- **Exemplo**: `abc123xyz789`
+- **Onde encontrar**: Chave configurada no seu backend para autenticação
+
+### 8. `VITE_GA4_MEASUREMENT_ID` (Opcional)
+- **Descrição**: ID do Google Analytics 4
+- **Exemplo**: `G-NCJG7F37CL`
+
+### 9. `VITE_FACEBOOK_PIXEL_ID` (Opcional)
+- **Descrição**: ID do Facebook Pixel
+- **Exemplo**: `123456789012345`
+
 ## Como Configurar no Easypanel
 
 1. Acesse seu projeto no Easypanel
 2. Vá em **Environment Variables** ou **Variáveis de Ambiente**
 3. Adicione cada variável acima com seus respectivos valores
-4. Faça o deploy novamente
+4. **IMPORTANTE**: Faça um novo deploy após adicionar as variáveis
 
-## Exemplo de Configuração
+## Exemplo de Configuração Completa
 
 ```
 VITE_SUPABASE_URL=https://agdffspstbxeqhqtltvb.supabase.co
@@ -50,6 +68,9 @@ VITE_SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 VITE_SUPABASE_SCHEMA=api
 VITE_N8N_WEBHOOK_URL=https://seu-n8n.com/webhook-pagina-precheckout
 VITE_API_URL=https://api.oficialmed.com.br
+VITE_CHECKOUT_API_URL=https://api.oficialmed.com.br
+VITE_CHECKOUT_API_KEY=sua_chave_api_backend_aqui
+VITE_GA4_MEASUREMENT_ID=G-NCJG7F37CL
 ```
 
 ## Fallback
