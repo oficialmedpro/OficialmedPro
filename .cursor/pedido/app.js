@@ -105,12 +105,48 @@
             }
 
             // Buscar dados do Supabase (schema configurado)
-            const { data, error } = await supabase
-                .schema(SUPABASE_SCHEMA)
-                .from('pre_checkout')
-                .select('*')
-                .eq('link_pre_checkout', linkId)
-                .single();
+            // Otimização: selecionar apenas campos necessários e usar cache do navegador
+            const cacheKey = `precheckout_${linkId}`;
+            const cachedData = sessionStorage.getItem(cacheKey);
+            
+            let data, error;
+            
+            if (cachedData) {
+                try {
+                    const parsed = JSON.parse(cachedData);
+                    const cacheTime = parsed.cached_at || 0;
+                    const now = Date.now();
+                    // Cache válido por 5 minutos
+                    if (now - cacheTime < 5 * 60 * 1000) {
+                        data = parsed.data;
+                        error = null;
+                    } else {
+                        sessionStorage.removeItem(cacheKey);
+                    }
+                } catch (e) {
+                    sessionStorage.removeItem(cacheKey);
+                }
+            }
+            
+            if (!data) {
+                const result = await supabase
+                    .schema(SUPABASE_SCHEMA)
+                    .from('pre_checkout')
+                    .select('id, link_pre_checkout, codigo_orcamento, nome_cliente, dados_orcamento, formulas_selecionadas, status, expires_at, created_at')
+                    .eq('link_pre_checkout', linkId)
+                    .single();
+                
+                data = result.data;
+                error = result.error;
+                
+                // Salvar no cache
+                if (data && !error) {
+                    sessionStorage.setItem(cacheKey, JSON.stringify({
+                        data: data,
+                        cached_at: Date.now()
+                    }));
+                }
+            }
 
             if (error) {
                 throw new Error(error.message || 'Pré-checkout não encontrado');
@@ -199,7 +235,7 @@
             const eventName = wasSelected ? 'formula_deselect' : 'formula_select';
             window.trackEvent(eventName, {
                 formula_numero: numero,
-                formula_valor: formula.valor || 0,
+                formula_valor: normalizarValor(formula.valor || 0),
                 total_formulas_selecionadas: formulasSelecionadas.size,
                 subtotal: calcularSubtotal()
             });
@@ -222,12 +258,34 @@
         });
     }
 
+    // Função para normalizar valores (converte centavos para reais se necessário)
+    function normalizarValor(valor) {
+        if (!valor || valor === 0) return 0;
+        const num = Number(valor);
+        // Se o valor for muito grande (provavelmente está em centavos), divide por 100
+        // Ex: 11671 -> 116.71, mas 116.71 permanece 116.71
+        if (num > 1000 && num % 100 === 0) {
+            // Se for múltiplo de 100 e maior que 1000, provavelmente está em centavos
+            return num / 100;
+        }
+        // Se o valor parece estar em centavos (ex: 11671 para 116.71)
+        // Verifica se dividindo por 100 resulta em um valor razoável (< 10000)
+        if (num > 100 && num < 1000000) {
+            const valorReais = num / 100;
+            // Se o valor em reais for razoável (entre 1 e 10000), assume que estava em centavos
+            if (valorReais >= 1 && valorReais <= 10000) {
+                return valorReais;
+            }
+        }
+        return num;
+    }
+
     function calcularSubtotal() {
         if (!orcamentoData || !orcamentoData.dados_orcamento) return 0;
         
         return orcamentoData.dados_orcamento.formulas
             .filter(f => formulasSelecionadas.has(f.numero))
-            .reduce((sum, f) => sum + (f.valor || 0), 0);
+            .reduce((sum, f) => sum + normalizarValor(f.valor || 0), 0);
     }
 
     function calcularFrete(subtotal) {
@@ -473,6 +531,7 @@
                 formulaEl.classList.add('selecionada');
             }
 
+            const valorNormalizado = normalizarValor(formula.valor || 0);
             formulaEl.innerHTML = `
                 <div class="formula-checkbox">
                     <div class="checkbox-custom ${isSelecionada ? 'checked' : ''}"></div>
@@ -480,7 +539,7 @@
                 <div class="formula-content">
                     <div class="formula-header">
                         <span class="formula-numero">Fórmula nº ${formula.numero}</span>
-                        <span class="formula-valor">${formatarValor(formula.valor || 0)}</span>
+                        <span class="formula-valor">${formatarValor(valorNormalizado)}</span>
                     </div>
                     ${formula.quantidade ? `<p class="formula-quantidade">${formula.quantidade}</p>` : ''}
                     <p class="formula-descricao">${formula.descricao || 'Sem descrição'}</p>
@@ -571,6 +630,16 @@
                 });
             }
             
+            // Carregar biblioteca sob demanda
+            if (typeof window.loadExportLibs === 'function') {
+                await window.loadExportLibs();
+            }
+            
+            if (typeof html2canvas === 'undefined') {
+                alert('Erro ao carregar biblioteca de exportação. Tente novamente.');
+                return;
+            }
+            
             const alvo = document.getElementById('root') || document.body;
             document.body.classList.add('exportando');
             window.scrollTo(0, 0);
@@ -597,6 +666,16 @@
                     orcamento_codigo: orcamentoData?.dados_orcamento?.codigo || 'N/A',
                     cliente: orcamentoData?.dados_orcamento?.cliente || 'N/A'
                 });
+            }
+            
+            // Carregar bibliotecas sob demanda
+            if (typeof window.loadExportLibs === 'function') {
+                await window.loadExportLibs();
+            }
+            
+            if (typeof html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+                alert('Erro ao carregar bibliotecas de exportação. Tente novamente.');
+                return;
             }
             
             const alvo = document.getElementById('root') || document.body;

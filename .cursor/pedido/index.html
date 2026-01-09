@@ -173,16 +173,43 @@
     </div>
 
     <!-- Configuração (variáveis de ambiente injetadas) -->
-    <script src="/env-config.js"></script>
+    <script src="/env-config.js" defer></script>
     <!-- Configuração (fallback) -->
-    <script src="/config.js"></script>
+    <script src="/config.js" defer></script>
     <!-- Supabase CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- libs para exportar imagem e PDF -->
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
     <!-- Analytics -->
-    <script src="/analytics.js"></script>
-    <script src="/app.js"></script>
+    <script src="/analytics.js" defer></script>
+    <script src="/app.js" defer></script>
+    <!-- libs para exportar imagem e PDF (carregadas sob demanda) -->
+    <script>
+        // Carregar html2canvas e jspdf apenas quando necessário (lazy loading)
+        window.loadExportLibs = function() {
+            return Promise.all([
+                new Promise((resolve, reject) => {
+                    if (window.html2canvas) {
+                        resolve();
+                        return;
+                    }
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                }),
+                new Promise((resolve, reject) => {
+                    if (window.jspdf) {
+                        resolve();
+                        return;
+                    }
+                    const script = document.createElement('script');
+                    script.src = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js';
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                })
+            ]);
+        };
+    </script>
 </body>
 </html>
