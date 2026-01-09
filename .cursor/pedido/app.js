@@ -13,8 +13,15 @@
     const N8N_WEBHOOK_URL = ENV_CONFIG.VITE_N8N_WEBHOOK_URL || CONFIG_FALLBACK.N8N_WEBHOOK_URL || 'https://seu-n8n.com/webhook-pagina-precheckout';
     
     // Configuração da API de Checkout Transparente
-    const CHECKOUT_API_URL = ENV_CONFIG.VITE_CHECKOUT_API_URL || CONFIG_FALLBACK.CHECKOUT_API_URL || 'http://localhost:3001';
+    const CHECKOUT_API_URL = (ENV_CONFIG.VITE_CHECKOUT_API_URL || CONFIG_FALLBACK.CHECKOUT_API_URL || 'http://localhost:3001').replace(/\/+$/, ''); // Remove barras finais
     const CHECKOUT_API_KEY = ENV_CONFIG.VITE_CHECKOUT_API_KEY || CONFIG_FALLBACK.CHECKOUT_API_KEY || '';
+    
+    // Helper para construir URLs da API sem barras duplas
+    function buildApiUrl(endpoint) {
+        const baseUrl = CHECKOUT_API_URL.replace(/\/+$/, ''); // Remove barras finais
+        const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+        return `${baseUrl}${cleanEndpoint}`;
+    }
 
     // Validar configuração
     if (!SUPABASE_KEY || SUPABASE_KEY === 'COLE_SUA_CHAVE_ANON_AQUI') {
@@ -624,9 +631,29 @@
         etapaAtual = etapa;
         atualizarIndicadorProgresso(etapa);
         
-        // Se for etapa 3 (pagamento), atualizar opções de parcelas
+        // Se for etapa 3 (pagamento), resetar seleção de método
         if (etapa === 3) {
-            atualizarOpcoesParcelas();
+            const paymentPix = document.getElementById('payment-pix');
+            const paymentCartao = document.getElementById('payment-cartao');
+            const formPix = document.getElementById('form-pix');
+            const formCartao = document.getElementById('form-cartao');
+            const btnFinalizar = document.getElementById('btn-finalizar-pagamento');
+            
+            // Resetar seleção
+            if (paymentPix) paymentPix.classList.remove('active');
+            if (paymentCartao) paymentCartao.classList.remove('active');
+            if (formPix) formPix.style.display = 'none';
+            if (formCartao) formCartao.style.display = 'none';
+            if (btnFinalizar) {
+                btnFinalizar.style.display = 'none';
+                btnFinalizar.textContent = 'Finalizar Compra';
+                btnFinalizar.disabled = false;
+            }
+            
+            // Resetar dados de pagamento (exceto se já foi processado PIX)
+            if (!dadosPagamento.payment_id) {
+                dadosPagamento.metodo = null;
+            }
         }
         
         // Scroll para o topo
@@ -985,10 +1012,11 @@
             customerPayload.city = dadosCliente.cidade;
         }
 
+        const apiUrl = buildApiUrl('api/customers');
         console.log('📤 Criando cliente com payload:', customerPayload);
-        console.log('🔗 URL:', `${CHECKOUT_API_URL}/api/customers`);
+        console.log('🔗 URL:', apiUrl);
 
-        const response = await fetch(`${CHECKOUT_API_URL}/api/customers`, {
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1036,8 +1064,9 @@
             description: descricao || 'Pagamento OficialMed'
         };
 
+        const apiUrl = buildApiUrl('api/payment');
         console.log('📤 Enviando requisição para criar pagamento PIX:');
-        console.log('URL:', `${CHECKOUT_API_URL}/api/payment`);
+        console.log('URL:', apiUrl);
         console.log('Headers:', {
             'Content-Type': 'application/json',
             'X-API-Key': CHECKOUT_API_KEY ? 'Configurada' : 'NÃO CONFIGURADA'
@@ -1045,7 +1074,7 @@
         console.log('Payload:', payload);
 
         try {
-            const response = await fetch(`${CHECKOUT_API_URL}/api/payment`, {
+            const response = await fetch(apiUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1136,7 +1165,8 @@
             paymentData.installmentCount = parcelasNum;
         }
 
-        const response = await fetch(`${CHECKOUT_API_URL}/api/payment`, {
+        const apiUrl = buildApiUrl('api/payment');
+        const response = await fetch(apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -1162,7 +1192,7 @@
             throw new Error('API Key do checkout não configurada');
         }
 
-        const url = `${CHECKOUT_API_URL}/api/payment/${paymentId}/pix-qrcode`;
+        const url = buildApiUrl(`api/payment/${paymentId}/pix-qrcode`);
         console.log('📤 Buscando QR Code PIX na URL:', url);
 
         const response = await fetch(url, {
@@ -1212,6 +1242,13 @@
     }
 
     async function finalizarCompra() {
+        // Para PIX, o pagamento já foi criado ao clicar no botão
+        // Esta função só processa pagamentos de cartão
+        if (dadosPagamento.metodo === 'pix') {
+            console.log('ℹ️ Pagamento PIX já foi processado. QR Code já está exibido.');
+            return;
+        }
+
         if (!validarEtapa3()) return;
 
         const btnFinalizar = document.getElementById('btn-finalizar-pagamento');
@@ -1269,53 +1306,18 @@
             // 1. Criar cliente no Asaas
             console.log('📝 Criando cliente no Asaas...');
             console.log('Dados do cliente:', dadosCliente);
-            console.log('URL da API:', `${CHECKOUT_API_URL}/api/customers`);
+            console.log('URL da API:', buildApiUrl('api/customers'));
             
             const customer = await criarClienteAsaas(dadosCliente);
             console.log('✅ Cliente criado:', customer.id);
 
             let payment = null;
-            let qrCodeData = null;
 
-            // 2. Criar pagamento baseado no método escolhido
+            // 2. Criar pagamento apenas para cartão (PIX já foi criado anteriormente)
             console.log('💳 Método de pagamento selecionado:', dadosPagamento.metodo);
             console.log('💰 Valor total:', valorTotal);
             
-            if (dadosPagamento.metodo === 'pix') {
-                console.log('💳 Criando pagamento PIX...');
-                console.log('Customer ID:', customer.id);
-                console.log('Valor:', valorTotal);
-                
-                payment = await criarPagamentoPix(
-                    customer.id,
-                    valorTotal,
-                    `Orçamento ${orcamentoData?.dados_orcamento?.codigo || 'N/A'} - OficialMed`
-                );
-                console.log('✅ Pagamento PIX criado:', payment);
-                console.log('Payment ID:', payment.id);
-                console.log('Payment Status:', payment.status);
-
-                // 3. Buscar QR Code PIX
-                console.log('📱 Buscando QR Code PIX...');
-                console.log('Payment ID para buscar QR Code:', payment.id);
-                
-                qrCodeData = await buscarQrCodePix(payment.id);
-                console.log('✅ QR Code obtido:', qrCodeData);
-
-                // Exibir QR Code na tela
-                console.log('🖼️ Exibindo QR Code na tela...');
-                exibirQrCodePix(qrCodeData);
-
-                // Rastrear sucesso PIX
-                if (typeof window.trackEvent === 'function') {
-                    window.trackEvent('pagamento_pix_criado', {
-                        payment_id: payment.id,
-                        valor: valorTotal,
-                        customer_id: customer.id
-                    });
-                }
-
-            } else if (dadosPagamento.metodo === 'cartao') {
+            if (dadosPagamento.metodo === 'cartao') {
                 console.log('💳 Criando pagamento com cartão...');
                 const parcelas = dadosPagamento.dados_cartao?.parcelas || '1';
                 
@@ -1362,13 +1364,21 @@
             }
 
             // Atualizar status no Supabase
+            // Para PIX, usar payment_id já salvo em dadosPagamento
+            const paymentId = dadosPagamento.metodo === 'pix' && dadosPagamento.payment_id 
+                ? dadosPagamento.payment_id 
+                : payment?.id;
+            const customerId = dadosPagamento.metodo === 'pix' && dadosPagamento.customer_id 
+                ? dadosPagamento.customer_id 
+                : customer.id;
+            
             await supabase
                 .schema(SUPABASE_SCHEMA)
                 .from('pre_checkout')
                 .update({
                     status: payment?.status === 'CONFIRMED' ? 'pago' : 'aguardando_pagamento',
-                    payment_id: payment?.id || null,
-                    customer_id: customer.id,
+                    payment_id: paymentId || null,
+                    customer_id: customerId,
                     updated_at: new Date().toISOString()
                 })
                 .eq('link_pre_checkout', linkId);
@@ -1734,17 +1744,132 @@
         const paymentCartao = document.getElementById('payment-cartao');
         const formPix = document.getElementById('form-pix');
         const formCartao = document.getElementById('form-cartao');
+        const btnFinalizar = document.getElementById('btn-finalizar-pagamento');
         
+        // Função para mostrar botão finalizar
+        function mostrarBotaoFinalizar() {
+            if (btnFinalizar) {
+                btnFinalizar.style.display = 'block';
+            }
+        }
+        
+        // Função para esconder botão finalizar
+        function esconderBotaoFinalizar() {
+            if (btnFinalizar) {
+                btnFinalizar.style.display = 'none';
+            }
+        }
+        
+        // Ao clicar em PIX: gerar QR Code imediatamente
         if (paymentPix) {
-            paymentPix.addEventListener('click', () => {
-                paymentPix.classList.add('active');
+            paymentPix.addEventListener('click', async () => {
+                // Evitar múltiplos cliques
+                if (paymentPix.classList.contains('processing')) {
+                    return;
+                }
+                
+                paymentPix.classList.add('active', 'processing');
                 if (paymentCartao) paymentCartao.classList.remove('active');
-                if (formPix) formPix.style.display = 'block';
                 if (formCartao) formCartao.style.display = 'none';
-                dadosPagamento.metodo = 'pix';
+                
+                // Mostrar formulário PIX com loading
+                if (formPix) {
+                    formPix.style.display = 'block';
+                    const placeholder = document.getElementById('pix-qr-code-placeholder');
+                    if (placeholder) {
+                        placeholder.innerHTML = '<p style="color: #666; padding: 40px;">Gerando QR Code PIX...</p>';
+                    }
+                }
+                
+                esconderBotaoFinalizar();
+                
+                try {
+                    console.log('📱 Iniciando processo PIX...');
+                    
+                    // Validar dados do cliente
+                    if (!dadosCliente.nome || !dadosCliente.cpf || !dadosCliente.email) {
+                        throw new Error('Por favor, preencha todos os dados do titular antes de continuar.');
+                    }
+                    
+                    // Salvar etapa 2 (dados do cliente) se ainda não foi salva
+                    await salvarEtapa2();
+                    
+                    // Calcular valores
+                    const subtotal = calcularSubtotal();
+                    const frete = calcularFrete(subtotal);
+                    const valorTotal = subtotal + frete;
+                    
+                    // Verificar API
+                    if (!CHECKOUT_API_KEY || CHECKOUT_API_KEY === 'sua_chave_api_backend') {
+                        throw new Error('API Key do checkout não configurada');
+                    }
+                    
+                    // 1. Criar cliente no Asaas
+                    console.log('📝 Criando cliente no Asaas...');
+                    const customer = await criarClienteAsaas(dadosCliente);
+                    console.log('✅ Cliente criado:', customer.id);
+                    
+                    // 2. Criar pagamento PIX
+                    console.log('💳 Criando pagamento PIX...');
+                    const payment = await criarPagamentoPix(
+                        customer.id,
+                        valorTotal,
+                        `Orçamento ${orcamentoData?.dados_orcamento?.codigo || 'N/A'} - OficialMed`
+                    );
+                    console.log('✅ Pagamento PIX criado:', payment.id);
+                    
+                    // 3. Buscar QR Code PIX
+                    console.log('📱 Buscando QR Code PIX...');
+                    const qrCodeData = await buscarQrCodePix(payment.id);
+                    console.log('✅ QR Code obtido');
+                    
+                    // 4. Exibir QR Code
+                    exibirQrCodePix(qrCodeData);
+                    
+                    // 5. Salvar dados de pagamento
+                    dadosPagamento.metodo = 'pix';
+                    dadosPagamento.payment_id = payment.id;
+                    dadosPagamento.customer_id = customer.id;
+                    await salvarEtapa3();
+                    
+                    // 6. Mostrar botão finalizar (já está finalizado, mas manter para consistência)
+                    mostrarBotaoFinalizar();
+                    if (btnFinalizar) {
+                        btnFinalizar.textContent = 'QR Code Gerado';
+                        btnFinalizar.disabled = true;
+                    }
+                    
+                    // Rastrear sucesso PIX
+                    if (typeof window.trackEvent === 'function') {
+                        window.trackEvent('pagamento_pix_criado', {
+                            payment_id: payment.id,
+                            valor: valorTotal,
+                            customer_id: customer.id
+                        });
+                    }
+                    
+                } catch (err) {
+                    console.error('❌ Erro ao gerar PIX:', err);
+                    alert(`Erro ao gerar QR Code PIX: ${err.message}`);
+                    
+                    // Reverter estado
+                    paymentPix.classList.remove('active', 'processing');
+                    if (formPix) formPix.style.display = 'none';
+                    
+                    // Rastrear erro
+                    if (typeof window.trackEvent === 'function') {
+                        window.trackEvent('pagamento_erro', {
+                            error_message: err.message,
+                            metodo_pagamento: 'pix'
+                        });
+                    }
+                } finally {
+                    paymentPix.classList.remove('processing');
+                }
             });
         }
         
+        // Ao clicar em Cartão: apenas mostrar formulário
         if (paymentCartao) {
             paymentCartao.addEventListener('click', () => {
                 paymentCartao.classList.add('active');
@@ -1752,6 +1877,16 @@
                 if (formPix) formPix.style.display = 'none';
                 if (formCartao) formCartao.style.display = 'block';
                 dadosPagamento.metodo = 'cartao';
+                
+                // Mostrar botão finalizar
+                mostrarBotaoFinalizar();
+                if (btnFinalizar) {
+                    btnFinalizar.textContent = 'Finalizar Compra';
+                    btnFinalizar.disabled = false;
+                }
+                
+                // Atualizar opções de parcelas
+                atualizarOpcoesParcelas();
             });
         }
         
@@ -1771,13 +1906,14 @@
             });
         }
         
-        // Inicializar método de pagamento padrão
+        // Inicializar: nenhum método selecionado por padrão
         if (paymentCartao && paymentPix && formCartao && formPix) {
-            dadosPagamento.metodo = 'cartao';
-            paymentCartao.classList.add('active');
+            dadosPagamento.metodo = null;
+            paymentCartao.classList.remove('active');
             paymentPix.classList.remove('active');
-            formCartao.style.display = 'block';
+            formCartao.style.display = 'none';
             formPix.style.display = 'none';
+            esconderBotaoFinalizar();
         }
 
         // Controles de fonte (usa rem via --base-font-size)

@@ -313,7 +313,7 @@
                             <div class="payment-method-name">PIX</div>
                             <div class="payment-method-desc">Pague instantaneamente</div>
                         </div>
-                        <div class="payment-method-card active" id="payment-cartao" data-method="cartao">
+                        <div class="payment-method-card" id="payment-cartao" data-method="cartao">
                             <div class="payment-method-icon">💳</div>
                             <div class="payment-method-name">Cartão de Crédito</div>
                             <div class="payment-method-desc">Pague com cartão</div>
@@ -325,19 +325,19 @@
                         <div class="pix-result-container">
                             <div class="pix-qrcode">
                                 <div id="pix-qr-code-placeholder">
-                                    <p style="color: #666; padding: 40px;">QR Code será gerado após finalizar o pagamento</p>
+                                    <p style="color: #666; padding: 40px;">Gerando QR Code...</p>
                                 </div>
                             </div>
                             <p class="pix-instructions">Escaneie o QR Code com o app do seu banco para pagar via PIX</p>
                             <div class="pix-copy-paste">
                                 <label>Copiar e Colar:</label>
-                                <textarea id="pix-code" readonly placeholder="O código PIX será exibido aqui após finalizar o pagamento"></textarea>
+                                <textarea id="pix-code" readonly placeholder="O código PIX será exibido aqui"></textarea>
                             </div>
                         </div>
                     </div>
 
                     <!-- Formulário Cartão -->
-                    <div class="payment-form" id="form-cartao">
+                    <div class="payment-form" id="form-cartao" style="display: none;">
                         <div class="card-form">
                             <div class="form-group">
                                 <label for="card-number">Número do Cartão *</label>
@@ -374,7 +374,7 @@
                 
                 <div class="step-actions">
                     <button class="btn-voltar" id="btn-voltar-pagamento">Voltar</button>
-                    <button class="btn-finalizar" id="btn-finalizar-pagamento">Finalizar Compra</button>
+                    <button class="btn-finalizar" id="btn-finalizar-pagamento" style="display: none;">Finalizar Compra</button>
                 </div>
             </div>
 
