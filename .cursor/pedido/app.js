@@ -1304,18 +1304,21 @@
         console.log('Dados do QR Code:', qrCodeData);
         
         const pixForm = document.getElementById('form-pix');
-        const pixQrCode = pixForm?.querySelector('.pix-qr-code');
-        const pixCodeInput = document.getElementById('pix-code');
+        const pixQrCodeContainer = document.querySelector('.pix-qrcode');
+        const pixCodeTextarea = document.getElementById('pix-code');
 
         if (!pixForm) {
             console.error('❌ Formulário PIX não encontrado!');
             return;
         }
 
-        if (!pixQrCode) {
+        if (!pixQrCodeContainer) {
             console.error('❌ Container do QR Code não encontrado!');
             return;
         }
+
+        // Mostrar formulário PIX primeiro
+        pixForm.style.display = 'block';
 
         if (qrCodeData && qrCodeData.encodedImage) {
             console.log('✅ Criando imagem do QR Code...');
@@ -1323,29 +1326,26 @@
             const img = document.createElement('img');
             img.src = `data:image/png;base64,${qrCodeData.encodedImage}`;
             img.alt = 'QR Code PIX';
-            img.style.width = '100%';
-            img.style.height = 'auto';
-            img.style.maxWidth = '300px';
-            img.style.border = '2px solid #ddd';
-            img.style.borderRadius = '8px';
             
-            // Limpar conteúdo anterior e adicionar imagem
-            pixQrCode.innerHTML = '';
-            pixQrCode.appendChild(img);
+            // Limpar placeholder e adicionar imagem
+            const placeholder = document.getElementById('pix-qr-code-placeholder');
+            if (placeholder) {
+                placeholder.remove();
+            }
+            pixQrCodeContainer.innerHTML = '';
+            pixQrCodeContainer.appendChild(img);
             console.log('✅ Imagem do QR Code adicionada');
         } else {
             console.warn('⚠️ QR Code não possui imagem encodedImage');
         }
 
-        if (pixCodeInput && qrCodeData && qrCodeData.payload) {
-            pixCodeInput.value = qrCodeData.payload;
+        if (pixCodeTextarea && qrCodeData && qrCodeData.payload) {
+            pixCodeTextarea.value = qrCodeData.payload;
             console.log('✅ Código PIX copiado para o campo');
         } else {
             console.warn('⚠️ QR Code não possui payload');
         }
 
-        // Mostrar formulário PIX
-        pixForm.style.display = 'block';
         console.log('✅ Formulário PIX exibido');
 
         // Scroll para o QR Code
@@ -1363,10 +1363,15 @@
         modal.className = 'payment-success-modal';
         modal.innerHTML = `
             <div class="payment-success-content">
-                <div class="success-icon">✓</div>
+                <div class="success-icon">✅</div>
                 <h2>${mensagem}</h2>
-                <p>ID do Pagamento: ${payment.id}</p>
-                <p>Valor: ${formatarValor(payment.value)}</p>
+                <p>Seu pagamento foi processado com sucesso. Obrigado pela sua compra!</p>
+                <div class="payment-info">
+                    <p><strong>ID do Pagamento:</strong> ${payment.id}</p>
+                    <p><strong>Status:</strong> ${payment.status}</p>
+                    <p><strong>Valor:</strong> ${formatarValor(payment.value)}</p>
+                    ${payment.installmentCount > 1 ? `<p><strong>Parcelas:</strong> ${payment.installmentCount}x</p>` : ''}
+                </div>
                 <button class="btn-close-modal" onclick="this.closest('.payment-success-modal').remove()">Fechar</button>
             </div>
         `;
@@ -1383,9 +1388,13 @@
             <div class="payment-pending-content">
                 <div class="pending-icon">⏳</div>
                 <h2>${mensagem}</h2>
-                <p>ID do Pagamento: ${payment.id}</p>
-                <p>Valor: ${formatarValor(payment.value)}</p>
                 <p>Você receberá uma confirmação por email assim que o pagamento for processado.</p>
+                <div class="payment-info">
+                    <p><strong>ID do Pagamento:</strong> ${payment.id}</p>
+                    <p><strong>Status:</strong> ${payment.status}</p>
+                    <p><strong>Valor:</strong> ${formatarValor(payment.value)}</p>
+                    ${payment.installmentCount > 1 ? `<p><strong>Parcelas:</strong> ${payment.installmentCount}x</p>` : ''}
+                </div>
                 <button class="btn-close-modal" onclick="this.closest('.payment-pending-modal').remove()">Fechar</button>
             </div>
         `;
@@ -1632,9 +1641,9 @@
         if (paymentPix) {
             paymentPix.addEventListener('click', () => {
                 paymentPix.classList.add('active');
-                paymentCartao.classList.remove('active');
-                formPix.style.display = 'block';
-                formCartao.style.display = 'none';
+                if (paymentCartao) paymentCartao.classList.remove('active');
+                if (formPix) formPix.style.display = 'block';
+                if (formCartao) formCartao.style.display = 'none';
                 dadosPagamento.metodo = 'pix';
             });
         }
@@ -1642,26 +1651,26 @@
         if (paymentCartao) {
             paymentCartao.addEventListener('click', () => {
                 paymentCartao.classList.add('active');
-                paymentPix.classList.remove('active');
-                formPix.style.display = 'none';
-                formCartao.style.display = 'block';
+                if (paymentPix) paymentPix.classList.remove('active');
+                if (formPix) formPix.style.display = 'none';
+                if (formCartao) formCartao.style.display = 'block';
                 dadosPagamento.metodo = 'cartao';
             });
         }
         
-        // Copiar código PIX
-        const btnCopyPix = document.getElementById('btn-copy-pix');
-        if (btnCopyPix) {
-            btnCopyPix.addEventListener('click', () => {
-                const pixCode = document.getElementById('pix-code');
-                if (pixCode) {
-                    pixCode.select();
-                    document.execCommand('copy');
-                    btnCopyPix.textContent = 'Copiado!';
-                    setTimeout(() => {
-                        btnCopyPix.textContent = 'Copiar Código PIX';
-                    }, 2000);
-                }
+        // Copiar código PIX (textarea)
+        const pixCodeTextarea = document.getElementById('pix-code');
+        if (pixCodeTextarea) {
+            pixCodeTextarea.addEventListener('click', function() {
+                this.select();
+                document.execCommand('copy');
+                const originalValue = this.value;
+                this.value = 'Código copiado!';
+                this.style.color = '#10b981';
+                setTimeout(() => {
+                    this.value = originalValue;
+                    this.style.color = '';
+                }, 2000);
             });
         }
         
