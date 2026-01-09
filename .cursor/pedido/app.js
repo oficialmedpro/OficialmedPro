@@ -191,6 +191,14 @@
             
             // Garantir que a etapa 1 está visível
             mostrarEtapa(1);
+            
+            // Garantir que o botão próximo está habilitado se houver fórmulas selecionadas
+            setTimeout(() => {
+                const btnProximoPedido = document.getElementById('btn-proximo-pedido');
+                if (btnProximoPedido && formulasSelecionadas.size > 0) {
+                    btnProximoPedido.disabled = false;
+                }
+            }, 100);
 
             // Rastrear visualização da página com dados do orçamento
             if (typeof window.trackPageView === 'function') {
@@ -235,6 +243,13 @@
         
         atualizarCheckboxes();
         calcularEAtualizarTotal();
+        
+        // Atualizar botão próximo após toggle
+        const btnProximoPedido = document.getElementById('btn-proximo-pedido');
+        if (btnProximoPedido) {
+            const temFormulas = formulasSelecionadas.size > 0;
+            btnProximoPedido.disabled = !temFormulas;
+        }
         
         // Rastrear seleção/deseleção
         if (typeof window.trackEvent === 'function' && formula) {
@@ -347,7 +362,8 @@
         // Habilitar/desabilitar botão de próximo
         const btnProximoPedido = document.getElementById('btn-proximo-pedido');
         if (btnProximoPedido) {
-            btnProximoPedido.disabled = formulasSelecionadas.size === 0;
+            const temFormulas = formulasSelecionadas.size > 0;
+            btnProximoPedido.disabled = !temFormulas;
         }
         
         // Rastrear eventos de cálculo
@@ -743,7 +759,8 @@
         // Atualizar botão próximo
         const btnProximoPedido = document.getElementById('btn-proximo-pedido');
         if (btnProximoPedido) {
-            btnProximoPedido.disabled = formulasSelecionadas.size === 0;
+            const temFormulas = formulasSelecionadas.size > 0;
+            btnProximoPedido.disabled = !temFormulas;
         }
     }
 

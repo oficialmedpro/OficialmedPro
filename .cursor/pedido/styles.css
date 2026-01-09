@@ -133,16 +133,16 @@ html {
     justify-content: center;
     margin-bottom: 40px;
     padding: 20px 0;
-    gap: 10px;
+    gap: 0;
+    flex-wrap: nowrap;
 }
 
 .progress-step {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 8px;
-    flex: 1;
-    max-width: 200px;
+    gap: 12px;
+    flex: 0 0 auto;
 }
 
 .step-icon {
@@ -154,6 +154,7 @@ html {
     justify-content: center;
     transition: all 0.3s ease;
     position: relative;
+    flex-shrink: 0;
 }
 
 .step-icon.step-completed {
@@ -172,7 +173,10 @@ html {
 }
 
 .step-label {
-    text-align: center;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
 }
 
 .step-title {
@@ -180,13 +184,14 @@ html {
     font-weight: 700;
     font-size: 1rem;
     color: var(--text-color);
-    margin-bottom: 4px;
+    line-height: 1.2;
 }
 
 .step-subtitle {
     display: block;
     font-size: 0.875rem;
     color: var(--muted-color);
+    line-height: 1.2;
 }
 
 .progress-step[data-step="1"] .step-title,
@@ -202,10 +207,11 @@ html {
 
 .progress-line {
     flex: 1;
+    min-width: 60px;
+    max-width: 120px;
     height: 2px;
     background: #e5e7eb;
-    margin: 0 10px;
-    max-width: 100px;
+    margin: 0 15px;
     transition: background 0.3s ease;
 }
 
@@ -464,20 +470,32 @@ html {
 /* Responsivo - Progress Indicator */
 @media (max-width: 768px) {
     .progress-indicator {
-        flex-direction: column;
-        gap: 20px;
-    }
-    
-    .progress-line {
-        width: 2px;
-        height: 40px;
-        margin: 0;
-        max-width: none;
+        gap: 0;
+        padding: 15px 10px;
     }
     
     .progress-step {
-        max-width: 100%;
-        width: 100%;
+        gap: 8px;
+    }
+    
+    .step-icon {
+        width: 40px;
+        height: 40px;
+        flex-shrink: 0;
+    }
+    
+    .step-title {
+        font-size: 0.9rem;
+    }
+    
+    .step-subtitle {
+        font-size: 0.75rem;
+    }
+    
+    .progress-line {
+        min-width: 30px;
+        max-width: 60px;
+        margin: 0 8px;
     }
     
     .form-row {
