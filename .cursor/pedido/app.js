@@ -40,6 +40,9 @@
     // Estados
     let orcamentoData = null;
     let formulasSelecionadas = new Set();
+    let etapaAtual = 1;
+    let dadosCliente = {};
+    let dadosPagamento = {};
 
     // Funções
     // Garantir título correto da página
@@ -185,6 +188,9 @@
             
             loadingEl.style.display = 'none';
             contentEl.style.display = 'block';
+            
+            // Garantir que a etapa 1 está visível
+            mostrarEtapa(1);
 
             // Rastrear visualização da página com dados do orçamento
             if (typeof window.trackPageView === 'function') {
@@ -338,9 +344,10 @@
             }
         }
         
-        // Habilitar/desabilitar botão de finalizar
-        if (btnFinalizar) {
-            btnFinalizar.disabled = formulasSelecionadas.size === 0;
+        // Habilitar/desabilitar botão de próximo
+        const btnProximoPedido = document.getElementById('btn-proximo-pedido');
+        if (btnProximoPedido) {
+            btnProximoPedido.disabled = formulasSelecionadas.size === 0;
         }
         
         // Rastrear eventos de cálculo
@@ -373,132 +380,304 @@
         }
     }
 
-    async function finalizarCompra() {
-        const btnFinalizar = document.getElementById('btn-finalizar');
-        
-        if (formulasSelecionadas.size === 0) {
-            // Rastrear tentativa de finalizar sem produtos
-            if (typeof window.trackEvent === 'function') {
-                window.trackEvent('formula_selection_validation', {
-                    error: 'nenhuma_formula_selecionada',
-                    formulas_disponiveis: orcamentoData?.dados_orcamento?.formulas?.length || 0
-                });
+    // Funções de formatação de campos
+    function formatarCPF(value) {
+        const numbers = value.replace(/\D/g, '');
+        if (numbers.length <= 11) {
+            return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+        }
+        return value;
+    }
+
+    function formatarTelefone(value) {
+        const numbers = value.replace(/\D/g, '');
+        if (numbers.length <= 11) {
+            return numbers.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+        }
+        return value;
+    }
+
+    function formatarCEP(value) {
+        const numbers = value.replace(/\D/g, '');
+        if (numbers.length <= 8) {
+            return numbers.replace(/(\d{5})(\d{3})/, '$1-$2');
+        }
+        return value;
+    }
+
+    function formatarCartao(value) {
+        const numbers = value.replace(/\D/g, '');
+        return numbers.replace(/(\d{4})(?=\d)/g, '$1 ');
+    }
+
+    function formatarValidade(value) {
+        const numbers = value.replace(/\D/g, '');
+        if (numbers.length <= 4) {
+            return numbers.replace(/(\d{2})(\d{2})/, '$1/$2');
+        }
+        return value;
+    }
+
+    // Gerenciamento de etapas
+    function atualizarIndicadorProgresso(etapa) {
+        // Atualizar ícones
+        for (let i = 1; i <= 3; i++) {
+            const stepIcon = document.querySelector(`#step-indicator-${i} .step-icon`);
+            const stepLine = document.querySelector(`#progress-line-${i}`);
+            
+            if (i < etapa) {
+                stepIcon.className = 'step-icon step-completed';
+                if (stepLine) stepLine.classList.add('completed');
+            } else if (i === etapa) {
+                stepIcon.className = 'step-icon step-active';
+                if (stepLine) stepLine.classList.remove('completed');
+            } else {
+                stepIcon.className = 'step-icon step-pending';
+                if (stepLine) stepLine.classList.remove('completed');
             }
-            alert('Selecione pelo menos uma fórmula para continuar');
-            return;
         }
+    }
 
-        // Calcular valores antes de rastrear
-        const subtotal = calcularSubtotal();
-        const frete = calcularFrete(subtotal);
-        const valorTotal = subtotal + frete;
-
-        // Rastrear clique em finalizar
-        if (typeof window.trackEvent === 'function') {
-            window.trackEvent('finalizar_compra_click', {
-                subtotal: subtotal,
-                frete: frete,
-                total: valorTotal,
-                quantidade_produtos: formulasSelecionadas.size,
-                formulas_selecionadas: Array.from(formulasSelecionadas)
-            });
+    function mostrarEtapa(etapa) {
+        // Esconder todas as etapas
+        document.querySelectorAll('.step-container').forEach(el => {
+            el.style.display = 'none';
+        });
+        
+        // Mostrar etapa atual
+        const etapaEl = document.getElementById(`step-${etapa}`);
+        if (etapaEl) {
+            etapaEl.style.display = 'block';
         }
+        
+        etapaAtual = etapa;
+        atualizarIndicadorProgresso(etapa);
+        
+        // Scroll para o topo
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function salvarEtapa1() {
+        const linkId = obterLinkIdDaUrl();
+        if (!linkId) return;
 
         try {
-            if (btnFinalizar) {
-                btnFinalizar.disabled = true;
-                btnFinalizar.textContent = 'Gerando checkout...';
-            }
-
-            const linkId = obterLinkIdDaUrl();
-            
-            if (!linkId) {
-                throw new Error('Link ID não encontrado');
-            }
-
-            // Atualizar fórmulas selecionadas no Supabase (schema configurado)
-            const { error: updateError } = await supabase
+            const { error } = await supabase
                 .schema(SUPABASE_SCHEMA)
                 .from('pre_checkout')
                 .update({
                     formulas_selecionadas: Array.from(formulasSelecionadas),
-                    // Mantém status válido conforme constraint do banco
                     status: 'pendente',
                     updated_at: new Date().toISOString()
                 })
                 .eq('link_pre_checkout', linkId);
 
-            if (updateError) {
-                throw new Error(updateError.message);
+            if (error) throw error;
+        } catch (err) {
+            console.error('Erro ao salvar etapa 1:', err);
+        }
+    }
+
+    async function salvarEtapa2() {
+        const linkId = obterLinkIdDaUrl();
+        if (!linkId) return;
+
+        try {
+            const { error } = await supabase
+                .schema(SUPABASE_SCHEMA)
+                .from('pre_checkout')
+                .update({
+                    dados_cliente: dadosCliente,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('link_pre_checkout', linkId);
+
+            if (error) throw error;
+        } catch (err) {
+            console.error('Erro ao salvar etapa 2:', err);
+        }
+    }
+
+    async function salvarEtapa3() {
+        const linkId = obterLinkIdDaUrl();
+        if (!linkId) return;
+
+        try {
+            const { error } = await supabase
+                .schema(SUPABASE_SCHEMA)
+                .from('pre_checkout')
+                .update({
+                    dados_pagamento: dadosPagamento,
+                    status: 'aguardando_pagamento',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('link_pre_checkout', linkId);
+
+            if (error) throw error;
+        } catch (err) {
+            console.error('Erro ao salvar etapa 3:', err);
+        }
+    }
+
+    function validarEtapa1() {
+        if (formulasSelecionadas.size === 0) {
+            alert('Selecione pelo menos uma fórmula para continuar');
+            return false;
+        }
+        return true;
+    }
+
+    function validarEtapa2() {
+        const form = document.getElementById('form-dados');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return false;
+        }
+        
+        // Coletar dados do formulário
+        dadosCliente = {
+            nome: document.getElementById('nome').value,
+            cpf: document.getElementById('cpf').value.replace(/\D/g, ''),
+            email: document.getElementById('email').value,
+            celular: document.getElementById('celular').value.replace(/\D/g, ''),
+            data_nascimento: document.getElementById('data-nascimento').value,
+            sexo: document.getElementById('sexo').value,
+            cep: document.getElementById('cep').value.replace(/\D/g, ''),
+            endereco: document.getElementById('endereco').value,
+            numero: document.getElementById('numero').value,
+            complemento: document.getElementById('complemento').value,
+            bairro: document.getElementById('bairro').value,
+            cidade: document.getElementById('cidade').value,
+            estado: document.getElementById('estado').value.toUpperCase()
+        };
+        
+        return true;
+    }
+
+    function validarEtapa3() {
+        const metodo = dadosPagamento.metodo;
+        
+        if (metodo === 'pix') {
+            // PIX não precisa validação adicional
+            return true;
+        } else if (metodo === 'cartao') {
+            const cardNumber = document.getElementById('card-number');
+            const cardName = document.getElementById('card-name');
+            const cardExpiry = document.getElementById('card-expiry');
+            const cardCvv = document.getElementById('card-cvv');
+            const cardInstallments = document.getElementById('card-installments');
+            
+            if (!cardNumber || !cardNumber.value || cardNumber.value.replace(/\D/g, '').length < 13) {
+                alert('Número do cartão inválido');
+                if (cardNumber) cardNumber.focus();
+                return false;
+            }
+            if (!cardName || !cardName.value.trim()) {
+                alert('Nome no cartão é obrigatório');
+                if (cardName) cardName.focus();
+                return false;
+            }
+            if (!cardExpiry || !cardExpiry.value || cardExpiry.value.length !== 5) {
+                alert('Validade inválida (formato: MM/AA)');
+                if (cardExpiry) cardExpiry.focus();
+                return false;
+            }
+            if (!cardCvv || !cardCvv.value || cardCvv.value.length < 3) {
+                alert('CVV inválido');
+                if (cardCvv) cardCvv.focus();
+                return false;
+            }
+            
+            // Coletar dados do cartão
+            dadosPagamento.dados_cartao = {
+                numero: cardNumber.value.replace(/\D/g, ''),
+                nome: cardName.value.trim(),
+                validade: cardExpiry.value,
+                cvv: cardCvv.value,
+                parcelas: cardInstallments ? cardInstallments.value : '1'
+            };
+            
+            return true;
+        }
+        
+        alert('Selecione um método de pagamento');
+        return false;
+    }
+
+    async function avancarEtapa() {
+        if (etapaAtual === 1) {
+            if (!validarEtapa1()) return;
+            await salvarEtapa1();
+            mostrarEtapa(2);
+        } else if (etapaAtual === 2) {
+            if (!validarEtapa2()) return;
+            await salvarEtapa2();
+            mostrarEtapa(3);
+        }
+    }
+
+    function voltarEtapa() {
+        if (etapaAtual === 2) {
+            mostrarEtapa(1);
+        } else if (etapaAtual === 3) {
+            mostrarEtapa(2);
+        }
+    }
+
+    async function finalizarCompra() {
+        if (!validarEtapa3()) return;
+
+        const btnFinalizar = document.getElementById('btn-finalizar-pagamento');
+        
+        try {
+            if (btnFinalizar) {
+                btnFinalizar.disabled = true;
+                btnFinalizar.textContent = 'Processando...';
             }
 
-            // Calcular valores para enviar ao webhook
+            const linkId = obterLinkIdDaUrl();
+            if (!linkId) {
+                throw new Error('Link ID não encontrado');
+            }
+
+            // Salvar dados de pagamento
+            await salvarEtapa3();
+
+            // Calcular valores
             const subtotal = calcularSubtotal();
             const frete = calcularFrete(subtotal);
-            const valorTotal = subtotal + frete; // Total com frete incluído
+            const valorTotal = subtotal + frete;
 
-            // Chamar webhook do n8n para gerar checkout
-            const response = await fetch(N8N_WEBHOOK_URL, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    linkId: linkId,
-                    formulasSelecionadas: Array.from(formulasSelecionadas),
-                    valor: valorTotal // Envia o valor total já com frete incluído
-                })
-            });
-
-            if (!response.ok) {
-                let detalhe = '';
-                try {
-                    // tenta extrair detalhes de erro do n8n
-                    detalhe = await response.text();
-                } catch {}
-                throw new Error(`Erro ao gerar checkout: ${response.status} ${detalhe || response.statusText || ''}`.trim());
-            }
-
-            const data = await response.json();
-            
-            if (!data.success || !data.checkout_url) {
-                throw new Error('Resposta inválida do servidor');
-            }
-
-            // Rastrear sucesso na geração do checkout
+            // Rastrear finalização
             if (typeof window.trackEvent === 'function') {
-                window.trackEvent('finalizar_compra_success', {
-                    checkout_url: data.checkout_url,
+                window.trackEvent('finalizar_compra_click', {
                     subtotal: subtotal,
                     frete: frete,
-                    total: valorTotal
+                    total: valorTotal,
+                    metodo_pagamento: dadosPagamento.metodo,
+                    quantidade_produtos: formulasSelecionadas.size
                 });
             }
 
-            // Rastrear redirecionamento
-            if (typeof window.trackEvent === 'function') {
-                window.trackEvent('checkout_redirect', {
-                    checkout_url: data.checkout_url,
-                    total: valorTotal
-                });
-            }
-
-            // Redirecionar para o checkout
-            window.location.href = data.checkout_url;
+            // Aqui você pode chamar a API do Asaas ou n8n
+            // Por enquanto, vamos apenas mostrar uma mensagem
+            alert('Pedido processado com sucesso! Em breve você receberá as instruções de pagamento.');
+            
+            // TODO: Integrar com API do Asaas quando estiver pronta
+            // const response = await fetch(API_URL + '/criar-pagamento', {
+            //     method: 'POST',
+            //     headers: { 'Content-Type': 'application/json' },
+            //     body: JSON.stringify({
+            //         linkId,
+            //         formulasSelecionadas: Array.from(formulasSelecionadas),
+            //         dadosCliente,
+            //         dadosPagamento,
+            //         valor: valorTotal
+            //     })
+            // });
 
         } catch (err) {
             console.error('Erro ao finalizar:', err);
-            
-            // Rastrear erro ao finalizar
-            if (typeof window.trackEvent === 'function') {
-                window.trackEvent('finalizar_compra_error', {
-                    error_message: err.message,
-                    subtotal: subtotal,
-                    frete: frete,
-                    total: valorTotal
-                });
-            }
-            
             alert('Erro ao processar. Tente novamente.');
             
             if (btnFinalizar) {
@@ -560,16 +739,136 @@
         if (resumoLabelEl && resumoLabelEl.textContent.includes('Produto')) {
             resumoLabelEl.textContent = `${qtdProdutos} ${qtdProdutos === 1 ? 'Produto' : 'Produtos'}`;
         }
+        
+        // Atualizar botão próximo
+        const btnProximoPedido = document.getElementById('btn-proximo-pedido');
+        if (btnProximoPedido) {
+            btnProximoPedido.disabled = formulasSelecionadas.size === 0;
+        }
     }
 
     // Inicializar quando a página carregar
     document.addEventListener('DOMContentLoaded', () => {
         carregarPreCheckout();
         
-        // Adicionar listener ao botão de finalizar
-        const btnFinalizar = document.getElementById('btn-finalizar');
-        if (btnFinalizar) {
-            btnFinalizar.addEventListener('click', finalizarCompra);
+        // Event listeners para navegação entre etapas
+        const btnProximoPedido = document.getElementById('btn-proximo-pedido');
+        if (btnProximoPedido) {
+            btnProximoPedido.addEventListener('click', avancarEtapa);
+        }
+        
+        const btnProximoDados = document.getElementById('btn-proximo-dados');
+        if (btnProximoDados) {
+            btnProximoDados.addEventListener('click', avancarEtapa);
+        }
+        
+        const btnVoltarDados = document.getElementById('btn-voltar-dados');
+        if (btnVoltarDados) {
+            btnVoltarDados.addEventListener('click', voltarEtapa);
+        }
+        
+        const btnVoltarPagamento = document.getElementById('btn-voltar-pagamento');
+        if (btnVoltarPagamento) {
+            btnVoltarPagamento.addEventListener('click', voltarEtapa);
+        }
+        
+        const btnFinalizarPagamento = document.getElementById('btn-finalizar-pagamento');
+        if (btnFinalizarPagamento) {
+            btnFinalizarPagamento.addEventListener('click', finalizarCompra);
+        }
+        
+        // Formatação de campos
+        const cpfInput = document.getElementById('cpf');
+        if (cpfInput) {
+            cpfInput.addEventListener('input', (e) => {
+                e.target.value = formatarCPF(e.target.value);
+            });
+        }
+        
+        const celularInput = document.getElementById('celular');
+        if (celularInput) {
+            celularInput.addEventListener('input', (e) => {
+                e.target.value = formatarTelefone(e.target.value);
+            });
+        }
+        
+        const cepInput = document.getElementById('cep');
+        if (cepInput) {
+            cepInput.addEventListener('input', (e) => {
+                e.target.value = formatarCEP(e.target.value);
+            });
+        }
+        
+        const cardNumberInput = document.getElementById('card-number');
+        if (cardNumberInput) {
+            cardNumberInput.addEventListener('input', (e) => {
+                e.target.value = formatarCartao(e.target.value);
+            });
+        }
+        
+        const cardExpiryInput = document.getElementById('card-expiry');
+        if (cardExpiryInput) {
+            cardExpiryInput.addEventListener('input', (e) => {
+                e.target.value = formatarValidade(e.target.value);
+            });
+        }
+        
+        const cardCvvInput = document.getElementById('card-cvv');
+        if (cardCvvInput) {
+            cardCvvInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/\D/g, '');
+            });
+        }
+        
+        // Seleção de método de pagamento
+        const paymentPix = document.getElementById('payment-pix');
+        const paymentCartao = document.getElementById('payment-cartao');
+        const formPix = document.getElementById('form-pix');
+        const formCartao = document.getElementById('form-cartao');
+        
+        if (paymentPix) {
+            paymentPix.addEventListener('click', () => {
+                paymentPix.classList.add('active');
+                paymentCartao.classList.remove('active');
+                formPix.style.display = 'block';
+                formCartao.style.display = 'none';
+                dadosPagamento.metodo = 'pix';
+            });
+        }
+        
+        if (paymentCartao) {
+            paymentCartao.addEventListener('click', () => {
+                paymentCartao.classList.add('active');
+                paymentPix.classList.remove('active');
+                formPix.style.display = 'none';
+                formCartao.style.display = 'block';
+                dadosPagamento.metodo = 'cartao';
+            });
+        }
+        
+        // Copiar código PIX
+        const btnCopyPix = document.getElementById('btn-copy-pix');
+        if (btnCopyPix) {
+            btnCopyPix.addEventListener('click', () => {
+                const pixCode = document.getElementById('pix-code');
+                if (pixCode) {
+                    pixCode.select();
+                    document.execCommand('copy');
+                    btnCopyPix.textContent = 'Copiado!';
+                    setTimeout(() => {
+                        btnCopyPix.textContent = 'Copiar Código PIX';
+                    }, 2000);
+                }
+            });
+        }
+        
+        // Inicializar método de pagamento padrão
+        if (paymentCartao && paymentPix && formCartao && formPix) {
+            dadosPagamento.metodo = 'cartao';
+            paymentCartao.classList.add('active');
+            paymentPix.classList.remove('active');
+            formCartao.style.display = 'block';
+            formPix.style.display = 'none';
         }
 
         // Controles de fonte (usa rem via --base-font-size)

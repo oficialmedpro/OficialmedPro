@@ -62,8 +62,51 @@
 
         <!-- Content -->
         <div class="content" id="content" style="display: none;">
-            <!-- Orçamento Info -->
-            <div class="orcamento-info">
+            <!-- Indicador de Progresso -->
+            <div class="progress-indicator">
+                <div class="progress-step" data-step="1" id="step-indicator-1">
+                    <div class="step-icon step-completed">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 6L9 17l-5-5"></path>
+                        </svg>
+                    </div>
+                    <div class="step-label">
+                        <span class="step-title">Pedido</span>
+                        <span class="step-subtitle">Selecione os produtos</span>
+                    </div>
+                </div>
+                <div class="progress-line" id="progress-line-1"></div>
+                <div class="progress-step" data-step="2" id="step-indicator-2">
+                    <div class="step-icon step-active">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
+                    <div class="step-label">
+                        <span class="step-title">Dados</span>
+                        <span class="step-subtitle">Informações pessoais</span>
+                    </div>
+                </div>
+                <div class="progress-line" id="progress-line-2"></div>
+                <div class="progress-step" data-step="3" id="step-indicator-3">
+                    <div class="step-icon step-pending">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                            <line x1="1" y1="10" x2="23" y2="10"></line>
+                        </svg>
+                    </div>
+                    <div class="step-label">
+                        <span class="step-title">Pagamento</span>
+                        <span class="step-subtitle">Método de pagamento</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Etapa 1: Pedido -->
+            <div class="step-container" id="step-1" data-step="1">
+                <!-- Orçamento Info -->
+                <div class="orcamento-info">
                 <div class="info-row">
                     <div class="info-line">
                         <span class="info-label">Orçamento:</span>
@@ -140,16 +183,209 @@
                 </div>
             </div>
 
-            <!-- Botão Finalizar -->
-            <div class="finalizar-container finalizar-flutuante hide-export no-print">
-                <button class="btn-finalizar" id="btn-finalizar" disabled>
-                    Finalizar Compra
-                </button>
+                <!-- Botão Próximo -->
+                <div class="finalizar-container finalizar-flutuante hide-export no-print">
+                    <button class="btn-finalizar" id="btn-proximo-pedido" disabled>
+                        Próximo
+                    </button>
+                </div>
+
+                <!-- Mensagem de Validade -->
+                <div class="validade-message">
+                    Este orçamento é válido por 24 horas a partir da data de envio.
+                </div>
             </div>
 
-            <!-- Mensagem de Validade -->
-            <div class="validade-message">
-                Este orçamento é válido por 24 horas a partir da data de envio.
+            <!-- Etapa 2: Dados -->
+            <div class="step-container" id="step-2" data-step="2" style="display: none;">
+                <div class="form-container">
+                    <h2 class="form-title">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        Dados do Titular
+                    </h2>
+                    <p class="form-subtitle">Preencha os dados do responsável pela assinatura</p>
+                    
+                    <form id="form-dados" class="dados-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="nome">Nome *</label>
+                                <input type="text" id="nome" name="nome" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="cpf">CPF *</label>
+                                <input type="text" id="cpf" name="cpf" placeholder="000.000.000-00" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="email">Email *</label>
+                                <input type="email" id="email" name="email" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="celular">Celular *</label>
+                                <input type="tel" id="celular" name="celular" placeholder="(00) 00000-0000" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="data-nascimento">Data de Nascimento *</label>
+                                <input type="date" id="data-nascimento" name="data_nascimento" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="sexo">Sexo *</label>
+                                <select id="sexo" name="sexo" required>
+                                    <option value="">Selecione</option>
+                                    <option value="M">Masculino</option>
+                                    <option value="F">Feminino</option>
+                                    <option value="O">Outro</option>
+                                    <option value="N">Prefiro não informar</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="cep">CEP *</label>
+                                <input type="text" id="cep" name="cep" placeholder="00000-000" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="endereco">Endereço *</label>
+                                <input type="text" id="endereco" name="endereco" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="numero">Número</label>
+                                <input type="text" id="numero" name="numero">
+                            </div>
+                            <div class="form-group">
+                                <label for="complemento">Complemento</label>
+                                <input type="text" id="complemento" name="complemento">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="bairro">Bairro *</label>
+                                <input type="text" id="bairro" name="bairro" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="cidade">Cidade *</label>
+                                <input type="text" id="cidade" name="cidade" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="estado">Estado *</label>
+                                <input type="text" id="estado" name="estado" placeholder="UF" maxlength="2" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="step-actions">
+                    <button class="btn-voltar" id="btn-voltar-dados">Voltar</button>
+                    <button class="btn-proximo" id="btn-proximo-dados">Próximo</button>
+                </div>
+            </div>
+
+            <!-- Etapa 3: Pagamento -->
+            <div class="step-container" id="step-3" data-step="3" style="display: none;">
+                <div class="payment-container">
+                    <h2 class="form-title">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline-block; vertical-align: middle; margin-right: 8px;">
+                            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                            <line x1="1" y1="10" x2="23" y2="10"></line>
+                        </svg>
+                        Método de Pagamento
+                    </h2>
+                    
+                    <div class="payment-methods">
+                        <div class="payment-method" id="payment-pix" data-method="pix">
+                            <div class="payment-method-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <path d="M9 9h6v6H9z"></path>
+                                    <path d="M9 1v6M15 1v6M9 17v6M15 17v6M1 9h6M17 9h6M1 15h6M17 15h6"></path>
+                                </svg>
+                            </div>
+                            <span class="payment-method-label">PIX</span>
+                        </div>
+                        <div class="payment-method active" id="payment-cartao" data-method="cartao">
+                            <div class="payment-method-icon">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+                                    <line x1="1" y1="10" x2="23" y2="10"></line>
+                                </svg>
+                            </div>
+                            <span class="payment-method-label">Cartão de Crédito</span>
+                        </div>
+                    </div>
+
+                    <!-- Formulário PIX -->
+                    <div class="payment-form" id="form-pix" style="display: none;">
+                        <div class="pix-qr-container">
+                            <div class="pix-qr-code">
+                                <svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                                    <rect width="200" height="200" fill="white"/>
+                                    <rect x="20" y="20" width="40" height="40" fill="black"/>
+                                    <rect x="140" y="20" width="40" height="40" fill="black"/>
+                                    <rect x="20" y="140" width="40" height="40" fill="black"/>
+                                    <rect x="80" y="80" width="40" height="40" fill="black"/>
+                                    <rect x="100" y="100" width="20" height="20" fill="black"/>
+                                    <rect x="60" y="60" width="20" height="20" fill="black"/>
+                                    <rect x="120" y="60" width="20" height="20" fill="black"/>
+                                    <rect x="60" y="120" width="20" height="20" fill="black"/>
+                                    <text x="100" y="190" text-anchor="middle" font-size="12" fill="#666">QR Code Fictício</text>
+                                </svg>
+                            </div>
+                            <p class="pix-instructions">Escaneie o QR Code com o app do seu banco para pagar via PIX</p>
+                            <div class="pix-copy-code">
+                                <input type="text" id="pix-code" value="00020126580014BR.GOV.BCB.PIX0136123e4567-e89b-12d3-a456-4266141740005204000053039865802BR5913OFICIALMED LTDA6009SAO PAULO62070503***6304" readonly>
+                                <button class="btn-copy-pix" id="btn-copy-pix">Copiar Código PIX</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formulário Cartão -->
+                    <div class="payment-form" id="form-cartao">
+                        <div class="card-form">
+                            <div class="form-group">
+                                <label for="card-number">Número do Cartão *</label>
+                                <input type="text" id="card-number" name="card_number" placeholder="0000 0000 0000 0000" maxlength="19" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="card-name">Nome no Cartão *</label>
+                                <input type="text" id="card-name" name="card_name" placeholder="NOME COMPLETO" required>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="card-expiry">Validade *</label>
+                                    <input type="text" id="card-expiry" name="card_expiry" placeholder="MM/AA" maxlength="5" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="card-cvv">CVV *</label>
+                                    <input type="text" id="card-cvv" name="card_cvv" placeholder="000" maxlength="4" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="card-installments">Parcelas *</label>
+                                <select id="card-installments" name="card_installments" required>
+                                    <option value="1">1x sem juros</option>
+                                    <option value="2">2x sem juros</option>
+                                    <option value="3">3x sem juros</option>
+                                    <option value="4">4x sem juros</option>
+                                    <option value="5">5x sem juros</option>
+                                    <option value="6">6x sem juros</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="step-actions">
+                    <button class="btn-voltar" id="btn-voltar-pagamento">Voltar</button>
+                    <button class="btn-finalizar" id="btn-finalizar-pagamento">Finalizar Compra</button>
+                </div>
             </div>
 
             <!-- Badges -->

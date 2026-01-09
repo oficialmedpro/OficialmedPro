@@ -126,6 +126,379 @@ html {
     padding-bottom: 120px; /* espaço para o botão flutuante */
 }
 
+/* Indicador de Progresso */
+.progress-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 40px;
+    padding: 20px 0;
+    gap: 10px;
+}
+
+.progress-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    max-width: 200px;
+}
+
+.step-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.step-icon.step-completed {
+    background: #10b981;
+    color: white;
+}
+
+.step-icon.step-active {
+    background: var(--brand-text);
+    color: white;
+}
+
+.step-icon.step-pending {
+    background: #e5e7eb;
+    color: #9ca3af;
+}
+
+.step-label {
+    text-align: center;
+}
+
+.step-title {
+    display: block;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-color);
+    margin-bottom: 4px;
+}
+
+.step-subtitle {
+    display: block;
+    font-size: 0.875rem;
+    color: var(--muted-color);
+}
+
+.progress-step[data-step="1"] .step-title,
+.progress-step[data-step="2"] .step-title,
+.progress-step[data-step="3"] .step-title {
+    color: var(--text-color);
+}
+
+.progress-step[data-step="1"] .step-icon.step-completed ~ .step-label .step-title,
+.progress-step[data-step="2"] .step-icon.step-active ~ .step-label .step-title {
+    color: var(--brand-text);
+}
+
+.progress-line {
+    flex: 1;
+    height: 2px;
+    background: #e5e7eb;
+    margin: 0 10px;
+    max-width: 100px;
+    transition: background 0.3s ease;
+}
+
+.progress-line.completed {
+    background: #10b981;
+}
+
+/* Step Container */
+.step-container {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Formulário de Dados */
+.form-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 30px;
+    background: white;
+    border-radius: 12px;
+}
+
+.form-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+}
+
+.form-subtitle {
+    color: var(--muted-color);
+    margin-bottom: 30px;
+    font-size: 0.95rem;
+}
+
+.dados-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 0.95rem;
+}
+
+.form-group input,
+.form-group select {
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--brand-text);
+    box-shadow: 0 0 0 3px rgba(19, 60, 142, 0.1);
+}
+
+.form-group input:invalid:not(:placeholder-shown) {
+    border-color: #ef4444;
+}
+
+/* Step Actions */
+.step-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 2px solid #e5e7eb;
+}
+
+.btn-voltar {
+    background: white;
+    color: var(--brand-text);
+    border: 2px solid var(--brand-text);
+    padding: 14px 40px;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-voltar:hover {
+    background: #f3f4f6;
+}
+
+.btn-proximo {
+    background: linear-gradient(135deg, var(--brand-blue-start) 0%, var(--brand-blue-end) 100%);
+    color: white;
+    border: none;
+    padding: 14px 40px;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.btn-proximo:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.btn-proximo:disabled {
+    background: #cbd5e0;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Payment Container */
+.payment-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 30px;
+    background: white;
+    border-radius: 12px;
+}
+
+.payment-methods {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.payment-method {
+    flex: 1;
+    padding: 24px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    background: white;
+}
+
+.payment-method:hover {
+    border-color: var(--brand-text);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.payment-method.active {
+    border-color: var(--brand-text);
+    background: #f3f6f9;
+}
+
+.payment-method-icon {
+    color: var(--brand-text);
+}
+
+.payment-method-label {
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.payment-form {
+    margin-top: 30px;
+    padding-top: 30px;
+    border-top: 2px solid #e5e7eb;
+}
+
+/* PIX */
+.pix-qr-container {
+    text-align: center;
+}
+
+.pix-qr-code {
+    background: white;
+    padding: 20px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+.pix-instructions {
+    color: var(--muted-color);
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+}
+
+.pix-copy-code {
+    display: flex;
+    gap: 10px;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.pix-copy-code input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-family: monospace;
+}
+
+.btn-copy-pix {
+    background: var(--brand-text);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-copy-pix:hover {
+    background: var(--brand-blue-end);
+}
+
+/* Cartão */
+.card-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Responsivo - Progress Indicator */
+@media (max-width: 768px) {
+    .progress-indicator {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .progress-line {
+        width: 2px;
+        height: 40px;
+        margin: 0;
+        max-width: none;
+    }
+    
+    .progress-step {
+        max-width: 100%;
+        width: 100%;
+    }
+    
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .payment-methods {
+        flex-direction: column;
+    }
+    
+    .step-actions {
+        flex-direction: column-reverse;
+    }
+    
+    .btn-voltar,
+    .btn-proximo,
+    .btn-finalizar {
+        width: 100%;
+    }
+}
+
 /* Orçamento Info */
 .orcamento-info {
     margin-bottom: 30px;
